@@ -302,6 +302,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvaleconstruction` (live construction progress and completion actions in the selected inspector at desktop and tablet widths; hook-free save + clicks)
 
 - `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall)
+- `mobilefit` (phone play: hub boards fit a 390px screen and keep touch on the canvas, Memory Matrix center tap hits a pad, Tetris and Vector Storm pads are on screen, Hearthvale goal/pause/zoom/pinch stay tappable, Age of War backing store tracks the phone field and holds frame rate under CPU throttle)
 
 ### Voxel Isle suites
 

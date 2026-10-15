@@ -42,6 +42,7 @@ LEAD=(
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
   labintro labsheetpause primer sessiontag hubhome hublinks objective controls
+  mobilefit
 )
 TRAIL=( pwa )
 

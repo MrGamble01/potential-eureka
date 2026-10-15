@@ -58,14 +58,19 @@ const PongGame = (() => {
       if (e.key === 'ArrowDown') keys.down = false;
     }));
     // Touch/pointer: drag on your half moves that paddle (both in 2P).
-    canvas.addEventListener('pointermove', e => {
-      if (!running) return;
+    // pointerdown places it on the first contact — a tap with no move
+    // still has to answer the ball.
+    const placePaddle = e => {
+      if (!running || !paddles) return;
       const r = canvas.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
       const y = (e.clientY - r.top) / r.height * HEIGHT;
       const x = (e.clientX - r.left) / r.width * WIDTH;
       if (x < WIDTH / 2) paddles[0].y = y - paddles[0].h / 2;
       else if (twoPlayer) paddles[1].y = y - paddles[1].h / 2;
-    });
+    };
+    canvas.addEventListener('pointerdown', placePaddle);
+    canvas.addEventListener('pointermove', placePaddle);
     canvas.addEventListener('click', () => { if (!running || matchOver) start(); });
 
     const ov = document.getElementById('pong-overlay');
