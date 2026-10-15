@@ -264,9 +264,20 @@ function fresh() {
     ok(lab.reset && lab.sfx && lab.music && lab.mute, 'Grow Op mounts mute, both volumes, and reset');
 
     await page.goto(BASE + '/voxel-garden.html', { waitUntil: 'load', timeout: 30000 });
-    await page.waitForFunction(() => window.EurekaPersist && document.getElementById('vox-audio'));
+    await page.waitForFunction(() => window.EurekaPersist && document.querySelector('#vox-audio [data-ep="reset"]'));
+    const vox = await page.evaluate(() => ({
+      reset: !!document.querySelector('#vox-audio [data-ep="reset"]'),
+      sfx: !!document.querySelector('#vox-audio input[data-ep="sfx"]'),
+    }));
+    ok(vox.reset && vox.sfx, 'Voxel Isle mounts sound and reset');
+
     await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 30000 });
-    await page.waitForFunction(() => window.EurekaPersist && document.getElementById('camp-audio'));
+    await page.waitForFunction(() => window.EurekaPersist && document.querySelector('#camp-audio [data-ep="reset"]'));
+    const camp = await page.evaluate(() => ({
+      reset: !!document.querySelector('#camp-audio [data-ep="reset"]'),
+      sfx: !!document.querySelector('#camp-audio input[data-ep="sfx"]'),
+    }));
+    ok(camp.reset && camp.sfx, 'Homeless Village mounts sound and reset');
     await page.goto(BASE + '/tycoon/play.html', { waitUntil: 'load', timeout: 30000 });
     await page.waitForFunction(() => window.EurekaPersist && document.getElementById('tycoon-audio'));
     const ty = await page.evaluate(() => {
