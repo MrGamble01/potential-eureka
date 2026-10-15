@@ -26,7 +26,7 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   // P8: consecutive-clear combo + back-to-back Tetris bonus.
   let combo = 0, lastWasTetris = false, bonusFlash = null;
-  let gameLoop, running, gameOver, canHold;
+  let gameLoop, running, gameOver, canHold, paused;
   let bag = [];
   let clearingRows = null;   // rows flashing white before they collapse
   let clearTimer = null;
@@ -89,7 +89,7 @@ const TetrisGame = (() => {
 
     highScore = Utils.highScore.load('tetris-high');
     board = createBoard();
-    running = gameOver = false;
+    running = gameOver = paused = false;
     score = level = 0; linesCleared = 0;
     current = held = null; nextQ = [];
     bag = [];
@@ -111,6 +111,7 @@ const TetrisGame = (() => {
       const dx = e.changedTouches[0].clientX - tx;
       const dy = e.changedTouches[0].clientY - ty;
       if (!running) { start(); return; }
+      if (paused) return;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
         rotateCW(); // tap = rotate
       } else if (Math.abs(dx) > Math.abs(dy)) {
@@ -305,7 +306,7 @@ const TetrisGame = (() => {
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
 
   function restartLoop() {
-    if (!running) return;
+    if (!running || paused) return;
     clearInterval(gameLoop);
     gameLoop = setInterval(autoDown, dropMs());
   }
@@ -364,13 +365,36 @@ const TetrisGame = (() => {
     draw();
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const ov = document.getElementById('tetris-overlay');
+    if (paused) {
+      clearInterval(gameLoop);
+      // Lock delay and the line-clear flash are clocks the drop interval
+      // doesn't own. Freeze them too, or a grounded piece still locks
+      // and a flashing row still collapses while the board says PAUSED.
+      cancelLock();
+      clearTimeout(clearTimer);
+      if (ov) {
+        ov.style.display = 'flex';
+        ov.innerHTML = `<h2>PAUSED</h2><p style="font-size:12px; color: var(--text-dim)">Press P to resume</p>`;
+      }
+    } else {
+      gameLoop = setInterval(autoDown, dropMs());
+      if (clearingRows) clearTimer = setTimeout(collapseRows, 90);
+      else if (grounded()) scheduleLock();
+      if (ov) ov.style.display = 'none';
+    }
+  }
+
   function start() {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     combo = 0; lastWasTetris = false; bonusFlash = null;
     held = null; canHold = true;
-    gameOver = false; running = true;
+    gameOver = false; running = true; paused = false;
     cancelLock(); lockResets = 0;
     clearTimeout(clearTimer);
     clearingRows = null;
@@ -411,6 +435,8 @@ const TetrisGame = (() => {
   function handleKey(e) {
     if (!running && e.key === ' ') { if (!e.repeat) start(); e.preventDefault(); return; }
     if (!running) return;
+    if (e.key === 'p' || e.key === 'P') { togglePause(); e.preventDefault(); return; }
+    if (paused) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
     // One-shot actions must not fire on OS key auto-repeat: holding
     // Space delivered a hardDrop per repeat event, instantly locking
@@ -534,7 +560,7 @@ const TetrisGame = (() => {
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
       ctx.textAlign = 'left';
     }
   }
@@ -600,10 +626,10 @@ const TetrisGame = (() => {
     clearingRows = null; sparks = [];
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
     const ov = document.getElementById('tetris-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();
