@@ -43,31 +43,45 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| Voxel bakery loaf report | `voxbake` (hook-free: next-loaf ETA, crop/bread stock, windmill two-loaf cycle, empty-crop wait, read-only taps at 1280px/768px, zero page errors) |
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
+| Voxel brewery mead report | `voxbrew` (hook-free: next-bottle ETA, honey/mead stock, empty-honey wait, read-only taps at 1280px/768px, zero page errors) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
+| Homeless Village rain barrel stock | `hvbarrel` (hook-free: live empty/mid/full stock in craft cost, tip and click log; no spend/start; Workbench and unbuilt barrel controls; existing economy/save coverage) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
+| Hearthvale windmill lift | `hvalewind` (hook-free: finished farms in this windmill’s range, zero/singular/plural copy, live completion, removal, and zero page errors at 1280/768) |
+| Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
+| Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
+| Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
+| Age of War queue-full next-slot | `aowqueueeta` (hook-free: live rounded-up wait in refusal floaters and recruit titles, unchanged gold/queue, ticking front trainee, and cancel/recruit recovery at 1280px/768px) |
+| Age of War recruit row | `aowfield` (hook-free: unit cards fully on screen at 1280×800, 1280×900, 1280×720, 1366×768, 1440×900, 1920×1080, 768×700, 390×844, 375×667, 844×390 and 667×375; the field stays 1280:560; Stone Age hides Warcry/Mercs and keeps Duel clickable; Clubman queues for 25 gold; Age II puts Warcry back; 768 field stays ≥260px) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
+| Age of War Age Up XP | `aowagexp` (hook-free: Q shortfall banner and expiry, live titles/accessible labels, unchanged XP/era on refusal, successful age-up, Max Age and Singularity controls at 1280px/768px) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |
 | Startup Tycoon amenity stock | `tycamenity` (hook-free: initial/live stock, stockless owned tags, cash shortfalls, affordable purchase, zero page errors) |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
 | Age of War browsing sheets | `aowesc` (hook-free: real Settings/Awards/The Line buttons, Escape hides each sheet and resumes battle time at 1280px/768px; clean-page Escape, intentional pause, War Council, and welcome Escape/Enter controls) |
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
-| Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card), `hubhome` (Age of War billboard, Long/Quick scan, empty filter, hop-after-search, 900×700 density, scan-mark reset, 720×700 compact flagship, filter-mode chrome, 390 first-visit fold, Games-back restore, shell on HoF, daylight chrome, 1280 Long 3-across, description search, 1280 Studio one-card / Quick 3-across, HoF+resume restore, Studio hop, 390 shell under wrapped nav, HoF Long/Quick + sixth flagship, Hearthvale badge/reset, daylight HoF tokens, 390 HoF score wrap, HoF opens at the title after a scrolled catalogue, HoF per-lane ranks, daylight Patch Notes / Primer / overlay / PEAK / Studio Crew chips) |
+| Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card), `hubhome` (Age of War billboard, Long/Quick scan, empty filter, hop-after-search, 900×700 density, scan-mark reset, 720×700 compact flagship, filter-mode chrome, 390 first-visit fold, Games-back restore, shell on HoF, daylight chrome, 1280 Long 3-across, description search, 1280 Studio one-card / Quick 3-across, HoF+resume restore, Studio hop, 390 shell under wrapped nav, HoF Long/Quick + sixth flagship, Hearthvale badge/reset, daylight HoF tokens, 390 HoF score wrap, HoF opens at the title after a scrolled catalogue, HoF per-lane ranks, daylight Patch Notes / Primer / overlay / PEAK / Studio Crew chips), `hublinks` (catalogue, daily, and Hall of Fame links plus nickname hashes open the named game) |
 | Age of War records | `aowrecords` (AOW-60: a malformed `aow-best-run` no longer freezes future bests; valid bests stay byte-for-byte. Drives the production writer through `vm`, no hook. Non-vacuous: the old `waves > (prev.waves \|\| 0)` comparison is replayed and writes nothing on the freeze payloads), `aowsession` (return chrome leftovers: a kept war holds the field / queue / wager / specials, New war drops it, pause/game-over/welcome/settings/awards/The Line carry Back to Games, 768 and 1024 tuck the topbar rail, 390 scrolls the leftover action bar, resume names wager/chest/council, game-over CTAs sit above the vault, 768×700 field taller than the leftover 200px cap, council carries Games, keyboard activation of resume/New war/Games plus unfocused resume shortcuts) |
+| Hearthvale raid watch | `hvaleraidwatch` (hook-free desktop/tablet tower selection: tonight’s total watch vs population-scaled pack, Frontier bonus, unfinished palisade, unstaffed keeper warning, day/Cozy and non-guard controls) |
 | Hearthvale | `hvaleescpause` (Space → Escape resumes at prior speed with moving time; browsing/Hall dismiss first; trader/event preserve pause ownership; welcome unchanged; zero page errors) |
 | Hearthvale | `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall, Tab/Shift+Tab reach welcome/pause Games without changing builds and Enter exits to the hub) |
-| Hub games | `undo2048`, `w5share`, `cycles3` |
+| Hearthvale welcome | `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at 1280×800, 1280×720, 1024×640, 768×700, 390×844 and 390×700; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood) |
+| Hub games | `undo2048`, `tap2048` (game-over card tap starts a new run), `w5share`, `w5keys` (physical and on-screen input after repeated visits), `cycles3`, `cratereturn` (CE-1: Crate Escape solves a level with the arrow keys a player presses, then leaves and returns — a solved board must not still be sitting there), `snakepause` (P freezes and resumes the tick loop), `life` (P9-LIFE-1: a click or drag erases when it starts on a live cell and paints when it starts on a dead one), `hudreset` (HUD-1: Stacker, Vector Defense, and Word Cascade rewind their info bar when leaving the view rewinds the run) |
+| Grow Op | `labreset` (LAB-59: Reset Game actually resets — the unload autosave no longer writes the run back over the key it just cleared. Drives the real button through the confirm and the reload, no hook; proves the autosave is still live with a plain-reload control, and that the reset reaches the fresh-start path: picker open, legacy and floor safe kept, a Kingpin pick starts on Kingpin money plus the safe) |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
+| Grow Op | `growpure` (LAB-60: the ✨ premium ledger never outgrows the stash it lives in — the DEA raid seizes 30% of the shelf and the ledger comes down with it, and an over-cap save lands its ledger on the capped bag count, not the saved one) |
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 188 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 190 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -162,10 +176,14 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvpanel` (the Fifth Panel)
 - `hvwalk` (the Walk Down)
 - `hvmark` (a Name on the Wall)
+- `hvroom` (HV-270: Make room refuses a full camp before the timer)
+- `hvleave` (HV-271: leaving the tab writes the last half-minute)
+- `hvskew` (HV-272: a corrected clock cannot lock every action)
 - `hvintro` (HV-56: the first-run crash course, a drift guard for its numbers, and visible Games exits from the course and The Bridge with real navigation at desktop/phone widths)
 - `hvwander` (HV-60: the wander step is `speed * (dt/16.667)` so residents shuffle at their own `speed` and settle on a target instead of sprinting to it and ping-ponging across it — at 60fps and at the 100ms lag clamp)
 - `hvbridge` (HV-59: The Bridge pauses the day clock — daylight, warmth and dawn hold while the overlay is open)
 - `hvesc` (HV-58: Escape closes The Bridge)
+- `hvsweep` (HV-71: a Lookout sweep warning survives an unrelated event)
 - `hvlock` (HV-63: Dumpsters Locked said "today" and actually lasted a minute)
 - `hvrefuse` (HV-61: Trade / Rain Bet / Garage / Fridge refuse a short purse before the timer, so a miss no longer charges the cooldown)
 - `hvclock` (HV-62: a hostile timeOfDay cannot burn days on load)
@@ -174,8 +192,11 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvarc` (HV-61: Keys in Hand comes back after a reload)
 - `hvmeetcap` (HV-64: a camp meeting of six pays +12 morale, not a silent cap of +10)
 - `hvsky` (HV-67: Good Weather actually clears the sky)
+- `hvpack` (HV-95: Pack Up survives a reload)
 - `hvrelight` (HV-69: Firewood relights the barrel after Fire Went Out)
 - `hvfive` (HV-70: Found $5 pays five goodwill)
+- `hvbuilder` (HV-138: hiring the Builder mid-craft halves the remaining duration)
+- `hvhold` (HV-114: The Bridge holds the Lookout's ~30s trucks)
 - `hvcoldlift` (HV-182: a cold snap sky halves the depot lift — heat still 0.75 / HV-247; yard cold still HV-189)
 - `hvcoldyard` (HV-189: a cold sky halves the scrapyard haul)
 - `hvbeds` (HV-190: the Community Garden harvests before the empty-larder bite)
@@ -279,14 +300,18 @@ when they touched different cards. Append yours; git merges the rest.*
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
 - `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))
 - `hubhome` (homepage leftover polish: Age of War is the only hero CTA, Snake is a text hop, Long/Quick/Studio scan with counts, search still splits the catalogues, PLAY lines up, 900×700 is three-across, clearing search drops the scan mark, 720×700 keeps the compact flagship, filter mode tucks daily chrome, 390 first-visit Long games start on the fold, HoF/resume Games-back restores the catalogue, 1280 Studio stays one card, 1280 Quick is 3-across)
+- `hublinks` (catalogue cards, daily chips, Hall of Fame rows and nickname URLs open the game they name; `#game2048` / `#grow-op` / `#hof` included; 404 lists working game links)
 - `objective` (SITE-6: every arcade game states its goal and not just its keys — Crate Escape's stated goal is the one checkSolved tests, Vector Defense's wave and life counts are recomputed from the source, and a vocabulary guard catches any game that lists controls and never says what a run is for)
 - `controls` (SITE-7: every arcade game names an input and not just a goal — the seven subtitles that stated a goal and left the keys unsaid now carry them, each claim recomputed from the handler that owns it, plus a guard against a subtitle rendering a literal HTML entity)
 
 ### Hearthvale suites
 
+- `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at desktop, short laptop, tablet and phone; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood)
+- `hvalegoal` (the opening goal is two cottages, counted from zero; an unfinished site stays 0/2, a finished cottage is 1/2, and two finished cottages pay the reward and advance to the farm)
 - `hvaleconstruction` (live construction progress and completion actions in the selected inspector at desktop and tablet widths; hook-free save + clicks)
 
 - `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall)
+- `mobilefit` (phone play: hub boards fit a 390px screen and keep touch on the canvas, Memory Matrix center tap hits a pad, Tetris and Vector Storm pads are on screen, Hearthvale goal/pause/zoom/pinch stay tappable, Age of War backing store tracks the phone field and holds frame rate under CPU throttle)
 
 ### Voxel Isle suites
 
@@ -510,3 +535,7 @@ features can append to.
 - Every suite ends with a zero-page-errors check; `chromium.launch`
   uses `--no-sandbox --use-gl=swiftshader` so WebGL games run in CI
   containers.
+
+`hvalecam` checks pointer/wheel input before DOMContentLoaded, normal mobile/desktop loads, and drag/zoom after initialization. The startup event regression fails against the prior uninitialized camera.
+
+`hvalewatchlive` keeps a watchtower panel open across palisade completion and raid resolution, checking live matchup changes and retained action controls at desktop/tablet widths.

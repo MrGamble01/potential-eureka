@@ -32,15 +32,28 @@ function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
 var _scavGateOut=null;
 function updateScavengeGate(){
   var locked=G.dumpsterLockDay===G.days;
-  var out=!scavengeInRange()||locked;
-  if(out===_scavGateOut) return;
-  _scavGateOut=out;
+  var far=!scavengeInRange();
+  var key=(locked?'L':'o')+(far?'F':'n');
+  if(key===_scavGateOut) return;
+  _scavGateOut=key;
   var btn=document.getElementById('action-scavenge');
-  if(!btn) return;
-  btn.classList.toggle('out-of-range',out);
-  btn.title=locked ? 'Dumpsters are locked today.'
-                : (out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
-                       : 'Dig through dumpsters for scraps, cans, or food.');
+  if(btn){
+    // HV-112: a lock day is not a walk-up. Stood on the bin, 🚶 was a lie.
+    btn.classList.toggle('out-of-range', far && !locked);
+    btn.classList.toggle('locked-today', locked);
+    btn.title=locked ? 'Dumpsters are locked today.'
+                  : (far ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                         : 'Dig through dumpsters for scraps, cans, or food.');
+    btn.setAttribute('data-tip',btn.title);
+  }
+  var fbtn=document.getElementById('action-forage');
+  if(fbtn){
+    fbtn.classList.toggle('locked-today', locked);
+    var ftip=locked ? 'Dumpsters are locked today.'
+                    : 'Search the surroundings for cardboard and wood.';
+    fbtn.title=ftip;
+    fbtn.setAttribute('data-tip', ftip);
+  }
 }
 
 function doAction(a){
@@ -93,6 +106,14 @@ function doAction(a){
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
     if(!G.structures.tent){ log("🫂 The tent is gone — there's no bed to offer until one stands again."); sfx('error'); return; }
+    // HV-270: the ask opens while the camp is under the cap, then holds
+    // three days — and hireWorker fills beds with no cap check. Once six
+    // are by the fire, finishAction's re-check quietly seats nobody but
+    // its shared tail still plays the success blip. Refuse here, before
+    // the 6s timer, the way the short pantry already does.
+    if((G.population||1)>=NEWCOMER_POP_MAX){
+      log('🫂 No room by the fire — the camp is full at '+NEWCOMER_POP_MAX+'.'); sfx('error'); return;
+    }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
       log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
     }
@@ -120,6 +141,23 @@ function doAction(a){
     var frGate=loadFridge();
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
+  }
+  // Refuse unmet prerequisites before starting a job or charging its cooldown.
+  if(a.id==='wall' && !bridgeHasWall()){
+    log('🧱 The wall is bare — this bridge has no story yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='thermos' && !thermosHasWarmth()){
+    log('🫖 The thermos is cold — this bridge has no story to warm it yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='marisol' && !marisolHasStory()){
+    log('🚗 Marisol’s tow truck rolls past without slowing — this bridge has no story she’d know yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='borrow' && (G.rayDebt||0)>0){
+    log('🤝 Ray taps his ledger — '+G.rayDebt+' still owed. One at a time.');
+    sfx('error'); return;
   }
   // HV-275: dawn says the cold gets into everything. Ray holds the
   // bench by the bridge. A Cold Snap sky already thins the corner.
@@ -418,13 +456,20 @@ function finishAction(a){
     // HV-250: scav is a yield multiplier. Rain's 1.25 fattens the haul,
     // not the empty gate — otherwise a wet day empties a dry-day bin.
     if(Math.random()<.2*(G.season===3?.5:1)*(regularStage('ray')===2?.5:1)){
-      log('The dumpster is empty. Nothing today.');
+      log('The dumpster is empty. Nothing this time.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
-      G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
-      var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
-      if(parts.length) floatText(parts.join(' '));
-      log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
+      // HV-113: winter halves the yield. floor(rand * 0.5) can be
+      // 0/0/0 — that is an empty bin, not a dumpster dug.
+      if(c+s+f<=0){
+        log('The dumpster is empty. Nothing this time.');
+      } else {
+        G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
+        var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
+        if(parts.length) floatText(parts.join(' '));
+        log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.');
+      }
+    }
   } else if(a.id==='forage'){
     // HV-269: a queued search must not pay a cool-day haul after
     // the sky turned into a scorcher. The woods wait. Rain is
@@ -1058,11 +1103,12 @@ function doCraft(r){
   // barrel died. Cooking on a dark fire is a cold pot. Firewood
   // is the relight; a blanket is +warmth and does not cook.
   if(r.id==='meal' && G.fireOutUntil && Date.now()<G.fireOutUntil){
-    log('🥣 The barrel is dark — no one can cook a hot meal until the fire is back.');
+    var fireSeconds=Math.ceil((G.fireOutUntil-Date.now())/1000);
+    log('🥣 The barrel is dark — no one can cook a hot meal. '+fireSeconds+'s until the fire is back.');
     sfx('error');
     return;
   }
-  var dur=r.time*(G.workers.builder?.5:1);
+  var dur=r.time*(G.workers.builder?BUILDER_CRAFT:1);
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
   // Persist the in-flight job in the same write as the cost — closing
   // the tab mid-craft used to destroy the resources with no result.
@@ -1078,6 +1124,7 @@ function finishCraft(r){
   delete G.activeCrafts[r.id];
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
+  if(typeof ensureForecast==='function') ensureForecast();
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
   // only dimmed the lights on a wall-clock; this is the feed that
@@ -1089,6 +1136,10 @@ function finishCraft(r){
   log('Crafted '+r.name+'.');
   saveGame();
   updateHUD(); buildCraftUI();
+  // HV-89: the cart (and the guitar) unlock a new verb on the action
+  // rail. buildCraftUI only refreshes recipes; without this rebuild
+  // the deposit run stayed off the board until the next dawn.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // Crafts that were mid-flight when the page closed: the cost was paid
@@ -1098,6 +1149,14 @@ function resumeCrafts(){
     var r=RECIPES.find(function(x){ return x.id===id; });
     if(!r){ delete G.activeCrafts[id]; return; }
     var j=G.activeCrafts[id], remaining=(j.start+j.duration)-Date.now();
+    // HV-138: a reload after the Builder joined used to keep the
+    // saved full duration. If the job still has the recipe's unsped
+    // time, cut what is left. Crafts that already started at x2
+    // (duration already half) are left alone.
+    if(G.workers.builder && j.duration>=r.time && remaining>0){
+      remaining=remaining*BUILDER_CRAFT;
+      j.start=Date.now(); j.duration=remaining;
+    }
     if(remaining<=0) finishCraft(r);
     else setTimeout(function(){ finishCraft(r); }, remaining);
   });
@@ -1106,14 +1165,34 @@ function resumeCrafts(){
 function hireWorker(id){
   var def=WORKER_DEFS.find(function(w){ return w.id===id; });
   if(!def) return;
-  if(G.goodwill<def.cost){ log('Not enough goodwill to recruit '+def.name+'.'); return; }
+  if(G.goodwill<def.cost){ log('Need '+Math.ceil(def.cost-G.goodwill)+' more goodwill to recruit '+def.name+'.'); return; }
   G.goodwill-=def.cost; G.workers[id]=true;
   G.population=Math.min(20,G.population+1);
   G.peakPopulation=Math.max(G.peakPopulation,G.population); // was tracked in G but never updated
   spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
   sfx('hire');
   log(def.name+' joined the community.');
+  if(typeof ensureForecast==='function') ensureForecast();
+  // HV-138: Speeds up crafting x2 is present tense. A craft already
+  // on the bench keeps the old setTimeout unless we cut remaining
+  // and arm a new one. finishCraft is idempotent — the original
+  // timer becomes a no-op once the job is gone.
+  if(id==='builder'){
+    Object.keys(G.activeCrafts||{}).forEach(function(cid){
+      var r=RECIPES.find(function(x){ return x.id===cid; });
+      if(!r) return;
+      var j=G.activeCrafts[cid], remaining=(j.start+j.duration)-Date.now();
+      if(remaining<=0) return;
+      var dur=remaining*BUILDER_CRAFT;
+      G.activeCrafts[cid]={start:Date.now(),duration:dur};
+      setTimeout(function(){ finishCraft(r); }, dur);
+    });
+  }
+  saveGame();
   buildWorkersUI(); updateHUD();
+  // HV-89: a first hire makes the camp two people, which is what
+  // unlocks Hold a camp meeting. Same missing rebuild as finishCraft.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // HV-15: goodwill spent at the notice board becomes civic

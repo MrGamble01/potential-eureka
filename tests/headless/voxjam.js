@@ -11,15 +11,74 @@
  *    the save; a legacy save migrates clean.
  * Z. Zero page errors.
  */
+const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
+// Shelf taps use the loaded production mesh and doAction; no injected game hooks.
+async function checkShelfTaps(browser) {
+  for (const width of [1280, 768]) {
+    const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+    try {
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(String(e)));
+      await page.addInitScript(() => {
+        localStorage.setItem('voxel-garden-v1', JSON.stringify({
+          v: 1, seed: 1, savedAt: Date.now(),
+          state: { helpSeen: true, muted: true, musicOff: true, coins: 500,
+            level: 8, day: 2, jars: 2, jamsSold: 3,
+            buildings: { preserves: { x: 7, z: 7 } }, goods: {} },
+          edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+        }));
+      });
+      await page.goto(BASE + '/voxel-garden.html', { waitUntil: 'load' });
+      await page.waitForFunction(() => !!W.buildingMeshes.preserves);
+      const reports = await page.evaluate(() => {
+        const snapshot = () => ({ jars: state.jars, coins: state.coins,
+          jamsSold: state.jamsSold, buildings: JSON.stringify(state.buildings) });
+        const tap = () => {
+          const before = snapshot();
+          document.getElementById('toasts').replaceChildren();
+          doAction({ object: W.buildingMeshes.preserves });
+          return { before, after: snapshot(),
+            toasts: [...document.querySelectorAll('#toasts .toast')].map(t => t.textContent) };
+        };
+        const mid = tap();
+        state.jars = JAM_CAP;
+        const full = tap();
+        // An older save can lack jars; the report must still show an empty shelf.
+        delete state.jars;
+        const empty = tap();
+        return { mid, full, empty };
+      });
+      for (const [name, report] of Object.entries(reports)) {
+        assert.deepEqual(report.after, report.before, `${width}: ${name} tap is read-only`);
+        assert.equal(report.toasts.length, 1, `${width}: one clear toast`);
+        assert.match(report.toasts[0], /🫙.*Preserve Shed/);
+        assert.match(report.toasts[0], /12🪙\/jar/);
+      }
+      assert.match(reports.mid.toasts[0], /2\/4.*dawn/i);
+      assert.match(reports.full.toasts[0], /4\/4.*shelf full.*seasonal festival/i);
+      assert.doesNotMatch(reports.full.toasts[0], /dawn/i);
+      assert.match(reports.empty.toasts[0], /0\/4.*dawn/i);
+      assert.deepEqual(errors, [], `${width}: zero page errors`);
+      ok(true, `${width}px: mid/full/legacy-empty shelf reports; one toast, no mutation, zero page errors`);
+    } finally {
+      await ctx.close();
+    }
+  }
+}
+
 (async () => {
   const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
+  try {
+  await checkShelfTaps(browser);
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const page = await ctx.newPage();
   const errs = [];
@@ -108,8 +167,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const legacy = await t(() => ({ jars: state.jars || 0, sold: state.jamsSold || 0, built: jamBuilt() }));
   ok(legacy.jars === 0 && legacy.sold === 0 && !legacy.built, 'a pre-VOX-22 save migrates clean');
 
-  await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-  process.exit(fail ? 1 : 0);
-})();
+  process.exitCode = fail ? 1 : 0;
+  } finally {
+    await browser.close();
+  }
+})().catch(e => { console.error(e); process.exitCode = 1; });

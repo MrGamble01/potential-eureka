@@ -1,4 +1,5 @@
 var lastTime=0, autosaveTimer=0, camSwayT=0;
+var barsLit={};   // HV-73: progress bars filled last frame, by job id
 
 // ── Player input ──
 // Previously there was NO player control: `player` (scene.js) was just
@@ -29,6 +30,30 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// HV-271: save when the player leaves. The 30s autosave below is the
+// only write the grind actions (Scavenge, Forage, Panhandle, Rest,
+// Trade) and hireWorker ever get, so closing the tab — or a phone
+// killing a backgrounded one — threw away up to half a minute of
+// hauls. Tycoon, Grow Op and Voxel Isle all save on pagehide and on
+// visibilitychange→hidden (iOS Safari never fires beforeunload for a
+// killed tab); this is the same handler. One guard: Start Over and
+// Start a New Camp clear the save key and reload, and a leave-save
+// would write the dead camp straight back over the wipe — so stand
+// down while either overlay is up. showGameOver already saved. Two:
+// if the key no longer holds what this page last wrote or loaded,
+// another writer owns it now (a second tab you kept playing in, the
+// hub's Reset progress) — leave it alone rather than stomp it.
+function saveOnLeave(){
+  if(typeof gameOverShown!=='undefined' && gameOverShown) return;
+  if(document.getElementById('hv-graduation')) return;
+  try{ if(localStorage.getItem(SAVE_KEY)!==hvLastWrite) return; }catch(e){ return; }
+  saveGame();
+}
+window.addEventListener('pagehide', saveOnLeave);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='hidden') saveOnLeave();
+});
+
 // HV-58: Escape closes The Bridge.
 //
 // #chain-modal already dismisses via × and backdrop (ui.js). Escape was
@@ -49,6 +74,22 @@ document.addEventListener('keydown', function(e){
     // invent a third closer.
     var stay = document.getElementById('hv-grad-stay');
     if(stay) stay.click();
+  }
+});
+
+// HV-68: Escape closes the event banner.
+//
+// #event-banner already dismisses via × (closeEvent in ui.js) and
+// auto-hides after 7s. Escape was only wired for the intro and The
+// Bridge, neither of which sees this banner. Same class of drift as
+// TYC-60 / HV-58. Lives here — not in ui.js. Do not go through the
+// intro closer: that would mark the crash course seen.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var b = document.getElementById('event-banner');
+    if(b && b.style.display === 'block'){
+      b.style.display = 'none';
+    }
   }
 });
 
@@ -75,6 +116,10 @@ renderer.domElement.addEventListener('pointerdown', function(e){
 });
 
 function movePlayer(dt){
+  // HV-63: an open overlay is reading, not walking. Drop held keys and
+  // a queued tap-walk so closing the panel does not lurch the figure
+  // the player could not see moving.
+  if(overlayOpen()){ keysDown={}; walkTarget=null; return; }
   var dx=0, dz=0;
   if(keysDown.up)    dz-=1;
   if(keysDown.down)  dz+=1;
@@ -99,6 +144,7 @@ function movePlayer(dt){
 loadGame();
 refreshStructures();
 for (var i = 1; i < G.population; i++) { spawnFigure((Math.random()-.5)*10, (Math.random()-.5)*10, 'community'); }
+refreshFridgeTip();
 buildActionUI();
 buildCraftUI();
 buildWorkersUI();
@@ -139,6 +185,10 @@ if(!G.fridgeSeeded){
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
+    // HV-106: camps just crossed 3 or 6 — the 🧊 tip has to name
+    // the new seed before the next hover, not wait for a reload.
+    refreshFridgeTip();
+    buildActionUI();
     updateHUD();
   }
   deliverHvNote();   // HV-33: and the door holds a note for whoever comes next
@@ -181,7 +231,14 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  var fireOut = Date.now() < (G.fireOutUntil||0);
+  var fireSeconds = Math.max(0,Math.ceil(((G.fireOutUntil||0)-Date.now())/1000));
+  var fireOut = fireSeconds > 0;
+  var warmthPill = document.getElementById('stat-warmth').parentElement;
+  if(fireOut){
+    warmthPill.title='🔥 Barrel dark — '+fireSeconds+'s until the fire is back';
+  } else {
+    warmthPill.removeAttribute('title');
+  }
   fireLights.forEach(function(fl,i){
     if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
@@ -225,13 +282,29 @@ function frame(ts){
   movePlayer(dt);
   updateScavengeGate();
 
-  // Action progress bars + cooldown disable
+  // Cooldown disable for the fixed action list.
   ACTIONS.forEach(function(a){
-    var job=activeJobs[a.id];
-    var pb=document.getElementById('progress-'+a.id);
-    if(pb) pb.style.width=job?Math.min(100,((Date.now()-job.startTime)/job.duration)*100)+'%':'0%';
     var btn=document.getElementById('action-'+a.id);
-    if(btn&&!job){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+    if(btn&&!activeJobs[a.id]){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+  });
+  // HV-73: progress bars ride every running job, not just ACTIONS. The
+  // odd job, mural, meeting, deposit run, busk, newcomer, ticket and
+  // dry corner are appended by buildActionUI outside that table, and
+  // this loop used to walk ACTIONS only — so their bar sat at 0% for
+  // the whole 6–8s job while the border pulsed. Bars lit last frame
+  // are reset to 0% the moment their job is gone, without waiting on
+  // a panel rebuild (a lapsed ask or a refused build never rebuilds).
+  var nowMs=Date.now();
+  Object.keys(activeJobs).forEach(function(id){
+    var job=activeJobs[id], pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width=Math.min(100,((nowMs-job.startTime)/job.duration)*100)+'%';
+    barsLit[id]=true;
+  });
+  Object.keys(barsLit).forEach(function(id){
+    if(activeJobs[id]) return;
+    delete barsLit[id];
+    var pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width='0%';
   });
 
   tickDay(dt);

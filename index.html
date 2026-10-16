@@ -63,7 +63,7 @@
   </nav>
 
   <nav class="arcade-secondary-nav arcade-shell" aria-label="Studio links">
-    <button type="button" class="sec-link" data-view="halloffame">&#127942; Hall of Fame</button>
+    <a class="sec-link" href="#halloffame" data-view="halloffame">&#127942; Hall of Fame</a>
     <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
     <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
     <button type="button" class="sec-link" id="challenge-jump-btn">&#128197; Challenge</button>
@@ -71,13 +71,14 @@
 
   <!-- Tucked-away utility views + toys — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
+    <div id="nav-audio"></div>
     <button data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">Studio Crew</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <div class="nav-utils-divider">toys</div>
-    <button data-view="maze">Maze Runner</button>
-    <button data-view="life">Game of Life</button>
+    <a href="#maze" data-view="maze">Maze Runner</a>
+    <a href="#life" data-view="life">Game of Life</a>
   </div>
 
   <!-- ===================== ARCADE (HOME) ===================== -->
@@ -101,7 +102,7 @@
 
       <p class="arcade-hero-alt">
         Or
-        <button type="button" class="hero-alt-link" data-view="snake">quick play Snake</button>
+        <a class="hero-alt-link" href="#snake" data-view="snake">quick play Snake</a>
         <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
         <button type="button" class="hero-alt-link" data-jump="long">6 long games</button>
         <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
@@ -173,7 +174,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
+      <a class="arcade-card" href="tycoon/play.html" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay" width="640" height="400">
           <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
@@ -285,7 +286,7 @@
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
       </div>
       <div class="arcade-grid arcade-grid--quick">
-<button class="arcade-card" data-view="snake" style="--accent:#6C63FF">
+<a class="arcade-card" href="#snake" data-view="snake" style="--accent:#6C63FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/snake.jpg" alt="Snake gameplay" width="512" height="320" loading="lazy">
           <video class="arcade-card-clip" src="assets/thumbs/snake.webm" muted loop playsinline preload="none"></video>
@@ -298,9 +299,9 @@
           <div class="arcade-card-desc">Eat, grow, don't bite yourself.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="tetris" style="--accent:#F778BA">
+      <a class="arcade-card" href="#tetris" data-view="tetris" style="--accent:#F778BA">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay" width="641" height="482" loading="lazy" data-crop="right">
           <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
@@ -313,9 +314,9 @@
           <div class="arcade-card-desc">Stack blocks. Clear lines. Don't top out.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="breakout" style="--accent:#22d3ee">
+      <a class="arcade-card" href="#breakout" data-view="breakout" style="--accent:#22d3ee">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/breakout.jpg" alt="Neon Breaker gameplay" width="640" height="463" loading="lazy">
           <video class="arcade-card-clip" src="assets/thumbs/breakout.webm" muted loop playsinline preload="none"></video>
@@ -328,9 +329,9 @@
           <div class="arcade-card-desc">Smash bricks. Grab power-ups. Chase combos.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="asteroids" style="--accent:#a78bfa">
+      <a class="arcade-card" href="#asteroids" data-view="asteroids" style="--accent:#a78bfa">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/asteroids.jpg" alt="Vector Storm gameplay" width="640" height="463" loading="lazy">
           <video class="arcade-card-clip" src="assets/thumbs/asteroids.webm" muted loop playsinline preload="none"></video>
@@ -343,9 +344,9 @@
           <div class="arcade-card-desc">Drift, thrust, blast splitting rocks.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="2048" style="--accent:#facc15">
+      <a class="arcade-card" href="#2048" data-view="2048" style="--accent:#facc15">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay" width="560" height="560" loading="lazy" data-crop="mid">
           <video class="arcade-card-clip" src="assets/thumbs/2048.webm" muted loop playsinline preload="none"></video>
@@ -358,9 +359,9 @@
           <div class="arcade-card-desc">Slide, merge, reach 2048.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="minesweeper" style="--accent:#F0883E">
+      <a class="arcade-card" href="#minesweeper" data-view="minesweeper" style="--accent:#F0883E">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/minefield.jpg" alt="Minefield gameplay" width="416" height="416" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -372,9 +373,9 @@
           <div class="arcade-card-desc">Flag mines. Clear the board. Beat your time.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="lightcycles" style="--accent:#22d3ee">
+      <a class="arcade-card" href="#lightcycles" data-view="lightcycles" style="--accent:#22d3ee">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/lightcycles.jpg" alt="Light Cycles gameplay" width="640" height="432" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -386,9 +387,9 @@
           <div class="arcade-card-desc">Trap the AI — or duel a friend.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="pong" style="--accent:#58A6FF">
+      <a class="arcade-card" href="#pong" data-view="pong" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/pong.jpg" alt="Pong++ gameplay" width="640" height="405" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -400,9 +401,9 @@
           <div class="arcade-card-desc">Split balls, grow paddles. First to 7.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="stacker" style="--accent:#F7C948">
+      <a class="arcade-card" href="#stacker" data-view="stacker" style="--accent:#F7C948">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
@@ -414,9 +415,9 @@
           <div class="arcade-card-desc">Drop flush. Climb the tower.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="crateescape" style="--accent:#F0883E">
+      <a class="arcade-card" href="#crateescape" data-view="crateescape" style="--accent:#F0883E">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/crateescape.jpg" alt="Crate Escape gameplay" width="640" height="560" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -428,9 +429,9 @@
           <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="vectordefense" style="--accent:#8B83FF">
+      <a class="arcade-card" href="#vectordefense" data-view="vectordefense" style="--accent:#8B83FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/vectordefense.jpg" alt="Vector Defense gameplay" width="640" height="480" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -442,9 +443,9 @@
           <div class="arcade-card-desc">Turrets vs neon raiders. Ten waves.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="wordcascade" style="--accent:#3FB950">
+      <a class="arcade-card" href="#wordcascade" data-view="wordcascade" style="--accent:#3FB950">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
@@ -456,9 +457,9 @@
           <div class="arcade-card-desc">Spell falling letters. Chains multiply.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="memorymatrix" style="--accent:#a78bfa">
+      <a class="arcade-card" href="#memorymatrix" data-view="memorymatrix" style="--accent:#a78bfa">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/memorymatrix.jpg" alt="Memory Matrix gameplay" width="640" height="640" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -470,9 +471,9 @@
           <div class="arcade-card-desc">Echo the lights. How long can you hold?</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="connect4" style="--accent:#f7c948">
+      <a class="arcade-card" href="#connect4" data-view="connect4" style="--accent:#f7c948">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/dropfour.jpg" alt="Drop Four gameplay" width="434" height="372" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -484,9 +485,9 @@
           <div class="arcade-card-desc">Connect four against a thinking AI.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
-      <button class="arcade-card" data-view="word5" style="--accent:#3FB950">
+      <a class="arcade-card" href="#word5" data-view="word5" style="--accent:#3FB950">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy" data-crop="high">
           <div class="arcade-card-shine"></div>
@@ -498,7 +499,7 @@
           <div class="arcade-card-desc">Guess the five-letter word in six tries.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
-      </button>
+      </a>
 
           </div>
     </div>
@@ -755,7 +756,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Eat to grow &mdash; never hit a wall or your own tail &middot; Arrow keys / WASD &middot; swipe on mobile</div>
+        <div class="game-subtitle">Eat to grow &mdash; never hit a wall or your own tail &middot; Arrow keys / WASD &middot; swipe on mobile &middot; P to pause</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="snake-score">0</strong></span>
@@ -768,6 +769,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button onclick="SnakeGame.togglePause()" title="Pause or resume (P)">Pause</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
         <button id="snake-pace-btn" onclick="SnakeGame.cyclePace()" title="Base tick speed. Daily runs always play Classic so scores stay comparable.">Pace: CLASSIC</button>
       </div>
@@ -874,7 +876,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR DEFENSE</div>
-        <div class="game-subtitle">Hold ten waves &mdash; every leak costs one of your ten lives &middot; Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
+        <div class="game-subtitle">Hold ten waves &mdash; every leak costs one of your ten lives &middot; Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave &middot; P pauses</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Cash: <strong id="vd-cash">$120</strong></span>
@@ -920,7 +922,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">MEMORY MATRIX</div>
-        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run &middot; click the pads, or keys 1-9 in reading order</div>
+        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; three misses end the run &middot; click the pads, or keys 1-9 in reading order</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Round: <strong id="mm-round">1</strong></span>
@@ -973,7 +975,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">TETRIS</div>
-        <div class="game-subtitle">Clear lines before the stack reaches the top &middot; ← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+        <div class="game-subtitle">Clear lines before the stack reaches the top &middot; ← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold &middot; P pause</div>
       </div>
       <div class="tetris-layout">
         <div class="tetris-side">
@@ -1020,6 +1022,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="TetrisGame.start()">New Game</button>
+        <button onclick="TetrisGame.togglePause()">Pause</button>
       </div>
     </div>
   </section>
@@ -1166,7 +1169,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">DROP FOUR</div>
-        <div class="game-subtitle">Click a column to drop a disc &middot; connect four in a row before the AI does &middot; you're red</div>
+        <div class="game-subtitle">Click a column or press 1&ndash;7 to drop &middot; connect four in a row before the AI does &middot; you're red</div>
       </div>
       <div class="game-controls" style="flex-wrap:wrap">
         <button class="primary" onclick="ConnectFourGame.newGame()">New Game</button>
@@ -1227,7 +1230,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
+        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; pause P &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -1246,9 +1249,11 @@
         <button id="ast-right" aria-label="Rotate right">&#8635;</button>
         <button id="ast-fire" aria-label="Fire">&#9679; FIRE</button>
         <button id="ast-hyper" aria-label="Hyperspace jump">&#10530; WARP</button>
+        <button id="ast-pause" aria-label="Pause">&#10074;&#10074;</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="AsteroidsGame.start()">New Game</button>
+        <button id="asteroids-pause-btn" onclick="AsteroidsGame.togglePause()">Pause</button>
       </div>
     </div>
   </section>
@@ -1259,7 +1264,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">GAME OF LIFE</div>
-        <div class="game-subtitle">Conway's cellular automaton — click to draw cells</div>
+        <div class="game-subtitle">Conway's cellular automaton — click to draw or erase cells</div>
       </div>
       <div class="game-controls">
         <button class="primary" id="life-play-btn" onclick="LifeGame.togglePlay()">Play</button>
@@ -1287,7 +1292,7 @@
         <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
         <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
       </div>
-      <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw cells"></canvas>
+      <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw or erase cells"></canvas>
       <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
         Cell age: <span style="color:#eaffff">newborn</span> ·
         <span style="color:#3FB950">young</span> ·
@@ -1309,8 +1314,8 @@
         <strong>&larr; &uarr; &rarr; &darr; / WASD</strong><span>Steer, rotate, thrust, slide</span>
         <strong>Z</strong><span>2048 — undo the last move (not in daily runs)</span>
         <strong>H</strong><span>Vector Storm — hyperspace jump</span>
-        <strong>1&ndash;9</strong><span>Memory Matrix — press the pads</span>
-        <strong>P</strong><span>Age of War — pause &amp; open the Relic Vault</span>
+        <strong>1&ndash;9</strong><span>Memory Matrix — press the pads &middot; Drop Four — drop into column 1-7</span>
+        <strong>P</strong><span>Age of War — pause &amp; open the Relic Vault &middot; Snake — pause &middot; Vector Defense — pause mid-wave</span>
         <strong>W/S + arrows</strong><span>Pong++ &amp; Light Cycles — two players, one keyboard</span>
         <strong>Esc</strong><span>Clear the game search &middot; close dialogs</span>
       </div>
@@ -1406,6 +1411,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="js/persist.js" defer></script>
   <script src="js/sfx.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/scores.js" defer></script>
@@ -1443,6 +1449,7 @@
   <script src="js/achievements.js" defer></script>
   <script src="js/telemetry.js" defer></script>
   <script src="js/coins.js" defer></script>
+  <script src="js/hub-routes.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1462,6 +1469,7 @@
   // script has executed.
   document.addEventListener('DOMContentLoaded', () => {
     const navButtons = document.querySelectorAll('[data-view]');
+    let applyingHash = false;
     const views = document.querySelectorAll('.view');
     const navUtils = document.getElementById('nav-utils');
     const navUtilsToggle = document.getElementById('nav-utils-toggle');
@@ -1565,8 +1573,14 @@
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
       navUtils.classList.remove('open');
       syncNavUtilsExpanded();
+      document.title = (typeof HubRoutes !== 'undefined') ? HubRoutes.titleFor(name) : 'EUREKA GAMES';
       // Keep the URL hash in sync so Back/reload and deep links stay consistent.
+      // Suppress the hashchange listener: it would re-enter this function
+      // before currentView updates, and a page nickname would navigate away
+      // mid-switch.
+      applyingHash = true;
       if ((location.hash || '').replace(/^#/, '') !== name) location.hash = name;
+      applyingHash = false;
 
       if (!inited.has(name)) {
         inited.add(name);
@@ -1634,11 +1648,11 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
+      { name: 'Age of War',       accent: '#D29922', lane: 'long', href: 'ageofwar/', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'tycoon/'; },
+      { name: 'Startup Tycoon',   accent: '#58A6FF', lane: 'long', href: 'tycoon/play.html', go: () => { rememberLaunch('long'); location.href = 'tycoon/play.html'; },
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
-      { name: 'Grow Op',          accent: '#3FB950', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
+      { name: 'Grow Op',          accent: '#3FB950', lane: 'long', href: 'drug-lab.html', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
         best: () => {
           const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
           const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
@@ -1648,45 +1662,45 @@
           if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
           return parts.join(' · ');
         } },
-      { name: 'Homeless Village', accent: '#F0883E', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
+      { name: 'Homeless Village', accent: '#F0883E', lane: 'long', href: 'homeless-village.html', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
         best: () => {
           const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
           if (d <= 0) return null;
           return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
         } },
-      { name: 'Hearthvale',       accent: '#7fbf63', lane: 'long', rid: 'hearthvale-v1', go: () => { rememberLaunch('long'); location.href = 'hearthvale.html'; },
+      { name: 'Hearthvale',       accent: '#7fbf63', lane: 'long', rid: 'hearthvale-v1', href: 'hearthvale.html', go: () => { rememberLaunch('long'); location.href = 'hearthvale.html'; },
         best: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? v + ' villagers at peak' : null; } },
-      { name: 'Voxel Isle',       accent: '#7EC8FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
+      { name: 'Voxel Isle',       accent: '#7EC8FF', lane: 'long', href: 'voxel-garden.html', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
-      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => { rememberLaunch('quick'); switchView('snake'); },
+      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', href: '#snake', go: () => { rememberLaunch('quick'); switchView('snake'); },
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => { rememberLaunch('quick'); switchView('tetris'); },
+      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', href: '#tetris', go: () => { rememberLaunch('quick'); switchView('tetris'); },
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => { rememberLaunch('quick'); switchView('breakout'); },
+      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', href: '#breakout', go: () => { rememberLaunch('quick'); switchView('breakout'); },
         best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => { rememberLaunch('quick'); switchView('asteroids'); },
+      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', href: '#asteroids', go: () => { rememberLaunch('quick'); switchView('asteroids'); },
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => { rememberLaunch('quick'); switchView('2048'); },
+      { name: '2048',             accent: '#facc15', rid: 'g2048-best', href: '#2048', go: () => { rememberLaunch('quick'); switchView('2048'); },
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => { rememberLaunch('quick'); switchView('minesweeper'); },
+      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', href: '#minesweeper', go: () => { rememberLaunch('quick'); switchView('minesweeper'); },
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => { rememberLaunch('quick'); switchView('connect4'); },
+      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', href: '#connect4', go: () => { rememberLaunch('quick'); switchView('connect4'); },
         best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => { rememberLaunch('quick'); switchView('word5'); },
+      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', href: '#word5', go: () => { rememberLaunch('quick'); switchView('word5'); },
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => { rememberLaunch('quick'); switchView('lightcycles'); },
+      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', href: '#lightcycles', go: () => { rememberLaunch('quick'); switchView('lightcycles'); },
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => { rememberLaunch('quick'); switchView('pong'); },
+      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', href: '#pong', go: () => { rememberLaunch('quick'); switchView('pong'); },
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => { rememberLaunch('quick'); switchView('stacker'); },
+      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', href: '#stacker', go: () => { rememberLaunch('quick'); switchView('stacker'); },
         best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
-      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => { rememberLaunch('quick'); switchView('crateescape'); },
+      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', href: '#crateescape', go: () => { rememberLaunch('quick'); switchView('crateescape'); },
         best: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; } },
-      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => { rememberLaunch('quick'); switchView('vectordefense'); },
+      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', href: '#vectordefense', go: () => { rememberLaunch('quick'); switchView('vectordefense'); },
         best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
-      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => { rememberLaunch('quick'); switchView('wordcascade'); },
+      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', href: '#wordcascade', go: () => { rememberLaunch('quick'); switchView('wordcascade'); },
         best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
+      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', href: '#memorymatrix', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
     const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'hearthvale-v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
@@ -1713,14 +1727,14 @@
               r.name + ' · ' + Rivals.fmt(g.rid, r.value) + '</span>';
           }
         }
-        return '<button class="hof-row' + (best ? '' : ' hof-row-empty') + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
+        return '<a class="hof-row' + (best ? '' : ' hof-row-empty') + '" href="' + g.href + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
                  '<span class="hof-rank">' + rank + '</span>' +
                  '<span class="hof-dot"></span>' +
                  '<span class="hof-name">' + g.name + '</span>' +
                  '<span class="hof-dots"></span>' +
                  rivalHtml +
                  '<span class="hof-score">' + (best || '— not played —') + '</span>' +
-               '</button>';
+               '</a>';
       };
       // Leftover after the homepage Long/Quick split: the board was still
       // a flat pre-#988 list, and it skipped the sixth flagship.
@@ -1740,7 +1754,11 @@
         '</div>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
-        row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
+        row.addEventListener('click', (e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          HOF_GAMES[+row.dataset.hof].go();
+        });
       });
       renderRivalsBar();
       if (typeof Achievements !== 'undefined') Achievements.renderInto('hof-achievements');
@@ -1896,7 +1914,10 @@
     });
 
     navButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        // Real links: let modified clicks open a new tab. Plain clicks
+        // stay in this page so the return-to-catalogue memory still runs.
+        if (btn.tagName === 'A' && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
         if (currentView === 'arcade' && btn.dataset.view && btn.dataset.view !== 'arcade') rememberLeave(btn);
         switchView(btn.dataset.view);
       });
@@ -1941,6 +1962,21 @@
     };
     syncSfxIcon();
     sfxToggle.addEventListener('click', () => { SFX.toggle(); syncSfxIcon(); if (!SFX.isMuted()) SFX.play('start'); });
+    if (typeof EurekaPersist !== 'undefined') {
+      const navAudio = document.getElementById('nav-audio');
+      if (navAudio) {
+        EurekaPersist.mount(navAudio, {
+          showMute: false,
+          localMuted: () => SFX.isMuted(),
+          onChange: () => { syncSfxIcon(); },
+        });
+        EurekaPersist.settings.subscribe(() => {
+          const shared = EurekaPersist.settings.get();
+          if (shared.touched && SFX.isMuted() !== shared.muted) SFX.setMuted(shared.muted);
+          syncSfxIcon();
+        });
+      }
+    }
 
     navUtilsToggle.addEventListener('click', () => { navUtils.classList.toggle('open'); syncNavUtilsExpanded(); });
     document.addEventListener('click', (e) => {
@@ -2036,13 +2072,22 @@
       });
     }
 
-    // Hash-route deep linking — e.g. /#snake opens that view directly.
-    // (Age of War, Startup Tycoon, Grow Op and Homeless Village are separate
-    //  pages reached by their links, not hash-routed views.)
-    function viewFromHash() {
-      const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker', 'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'halloffame'];
-      return known.includes(h) ? h : null;
+    // Hash-route deep linking — /#snake opens that view. Nicknames
+    // (#game2048, #minefield, #hof) and standalone games (#grow-op,
+    // #tycoon) resolve through HubRoutes so a copied link still launches.
+    function routeFromHash() {
+      if (typeof HubRoutes === 'undefined') return null;
+      return HubRoutes.viewFor(location.hash || '');
+    }
+    function followRoute(route) {
+      if (!route) return false;
+      if (route.kind === 'page') {
+        rememberLaunch('long');
+        location.assign(route.href);
+        return true;
+      }
+      if (route.kind === 'view' && route.name !== currentView) switchView(route.name);
+      return true;
     }
     // A '#hof=<code>' link is an import, not a view: store the rival,
     // clean the hash, land on the Hall of Fame with the result showing.
@@ -2062,9 +2107,9 @@
     }
 
     window.addEventListener('hashchange', () => {
+      if (applyingHash) return;
       if (handleRivalHash()) return;
-      const v = viewFromHash();
-      if (v && v !== currentView) switchView(v);
+      followRoute(routeFromHash());
     });
 
     // Card search (P4): filters the arcade grid by title or tag text.
@@ -2629,7 +2674,12 @@
     if (typeof Coins !== 'undefined') Coins.init();
     if (typeof Telemetry !== 'undefined') Telemetry.init();
     if (typeof Achievements !== 'undefined') Achievements.check();
-    Effects.init().then(() => { if (!handleRivalHash()) switchView(viewFromHash() || 'arcade'); });
+    Effects.init().then(() => {
+      if (handleRivalHash()) return;
+      const route = routeFromHash();
+      if (route && route.kind === 'page') { followRoute(route); return; }
+      switchView((route && route.kind === 'view') ? route.name : 'arcade');
+    });
   });
   </script>
 

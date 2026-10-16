@@ -21,10 +21,10 @@ const Daily = (() => {
     { id: 'snake',     hash: 'snake',     name: 'Snake' },
     { id: 'tetris',    hash: 'tetris',    name: 'Tetris' },
     { id: 'game2048',  hash: '2048',      name: '2048' },
-    { id: 'maze',      hash: 'maze',      name: 'Maze' },
-    { id: 'asteroids', hash: 'asteroids', name: 'Asteroids' },
+    { id: 'maze',      hash: 'maze',      name: 'Maze Runner' },
+    { id: 'asteroids', hash: 'asteroids', name: 'Vector Storm' },
     { id: 'minesweeper', hash: 'minesweeper', name: 'Minefield', dir: 'min' },
-    { id: 'wordcascade', hash: 'wordcascade', name: 'Cascade' },
+    { id: 'wordcascade', hash: 'wordcascade', name: 'Word Cascade' },
   ];
 
   // mulberry32: tiny, solid-enough 32-bit PRNG. Seeded from a string
@@ -106,9 +106,9 @@ const Daily = (() => {
     if (!list) return;
     list.innerHTML = GAMES.map(g => {
       const best = Utils.highScore.load(bestKey(g.id));
-      return `<button class="daily-chip" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
+      return `<a class="daily-chip" href="#${g.hash}" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
         (best > 0 ? `<span class="daily-best">★ ${best}</span>` : '') +
-        `</button>`;
+        `</a>`;
     }).join('');
     const dateEl = document.getElementById('daily-date');
     if (dateEl) dateEl.textContent = Utils.todayKey();
@@ -129,6 +129,7 @@ const Daily = (() => {
       list.addEventListener('click', e => {
         const btn = e.target.closest('.daily-chip');
         if (!btn) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         // A chip during search used to leave the filter armed, so
         // coming back to #arcade still showed the empty miss.
         const search = document.getElementById('card-search');
