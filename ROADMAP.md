@@ -51,6 +51,8 @@ TYC — The Amenities shop shows live cabinet/stash stock and names cash
 shortfalls on disabled unlocked purchases. Hook-free `tycamenity` covers first
 paint, stock changes, stockless amenities and affordable buying. Cache: `eureka-20261016-tyc-amenity`.
 
+MAZE — Watch AI Solve hands the runner back when the demo finishes or you leave mid-solve. Hook-free `mazesolve`.
+
 LIFE — A drag erases when it starts on a live cell and paints when it starts on a dead one. Hook-free `life`.
 
 HUD — Stacker, Vector Defense, and Word Cascade rewind their info bar when leaving the view rewinds the run. Hook-free `hudreset`.
