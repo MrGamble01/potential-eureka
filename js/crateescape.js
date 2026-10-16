@@ -312,7 +312,14 @@ const CrateEscapeGame = (() => {
   function destroy() {
     const ov = document.getElementById('crate-overlay');
     if (ov) ov.style.display = 'none';
-    solvedNow = false;
+    // CE-1: leaving while the Solved banner was up stranded you. init() runs
+    // once per view, so nothing re-armed anything on the way back in — you
+    // returned to the finished puzzle with the banner gone and SPACE (the key
+    // the banner had just told you to press) dead, because solvedNow was
+    // cleared here. Take the step the banner offered instead: the next puzzle,
+    // or a replay of the last one at the top of the ladder. Unsolved levels are
+    // untouched — you come back to the board you left, mid-solve.
+    if (solvedNow) { loadLevel(Math.min(MAX_LEVEL, level + 1)); return; }
     draw();
   }
 

@@ -35,6 +35,7 @@ const fakeWin = page => page.evaluate(() => {
 
 (async () => {
   const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } });
