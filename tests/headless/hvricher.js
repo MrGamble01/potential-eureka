@@ -91,7 +91,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
       scraps: G.scraps,
       cans: G.cans,
       food: G.food,
-      empty: /Nothing today/.test(last),
+      empty: /The dumpster is empty/.test(last),
       last,
     };
   }, { weather, emptyRoll, ray });

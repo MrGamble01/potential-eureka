@@ -1,0 +1,31 @@
+# Loads every arcade game and standalone page in headless Chromium.
+# Kept out of tests/headless/run.sh so it does not share the suite-discovery
+# list other branches edit.
+name: Smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/smoke/package-lock.json
+      - name: Install the smoke runner
+        working-directory: tests/smoke
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: npm ci
+      - name: Install Chromium
+        working-directory: tests/smoke
+        run: npx playwright install chromium --with-deps
+      - name: Load every game and page
+        run: ./tests/smoke/run.sh

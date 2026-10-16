@@ -8,7 +8,21 @@
 const SFX = (() => {
   let ctx = null;
   let muted = false;
+  let mix = 1;
   try { muted = localStorage.getItem('arcade-muted') === '1'; } catch {}
+  try {
+    if (typeof EurekaPersist !== 'undefined') {
+      const shared = EurekaPersist.settings.get();
+      if (shared.touched) muted = !!shared.muted;
+    }
+  } catch {}
+
+  function outputScale() {
+    try {
+      if (typeof EurekaPersist !== 'undefined') return EurekaPersist.audio.sfx(muted);
+    } catch {}
+    return muted ? 0 : 1;
+  }
 
   // The AudioContext can only start after a user gesture; create/resume lazily.
   function ac() {
@@ -31,8 +45,10 @@ const SFX = (() => {
     osc.type = type;
     osc.frequency.setValueAtTime(freq, t0);
     if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t0 + dur);
+    const level = gain * mix;
+    if (level <= 0) return;
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(level, t0 + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(g).connect(c.destination);
     osc.start(t0);
@@ -54,7 +70,8 @@ const SFX = (() => {
   };
 
   function play(name) {
-    if (muted) return;
+    mix = outputScale();
+    if (mix <= 0) return;
     const fn = SOUNDS[name];
     if (fn) try { fn(); } catch {}
   }
@@ -62,13 +79,19 @@ const SFX = (() => {
   // A raw pitched note for games whose audio IS the gameplay (Memory
   // Matrix's pads each own a pitch). Respects the mute toggle like play().
   function note(freq, dur = 0.22) {
-    if (muted) return;
+    mix = outputScale();
+    if (mix <= 0) return;
     try { tone(freq, dur, { type: 'triangle', gain: 0.13 }); } catch {}
   }
 
   function setMuted(m) {
     muted = !!m;
     try { localStorage.setItem('arcade-muted', muted ? '1' : '0'); } catch {}
+    try {
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.settings.update({ muted: muted, touched: true });
+      }
+    } catch {}
   }
   function toggle() { setMuted(!muted); return muted; }
   function isMuted() { return muted; }

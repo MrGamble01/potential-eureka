@@ -186,7 +186,7 @@ function snapAtDawn(){
 }
 
 function onNewDay(){
-  G.days++; saveGame();
+  G.days++;
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
@@ -409,6 +409,7 @@ function onNewDay(){
   checkArc();
   checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+  saveGame();      // HV-102: the night belongs on disk before a reload
 }
 
 // ── The regulars (HV-7) ──
@@ -563,8 +564,43 @@ function checkGameOver(){
   if(G.health<=0) showGameOver();
 }
 
+// HV-114: the Lookout promised ~30 seconds. HV-59 already pauses the
+// day behind The Bridge; the trucks were still on a wall clock.
+var sweepHoldArmed=false, sweepHoldMs=0, sweepEtaRewriteAt=0, sweepHoldPaused=false;
+function armSweepHold(ms){
+  sweepHoldArmed=true; sweepHoldMs=ms; sweepHoldPaused=false; sweepEtaRewriteAt=0;
+}
+function tickSweepHold(dt){
+  if(!sweepHoldArmed) return;
+  if(!G.sweepWarned){ sweepHoldArmed=false; return; }
+  if(introOpen()||bridgeOpen()){
+    sweepHoldPaused=true;
+    // ui.js closes over etaAt. Rewrite the end time so the painted
+    // ~Ns stay with the hold. Skip after Pack Up — showSweepWarning
+    // would re-enable the scramble button.
+    if(!G.packedUp){
+      var now=Date.now();
+      if(now-sweepEtaRewriteAt>200){
+        sweepEtaRewriteAt=now;
+        showSweepWarning(true, now+sweepHoldMs);
+      }
+    }
+    return;
+  }
+  if(sweepHoldPaused){
+    sweepHoldPaused=false;
+    if(!G.packedUp) showSweepWarning(true, Date.now()+sweepHoldMs);
+  }
+  sweepHoldMs-=dt;
+  if(sweepHoldMs<=0){
+    sweepHoldArmed=false;
+    triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
+  }
+}
+
 function tickDay(dt){
   if(gameOverShown) return; // time stops behind the game-over overlay
+  tickSweepHold(dt);
   // HV-56: and behind the crash course. Reading how the camp works should
   // not cost you the daylight you are reading about — a new player who
   // takes a minute over it would otherwise come back to a colder night
@@ -575,6 +611,11 @@ function tickDay(dt){
   // a player who spends a minute on it would otherwise come back to a
   // later hour, a colder night, possibly a new dawn.
   if(bridgeOpen()) return;
+  // HV-64: Keys in Hand is the same class of reading. The ending card
+  // should not burn a dawn behind it — a player who sits with it would
+  // otherwise come back to a later hour, a colder night, a new day
+  // counted while they were still reading the one they just finished.
+  if(keysOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
@@ -903,21 +944,17 @@ function maybeEvent(){
   // becomes .09 once the neighborhood vouches for you.
   if(Math.random()<.18*(repTier()>=2?.5:1)&&!G.sweepWarned){
     if(G.workers.lookout){
-      G.sweepWarned=true; G.packedUp=false;
+      G.sweepWarned=true;
       showSweepWarning(true, Date.now()+30000);
       log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
-      setTimeout(function(){
-        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
-      },30000);
+      armSweepHold(30000);
     } else if(G.dog===2){
       // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
       // window a paid Lookout gives, still enough to hit PACK UP.
-      G.sweepWarned=true; G.packedUp=false;
+      G.sweepWarned=true;
       showSweepWarning(true, Date.now()+15000);
       log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
-      setTimeout(function(){
-        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
-      },15000);
+      armSweepHold(15000);
     } else {
       triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
     }
@@ -939,13 +976,27 @@ function maybeEvent(){
 }
 
 function triggerEvent(ev,isGood){
+  // HV-114: spend the hold only when the sweep lands. Disarming on every
+  // card would cancel the trucks while HV-71 leaves the warning up.
+  if(ev.id==='sweep') sweepHoldArmed=false;
   showEvent(ev,!!isGood); ev.effect();
-  G.sweepWarned=false; showSweepWarning(false);
+  // HV-71: only the sweep itself dismisses a Lookout/Biscuit warning.
+  // Clearing on every event (stray dog, Case Worker card, theft) made
+  // the 30s timer's `if(G.sweepWarned)` a no-op — the sweep never landed.
+  if(ev.id==='sweep'){ G.sweepWarned=false; showSweepWarning(false); }
   refreshStructures(); updateHUD();
 }
 
 // ── Audio ──
 var audioCtx=null;
+function campScale(music){
+  try{
+    if(typeof EurekaPersist!=='undefined'){
+      return music ? EurekaPersist.audio.music(false,false) : EurekaPersist.audio.sfx(false);
+    }
+  }catch(e){}
+  return 1;
+}
 function initAudio(){
   if(audioCtx) return;
   audioCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -958,7 +1009,7 @@ function startRumble(){
     var d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.012;
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=80;
-    var g=audioCtx.createGain(); g.gain.value=.18;
+    var g=audioCtx.createGain(); g.gain.value=.18*campScale(true);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(); src.onended=tick;
   }
@@ -972,7 +1023,7 @@ function startCrackle(){
     var d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.4;
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=1200+Math.random()*800;
-    var g=audioCtx.createGain(); g.gain.setValueAtTime(.04+Math.random()*.05,t); g.gain.linearRampToValueAtTime(0,t+.1);
+    var g=audioCtx.createGain(); g.gain.setValueAtTime((.04+Math.random()*.05)*campScale(true),t); g.gain.linearRampToValueAtTime(0,t+.1);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(t); setTimeout(tick,120+Math.random()*600);
   }
@@ -987,7 +1038,7 @@ function startTraffic(){
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=400+Math.random()*400;
     var g=audioCtx.createGain();
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.065,t+dur*.3); g.gain.linearRampToValueAtTime(0,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.065*campScale(true),t+dur*.3); g.gain.linearRampToValueAtTime(0,t+dur);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(t); setTimeout(tick,4000+Math.random()*12000);
   }
@@ -1011,7 +1062,7 @@ function sfx(kind){
     o.type=kind==='gameover'?'sine':'triangle'; o.frequency.value=f;
     var start=t+i*spacing;
     g.gain.setValueAtTime(0,start);
-    g.gain.linearRampToValueAtTime(.09,start+.015);
+    g.gain.linearRampToValueAtTime(.09*campScale(false),start+.015);
     g.gain.linearRampToValueAtTime(0,start+spacing+.06);
     o.connect(g); g.connect(audioCtx.destination);
     o.start(start); o.stop(start+spacing+.08);
