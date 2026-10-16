@@ -52,11 +52,16 @@ const PongGame = (() => {
       if (e.key === 'ArrowUp') keys.up = true;
       if (e.key === 'ArrowDown') keys.down = true;
     }));
-    document.addEventListener('keyup', Utils.whenViewActive('view-pong', e => {
+    // PONG-1: keyup is deliberately NOT gated on the active view, and a lost
+    // focus wipes the map outright. A key held while you navigate away or
+    // alt-tab releases somewhere Pong can't hear it, and a gated keyup left
+    // the paddle drifting on its own the moment you came back.
+    document.addEventListener('keyup', e => {
       keys[e.key.toLowerCase()] = false;
       if (e.key === 'ArrowUp') keys.up = false;
       if (e.key === 'ArrowDown') keys.down = false;
-    }));
+    });
+    window.addEventListener('blur', clearKeys);
     // Touch/pointer: drag on your half moves that paddle (both in 2P).
     // pointerdown places it on the first contact — a tap with no move
     // still has to answer the ball.
@@ -78,6 +83,10 @@ const PongGame = (() => {
 
     loop = Utils.gameLoop(tick);
     draw();
+  }
+
+  function clearKeys() {
+    for (const k of Object.keys(keys)) keys[k] = false;
   }
 
   function resetMatch(run) {
@@ -415,7 +424,7 @@ const PongGame = (() => {
   function destroy() {
     if (loop) loop.stop();
     running = false; matchOver = false;
-    for (const k of Object.keys(keys)) keys[k] = false;
+    clearKeys();
     const ov = document.getElementById('pong-overlay'); if (ov) ov.style.display = 'none';
     resetMatch(false);
     draw();
