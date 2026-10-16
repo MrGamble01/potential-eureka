@@ -19,7 +19,7 @@ const SnakeGame = (() => {
   let pace = 'classic';
   try { if (PACES[localStorage.getItem('snake-pace')]) pace = localStorage.getItem('snake-pace'); } catch {}
   let walls = [];                     // rock cells added as levels climb
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
   let particles = [];
   const sfx = Utils.sfx;
 
@@ -58,6 +58,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -81,6 +82,7 @@ const SnakeGame = (() => {
     canvas.addEventListener('touchend', e => {
       if (!running && !gameOver) { start(); return; }
       if (gameOver) { start(); return; }
+      if (paused) return;
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -107,15 +109,32 @@ const SnakeGame = (() => {
       return;
     }
     switch (e.key) {
-      case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
-      case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
-      case 'ArrowLeft':  case 'a': case 'A': setDir(-1, 0); e.preventDefault(); break;
-      case 'ArrowRight': case 'd': case 'D': setDir(1, 0);  e.preventDefault(); break;
+      case 'ArrowUp':    case 'w': case 'W': if (!paused) setDir(0, -1); e.preventDefault(); break;
+      case 'ArrowDown':  case 's': case 'S': if (!paused) setDir(0, 1);  e.preventDefault(); break;
+      case 'ArrowLeft':  case 'a': case 'A': if (!paused) setDir(-1, 0); e.preventDefault(); break;
+      case 'ArrowRight': case 'd': case 'D': if (!paused) setDir(1, 0);  e.preventDefault(); break;
       case ' ':
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P':
+        togglePause();
+        e.preventDefault();
+        break;
     }
+  }
+
+  // Freezes the tick loop in place; direction changes are ignored while
+  // paused so a queued turn can't land the instant play resumes.
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    draw();
   }
 
   function start() {
@@ -477,6 +496,20 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Paused overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -498,7 +531,7 @@ const SnakeGame = (() => {
     if (typeof Daily !== 'undefined') Daily.disarm('snake');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
     const ov = document.getElementById('snake-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
@@ -524,5 +557,5 @@ const SnakeGame = (() => {
     }
   }
 
-  return { init, start, destroy, toggleWallWrap, cyclePace };
+  return { init, start, destroy, toggleWallWrap, cyclePace, togglePause };
 })();

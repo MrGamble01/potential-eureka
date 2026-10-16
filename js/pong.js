@@ -63,14 +63,19 @@ const PongGame = (() => {
     });
     window.addEventListener('blur', clearKeys);
     // Touch/pointer: drag on your half moves that paddle (both in 2P).
-    canvas.addEventListener('pointermove', e => {
-      if (!running) return;
+    // pointerdown places it on the first contact — a tap with no move
+    // still has to answer the ball.
+    const placePaddle = e => {
+      if (!running || !paddles) return;
       const r = canvas.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
       const y = (e.clientY - r.top) / r.height * HEIGHT;
       const x = (e.clientX - r.left) / r.width * WIDTH;
       if (x < WIDTH / 2) paddles[0].y = y - paddles[0].h / 2;
       else if (twoPlayer) paddles[1].y = y - paddles[1].h / 2;
-    });
+    };
+    canvas.addEventListener('pointerdown', placePaddle);
+    canvas.addEventListener('pointermove', placePaddle);
     canvas.addEventListener('click', () => { if (!running || matchOver) start(); });
 
     const ov = document.getElementById('pong-overlay');
@@ -198,16 +203,19 @@ const PongGame = (() => {
         }
       }
 
-      // Point scored
+      // Point scored — credited the moment each ball leaves, not just the
+      // last one: with SPLIT in play, two balls can exit the same frame and
+      // both scorers need their point, not just whichever happened to be
+      // the one that emptied the array.
       if (b.x < -BALL_R * 2 || b.x > WIDTH + BALL_R * 2) {
         const scorer = b.x < 0 ? 1 : 0;
         balls.splice(bi, 1);
-        if (balls.length === 0) {
+        if (!matchOver) {
           scores[scorer]++;
           sfx(scorer === 0 ? 'bonus' : 'die');
           updateInfo();
           if (scores[scorer] >= WIN_SCORE) endMatch(scorer);
-          else serveTimer = 55;
+          else if (balls.length === 0) serveTimer = 55;
         }
       }
     }
