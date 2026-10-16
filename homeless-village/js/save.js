@@ -1,19 +1,75 @@
+// HV-271: the last save string this page wrote or loaded. The leave-save
+// in main.js compares the key against it and stands down when another
+// writer (a second tab on the same camp, the hub's Reset progress, a
+// hand edit) has changed the key since — a page you are leaving must not
+// stomp the one you kept playing in.
+var hvLastWrite = null;
 function saveGame(){
-  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){}
+  try{ var s=JSON.stringify(G); localStorage.setItem(SAVE_KEY, s); hvLastWrite=s; }catch(e){}
+  try{
+    if(typeof EurekaPersist!=='undefined'){
+      EurekaPersist.progress.note('homeless',{days:G.days|0,pop:G.population|0});
+    }
+  }catch(e){}
+}
+
+// Start Over / Start a New Camp, and the shared Reset progress control.
+// Leave hvLastWrite pointing at the previous payload: saveOnLeave stands
+// down when the key no longer matches what this page last wrote, so a
+// reload cannot write the wiped camp back. Do not set hvLastWrite to
+// null here — that would look like "we never had a save" and the
+// leave-save would recreate one.
+function resetCamp(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  try{ if(typeof EurekaPersist!=='undefined') EurekaPersist.progress.clear('homeless'); }catch(e){}
+  location.reload();
 }
 
 function loadGame(){
   try{
     var raw = localStorage.getItem(SAVE_KEY);
+    hvLastWrite = raw;
     if(raw){ Object.assign(G, JSON.parse(raw)); }
-    if(!G.activeCrafts) G.activeCrafts={}; // saves from before crafts were persisted
+    // HV-62: tickDay subtracts 1 and calls onNewDay once a frame while
+    // timeOfDay >= 1. A hostile save (50, Infinity, NaN, -1) therefore
+    // either burns a dawn per frame until the camp dies, or paints a
+    // broken day bar. Park anything outside [0, 1) at dawn — do not
+    // modulo; that would pick a random hour.
+    if(typeof G.timeOfDay!=='number' || !isFinite(G.timeOfDay) || G.timeOfDay<0 || G.timeOfDay>=1){
+      G.timeOfDay=0;
+    }
+    if(!G.activeCrafts||typeof G.activeCrafts!=='object') G.activeCrafts={}; // saves from before crafts were persisted
+    if(!G.cooldowns||typeof G.cooldowns!=='object') G.cooldowns={};
+    // HV-272: cooldowns and in-flight crafts are absolute Date.now()
+    // stamps. A device clock that ran ahead and got corrected leaves
+    // every stamp hours or years out — every action button greys with
+    // no message for as long as the skew, and a paid-for craft never
+    // lands. Same family as the HV-62 clock clamp above. Cap each
+    // cooldown at now + that action's own cooldown (dynamic actions
+    // fall back to the longest, 30s), drop junk, park a craft that
+    // claims to start in the future at now, and cap its duration at
+    // the recipe's own time. Legal stamps are left alone.
+    var _skewNow=Date.now(), _cdMax={};
+    ACTIONS.forEach(function(a){ _cdMax[a.id]=a.cooldown; });
+    Object.keys(G.cooldowns).forEach(function(id){
+      var v=G.cooldowns[id], cap=_skewNow+(typeof _cdMax[id]==='number'?_cdMax[id]:30000);
+      if(typeof v!=='number'||!isFinite(v)) delete G.cooldowns[id];
+      else if(v>cap) G.cooldowns[id]=cap;
+    });
+    Object.keys(G.activeCrafts).forEach(function(id){
+      var j=G.activeCrafts[id], r=RECIPES.find(function(x){ return x.id===id; });
+      if(!j||typeof j!=='object'||!r){ delete G.activeCrafts[id]; return; }
+      if(typeof j.start!=='number'||!isFinite(j.start)||j.start>_skewNow) j.start=_skewNow;
+      if(typeof j.duration!=='number'||!isFinite(j.duration)||j.duration>r.time) j.duration=r.time;
+    });
     if(typeof G.goalIndex!=='number'||G.goalIndex<0) G.goalIndex=0; // saves from before the goal ladder
     if(typeof G.arcStage!=='number'||G.arcStage<0) G.arcStage=0;    // saves from before the Case Worker arc
     G.arcDone=!!G.arcDone;
     // A save written mid-warning restores sweepWarned:true, but the timer
     // that would fire the sweep died with the old tab — leaving it set
     // blocks every future lookout warning for the rest of the save.
-    G.sweepWarned=false; G.packedUp=false;
+    // packedUp is a paid scramble, not a timer. Keep it. HV-95.
+    G.sweepWarned=false;
     if(!WEATHERS[G.weather]) G.weather='clear';                    // saves from before HV-5
     if(G.forecast!==null&&!WEATHERS[G.forecast]) G.forecast=null;
     if(typeof G.structures.radio==='undefined') G.structures.radio=false;
@@ -73,5 +129,12 @@ function loadGame(){
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
     if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
+    if(typeof G.friendDay!=='number') G.friendDay=-1; // saves from before HV-65
+    if(typeof G.sickDay!=='number') G.sickDay=-1; // saves from before HV-210
+    if(typeof G.grantDay!=='number') G.grantDay=-1; // saves from before HV-225
+    if(typeof G.gentrifyDay!=='number') G.gentrifyDay=-1; // saves from before HV-234
+    if(typeof G.sickUntil!=='number') G.sickUntil=-1; // saves from before HV-240
+    // Persist a newly revealed legacy forecast so reload cannot reroll it.
+    if(ensureForecast()) saveGame();
   }catch(e){}
 }

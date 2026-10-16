@@ -17,7 +17,7 @@ const AsteroidsGame = (() => {
   let canvas, ctx;
   let ship, bullets, rocks, particles;
   let score, high, lives, wave, fireTimer, invuln;
-  let running, gameOver;
+  let running, gameOver, paused;
   let nextLifeAt, lifeFlashUntil = 0, thrustSoundAt = 0;
   let ufo, ufoShots, ufoTimer;                 // hunting saucer + its shots
   let hyperCd = 0;                             // P6: hyperspace cooldown (frames)
@@ -25,7 +25,7 @@ const AsteroidsGame = (() => {
   const keys = { left: false, right: false, thrust: false };
 
   const loop = Utils.gameLoop(dt => {
-    if (running && !gameOver) update(dt);
+    if (running && !gameOver && !paused) update(dt);
     draw();
   });
 
@@ -52,7 +52,10 @@ const AsteroidsGame = (() => {
     window.addEventListener('blur', clearKeys);
     // On-screen controls (mobile) — wired by index after render
     bindTouchButtons();
-    canvas.addEventListener('touchstart', e => { if (!running || gameOver) start(); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchstart', e => {
+      if (!running || gameOver) start(); else if (paused) togglePause();
+      e.preventDefault();
+    }, { passive: false });
     updateInfo();
     draw();
   }
@@ -62,8 +65,9 @@ const AsteroidsGame = (() => {
       case 'ArrowLeft': case 'a': keys.left = true; e.preventDefault(); break;
       case 'ArrowRight': case 'd': keys.right = true; e.preventDefault(); break;
       case 'ArrowUp': case 'w': keys.thrust = true; e.preventDefault(); break;
-      case ' ': if (!running || gameOver) start(); else fire(); e.preventDefault(); break;
-      case 'h': case 'H': hyperspace(); e.preventDefault(); break;
+      case ' ': if (!running || gameOver) start(); else if (!paused) fire(); e.preventDefault(); break;
+      case 'h': case 'H': if (!paused) hyperspace(); e.preventDefault(); break;
+      case 'p': case 'P': case 'Escape': togglePause(); e.preventDefault(); break;
     }
   }
 
@@ -74,7 +78,7 @@ const AsteroidsGame = (() => {
   // an arbitrary wall-clock moment, so seeding it can't stay in sync and
   // would desync the rock stream instead.
   function hyperspace() {
-    if (!running || gameOver || hyperCd > 0) return;
+    if (!running || gameOver || paused || hyperCd > 0) return;
     burst(ship.x, ship.y, 2, '#A371F7');
     let x = ship.x, y = ship.y;
     for (let tries = 0; tries < 40; tries++) {
@@ -120,16 +124,23 @@ const AsteroidsGame = (() => {
     const fireBtn = document.getElementById('ast-fire');
     if (fireBtn && !fireBtn.dataset.bound) {
       fireBtn.dataset.bound = '1';
-      const f = e => { if (!running || gameOver) start(); else fire(); e.preventDefault(); };
+      const f = e => { if (!running || gameOver) start(); else if (!paused) fire(); e.preventDefault(); };
       fireBtn.addEventListener('touchstart', f, { passive: false });
       fireBtn.addEventListener('pointerdown', f);
     }
     const hyperBtn = document.getElementById('ast-hyper');
     if (hyperBtn && !hyperBtn.dataset.bound) {
       hyperBtn.dataset.bound = '1';
-      const h = e => { hyperspace(); e.preventDefault(); };
+      const h = e => { if (!paused) hyperspace(); e.preventDefault(); };
       hyperBtn.addEventListener('touchstart', h, { passive: false });
       hyperBtn.addEventListener('pointerdown', h);
+    }
+    const pauseBtn = document.getElementById('ast-pause');
+    if (pauseBtn && !pauseBtn.dataset.bound) {
+      pauseBtn.dataset.bound = '1';
+      const p = e => { togglePause(); e.preventDefault(); };
+      pauseBtn.addEventListener('touchstart', p, { passive: false });
+      pauseBtn.addEventListener('pointerdown', p);
     }
   }
 
@@ -150,7 +161,7 @@ const AsteroidsGame = (() => {
     hyperCd = 0;
     dailyRun = (typeof Daily !== 'undefined') && Daily.begin('asteroids');
     spawnWave();
-    running = !!startRun; gameOver = false;
+    running = !!startRun; gameOver = false; paused = false;
     updateInfo();
   }
 
@@ -187,6 +198,7 @@ const AsteroidsGame = (() => {
     resetGame(true);
     const ov = document.getElementById('asteroids-overlay');
     if (ov) ov.style.display = 'none';
+    updatePauseBtn();
     loop.start();
   }
 
@@ -201,6 +213,20 @@ const AsteroidsGame = (() => {
       life: BULLET_LIFE,
     });
     sfx('move');
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    sfx(paused ? 'move' : 'rotate');
+    updatePauseBtn();
+  }
+
+  function updatePauseBtn() {
+    const btn = document.getElementById('asteroids-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+    const touchBtn = document.getElementById('ast-pause');
+    if (touchBtn) touchBtn.textContent = paused ? '▶' : '❚❚';
   }
 
   function wrap(o) {
@@ -483,6 +509,17 @@ const AsteroidsGame = (() => {
       ctx.fillText('Click or tap to start', WIDTH / 2, HEIGHT / 2 + 34);
       ctx.textAlign = 'left';
     }
+
+    if (running && paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.72)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3'; ctx.textAlign = 'center';
+      ctx.font = 'bold 22px JetBrains Mono, monospace';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2 - 6);
+      ctx.font = '13px Inter, sans-serif'; ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P/Esc, tap, or hit Resume to continue', WIDTH / 2, HEIGHT / 2 + 18);
+      ctx.textAlign = 'left';
+    }
   }
 
   function destroy() {
@@ -492,10 +529,10 @@ const AsteroidsGame = (() => {
     if (typeof Daily !== 'undefined') Daily.disarm('asteroids');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
     const ov = document.getElementById('asteroids-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();
