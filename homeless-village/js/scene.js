@@ -207,8 +207,12 @@ buildTrashPile(-10,2);
 var player=spawnFigure(0,0,'player');
 
 function onResize(){
-  var w=window.innerWidth,h=window.innerHeight;
-  renderer.setSize(w,h);
+  var box=document.getElementById('canvas-container');
+  var w=(box&&box.clientWidth)||window.innerWidth;
+  var h=(box&&box.clientHeight)||window.innerHeight;
+  renderer.setSize(w,h,false);
+  canvas.style.width='100%';
+  canvas.style.height='100%';
   var a=w/h;
   camera.left=-camSize*a; camera.right=camSize*a;
   camera.updateProjectionMatrix();

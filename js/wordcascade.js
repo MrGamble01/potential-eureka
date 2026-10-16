@@ -96,11 +96,17 @@ const WordCascadeGame = (() => {
       if (!running || over) { start(); return; }
       if (!cur) return;
       const r = canvas.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
       const x = (e.clientX - r.left) / r.width * WIDTH;
       const col = Math.floor((x - PAD) / CELL);
       if (col < cur.col && canBe(cur.col - 1, cur.row)) cur.col--;
       else if (col > cur.col && canBe(cur.col + 1, cur.row)) cur.col++;
-      else dropT = dropEvery;
+      else {
+        // A phone has no Space bar. Tapping the letter's own column
+        // hard-drops, the same as the keyboard shortcut.
+        while (canBe(cur.col, cur.row + 1)) cur.row++;
+        lock();
+      }
       draw();
     });
     const ov = document.getElementById('wc-overlay');
