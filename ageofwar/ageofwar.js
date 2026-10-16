@@ -126,9 +126,10 @@ const AgeOfWarGame = (() => {
 
   // ---- State ----
   let canvas, ctx;
-  let dpr = 1; // devicePixelRatio applied to the backing store; render draws
-               // in WIDTH/HEIGHT logical units, so every ctx.setTransform
-               // call below must reapply this factor (see draw()'s shake).
+  let dpr = 1; // logical-to-backing scale. Render draws in WIDTH/HEIGHT,
+               // so every ctx.setTransform must reapply this (see draw()'s shake).
+               // It is the on-screen size, not the raw device ratio: a phone
+               // showing a ~370px field must not allocate 1280×560×dpr.
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false, userPaused = false;
@@ -657,20 +658,22 @@ const AgeOfWarGame = (() => {
       const steps = modal.querySelector('.aow-welcome-steps');
       if (steps) {
         steps.innerHTML = `
-          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap a unit card</strong> at the bottom to send a soldier into battle. Each unit costs gold and has a brief cooldown.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the screen to sweep many at once. Coins you miss auto-collect after a few seconds.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when you have enough XP. Unlocks stronger units and a new <strong>Special</strong> attack.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap Clubman</strong> at the bottom. Your castle is on the left — two soldiers are already marching right. Each extra unit costs gold.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the field to sweep many at once. Coins you miss collect themselves after a few seconds.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when the XP bar fills. That unlocks stronger units and a new <strong>Special</strong>.</div></div>
           <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with the <em>Hero</em> button — expensive but devastating. A new hero unlocks each era.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They snipe enemies for you while you focus on coins.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They shoot enemies while you collect coins.</div></div>
         `;
       }
     }
     modal.style.display = 'flex';
     setModalPaused(true);
+    updateCoach();
     const close = () => {
       modal.style.display = 'none';
       try { localStorage.setItem('aow-welcome-seen', '1'); } catch {}
       setModalPaused(anyModalOpen());
+      updateCoach();
     };
     btn.addEventListener('click', close, { once: true });
     document.addEventListener('keydown', function onEsc(e) {
@@ -888,6 +891,11 @@ const AgeOfWarGame = (() => {
   // Persisted mute toggle (set via the settings modal).
   let soundMuted = false;
   try { soundMuted = localStorage.getItem('aow-muted') === '1'; } catch {}
+  try {
+    if (typeof EurekaPersist !== 'undefined' && EurekaPersist.settings.get().touched) {
+      soundMuted = !!EurekaPersist.settings.get().muted;
+    }
+  } catch {}
   const SFX = (() => {
     let ctxA = null, masterGain = null;
     let lastSpawn = 0, lastHit = 0;
@@ -904,7 +912,10 @@ const AgeOfWarGame = (() => {
       return ctxA;
     }
     function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
-      if (soundMuted) return;
+      let scale = soundMuted ? 0 : 1;
+      try { if (typeof EurekaPersist !== 'undefined') scale = EurekaPersist.audio.sfx(soundMuted); } catch {}
+      if (scale <= 0) return;
+      vol *= scale;
       const ac = ensure(); if (!ac) return;
       if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
       const t0 = ac.currentTime;
@@ -920,6 +931,10 @@ const AgeOfWarGame = (() => {
       osc.start(t0); osc.stop(t0 + dur + 0.04);
     }
     function noise({ dur = 0.18, vol = 0.18 }) {
+      let scale = soundMuted ? 0 : 1;
+      try { if (typeof EurekaPersist !== 'undefined') scale = EurekaPersist.audio.sfx(soundMuted); } catch {}
+      if (scale <= 0) return;
+      vol *= scale;
       const ac = ensure(); if (!ac) return;
       const t0 = ac.currentTime;
       const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
@@ -979,16 +994,10 @@ const AgeOfWarGame = (() => {
   function init() {
     canvas = document.getElementById('aow-canvas');
     if (!canvas) return;
-    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
-    // rendering. The canvas's on-screen CSS size is already fully
-    // responsive (width:100%/height:100% inside an aspect-ratio-locked
-    // .aow-stage), so we deliberately do NOT touch canvas.style.width/height
-    // here — only the backing-store resolution changes.
-    dpr = Math.max(1, window.devicePixelRatio || 1);
-    canvas.width = WIDTH * dpr;
-    canvas.height = HEIGHT * dpr;
+    // CSS size stays with the stage (width 100%, locked aspect). Only the
+    // backing store changes, and only up to the pixels on screen.
     ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fitCanvas();
     try { reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
     hapticsOK = !reducedMotion;
     try {
@@ -1212,6 +1221,9 @@ const AgeOfWarGame = (() => {
     waveNum = 1;
     waveEnemiesRemaining = 3;     // gentler first wave
     waveBreatherT = 4.0;          // give the player ~4s to orient before enemies surge
+    coachOrdered = false;
+    coachCoinShownAt = 0;
+    coachAgeShownAt = 0;
     bossWaveActive = false;
     bossKilledThisWave = false;
     councilBoons = {};            // AOW-10: boons are run-scoped
@@ -1375,12 +1387,20 @@ const AgeOfWarGame = (() => {
     return Math.round(u.dmg * (1 + 0.1 * t) * steel);
   }
 
+  function queueFullMessage() {
+    const seconds = Math.ceil(Math.max(0, trainingQueue[0]?.remaining || 0));
+    return seconds > 0 ? `Queue full — next slot in ${seconds}s` : 'Queue full';
+  }
+
   function tryPlayerSpawn(key) {
     if (gameOver || userPaused) return;
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
-    if (trainingQueue.length >= TRAINING_MAX) return;
+    if (trainingQueue.length >= TRAINING_MAX) {
+      goldFloaters.push({ text: queueFullMessage(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < def.cost) {
       goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -1436,7 +1456,11 @@ const AgeOfWarGame = (() => {
       return;
     }
     const need = ERAS[playerEra].upXP;
-    if (xp < need) return;
+    if (xp < need) {
+      ageBannerText = `Need ${need - xp} more XP for ${ERAS[playerEra + 1].name}`;
+      ageBannerT = 2.4;
+      return;
+    }
     xp -= need;
     playerEra++;
     runStats.agesReached = Math.max(runStats.agesReached, playerEra);
@@ -1534,7 +1558,14 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '🎺 The horns are forged in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
-    if (warcryCd > 0 || warcryT > 0) return;
+    if (warcryT > 0) {
+      goldFloaters.push({ text: `🎺 Warcry roaring — ${Math.ceil(warcryT)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (warcryCd > 0) {
+      goldFloaters.push({ text: `🎺 Horns cooling — ${Math.ceil(warcryCd)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     warcryT = WARCRY_DUR;
     warcryCd = WARCRY_CD;
     runStats.warcries = (runStats.warcries || 0) + 1;
@@ -1561,7 +1592,10 @@ const AgeOfWarGame = (() => {
   function digTrench() {
     if (gameOver || modalPaused || userPaused) return;
     if (playerEra < 1) { goldFloaters.push({ text: '⛏️ Trenchworks come with Age II', x: WIDTH / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 }); return; }
-    if (trenchCd > 0) return;
+    if (trenchCd > 0) {
+      goldFloaters.push({ text: `⛏️ Trench cooling — ${Math.ceil(trenchCd)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     trenchX = (PLAYER_BASE_X + ENEMY_BASE_X) / 2;
     trenchT = TRENCH_LAST;
     trenchCd = TRENCH_CD;
@@ -1572,12 +1606,19 @@ const AgeOfWarGame = (() => {
   }
   function hireMercs() {
     if (gameOver || modalPaused || userPaused) return;
-    if (mercCd > 0) return;
     const key = mercUnitKey();
     if (!key) return;
     const cost = mercCost();
     if (gold < cost) {
       goldFloaters.push({ text: `🪖 The mercs want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (sideUnitCount('player') >= MAX_UNITS_PER_SIDE) {
+      goldFloaters.push({ text: '🪖 The ranks are full', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (mercCd > 0) {
+      goldFloaters.push({ text: `🪖 Mercs cooling — ${Math.ceil(mercCd)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
     const hired = [];
@@ -1632,7 +1673,10 @@ const AgeOfWarGame = (() => {
   function challengeDuel() {
     if (gameOver || modalPaused || userPaused) return;
     const w = fieldWarlord();
-    if (!w) return;
+    if (!w) {
+      goldFloaters.push({ text: '⚔ No warlord on the field to challenge', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     const c = duelChampion();
     if (!c) {
       goldFloaters.push({ text: '⚔ No champion stands to answer', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
@@ -1683,7 +1727,6 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '🛠️ The sapper corps musters in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
       return;
     }
-    if (sapperCd > 0) return;
     const heal = sapperHeal();
     if (heal <= 0) {
       goldFloaters.push({ text: '🛠️ The walls stand whole', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
@@ -1692,6 +1735,10 @@ const AgeOfWarGame = (() => {
     const cost = sapperCost();
     if (gold < cost) {
       goldFloaters.push({ text: `🛠️ The sappers want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (sapperCd > 0) {
+      goldFloaters.push({ text: `🛠️ Sappers cooling — ${Math.ceil(sapperCd)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
     gold -= cost;
@@ -1722,7 +1769,6 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '🏹 The ballista is winched in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
       return;
     }
-    if (boltCd > 0) return;
     let fore = null;
     for (const u of units) {
       if (u.side === 'enemy' && !u._dead && u.hp > 0 && (!fore || u.x < fore.x)) fore = u;
@@ -1733,6 +1779,10 @@ const AgeOfWarGame = (() => {
     }
     if (gold < BOLT_COST) {
       goldFloaters.push({ text: `🏹 The bolt costs ${BOLT_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (boltCd > 0) {
+      goldFloaters.push({ text: `🏹 Ballista cooling — ${Math.ceil(boltCd)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
     gold -= BOLT_COST;
@@ -2015,7 +2065,10 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '\u{1F3B2} The herald takes wagers from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
       return;
     }
-    if (ironBet) return;
+    if (ironBet) {
+      goldFloaters.push({ text: '🎲 A wager already rides this clash', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < IRON_STAKE) {
       goldFloaters.push({ text: `\u{1F3B2} The wager is ${IRON_STAKE} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -2981,6 +3034,18 @@ const AgeOfWarGame = (() => {
     if (specialBtn) specialBtn.onclick = fireSpecial;
     const warcryBtn = document.getElementById('aow-warcry-btn');
     if (warcryBtn) warcryBtn.onclick = soundWarcry;
+    const mercBtn = document.getElementById('aow-merc-btn');
+    if (mercBtn) mercBtn.onclick = hireMercs;
+    const trenchBtn = document.getElementById('aow-trench-btn');
+    if (trenchBtn) trenchBtn.onclick = digTrench;
+    const repairBtn = document.getElementById('aow-repair-btn');
+    if (repairBtn) repairBtn.onclick = repairBase;
+    const boltBtn = document.getElementById('aow-bolt-btn');
+    if (boltBtn) boltBtn.onclick = fireBallista;
+    const tentBtn = document.getElementById('aow-tent-btn');
+    if (tentBtn) tentBtn.onclick = buyTent;
+    const armorBtn = document.getElementById('aow-armor-btn');
+    if (armorBtn) armorBtn.onclick = buyArmorer;
     const fletchBtn = document.getElementById('aow-fletch-btn');
     if (fletchBtn) fletchBtn.onclick = buyFletcher;
     const drillBtn = document.getElementById('aow-drill-btn');
@@ -2991,6 +3056,8 @@ const AgeOfWarGame = (() => {
     if (masonBtn) masonBtn.onclick = buyMasons;
     const chestBtn = document.getElementById('aow-chest-btn');
     if (chestBtn) chestBtn.onclick = depositChest;
+    const duelBtn = document.getElementById('aow-duel-btn');
+    if (duelBtn) duelBtn.onclick = challengeDuel;
     const ironBtn = document.getElementById('aow-iron-btn');
     if (ironBtn) ironBtn.onclick = placeIronWager;
     const bondBtn = document.getElementById('aow-bond-btn');
@@ -3099,8 +3166,14 @@ const AgeOfWarGame = (() => {
         if (btn.dataset.diff === difficulty) return;
         difficulty = btn.dataset.diff;
         try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
-        // Reflect in both pill rows
-        document.querySelectorAll('.aow-diff button').forEach(b => {
+        // Reflect in both difficulty pill rows (HUD + this modal) — and
+        // only those. The war-banner row (#aow-banner) borrows the
+        // `.aow-diff` class for its look, so a fan-out over every
+        // `.aow-diff button` also swept the banner pills: none of them
+        // carries data-diff, so every one lost `.active` and the HUD
+        // stopped showing which banner was still in force (AOW-19b).
+        // Select by the attribute the toggle actually compares against.
+        document.querySelectorAll('.aow-diff button[data-diff]').forEach(b => {
           b.classList.toggle('active', b.dataset.diff === difficulty);
         });
         // GAME-1c: unify with the HUD difficulty switch, which already
@@ -3148,15 +3221,40 @@ const AgeOfWarGame = (() => {
     if (muteToggle) muteToggle.onclick = () => {
       soundMuted = !soundMuted;
       try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+      try {
+        if (typeof EurekaPersist !== 'undefined') {
+          EurekaPersist.settings.update({ muted: soundMuted, touched: true });
+        }
+      } catch {}
       muteToggle.setAttribute('aria-pressed', String(soundMuted));
     };
+    const audioHost = document.getElementById('aow-audio');
+    if (audioHost && typeof EurekaPersist !== 'undefined') {
+      EurekaPersist.mount(audioHost, {
+        showMute: false,
+        localMuted: () => soundMuted,
+        onChange(s) {
+          soundMuted = !!s.muted;
+          try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+          if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
+        },
+      });
+    }
+    if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
     // Replay tutorial
     const replayBtn = document.getElementById('aow-replay-tutorial');
     if (replayBtn) replayBtn.onclick = () => {
       try { localStorage.removeItem('aow-welcome-seen'); } catch {}
+      try { localStorage.removeItem(COACH_KEY); } catch {}
+      coachDone = false;
+      coachOrdered = false;
+      coachCoinShownAt = 0;
+      coachAgeShownAt = 0;
       closeSettings();
       maybeShowWelcome();
     };
+    const coachDismiss = document.getElementById('aow-coach-dismiss');
+    if (coachDismiss) coachDismiss.onclick = () => finishCoach();
     // Reset progress
     const resetBtn = document.getElementById('aow-reset-progress');
     if (resetBtn) resetBtn.onclick = () => {
@@ -3165,6 +3263,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-achievements');
         localStorage.removeItem('aow-best-run');
         localStorage.removeItem('aow-session');
+        if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('ageofwar');
       } catch {}
       earnedAchievements = {};
       closeSettings();
@@ -4240,7 +4339,25 @@ const AgeOfWarGame = (() => {
     rafId = requestAnimationFrame(loop);
   }
 
+  // Match the bitmap to the stage. A 390px phone used to keep a
+  // 2560×1120 store (1280×560 at devicePixelRatio 2) and the battle
+  // dropped to ~12fps under a 4× CPU throttle.
+  function fitCanvas() {
+    if (!canvas) return;
+    const cap = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const cssW = canvas.clientWidth || WIDTH;
+    const bw = Math.max(1, Math.round(Math.min(WIDTH * cap, cssW * cap)));
+    const bh = Math.max(1, Math.round(bw * (HEIGHT / WIDTH)));
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+    }
+    dpr = bw / WIDTH;
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   function draw() {
+    fitCanvas();
     const era = ERAS[playerEra];
     // Screen shake — applied as a small canvas translate. shakeMag
     // decays after the timed pulse expires.
@@ -8599,6 +8716,72 @@ const AgeOfWarGame = (() => {
 
 
   // ---- HUD + panels ----
+  // First-minute coach. The keyboard hint is hidden on phones and short
+  // laptops, and the welcome sheet is easy to dismiss, so the battlefield
+  // itself says the next action until the player has sent a unit, seen
+  // the coin, and had a look at Age Up — or they tap Got it.
+  const COACH_KEY = 'aow-coach-done';
+  let coachDone = false;
+  let coachOrdered = false;
+  let coachCoinShownAt = 0;
+  let coachAgeShownAt = 0;
+  try { coachDone = localStorage.getItem(COACH_KEY) === '1'; } catch {}
+  function finishCoach() {
+    coachDone = true;
+    try { localStorage.setItem(COACH_KEY, '1'); } catch {}
+    const el = document.getElementById('aow-coach');
+    if (el) el.hidden = true;
+    document.querySelectorAll('.aow-spawn-btn.aow-spawn-next').forEach(b => b.classList.remove('aow-spawn-next'));
+  }
+  function coachLine() {
+    if (!coachOrdered && trainingQueue.length === 0) {
+      return {
+        step: 'spawn',
+        text: 'Click Clubman, or press 1. Your castle is on the left — soldiers march right.',
+      };
+    }
+    coachOrdered = true;
+    if (runStats.coinsCollected < 1 && coachCoinShownAt === 0) coachCoinShownAt = runStats.time || 0.01;
+    if (runStats.coinsCollected < 1 && (runStats.time - coachCoinShownAt) < 8) {
+      return {
+        step: 'coins',
+        text: 'Click the gold coins enemies drop, or drag across them. Missed coins collect themselves.',
+      };
+    }
+    if (!coachAgeShownAt) coachAgeShownAt = runStats.time || 0.01;
+    if (playerEra > 0 || runStats.time - coachAgeShownAt >= 14) {
+      finishCoach();
+      return null;
+    }
+    const ready = xp >= ERAS[playerEra].upXP;
+    return {
+      step: 'age',
+      text: ready
+        ? 'Age Up is ready. Press Q, or the Age Up button, for stronger units.'
+        : 'Kills fill the XP bar up top. Age Up (Q) when it fills. Space fires Boulder.',
+    };
+  }
+  function updateCoach() {
+    const el = document.getElementById('aow-coach');
+    if (!el) return;
+    const welcome = document.getElementById('aow-welcome-modal');
+    const welcomeOpen = !!(welcome && welcome.style.display && welcome.style.display !== 'none');
+    const suppress = coachDone || gameOver || resumePrompt || welcomeOpen
+      || (waveNum > 1 && !coachOrdered) || (playerEra > 0 && !coachOrdered);
+    document.querySelectorAll('.aow-spawn-btn.aow-spawn-next').forEach(b => b.classList.remove('aow-spawn-next'));
+    if (suppress) { el.hidden = true; return; }
+    const line = coachLine();
+    if (!line) { el.hidden = true; return; }
+    el.hidden = false;
+    const text = document.getElementById('aow-coach-text');
+    if (text && text.textContent !== line.text) text.textContent = line.text;
+    el.dataset.step = line.step;
+    if (line.step === 'spawn') {
+      const first = document.querySelector('#aow-spawn-list .aow-spawn-btn');
+      if (first) first.classList.add('aow-spawn-next');
+    }
+  }
+
   function renderHud() {
     const era = ERAS[playerEra];
     const eEra = ERAS[enemyEra];
@@ -8669,10 +8852,20 @@ const AgeOfWarGame = (() => {
         if (ico) ico.textContent = '🌟';
         if (lbl) lbl.textContent = 'Max Age';
         ageBtn.disabled = true;
+        ageBtn.title = 'Max Age';
+        ageBtn.setAttribute('aria-label', 'Max Age');
       } else {
         if (ico) ico.textContent = '⬆️';
         if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
         ageBtn.disabled = xp < era.upXP;
+        const nextEra = ERAS[playerEra + 1].name;
+        const hint = playerEra === 4 && !earnedAchievements.max_age
+          ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
+          : xp < era.upXP
+            ? `Need ${era.upXP - xp} more XP for ${nextEra}`
+            : `Ready to age up to ${nextEra}`;
+        ageBtn.title = hint;
+        ageBtn.setAttribute('aria-label', hint);
       }
     }
 
@@ -8687,6 +8880,11 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+      const specHint = specialReadyT > 0
+        ? `${spec.name} (Space) — cooling ${Math.ceil(specialReadyT)}s. It drops on the enemy line for ${spec.dmg} damage.`
+        : `${spec.name} (Space) — ready. Hits the enemy line for ${spec.dmg} damage.`;
+      specEl.title = specHint;
+      specEl.setAttribute('aria-label', specHint);
     }
 
     // Warcry button (AOW-13)
@@ -8695,7 +8893,8 @@ const AgeOfWarGame = (() => {
     if (wcEl) {
       if (wcCdEl) wcCdEl.textContent = warcryT > 0 ? `⚔️ ${Math.ceil(warcryT)}s`
         : playerEra < 1 ? 'AGE II' : warcryCd > 0 ? `${Math.ceil(warcryCd)}s` : 'READY';
-      wcEl.disabled = playerEra < 1 || warcryCd > 0 || warcryT > 0;
+      // Keep cooling buttons clickable so their guards can explain the wait.
+      wcEl.disabled = playerEra < 1;
     }
 
     // Mercenary button (AOW-15)
@@ -8704,7 +8903,7 @@ const AgeOfWarGame = (() => {
     if (mcEl) {
       const mk = mercUnitKey();
       if (mcCdEl) mcCdEl.textContent = mercCd > 0 ? `${Math.ceil(mercCd)}s` : mk ? `${mercCost()}g` : '—';
-      mcEl.disabled = mercCd > 0 || !mk;
+      mcEl.disabled = !mk;
       if (mk) mcEl.title = `Hire mercenaries (M) — ${MERC_COUNT}× veteran ${UNITS[mk].name} walk on instantly for ${mercCost()} gold. ${MERC_CD}s rearm.`;
     }
 
@@ -8713,7 +8912,7 @@ const AgeOfWarGame = (() => {
     const trCdEl = document.getElementById('aow-trench-cd');
     if (trEl) {
       if (trCdEl) trCdEl.textContent = trenchT > 0 ? `${Math.ceil(trenchT)}s ⛏️` : trenchCd > 0 ? `${Math.ceil(trenchCd)}s` : playerEra < 1 ? 'Age II' : 'ready';
-      trEl.disabled = trenchCd > 0 || playerEra < 1;
+      trEl.disabled = playerEra < 1;
     }
 
     // Duel button (AOW-21)
@@ -8722,7 +8921,7 @@ const AgeOfWarGame = (() => {
     if (duEl) {
       const w = fieldWarlord();
       if (duCdEl) duCdEl.textContent = w ? `${DUEL_COST}g` : '—';
-      duEl.disabled = !w;
+      duEl.disabled = false; // Refused clicks explain the missing warlord.
       duEl.title = w
         ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
         : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
@@ -8734,7 +8933,7 @@ const AgeOfWarGame = (() => {
     if (rpEl) {
       const heal = sapperHeal();
       if (rpCdEl) rpCdEl.textContent = playerEra < 1 ? 'Age II' : sapperCd > 0 ? `${Math.ceil(sapperCd)}s` : heal > 0 ? `${sapperCost()}g` : 'whole';
-      rpEl.disabled = playerEra < 1 || sapperCd > 0 || heal <= 0;
+      rpEl.disabled = playerEra < 1 || heal <= 0;
       rpEl.title = heal > 0
         ? `Call the Sappers (R) — patch +${heal} onto the walls for ${sapperCost()} gold. ${SAPPER_CD}s rearm.`
         : 'Call the Sappers (R) — repairs a quarter of the base per call. The walls stand whole.';
@@ -8745,7 +8944,7 @@ const AgeOfWarGame = (() => {
     const boCdEl = document.getElementById('aow-bolt-cd');
     if (boEl) {
       if (boCdEl) boCdEl.textContent = playerEra < 2 ? 'Age III' : boltCd > 0 ? `${Math.ceil(boltCd)}s` : `${BOLT_COST}g`;
-      boEl.disabled = playerEra < 2 || boltCd > 0;
+      boEl.disabled = playerEra < 2;
       boEl.title = `Fire the Ballista (B) — skewer the foremost enemy and everyone within ${BOLT_BAND}px behind them for ${boltDmg()} damage. ${BOLT_CD}s winch. From Age III.`;
     }
 
@@ -8841,7 +9040,7 @@ const AgeOfWarGame = (() => {
     const irCdEl = document.getElementById('aow-iron-cd');
     if (irEl) {
       if (irCdEl) irCdEl.textContent = playerEra < 1 ? 'Age II' : ironBet ? 'riding' : `${IRON_STAKE}g`;
-      irEl.disabled = playerEra < 1 || !!ironBet;
+      irEl.disabled = playerEra < 1; // A riding wager explains itself on click.
       irEl.title = ironBet
         ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
         : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
@@ -8879,6 +9078,35 @@ const AgeOfWarGame = (() => {
         ? `The Veterans\u2019 Hall stands \u2014 the first ${hallHasCollege() ? HALL_FIRST + 2 : hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.` + (hallHasCollege() ? ' The war college is open \u2014 the first two recruits arrive Elite.' : hallHasMess() ? ' The officers\u2019 mess is open \u2014 the first recruit arrives Elite.' : '')
         : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
     }
+
+    // Keep era-locked orders out of the rail until they can be given.
+    // Hotkeys still call the same handlers; this only frees the grid
+    // cell so Clubman stays on screen at Stone Age.
+    const gateCmd = (id, locked) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('aow-gated', !!locked);
+    };
+    const beforeAge2 = playerEra < 1;
+    const beforeAge3 = playerEra < 2;
+    gateCmd('aow-warcry-btn', beforeAge2);
+    gateCmd('aow-merc-btn', beforeAge2);
+    gateCmd('aow-trench-btn', beforeAge2);
+    gateCmd('aow-repair-btn', beforeAge2);
+    gateCmd('aow-tent-btn', beforeAge2);
+    gateCmd('aow-armor-btn', beforeAge2);
+    gateCmd('aow-fletch-btn', beforeAge2);
+    gateCmd('aow-drill-btn', beforeAge2);
+    gateCmd('aow-chest-btn', beforeAge2);
+    gateCmd('aow-iron-btn', beforeAge2);
+    gateCmd('aow-bond-btn', beforeAge2);
+    gateCmd('aow-loan-btn', beforeAge2);
+    gateCmd('aow-hall-btn', beforeAge2);
+    gateCmd('aow-bolt-btn', beforeAge3);
+    gateCmd('aow-pay-btn', beforeAge3);
+    gateCmd('aow-mason-btn', beforeAge3);
+    // Duel stays on the rail even with no warlord. A refused click is how
+    // the game says nobody is there to challenge (aowdueliron); hiding the
+    // button made that explanation unreachable.
 
     // Chronicle slate (AOW-36)
     const crEl = document.getElementById('aow-chron-btn');
@@ -9174,6 +9402,7 @@ const AgeOfWarGame = (() => {
         }
       }
     }
+    updateCoach();
   }
 
   function updateTrainingLabel(slot, entry, isFront) {
@@ -9223,7 +9452,7 @@ const AgeOfWarGame = (() => {
   }
 
   function recruitTitle(def, queueFull) {
-    const reason = queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. '
+    const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
       : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
     return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
   }
@@ -9550,10 +9779,14 @@ const AgeOfWarGame = (() => {
         warcryT, warcryCd,
         mercCd, sapperCd, boltCd,
       }));
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.progress.note('ageofwar', { wave: waveNum | 0, gold: gold | 0, era: playerEra | 0 });
+      }
     } catch {}
   }
   function clearSession() {
     try { localStorage.removeItem(SESSION_KEY); } catch {}
+    try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('ageofwar'); } catch {}
   }
   function loadSession() {
     let raw = null;
@@ -9657,6 +9890,11 @@ const AgeOfWarGame = (() => {
     renderSpawnPanel();
     renderTrainingQueue();
     renderTurretPanel();
+    try {
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.progress.note('ageofwar', { wave: waveNum | 0, gold: gold | 0, era: playerEra | 0 });
+      }
+    } catch {}
     return true;
   }
   function showResumeOverlay(snap) {
@@ -9731,6 +9969,7 @@ const AgeOfWarGame = (() => {
     ov.style.display = 'none';
     ov.onclick = null;
     ov.style.cursor = '';
+    ov.classList.remove('aow-overlay-win', 'aow-overlay-lose');
   }
   // Endless best run: waves survived is the score (dying during wave N
   // means N-1 survived). Kept as small JSON under the 'aow-best-run' key the
@@ -9763,17 +10002,27 @@ const AgeOfWarGame = (() => {
     pendingPerks = {};
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    ov.classList.toggle('aow-overlay-win', !!won);
+    ov.classList.toggle('aow-overlay-lose', !won);
+    const kicker = won ? 'You win' : (endlessMode ? 'Run over' : 'You lose');
+    const title = won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT');
+    let cause;
+    if (won) {
+      cause = 'The enemy base is destroyed. Yours is still standing.';
+    } else if (endlessMode && lastRunSummary) {
+      const waves = lastRunSummary.run.waves;
+      const holds = lastRunSummary.run.strongholds || 0;
+      cause = `Your base hit zero after ${waves} wave${waves === 1 ? '' : 's'}`
+        + (holds ? `, with ${holds} stronghold${holds === 1 ? '' : 's'} razed` : '')
+        + (lastRunSummary.isBest ? '. New best.' : `. Best is ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0} waves.`);
+    } else {
+      cause = 'Your base hit zero. The enemy base is still standing.';
+    }
     ov.style.display = 'flex';
     ov.innerHTML = `
-      <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
-        ${won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT')}
-      </h2>
-      <p>${won ? 'You wiped the enemy base.' : (endlessMode && lastRunSummary
-        ? `You survived <b style="color:#fcd34d">${lastRunSummary.run.waves}</b> wave${lastRunSummary.run.waves === 1 ? '' : 's'}`
-          + (lastRunSummary.run.strongholds ? ` and razed <b style="color:#fcd34d">${lastRunSummary.run.strongholds}</b> stronghold${lastRunSummary.run.strongholds === 1 ? '' : 's'}` : '')
-          + (lastRunSummary.isBest ? ' — <b style="color:#3FB950">NEW BEST!</b>'
-             : ` <span style="color:var(--text-dim)">(best: ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0})</span>`)
-        : 'Your base has fallen.')}</p>
+      <p class="aow-end-kicker">${kicker}</p>
+      <h2>${title}</h2>
+      <p class="aow-end-cause">${cause}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
@@ -9783,7 +10032,7 @@ const AgeOfWarGame = (() => {
       ${newTrials.length ? `<div style="margin-top:14px">${newTrials.map(t =>
         `<div style="color:#3FB950;font-weight:800;font-size:14px">🏆 War Trial complete: ${t.icon} ${t.name} — +${t.reward}🏺</div>`).join('')}</div>` : ''}
       ${overlayCtas('aow-again-cta', 'Play again')}
-      <p style="font-size:12px; color: var(--text-dim); margin-top:10px">Space plays again</p>
+      <p class="aow-end-next">Play again starts a fresh war. Space does the same.</p>
       <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
         <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
           🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
@@ -9800,6 +10049,8 @@ const AgeOfWarGame = (() => {
       </div>
     `;
     wireOverlayPrimary('aow-again-cta', e => { e.stopPropagation(); startNewWar(); });
+    const again = document.getElementById('aow-again-cta');
+    if (again) { try { again.focus({ preventScroll: true }); } catch { again.focus(); } }
     ov.querySelectorAll('.relic-perk').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();

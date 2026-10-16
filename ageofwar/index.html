@@ -144,12 +144,19 @@
 
       <div class="aow-stage">
         <canvas id="aow-canvas" class="aow-canvas"></canvas>
+        <div id="aow-coach" class="aow-coach" hidden role="status">
+          <div class="aow-coach-copy">
+            <div class="aow-coach-kicker">Start here</div>
+            <p id="aow-coach-text"></p>
+          </div>
+          <button type="button" id="aow-coach-dismiss" class="aow-coach-x">Got it</button>
+        </div>
         <div id="aow-overlay" class="aow-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
 
       <div class="aow-actionbar">
         <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
-        <button id="aow-special-btn" class="aow-action aow-action-special"><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
+        <button id="aow-special-btn" class="aow-action aow-action-special" title="Boulder (Space) — drops on the enemy line. A short cooldown, then it reads READY."><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
         <button id="aow-hero-btn" class="aow-action aow-action-hero"><span class="aow-action-ico">🦸</span><span class="aow-action-lbl">Hero</span><span class="aow-action-cd" id="aow-hero-cd"></span></button>
         <button id="aow-warcry-btn" class="aow-action aow-action-special" title="Sound the horns (W) — every friendly unit attacks 50% faster for 6 seconds. Unlocked from Age II."><span class="aow-action-ico">🎺</span><span class="aow-action-lbl">Warcry</span><span class="aow-action-cd" id="aow-warcry-cd"></span></button>
         <button id="aow-merc-btn" class="aow-action aow-action-special" title="Hire mercenaries (M) — two veterans of your best line walk on instantly, at a premium."><span class="aow-action-ico">🪖</span><span class="aow-action-lbl">Mercs</span><span class="aow-action-cd" id="aow-merc-cd"></span></button>
@@ -205,7 +212,7 @@
         <div id="aow-turret-list" class="aow-turret-list"></div>
       </div>
 
-      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> summon hero · click or drag across coins to collect gold</div>
+      <div class="aow-hint"><strong>1–9</strong> send a unit · click coins for gold · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> hero</div>
     </div>
   </section>
 
@@ -216,13 +223,13 @@
   <div id="aow-welcome-modal" class="aow-modal" style="display:none">
     <div class="aow-modal-card aow-welcome-card">
       <div class="aow-welcome-title">⚔ Age of War</div>
-      <div class="aow-welcome-sub">Push the enemy base. Age up. Last one standing wins.</div>
+      <div class="aow-welcome-sub">Your castle is on the left. Send soldiers at the enemy castle on the right. Last base standing wins.</div>
       <div class="aow-welcome-steps">
-        <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Spawn units</strong> — click an icon or press <kbd>1–9</kbd>. Each kind costs gold and has a brief cooldown.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Collect coins</strong> — kills drop gold coins. <strong>Tap them</strong> for an instant pop (or drag a finger across to sweep). They auto-collect after a few seconds if you leave them.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with <kbd>Q</kbd> when you have enough XP. Unlocks stronger units and a new <strong>Special</strong> (<kbd>Space</kbd>).</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Send units</strong> — two soldiers are already marching. Click <strong>Clubman</strong> or press <kbd>1</kbd> to send more. Each kind costs gold.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Click coins</strong> — kills drop gold on the field. Click one, or drag across several. Missed coins collect themselves after a few seconds.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with <kbd>Q</kbd> when the XP bar fills. That unlocks stronger units and a new <strong>Special</strong> (<kbd>Space</kbd>).</div></div>
         <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with <kbd>H</kbd> — expensive but devastating. New hero every era.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> on your base in the <em>Turrets</em> tab. They snipe enemies passively.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> on your base in the <em>Turrets</em> tab. They shoot enemies while you collect coins.</div></div>
       </div>
       <div class="aow-welcome-cta">
         <button class="aow-welcome-start" id="aow-welcome-close">Let's go ⚔</button>
@@ -287,6 +294,7 @@
         </div>
         <div class="aow-setting-row">
           <div class="aow-setting-label">Sound</div>
+          <div id="aow-audio"></div>
           <button class="aow-setting-toggle" id="aow-mute-toggle" aria-pressed="false">
             <span class="aow-toggle-on">🔊 ON</span>
             <span class="aow-toggle-off">🔇 MUTED</span>
@@ -317,6 +325,7 @@
       },
     };
   </script>
+  <script src="/js/persist.js"></script>
   <script src="/ageofwar/ageofwar.js"></script>
   <script>AgeOfWarGame.init();</script>
 </body>

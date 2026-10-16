@@ -2,7 +2,7 @@
    MEMORY MATRIX — Simon on a 3×3 light grid.
    Watch the pattern, play it back. One more
    step every round, a little faster each time;
-   one wrong pad ends the run.
+   three misses end the run.
    ============================================ */
 
 const MemoryMatrixGame = (() => {
@@ -55,7 +55,12 @@ const MemoryMatrixGame = (() => {
     canvas.addEventListener('click', e => {
       if (phase === 'idle' || phase === 'over') { start(); return; }
       const r = canvas.getBoundingClientRect();
-      const pad = padAt(e.clientX - r.left, e.clientY - r.top);
+      if (r.width < 2 || r.height < 2) return;
+      // The board is 510px logical and shrinks to the phone. CSS pixels are
+      // not pad pixels — a tap in the middle used to miss every pad.
+      const x = (e.clientX - r.left) * (WIDTH / r.width);
+      const y = (e.clientY - r.top) * (HEIGHT / r.height);
+      const pad = padAt(x, y);
       if (pad >= 0) pressPad(pad);
     });
   }

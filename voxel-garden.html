@@ -126,6 +126,9 @@
   .ach b{display:block;font-size:13px;margin-bottom:2px}
   .ach.done b{color:var(--gold)}
   .ach small{color:var(--dim);line-height:1.3}
+  .ach-prog{margin-top:6px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+  .ach-prog-bar{height:100%;background:var(--gold);border-radius:3px}
+  .ach-prog-txt{display:block;margin-top:3px;text-align:right;opacity:.8}
   #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:9px 20px;font-size:14px;cursor:pointer}
   body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
@@ -248,6 +251,7 @@
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
+  <div id="vox-audio"></div>
   <button id="helpBtn" title="Help (H)">?</button>
   <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 </div>
@@ -344,6 +348,7 @@
 </div></div>
 
 <script src="vendor/three-r128.min.js"></script>
+<script src="/js/persist.js"></script>
 <script>
 'use strict';
 /* ============================== utils ============================== */
@@ -366,7 +371,9 @@ function colScale(hex,f){const r=clamp(((hex>>16)&255)*f,0,255),g=clamp(((hex>>8
 const SFX={ctx:null,
   ensure(){if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
     if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
-  tone(f,dur,type,vol,slide,delay){if(state.muted)return;this.ensure();if(!this.ctx)return;
+  tone(f,dur,type,vol,slide,delay){
+    const scale=window.EurekaPersist?EurekaPersist.audio.sfx(state.muted):(state.muted?0:1);
+    if(scale<=0)return;this.ensure();if(!this.ctx)return;vol*=scale;
     const t=this.ctx.currentTime+(delay||0);
     const o=this.ctx.createOscillator(),g=this.ctx.createGain();
     o.type=type||'sine';o.frequency.setValueAtTime(f,t);
@@ -396,7 +403,8 @@ const SFX={ctx:null,
     if(P[n])P[n]();
   },
   pluck(f,vol,delay){
-    if(state.muted||state.musicOff)return;this.ensure();if(!this.ctx)return;
+    const scale=window.EurekaPersist?EurekaPersist.audio.music(state.muted,state.musicOff):((state.muted||state.musicOff)?0:1);
+    if(scale<=0)return;this.ensure();if(!this.ctx)return;vol*=scale;
     const t=this.ctx.currentTime+(delay||0);
     const o=this.ctx.createOscillator(),g=this.ctx.createGain();
     o.type='triangle';o.frequency.setValueAtTime(f,t);
@@ -407,13 +415,14 @@ const SFX={ctx:null,
   },
   rainNode:null,
   rainStart(){
-    if(state.muted)return;this.ensure();if(!this.ctx||this.rainNode)return;
+    const rainScale=window.EurekaPersist?EurekaPersist.audio.music(state.muted,state.musicOff):(state.muted?0:1);
+    if(rainScale<=0)return;this.ensure();if(!this.ctx||this.rainNode)return;
     const len=this.ctx.sampleRate*2,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
     const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     const src=this.ctx.createBufferSource();src.buffer=buf;src.loop=true;
     const lp=this.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;
     const g=this.ctx.createGain();g.gain.setValueAtTime(0.0001,this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.045,this.ctx.currentTime+2);
+    g.gain.exponentialRampToValueAtTime(0.045*rainScale,this.ctx.currentTime+2);
     src.connect(lp);lp.connect(g);g.connect(this.ctx.destination);src.start();
     this.rainNode={src,g};
   },
@@ -2426,11 +2435,16 @@ function refreshGoodsHud(){
 // busier town with more villagers serves faster. This is the "buildings consume
 // what you gather" loop, running alongside the Trader's bulk buys.
 let tavernT=0,mealMsgT=0;
+function tavernInterval(){return 14/(1+W.workers.length*0.12);}   // more villagers → a livelier tavern
+function nextMealKey(){
+  let bestT=null,bestQ=0;
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+  return bestT;
+}
 function updateTavern(dt){
   if(!hasTavern()||goodsTotal()<=0){tavernT=0;return;}
-  const interval=14/(1+W.workers.length*0.12);   // more villagers → a livelier tavern
   tavernT+=dt;
-  if(tavernT>=interval){tavernT=0;serveMeal();}
+  if(tavernT>=tavernInterval()){tavernT=0;serveMeal();}
 }
 function serveMeal(){
   // serve the good you have the most of
@@ -2448,6 +2462,15 @@ function serveMeal(){
   if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
   refreshGoodsHud();
   if(typeof checkAch==='function')checkAch();
+}
+function reportTavern(){
+  const tot=goodsTotal(), meals=state.meals||0, crew=W.workers.length;
+  const crewBit=crew?(crew===1?' · 1 villager at the tables':' · '+crew+' villagers at the tables'):'';
+  if(tot<=0)return toast('🍺 The kitchen waits for goods · Goods stock 0 · Meals served '+meals+crewBit);
+  const eta=Math.max(0,Math.ceil(tavernInterval()-tavernT));
+  const product=goodDef(nextMealKey()).product;
+  const when=eta===0?'The next meal is ready':'Next meal in '+eta+'s';
+  return toast('🍺 '+when+' · '+product+' next · Goods remaining '+tot+' · Meals served '+meals+crewBit);
 }
 /* ---- the Bakery turns raw crops into bread (value-add) ---- */
 // A production step in the chain: the Bakery periodically takes one 🌾 crop from
@@ -2494,15 +2517,17 @@ function updateWell(dt){
   }
   if(any){flushChunks();const gy=(surfaceY(b.x,b.z)||4)+1.2;burst(b.x+0.5,gy,b.z+0.5,0x6fc3ff,6,{up:1.2,g:4,spread:1.4});}
 }
+function bakeryCycle(){return hasWindmill()?5.5:9;}   // a Windmill speeds the grind
+function bakeryLoaves(){return hasWindmill()?2:1;}    // a Windmill yields an extra loaf
 function updateBakery(dt){
   if(!hasBakery()||(state.goods.crop||0)<=0){bakeT=0;return;}
   bakeT+=dt;
-  if(bakeT>=(hasWindmill()?5.5:9)){bakeT=0;bake();}   // a Windmill speeds the grind
+  if(bakeT>=bakeryCycle()){bakeT=0;bake();}
 }
 function bake(){
   if((state.goods.crop||0)<=0)return;
   state.goods.crop--;
-  const loaves=hasWindmill()?2:1;                      // a Windmill yields an extra loaf
+  const loaves=bakeryLoaves();
   state.goods.bread=(state.goods.bread||0)+loaves;
   state.loaves=(state.loaves||0)+loaves;
   const b=state.buildings.bakery,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
@@ -2512,6 +2537,15 @@ function bake(){
   if(bakeMsgT<=0){toast('🥖 The Bakery baked a fresh loaf 🍞');bakeMsgT=26;}
   refreshGoodsHud();
   if(typeof checkAch==='function')checkAch();
+}
+function reportBakery(){
+  const crops=state.goods.crop||0, bread=state.goods.bread||0, mill=hasWindmill();
+  if(crops<=0)return toast('🥖 The oven waits for crops · 🌾 Crop stock 0 · Bread on hand '+bread+(mill?' · Windmill ready':''));
+  const eta=Math.max(0,Math.ceil(bakeryCycle()-bakeT));
+  const when=eta===0
+    ? (mill?'The windmill bake (2 loaves) is ready':'The next loaf is ready')
+    : ('Next '+(mill?'bake (2 loaves)':'loaf')+' in '+eta+'s');
+  return toast('🥖 '+when+' · 🌾 Crops remaining '+crops+' · Bread on hand '+bread);
 }
 /* ---- the Trader wagon (drives in to buy the stockpile) ---- */
 let traderT=0,trader=null;
@@ -4647,6 +4681,20 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='preserves'){
+      const jars=state.jars||0;
+      return toast('🫙 Preserve Shed · '+jars+'/'+JAM_CAP+' jars · '+(jars<JAM_CAP?'Next jar at dawn':'Shelf full — waiting for a seasonal festival to clear')+' · '+JAM_PAY+'🪙/jar at festivals');
+    }
+    if(ud.buildingKey==='apiary'){
+      toast('🐝 Apiary — next comb in '+Math.ceil(Math.max(0,16-honeyT))+'s · '+(state.goods.honey||0)+' 🍯'+(stockpiles()?'':' · no stockpiles; combs pay coins'));return;
+    }
+    if(ud.buildingKey==='brewery'){
+      const honey=state.goods.honey||0,mead=state.goods.mead||0;
+      if(honey<=0)return toast('🍶 The still waits for honey · 🍯 Honey stock 0 · Mead on hand '+mead);
+      return toast('🍶 Next mead bottle in '+Math.max(0,Math.ceil(12-brewT))+'s · 🍯 Honey remaining '+honey+' · Mead on hand '+mead);
+    }
+    if(ud.buildingKey==='tavern')return reportTavern();
+    if(ud.buildingKey==='bakery')return reportBakery();
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
@@ -4710,6 +4758,9 @@ function actOnPlant(p){
     if(state.tool==='pick'){
       removePlant(p);SFX.play('dig');
       burst(p.x+0.5,p.y+0.4,p.z+0.5,0xc09362,8,{up:1.6,g:6});
+    }else if(p.type==='scarecrow'){
+      const count=[...W.plants.values()].filter(c=>PLANTS[c.type]&&c.stage<2&&Math.hypot(c.x-p.x,c.z-p.z)<=CROW_GUARD_R).length;
+      toast('🎃 Guarding '+count+' crop'+(count===1?'':'s')+' within '+CROW_GUARD_R+' blocks');
     }
     return;
   }
@@ -4761,7 +4812,7 @@ function placeSelected(x,y,z){
     if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
     if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
     if(!spendCoins(d.cost))return;
-    addPlant(x,y,z,sel);
+    addPlant(x,y,z,sel,false,0,2);   // decorations have no growth stages
     state.decor++;SFX.play('place');
     burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
     questCheck();
@@ -4954,6 +5005,7 @@ function initHud(){
     if(!confirm('Start a new isle? The kept garden is dropped. The Stone Lantern still stands.')) return;
     droppingIsle=true;
     try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+    try{if(window.EurekaPersist)EurekaPersist.progress.clear('voxel');}catch(e){}
     location.reload();
   }
   const neu=$('helpNewIsle');
@@ -4983,6 +5035,11 @@ function initHud(){
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
     state.musicOff=!state.musicOff;
+    try{
+      if(window.EurekaPersist){
+        EurekaPersist.settings.update({musicOn:!state.musicOff,muted:!!state.muted,touched:true});
+      }
+    }catch(e){}
     $('musicBtn').style.opacity=state.musicOff?0.4:1;
     SFX.play('click');
   });
@@ -4993,7 +5050,16 @@ function initHud(){
   selectTool(state.tool);
   if(!state.helpSeen)el.helpOv.classList.add('open');
 }
-function toggleMute(){state.muted=!state.muted;$('muteBtn').textContent=state.muted?'🔇':'🔊';}
+function applySharedAudio(){
+  if(!window.EurekaPersist||!state)return;
+  const heard=EurekaPersist.audio.apply(state.muted,state.musicOff);
+  state.muted=heard.muted;state.musicOff=heard.musicOff;
+}
+function toggleMute(){
+  state.muted=!state.muted;
+  try{if(window.EurekaPersist)EurekaPersist.settings.update({muted:!!state.muted,touched:true});}catch(e){}
+  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+}
 function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
 function selectTool(t,fromClick){
   const wasSel=state.tool===t;
@@ -5092,6 +5158,9 @@ function save(){
       workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+    if(window.EurekaPersist){
+      EurekaPersist.progress.note('voxel',{day:state.day|0,level:state.level|0,coins:state.coins|0});
+    }
   }catch(e){}
 }
 function savePresent(){
@@ -5167,7 +5236,7 @@ function load(){
     if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
   });
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
-  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,PLANTS[p.type]?p.stage:2,p.harvested)); // heal legacy decorations
   (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
   (data.workers||[]).forEach(w=>spawnWorker(w.role,w.name,w.x,w.z));
   if(state.farmerHired&&!W.workers.length){spawnWorker('all');delete state.farmerHired;}   // migrate old farmhand
@@ -5199,6 +5268,22 @@ function load(){
     if(idle>0){state.coins+=idle;state.totalEarned+=idle;
       setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
     if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
+    // the Tavern keeps cooking through whatever was stockpiled while you were gone
+    if(hasTavern()&&goodsTotal()>0){
+      const interval=14/(1+W.workers.length*0.12);
+      let meals=Math.floor(off/interval),served=0,tavernCoins=0;
+      while(meals-->0&&goodsTotal()>0){
+        let bestT=null,bestQ=0;
+        for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+        if(!bestT)break;
+        state.goods[bestT]--;served++;
+        tavernCoins+=Math.max(2,Math.round(goodDef(bestT).yield*2));
+      }
+      if(tavernCoins>0){
+        state.coins+=tavernCoins;state.totalEarned+=tavernCoins;state.meals=(state.meals||0)+served;
+        setTimeout(()=>toast('🍺 The Tavern served '+served+' meal'+(served>1?'s':'')+' for '+tavernCoins+' 🪙 while you were away'),3200);
+      }
+    }
   }
   state.townRank=Math.max(state.townRank||0,townRankIdx());   // silent baseline; only fire on future growth
   return true;
@@ -5404,26 +5489,28 @@ function updateSprinklers(dt){
 /* ============================== achievements ============================== */
 const ACH=[
   ['sprout','First Sprout','Plant your first seed',()=>state.planted>=1],
-  ['tiller','Breaking Ground','Till 20 plots',()=>state.tills>=20],
-  ['green25','Green Thumb','Harvest 25 crops',()=>state.harvests>=25],
-  ['green100','Master Gardener','Harvest 100 crops',()=>state.harvests>=100],
+  ['tiller','Breaking Ground','Till 20 plots',()=>state.tills>=20,()=>[state.tills,20]],
+  ['green25','Green Thumb','Harvest 25 crops',()=>state.harvests>=25,()=>[state.harvests,25]],
+  ['green100','Master Gardener','Harvest 100 crops',()=>state.harvests>=100,()=>[state.harvests,100]],
   ['moon','Moonlit','Harvest a moonpetal',()=>!!state.achFlags.moon],
   ['tree','Arborist','Pick fruit from a star tree',()=>!!state.achFlags.tree],
   ['night','Night Owl','Harvest under the stars',()=>!!state.achFlags.night],
-  ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
-  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
-  ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
-  ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
-  ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
-  ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
-  ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8],
+  ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1,()=>[W.islets.length,1]],
+  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3,()=>[W.islets.length,3]],
+  ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10,()=>[state.decor,10]],
+  ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1,()=>[W.animals.length,1]],
+  ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8,()=>[W.animals.length,8]],
+  ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3,()=>[W.workers.length,3]],
+  ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8,()=>[W.workers.length,8]],
   ['festival','Festival Day','Celebrate a change of season with your town',()=>!!state.achFlags.festival],
-  ['skycity','Sky City','Grow your settlement to its highest rank',()=>(state.townRank||0)>=TOWN_RANKS.length-1],
+  ['skycity','Sky City','Grow your settlement to its highest rank',()=>(state.townRank||0)>=TOWN_RANKS.length-1,()=>[(state.townRank||0),TOWN_RANKS.length-1]],
   ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
-  ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
-  ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12],
-  ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1],
-  ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=Object.keys(BUILDINGS).length],
+  ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50,()=>[state.meals||0,50]],
+  ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12,()=>[state.loaves||0,12]],
+  ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1,
+    ()=>[Object.values(state.buildings||{}).filter(Boolean).length,1]],
+  ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=Object.keys(BUILDINGS).length,
+    ()=>[Object.values(state.buildings||{}).filter(Boolean).length,Object.keys(BUILDINGS).length]],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
@@ -5488,11 +5575,12 @@ const ACH=[
   ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
   ['mead','Meadery','Ferment a cask of mead at the Brewery',()=>!!state.achFlags.mead],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
-  ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
+  ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000,()=>[state.totalEarned,1000]],
   ['bloom','Full Bloom','Have 20 plants growing at once',
-    ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
-  ['year','A Year Aloft','Tend the garden through all four seasons',()=>state.day>=SEASON_DAYS*4+1],
-  ['maxlvl','Sky’s the Limit','Reach the final garden level',()=>state.level>=LVL_XP.length],
+    ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20,
+    ()=>[[...W.plants.values()].filter(p=>PLANTS[p.type]).length,20]],
+  ['year','A Year Aloft','Tend the garden through all four seasons',()=>state.day>=SEASON_DAYS*4+1,()=>[state.day,SEASON_DAYS*4+1]],
+  ['maxlvl','Sky’s the Limit','Reach the final garden level',()=>state.level>=LVL_XP.length,()=>[state.level,LVL_XP.length]],
 ];
 function checkAch(){
   if(!state.ach)state.ach={};
@@ -5517,11 +5605,19 @@ function checkAch(){
 }
 function renderAchievements(){
   const grid=$('achGrid');grid.innerHTML='';
-  for(const [id,name,desc] of ACH){
+  for(const [id,name,desc,,prog] of ACH){
     const done=!!(state.ach&&state.ach[id]);
     const d=document.createElement('div');
     d.className='ach '+(done?'done':'locked');
-    d.innerHTML='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
+    let html='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
+    if(!done&&prog){
+      let cur=0,goal=1;try{[cur,goal]=prog();}catch(e){}
+      cur=Math.max(0,Math.min(cur,goal));
+      const pct=goal>0?Math.round(cur/goal*100):0;
+      html+='<div class="ach-prog"><div class="ach-prog-bar" style="width:'+pct+'%"></div></div>'+
+        '<small class="ach-prog-txt">'+cur+' / '+goal+'</small>';
+    }
+    d.innerHTML=html;
     grid.appendChild(d);
   }
 }
@@ -5691,6 +5787,7 @@ function boot(){
   initScene();
   const had=savePresent();
   const loaded=load();
+  applySharedAudio();
   if(had && !loaded){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
   paintResume(loaded, had && !loaded);
   if(!loaded){
@@ -5743,6 +5840,27 @@ function boot(){
   addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  if(window.EurekaPersist){
+    const host=document.getElementById('vox-audio');
+    if(host)EurekaPersist.mount(host,{
+      showMute:false,
+      localMuted:()=>!!state.muted,
+      localMusicOff:()=>!!state.musicOff,
+      onChange(s){
+        state.muted=!!s.muted;
+        state.musicOff=!!s.muted||!s.musicOn;
+        $('muteBtn').textContent=state.muted?'🔇':'🔊';
+        $('musicBtn').style.opacity=state.musicOff?0.4:1;
+        save();
+      },
+      onReset(){
+        droppingIsle=true;
+        try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+        try{EurekaPersist.progress.clear('voxel');}catch(e){}
+        location.reload();
+      },
+    });
+  }
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   addEventListener('beforeunload',save);
   let last=performance.now();

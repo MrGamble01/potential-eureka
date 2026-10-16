@@ -48,6 +48,7 @@ const ConnectFourGame = (() => {
     canvas.addEventListener('mouseleave', () => { hoverCol = -1; });
     canvas.addEventListener('click', e => drop(colAt(e.clientX)));
     canvas.addEventListener('touchstart', e => { drop(colAt(e.touches[0].clientX)); e.preventDefault(); }, { passive: false });
+    document.addEventListener('keydown', Utils.whenViewActive('view-connect4', handleKey));
 
     newGame();
     startLoop();
@@ -110,6 +111,24 @@ const ConnectFourGame = (() => {
     return null;
   }
   function isFull(b) { return b[0].every(v => v !== 0); }
+
+  // Keyboard: 1-7 drop straight into a column, arrows move the same
+  // highlight the mouse hover uses, Enter/Space drops there (or restarts
+  // once the game has ended — same convention as every other arcade game).
+  function handleKey(e) {
+    if (state !== 'playing') {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); newGame(); }
+      return;
+    }
+    if (/^[1-7]$/.test(e.key)) { e.preventDefault(); drop(+e.key - 1); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const base = hoverCol >= 0 ? hoverCol : 3;
+      hoverCol = Math.max(0, Math.min(COLS - 1, base + (e.key === 'ArrowLeft' ? -1 : 1)));
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); drop(hoverCol); }
+  }
 
   // ---- player / turn flow ----
   function drop(col) {

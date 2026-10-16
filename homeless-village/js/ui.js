@@ -120,6 +120,14 @@ function buildActionUI(){
     dyb.addEventListener('mouseleave',hideTip);
     el.appendChild(dyb);
   }
+  // A craft or hire can rebuild this list while other actions are running.
+  Object.keys(activeJobs).forEach(function(id){
+    var btn=document.getElementById('action-'+id);
+    if(btn){ btn.classList.add('active-job'); btn.disabled=true; }
+  });
+  // Newly created action nodes need the current lock/range state.
+  _scavGateOut=null;
+  updateScavengeGate();
 }
 
 function buildCraftUI(){
@@ -131,7 +139,7 @@ function buildCraftUI(){
     div.type='button';
     div.className='craft-item'+(canCraft(r)?'':' cant-afford');
     div.id='craft-'+r.id;
-    var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+    var costStr=craftCostText(r);
     div.innerHTML='<span class="ci-icon">'+r.icon+'</span><div class="ci-info"><span class="ci-name">'+r.name+'</span><span class="ci-cost">'+costStr+'</span></div>';
     div.setAttribute('data-tip',craftTip(r));
     div.onclick=function(){ doCraft(r); };
@@ -161,13 +169,25 @@ function buildWorkersUI(){
     if(hired){
       row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><span class="w-status">active</span>';
     } else {
-      row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><button class="w-hire" onclick="hireWorker(\''+w.id+'\')" title="'+w.desc+'">'+w.cost+'🩶</button>';
+      row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><button id="hire-'+w.id+'" class="w-hire" onclick="hireWorker(\''+w.id+'\')" title="'+w.desc+'">'+w.cost+'🩶</button>';
     }
     el.appendChild(row);
   });
+  refreshWorkerHireButtons();
   buildPetitionsUI();  // HV-15: the notice board rides the same panel
   buildRegularsUI();   // HV-7: the roster shares the Community panel
   buildFavorUI();      // HV-16: a friend's ask rides under the roster
+}
+
+// Refresh in place so HUD ticks preserve button focus and click targets.
+function refreshWorkerHireButtons(){
+  WORKER_DEFS.forEach(function(w){
+    var button=document.getElementById('hire-'+w.id);
+    if(!button) return;
+    var shortfall=Math.ceil(w.cost-G.goodwill);
+    button.textContent=shortfall>0?'Need '+shortfall+' more':w.cost+'🩶';
+    button.title=shortfall>0?'Need '+shortfall+' more goodwill to recruit '+w.name+'.':w.desc;
+  });
 }
 
 // HV-16: the open favor renders as one row with a Give button that
@@ -236,9 +256,17 @@ function buildRegularsUI(){
   });
 }
 
+function craftCostText(r){
+  if(r.gives && r.gives.structure==='barrel' && G.structures.barrel) return (G.barrelWater||0)+'/'+BARREL_CAP+' stored';
+  return Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+}
+
 function craftRefusal(r){
   // Keep the same priority for click feedback, hover text and availability.
-  if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return r.name+' is already built.';
+  if(r.gives && r.gives.structure && G.structures[r.gives.structure]){
+    if(r.gives.structure==='barrel') return r.name+' holds '+(G.barrelWater||0)+'/'+BARREL_CAP+' stored.';
+    return r.name+' is already built.';
+  }
   if(r.requires && !G.structures[r.requires]){
     var required=RECIPES.find(function(recipe){ return recipe.gives && recipe.gives.structure===r.requires; });
     return r.name+' requires a '+(required?required.name:r.requires.replace(/_/g,' '))+'.';
@@ -302,6 +330,7 @@ function refreshDepositAction(){
 function updateHUD(){
   refreshDepositAction();
   checkGoals(); updateGoalHUD();
+  refreshWorkerHireButtons();
   document.getElementById('stat-food').textContent    =Math.floor(G.food);
   document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);
   document.getElementById('stat-cans').textContent    =Math.floor(G.cans);
@@ -322,6 +351,7 @@ function updateHUD(){
     if(el){
       el.className='craft-item'+(canCraft(r)?'':' cant-afford');
       el.setAttribute('data-tip',craftTip(r));
+      if(r.gives && r.gives.structure==='barrel') el.querySelector('.ci-cost').textContent=craftCostText(r);
     }
   });
   var nf=Math.max(0,Math.sin(G.timeOfDay*Math.PI*2-Math.PI*1.2));
@@ -438,7 +468,7 @@ function showGraduation(){
     '</div>';
   document.body.appendChild(d);
   document.getElementById('hv-grad-new').addEventListener('click',function(){
-    localStorage.removeItem(SAVE_KEY); location.reload();
+    resetCamp();
   });
   document.getElementById('hv-grad-stay').addEventListener('click',function(){
     G.arcDone=true; saveGame(); d.remove();
@@ -461,7 +491,7 @@ function showGameOver(){
   d.innerHTML='<div style="font-size:34px">🕯️</div>'+
     '<div style="font-size:17px;letter-spacing:2px;color:#e08060">THE CAMP DIDN\'T MAKE IT</div>'+
     '<div style="max-width:420px;line-height:1.6">Your health gave out. You survived <b>'+G.days+'</b> day'+(G.days===1?'':'s')+' under the bridge, with a community of <b>'+G.peakPopulation+'</b> at its peak.</div>'+
-    '<button onclick="localStorage.removeItem(SAVE_KEY);location.reload()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
+    '<button onclick="resetCamp()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
   document.body.appendChild(d);
 }
 

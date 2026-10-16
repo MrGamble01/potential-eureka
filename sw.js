@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-v333-tyc-archive';  // Startup Tycoon: Archive Wing cash shortfall
+const SW_VERSION = 'eureka-20261016-tyc-archive';  // Startup Tycoon: Archive Wing cash shortfall
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -83,6 +83,7 @@ const SHELL = [
   '/js/effects.js',
   '/js/game2048.js',
   '/js/gamepad.js',
+  '/js/hub-routes.js',
   '/js/life.js',
   '/js/lightcycles.js',
   '/js/maze.js',
@@ -92,6 +93,7 @@ const SHELL = [
   '/js/orgchart.js',
   '/js/personal-auth.js',
   '/js/personal-content.js',
+  '/js/persist.js',
   '/js/personal.js',
   '/js/pomodoro.js',
   '/js/pong.js',
