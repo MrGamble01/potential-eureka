@@ -85,7 +85,7 @@ const VectorDefenseGame = (() => {
       if (e.key === '2') selectKind('rail');
       if (e.key === 'p' || e.key === 'P') {
         if (e.repeat) return;
-        if (running && !over) { paused = !paused; sfx(paused ? 'lock' : 'start'); draw(); }
+        togglePause();
       }
     }));
 
@@ -113,8 +113,19 @@ const VectorDefenseGame = (() => {
     const sellBtn = document.getElementById('vd-sell-btn');
     if (upgBtn) upgBtn.addEventListener('click', upgradeSelected);
     if (sellBtn) sellBtn.addEventListener('click', sellSelected);
+    const pauseBtn = document.getElementById('vd-pause-btn');
+    if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
 
     loop = Utils.gameLoop(tick);
+    draw();
+  }
+
+  function togglePause() {
+    if (!running || over) return;
+    paused = !paused;
+    sfx(paused ? 'lock' : 'start');
+    const btn = document.getElementById('vd-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
     draw();
   }
 
@@ -139,6 +150,8 @@ const VectorDefenseGame = (() => {
     betweenWaves = true;
     over = false; won = false; paused = false;
     running = !!run;
+    const pauseBtn = document.getElementById('vd-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
     selectKind('pulse');
     selectTower(null);
   }
@@ -490,7 +503,7 @@ const VectorDefenseGame = (() => {
       ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2 - 8);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 14);
+      ctx.fillText('P or Pause to resume', WIDTH / 2, HEIGHT / 2 + 14);
     }
     ctx.textAlign = 'left';
   }
@@ -506,5 +519,5 @@ const VectorDefenseGame = (() => {
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();

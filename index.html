@@ -891,6 +891,7 @@
       <div class="game-controls" style="margin-top:12px">
         <button id="vd-pulse-btn" class="active">⚡ Pulse $50</button>
         <button id="vd-rail-btn">▭ Rail $120</button>
+        <button id="vd-pause-btn" type="button">Pause</button>
         <button id="vd-upg-btn" hidden>⬆ Upgrade</button>
         <button id="vd-sell-btn" hidden>♻ Sell</button>
       </div>
@@ -902,7 +903,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">WORD CASCADE</div>
-        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply &middot; &larr; &rarr; move &middot; &darr; soft drop &middot; Space hard drop &middot; tap either side on touch</div>
+        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply &middot; &larr; &rarr; move &middot; &darr; soft drop &middot; Space hard drop &middot; tap either side on touch &middot; tap the letter to hard drop</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="wc-score">0</strong></span>
@@ -959,7 +960,9 @@
         <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Loading…</span>
         <span style="margin-left:12px">⏱ <strong id="maze-time">0.0s</strong></span>
       </div>
+      <div class="canvas-wrapper">
       <canvas id="maze-canvas" class="game-canvas" role="img" aria-label="Maze runner — use arrow keys, WASD, or swipe to reach the exit"></canvas>
+      </div>
       <div class="maze-legend">
         <span class="path" style="color:#3FB950">● You</span>
         <span class="solution" style="color:#F778BA">● Exit</span>
@@ -1018,6 +1021,7 @@
         <button data-tkey="ArrowUp" aria-label="Rotate">&#10227;</button>
         <button data-tkey=" " aria-label="Hard drop">&#10515;</button>
         <button data-tkey="c" aria-label="Hold piece">HOLD</button>
+        <button data-tkey="p" aria-label="Pause">&#10074;&#10074;</button>
         <button data-tkey="ArrowRight" data-repeat aria-label="Move right">&#9654;</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
@@ -1134,7 +1138,7 @@
       .w5-msg-bad{color:#F85149!important}
       #word5-kb{display:flex;flex-direction:column;gap:6px;width:100%;max-width:500px}
       .w5-kb-row{display:flex;gap:5px;justify-content:center}
-      .w5-key{min-width:30px;height:48px;padding:0 8px;border:0;border-radius:6px;cursor:pointer;
+      .w5-key{min-width:30px;height:48px;padding:0 8px;border:0;border-radius:6px;cursor:pointer;touch-action:manipulation;
         background:#3a4048;color:#E6EDF3;font-size:14px;font-weight:700;text-transform:uppercase;flex:1;max-width:44px}
       .w5-key:hover{background:#474e57}
       .w5-key-wide{max-width:64px;font-size:12px;flex:1.5}
@@ -1142,6 +1146,7 @@
       .w5-key.w5-present{background:#D9A62E;color:#0d1117}
       .w5-key.w5-absent{background:#21262d;color:#6e7681}
       @media(max-width:480px){.w5-tile{width:44px;height:44px;font-size:22px}.w5-key{height:44px;min-width:26px}}
+      @media(max-height:520px){.w5-tile{width:28px;height:28px;font-size:14px}.w5-key{height:34px;min-width:18px;padding:0 4px}#view-word5 .w5-wrap{gap:6px}}
     </style>
     <div class="game-container">
       <div class="game-header">
@@ -1292,8 +1297,10 @@
         <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
         <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
       </div>
+      <div class="canvas-wrapper">
       <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw or erase cells"></canvas>
-      <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
+      </div>
+      <div class="life-legend">
         Cell age: <span style="color:#eaffff">newborn</span> ·
         <span style="color:#3FB950">young</span> ·
         <span style="color:#58A6FF">mature</span> ·

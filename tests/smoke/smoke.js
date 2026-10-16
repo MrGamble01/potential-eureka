@@ -359,6 +359,9 @@ const TARGETS = [
       if (!/^\d+$/.test(coins)) throw new Error(`Voxel Isle coins did not render (${coins})`);
     },
   },
+  phoneTarget('Phone 390×844', { width: 390, height: 844 }),
+  phoneTarget('Phone 375×667', { width: 375, height: 667 }),
+  phoneTarget('Phone 844×390', { width: 844, height: 390 }),
   {
     name: 'Eureka Studio',
     path: '/agentic-os.html',
@@ -439,10 +442,149 @@ function attach(page, bucket) {
   });
 }
 
+const PHONE_BOARDS = [
+  ['snake', '#snake-canvas'],
+  ['lightcycles', '#cycles-canvas'],
+  ['pong', '#pong-canvas'],
+  ['stacker', '#stacker-canvas'],
+  ['crateescape', '#crate-canvas'],
+  ['vectordefense', '#vd-canvas'],
+  ['wordcascade', '#wc-canvas'],
+  ['memorymatrix', '#mm-canvas'],
+  ['maze', '#maze-canvas'],
+  ['tetris', '#tetris-canvas'],
+  ['2048', '#g2048-canvas'],
+  ['breakout', '#breakout-canvas'],
+  ['connect4', '#c4-canvas'],
+  ['minesweeper', '#mines-canvas'],
+  ['asteroids', '#asteroids-canvas'],
+  ['life', '#life-canvas'],
+];
+
+function phoneTarget(name, viewport) {
+  return {
+    name,
+    path: '/#snake',
+    mobile: true,
+    viewport,
+    check: (page) => assertPhone(page),
+  };
+}
+
+async function assertPhone(page) {
+  const failures = [];
+  const openHash = async (hash) => {
+    await page.evaluate((h) => { location.hash = h; }, hash);
+    await page.waitForFunction((h) => {
+      const view = h.startsWith('view-') ? h : null;
+      if (view) return document.getElementById(view)?.classList.contains('active');
+      return true;
+    }, hash.startsWith('#') ? 'view-' + hash.slice(1) : hash);
+    await page.waitForTimeout(80);
+  };
+
+  for (const [view, sel] of PHONE_BOARDS) {
+    await openHash(view);
+    await page.waitForFunction((s) => {
+      const el = document.querySelector(s);
+      return el && el.getBoundingClientRect().width > 40;
+    }, sel);
+    const box = await page.evaluate((s) => {
+      const el = document.querySelector(s);
+      const b = el.getBoundingClientRect();
+      return {
+        w: b.width, h: b.height, top: b.top, left: b.left, right: b.right, bottom: b.bottom,
+        touch: getComputedStyle(el).touchAction,
+        doc: document.documentElement.scrollWidth,
+        vw: innerWidth, vh: innerHeight,
+      };
+    }, sel);
+    if (box.doc > box.vw + 1) failures.push(`${view} scrolls sideways (${box.doc} > ${box.vw})`);
+    if (box.touch !== 'none') failures.push(`${view} canvas touch-action is ${box.touch}`);
+    if (box.w < 64 || box.h < 64) failures.push(`${view} board is ${Math.round(box.w)}×${Math.round(box.h)}`);
+    if (box.left < -1 || box.right > box.vw + 1 || box.top < -1 || box.bottom > box.vh + 1) {
+      failures.push(`${view} board leaves the screen (${Math.round(box.left)},${Math.round(box.top)}–${Math.round(box.right)},${Math.round(box.bottom)} in ${box.vw}×${box.vh})`);
+    }
+  }
+
+  for (const id of ['tetris-touch', 'ast-touch']) {
+    const view = id === 'tetris-touch' ? 'tetris' : 'asteroids';
+    await openHash(view);
+    const pad = await page.evaluate((padId) => {
+      const el = document.getElementById(padId);
+      const cs = getComputedStyle(el);
+      const buttons = [...el.querySelectorAll('button')].map((btn) => {
+        const b = btn.getBoundingClientRect();
+        return b.width > 8 && b.height > 8 && b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1;
+      });
+      return { shown: cs.display !== 'none', ok: buttons.length >= (padId === 'tetris-touch' ? 7 : 5) && buttons.every(Boolean), n: buttons.length };
+    }, id);
+    if (!pad.shown || !pad.ok) failures.push(`${view} touch pad is not fully on screen (${pad.n} buttons, shown ${pad.shown})`);
+  }
+
+  await openHash('word5');
+  await page.waitForSelector('#word5-kb button.w5-key');
+  const w5 = await page.evaluate(() => {
+    const kb = document.getElementById('word5-kb');
+    const b = kb.getBoundingClientRect();
+    const key = kb.querySelector('button.w5-key');
+    return {
+      fits: b.left >= -1 && b.right <= innerWidth + 1 && b.width > 40,
+      touch: getComputedStyle(key).touchAction,
+      doc: document.documentElement.scrollWidth <= innerWidth + 1,
+    };
+  });
+  if (!w5.fits || !w5.doc) failures.push('Word Five keyboard does not fit the phone');
+  if (w5.touch !== 'manipulation') failures.push(`Word Five keys touch-action is ${w5.touch}`);
+
+  const pages = [
+    ['/homeless-village.html', '#three-canvas'],
+    ['/hearthvale.html', '#game'],
+    ['/drug-lab.html', 'canvas'],
+    ['/voxel-garden.html', 'canvas'],
+    ['/ageofwar/index.html', '#aow-canvas'],
+    ['/tycoon/play.html', 'canvas'],
+    ['/agentic-os.html', '#world canvas'],
+  ];
+  for (const [path, sel] of pages) {
+    await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(400);
+    const box = await page.evaluate((selector) => {
+      const list = [...document.querySelectorAll(selector)];
+      const el = list.sort((a, b) => (b.clientWidth * b.clientHeight) - (a.clientWidth * a.clientHeight))[0];
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      const world = document.getElementById('world');
+      return {
+        w: b.width, h: b.height, right: b.right, bottom: b.bottom, left: b.left, top: b.top,
+        touch: getComputedStyle(el).touchAction,
+        doc: document.documentElement.scrollWidth,
+        vw: innerWidth, vh: innerHeight,
+        worldW: world ? world.getBoundingClientRect().width : 0,
+      };
+    }, sel);
+    const label = path;
+    if (!box) { failures.push(`${label} has no canvas`); continue; }
+    if (box.doc > box.vw + 1) failures.push(`${label} scrolls sideways (${Math.round(box.doc)} > ${box.vw})`);
+    if (box.touch !== 'none') failures.push(`${label} canvas touch-action is ${box.touch}`);
+    if (box.w < 80 || box.h < 80) failures.push(`${label} canvas is ${Math.round(box.w)}×${Math.round(box.h)}`);
+    if (box.left < -1 || box.top < -1 || box.right > box.vw + 1 || box.bottom > box.vh + 1) {
+      failures.push(`${label} canvas leaves the screen (${Math.round(box.right)}×${Math.round(box.bottom)} in ${box.vw}×${box.vh})`);
+    }
+    if (path === '/agentic-os.html' && box.w > box.worldW + 2) {
+      failures.push(`studio canvas is wider than the island (${Math.round(box.w)} > ${Math.round(box.worldW)})`);
+    }
+  }
+
+  if (failures.length) throw new Error(failures.slice(0, 8).join('; '));
+}
+
 async function runTarget(browser, target) {
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-    deviceScaleFactor: 1,
+    viewport: target.viewport || { width: 1280, height: 800 },
+    deviceScaleFactor: target.mobile ? 2 : 1,
+    isMobile: !!target.mobile,
+    hasTouch: !!target.mobile,
   });
   await context.addInitScript(PAINT_JS);
   const page = await context.newPage();
@@ -471,6 +613,7 @@ async function runTarget(browser, target) {
   }
 
   const browser = await chromium.launch({
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
 
