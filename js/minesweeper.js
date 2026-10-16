@@ -72,6 +72,7 @@ const MinesweeperGame = (() => {
     flags = 0; revealedCount = 0; elapsed = 0;
     shake = 0; flash = 0; confetti = [];
     lastFace = '🙂';
+    setStatus('');
     updateHud();
   }
 
@@ -252,8 +253,7 @@ const MinesweeperGame = (() => {
     saveBest();
     if (dailyRun && typeof Daily !== 'undefined') {
       const line = Daily.result('minesweeper', Math.max(1, Math.floor(elapsed / 1000)), 'min');
-      const st = document.getElementById('mines-status');
-      if (st) st.textContent = line.replace(/&[a-z]+;/g, ' ');
+      setStatus(line.replace(/&[a-z]+;/g, ' '));
     }
     updateHud();
   }
@@ -382,6 +382,14 @@ const MinesweeperGame = (() => {
       ctx.fillText('Press the face or New Game to play again', w / 2, h / 2 + 18);
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     }
+  }
+
+  // The daily verdict lands in the HUD, not in a dismissable overlay, so
+  // nothing retires it on its own — every fresh board has to clear it, or
+  // yesterday's clear time hangs over a run it has nothing to do with.
+  function setStatus(msg) {
+    const st = document.getElementById('mines-status');
+    if (st) st.textContent = msg || '';
   }
 
   function updateHud() {
