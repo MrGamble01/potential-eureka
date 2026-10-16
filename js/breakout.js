@@ -461,6 +461,15 @@ const BreakoutGame = (() => {
       ctx.font = '16px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Move to aim · Click, tap or Space to launch', WIDTH / 2, HEIGHT - 70);
+    } else if (running && !gameOver && balls.some(b => b.stuck != null)) {
+      // The sticky paddle catches the ball and holds it until you release it
+      // with the same click, tap, or Space that launches. The launch prompt
+      // above is gated on `!launched`, so once a run is under way a caught
+      // ball otherwise reads as the game having frozen.
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⊙ Caught · Move to aim · Click, tap or Space to release', WIDTH / 2, HEIGHT - 70);
     }
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
