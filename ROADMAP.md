@@ -33,6 +33,11 @@ afterwards.
 
 ## Status at a glance
 
+Startup Tycoon — The Archive Wing chip and refused build toast name the cash
+shortfall. HUD refreshes keep it live; the $25,000 cost and visit purse stay
+unchanged. Hook-free `tycarchive` covers broke, funded and visit states at 1280/768.
+Cache: `eureka-20261016-tyc-archive`.
+
 Startup Tycoon — Recruiting Jeff names the missing signing bonus cash in the
 button and title, updates with cash, and toasts forced broke attempts without
 spending. Affordable hiring and free promotion are covered by hook-free `tycjeff`.
@@ -139,6 +144,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Startup Tycoon archive shortfall** | ✅ live Need-more chip/title and refusal toast; `tycarchive`; cache `eureka-20261016-tyc-archive` |
 | **Tycoon Jeff shortfall** | ✅ shipped — live shortfall tag/title, safe refusal toast, exact $5,000 hire; `tycjeff`; cache `eureka-20261016-tyc-jeff` |
 | **Tycoon desk/convert shortfalls** | ✅ tags/titles name missing cash; `tycdesk` verifies prices, purchases, locks and zero page errors; cache `eureka-20261016-tyc-desk` |
 | **TYC amenity stock** | ✅ live stock + cash shortfalls; `tests/headless/tycamenity.js`; cache `eureka-20261016-tyc-amenity` |
