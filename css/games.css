@@ -117,8 +117,15 @@ canvas.game-canvas {
   background: var(--color-black-deep);
   display: block;
   margin: 0 auto;
+  /* Boards set an inline pixel width (Snake 600, Breaker 720, …). Without
+     min-width:0 the flex item refuses to shrink, the inline-block wrapper
+     grows to that width, and a phone page scrolls sideways under the board.
+     max-width caps it to the cabinet; height:auto keeps the aspect when an
+     inline height would otherwise squash Connect Four and Minefield. */
+  min-width: 0;
   max-width: 100%;
-  height: auto; /* preserve aspect ratio when max-width clamps the width on mobile */
+  height: auto !important;
+  touch-action: none; /* swipes and drags play the game; the page does not scroll */
   image-rendering: pixelated;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
 }
@@ -160,10 +167,13 @@ canvas.game-canvas {
   margin-bottom: 16px;
 }
 
-/* Canvas wrapper for overlays */
+/* Canvas wrapper for overlays. Flex + min-width:0 on the canvas (above)
+   lets a fixed-pixel board shrink to the phone instead of overflowing. */
 .canvas-wrapper {
   position: relative;
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
 }
 
 /* ---- MAZE SPECIFIC ---- */
@@ -313,9 +323,9 @@ canvas.game-canvas {
 /* ---- VECTOR STORM TOUCH PAD ---- */
 .ast-touch {
   display: none;
-  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr 1fr 0.8fr;
   gap: 8px;
-  max-width: 480px;
+  max-width: 640px;
   margin: 12px auto 0;
   touch-action: manipulation;
 }
@@ -346,6 +356,11 @@ canvas.game-canvas {
   color: #22d3ee;
 }
 
+.ast-touch #ast-pause {
+  font-size: 15px;
+  color: #a78bfa;
+}
+
 @media (hover: none) and (pointer: coarse) {
   .ast-touch { display: grid; }
 }
@@ -363,7 +378,9 @@ canvas.game-canvas {
     order: 1;
   }
   #tetris-canvas {
-    max-height: 52vh;
+    /* Leave the header, the stat strips, and the six-key pad inside the
+       first screen. 52vh alone parked the pad past 844px. */
+    max-height: min(52vh, calc(100dvh - 530px));
     /* !important: JS now sets an inline canvas.style.width (for HiDPI
        backing-store sizing), which would otherwise always outrank this
        rule and pin the board at its desktop width instead of shrinking

@@ -39,6 +39,7 @@
       <div id="goal-pill"><span class="icon">🎯</span><span id="goal-text">—</span></div>
       <button id="chain-btn" title="The Bridge — everything this camp remembers, in the order it happened, and what the next one is waiting on.">&#129521; The Bridge</button>
       <button id="help-btn" title="How the camp works">?</button>
+      <button id="sound-btn" type="button" title="Sound and saved progress">🔊</button>
     </div>
     <div class="right">
       <div class="stat-pill"><span class="icon">🍞</span><span class="val" id="stat-food">0</span><span> food</span></div>
@@ -50,6 +51,7 @@
     </div>
   </div>
 
+  <div id="camp-audio" hidden style="position:fixed;top:58px;left:12px;z-index:40;background:#1a1410;border:1px solid #6a5030;border-radius:8px;padding:8px 10px;color:#d8cbb0"></div>
   <div id="craft-panel">
     <h3>&#9881; Craft</h3>
     <div id="craft-list"></div>
@@ -148,6 +150,7 @@ function hvFatal(msg){
 </script>
 <script src="/vendor/three-r128.min.js"
         onerror="hvFatal('Couldn\'t load the 3D engine (three.js). Check your connection and reload.')"></script>
+<script src="/js/persist.js"></script>
 <script src="homeless-village/js/config.js"></script>
 <script src="homeless-village/js/save.js"></script>
 <script src="homeless-village/js/scene.js"></script>
@@ -186,6 +189,17 @@ function hvFatal(msg){
   // deprecated fallback some older WebViews still need.
   if (mq.addEventListener) mq.addEventListener('change', function (e) { applyLayout(e.matches); });
   else if (mq.addListener) mq.addListener(function (e) { applyLayout(e.matches); });
+
+  var soundBtn = document.getElementById('sound-btn');
+  var campAudio = document.getElementById('camp-audio');
+  if (soundBtn && campAudio && window.EurekaPersist) {
+    EurekaPersist.mount(campAudio, {
+      onReset: function () { if (typeof resetCamp === 'function') resetCamp(); },
+    });
+    soundBtn.addEventListener('click', function () {
+      campAudio.hidden = !campAudio.hidden;
+    });
+  }
 
   toggle.addEventListener('click', function () {
     craftPanel.classList.toggle('mobile-open');
