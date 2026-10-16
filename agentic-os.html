@@ -228,8 +228,14 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   #dock{right:8px;bottom:52px}
 }
 @media (max-height:520px){
-  #worldwrap{padding:8px 10px 4px}
-  #world{height:calc(100dvh - 150px);min-height:150px}
+  /* A landscape phone's header and intro strip change height with the
+     fallback font. A fixed subtraction that just fits one machine leaves
+     the island a few pixels past the fold on another. One intro line and
+     a shorter island stay inside the layout viewport. */
+  header{padding:6px 10px;gap:8px;flex-wrap:nowrap;overflow-x:auto;touch-action:pan-x}
+  #strip{padding:4px 12px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  #worldwrap{padding:6px 10px 4px}
+  #world{height:calc(100dvh - 200px);min-height:120px}
 }
 </style>
 </head>
