@@ -3605,7 +3605,10 @@ function convertRoom(roomId, opts = {}) {
   if (!next) return false;
   if (!opts.auto) {
     if (cur.nextReq && !cur.nextReq()) return false;
-    if (state.cash < (cur.nextCost || 0)) return false;
+    if (state.cash < (cur.nextCost || 0)) {
+      showToast(`Need $${fmtCash(cur.nextCost - state.cash)} more to convert to ${next.label}.`, '');
+      return false;
+    }
   }
   // Gather hires currently seated in this room and plan migration
   const seatedRecords = [];
@@ -3680,7 +3683,10 @@ function addDeskToCurrentRoom() {
   const def = getPlayerRoom();
   if (!def) return;
   const cost = addDeskCost(def.id);
-  if (state.cash < cost) return;
+  if (state.cash < cost) {
+    showToast(`Need $${fmtCash(cost - state.cash)} more to add a desk in ${roomLabel(def)}.`, '');
+    return;
+  }
   if (!addExtraDeskToRoom(def.id)) return;
   state.cash -= cost; showSpendPop(cost);
   refreshHud();
@@ -3759,8 +3765,10 @@ function renderRoomPanel() {
     const btn = document.createElement('button');
     btn.className = 'room-btn room-convert';
     btn.disabled = !reqMet || !canAfford;
+    const costLabel = canAfford ? `$${fmtCash(cur.nextCost)}` : `Need $${fmtCash(cur.nextCost - state.cash)} more`;
+    if (reqMet) btn.title = `Convert to ${next.label} — ${costLabel}.`;
     btn.innerHTML = reqMet
-      ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
+      ? `⚡ Convert to ${next.label}<span class="tag">${costLabel}</span>`
       : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
     btn.onclick = () => convertRoom(roomId);
     if (reqMet) showTip('conversion');
@@ -3781,6 +3789,7 @@ function renderAddDeskButton() {
   // room, when the room is at extra-desk cap, or when they can't
   // afford the next desk.
   addDeskBtnEl.style.display = '';
+  addDeskBtnEl.title = '';
   const def = getPlayerRoom();
   if (!def) {
     addDeskBtnEl.disabled = true;
@@ -3794,8 +3803,11 @@ function renderAddDeskButton() {
     return;
   }
   const cost = addDeskCost(def.id);
-  addDeskBtnEl.disabled = state.cash < cost;
-  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">$${fmtCash(cost)}</span>`;
+  const canAfford = state.cash >= cost;
+  const costLabel = canAfford ? `$${fmtCash(cost)}` : `Need $${fmtCash(cost - state.cash)} more`;
+  addDeskBtnEl.disabled = !canAfford;
+  addDeskBtnEl.title = `Add Desk to ${roomLabel(def)} — ${costLabel}.`;
+  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">${costLabel}</span>`;
 }
 addDeskBtnEl.onclick = addDeskToCurrentRoom;
 
@@ -5415,10 +5427,13 @@ function setJeffButton() {
   if (!btn) return;
   if (!jeff) {
     btn.style.display = '';
-    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">$' + fmtCash(JEFF_COST) + '</span>';
-    btn.title = 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
+    const short = state.cash < JEFF_COST ? `Need $${fmtCash(JEFF_COST - state.cash)} more` : null;
+    btn.disabled = !!short;
+    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">' + (short || '$' + fmtCash(JEFF_COST)) + '</span>';
+    btn.title = short ? `${short} to pay Jeff Jackets’ signing bonus.` : 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
   } else if (jeff.stage === 'bdr') {
     btn.style.display = '';
+    btn.disabled = false;
     btn.innerHTML = '⬆️ Promote Jeff to AM';
     btn.title = 'Reward your star closer with a management role. What could possibly go wrong?';
   } else {
@@ -5457,10 +5472,12 @@ function updateJeff(dt) {
 
 const recruitJeffBtnEl = document.getElementById('recruit-jeff-btn');
 if (recruitJeffBtnEl) {
-  setJeffButton();
   recruitJeffBtnEl.addEventListener('click', () => {
     if (!jeff) {
-      if (state.cash < JEFF_COST) return;
+      if (state.cash < JEFF_COST) {
+        showToast(`Need $${fmtCash(JEFF_COST - state.cash)} more to pay Jeff Jackets’ signing bonus.`);
+        return;
+      }
       state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
       spawnJeff();
       SFX.hire(); Haptics.hire();
@@ -9261,6 +9278,7 @@ function refreshHud() {
   // so the number ticks up smoothly instead of snapping.
   renderUpgrades();
   renderHirePanel();
+  setJeffButton();
   renderAmenities();
   renderRoomPanel();
   renderFunding();
@@ -9268,6 +9286,7 @@ function refreshHud() {
   checkIPOAvailable();
   renderNextAction();
   refreshAffordability();
+  if (archiveChipReady) refreshArchiveChip();
 }
 
 // Toggle .can-afford on every purchasable button after a render pass.
@@ -11210,6 +11229,8 @@ function addTheirPanel() {
 // hire. What it buys is the deepest visit on the wall: $150 base +
 // $75 per panel (cap 5). Visits tallied in 'tyc-archive'.
 const ARCHIVE_KEY = 'tyc-archive', ARCHIVE_COST = 25000, ARCHIVE_BASE = 150, ARCHIVE_PER = 75;
+// refreshHud also runs before this section initializes.
+var archiveChipReady = true;
 let archiveVisited = false;
 function loadArchive() {
   try { const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || 'null');
@@ -11223,7 +11244,10 @@ function archiveBuilt() { return loadArchive().built; }
 function archivePurse() { return ARCHIVE_BASE + ARCHIVE_PER * Math.min(loadMark().panels || 0, 5); }
 function buyArchive() {
   if (!archiveOffered() || archiveBuilt()) return false;
-  if (state.cash < ARCHIVE_COST) return false;
+  if (state.cash < ARCHIVE_COST) {
+    showToast('Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more to build the Archive Wing.', 'warn', 'standard');
+    return false;
+  }
   state.cash -= ARCHIVE_COST;
   const a = loadArchive();
   saveArchive({ built: true, visits: a.visits });
@@ -11363,15 +11387,17 @@ function renderWall() {
 function refreshArchiveChip() {
   const el = document.getElementById('archive-chip');
   if (!el) return;
+  el.style.pointerEvents = 'auto';
   el.onclick = () => { archiveBuilt() ? visitArchive() : buyArchive(); };
   if (!archiveOffered()) { el.style.display = 'none'; el.textContent = ''; return; }
   el.style.display = '';
   if (!archiveBuilt()) {
     el.style.opacity = state.cash >= ARCHIVE_COST ? '' : '0.45';
-    el.textContent = '\u{1F5C4}\u{FE0F} wing $' + (ARCHIVE_COST / 1000) + 'k';
+    const shortfall = 'Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more';
+    el.textContent = '\u{1F5C4}\u{FE0F} ' + (state.cash >= ARCHIVE_COST ? 'wing $' + (ARCHIVE_COST / 1000) + 'k' : shortfall);
     el.title = 'The Archive Wing \u2014 three painted panels and the wall has outgrown the lobby. $' + ARCHIVE_COST.toLocaleString()
       + ', once ever, and the money is gone whether or not you were saving it. What it buys is the deepest visit on the wall: $' + archivePurse() + ' a session.'
-      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' You cannot afford it yet.');
+      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' ' + shortfall + ' to build it.');
     return;
   }
   el.style.opacity = archiveVisited ? '0.45' : '';
