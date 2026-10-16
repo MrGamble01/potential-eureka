@@ -33,6 +33,11 @@ afterwards.
 
 ## Status at a glance
 
+Startup Tycoon — Recruiting Jeff names the missing signing bonus cash in the
+button and title, updates with cash, and toasts forced broke attempts without
+spending. Affordable hiring and free promotion are covered by hook-free `tycjeff`.
+Cache: `eureka-20261016-tyc-jeff`.
+
 Startup Tycoon — Add Desk and eligible room conversions now name the missing cash
 in disabled tags and titles. Affordable prices and locked/full copy stay intact;
 hook-free `tycdesk` covers shortfalls and purchases. Cache: `eureka-20261016-tyc-desk`.
@@ -134,6 +139,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Tycoon Jeff shortfall** | ✅ shipped — live shortfall tag/title, safe refusal toast, exact $5,000 hire; `tycjeff`; cache `eureka-20261016-tyc-jeff` |
 | **Tycoon desk/convert shortfalls** | ✅ tags/titles name missing cash; `tycdesk` verifies prices, purchases, locks and zero page errors; cache `eureka-20261016-tyc-desk` |
 | **TYC amenity stock** | ✅ live stock + cash shortfalls; `tests/headless/tycamenity.js`; cache `eureka-20261016-tyc-amenity` |
 | **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |

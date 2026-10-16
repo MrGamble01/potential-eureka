@@ -63,6 +63,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Age of War Age Up XP | `aowagexp` (hook-free: Q shortfall banner and expiry, live titles/accessible labels, unchanged XP/era on refusal, successful age-up, Max Age and Singularity controls at 1280px/768px) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |
+| Startup Tycoon Jeff shortfall | `tycjeff` (hook-free: disabled shortfall tag/title, forced refusal toast without spending or spawning, live funding refresh, exact signing bonus and free promotion; zero page errors) |
 | Startup Tycoon desk/convert shortfalls | `tycdesk` (hook-free: seeded cash shortfalls and titles, affordable prices/purchases, locked conversion, room-full copy, zero page errors) |
 | Startup Tycoon amenity stock | `tycamenity` (hook-free: initial/live stock, stockless owned tags, cash shortfalls, affordable purchase, zero page errors) |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
