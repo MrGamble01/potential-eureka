@@ -1749,6 +1749,7 @@
       <input type="checkbox" id="sfx-enabled">
       <span>🔊 Sound effects</span>
     </label>
+    <div id="tycoon-audio"></div>
     <label class="setting-row" id="haptics-row" style="display:none">
       <input type="checkbox" id="haptics-enabled">
       <span>📳 Haptic feedback</span>
@@ -1837,6 +1838,7 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+<script src="/js/persist.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2245,7 +2247,10 @@ const SFX = (() => {
 
   // ADSR-ish envelope on a single oscillator.
   function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
-    if (!enabled) return;
+    let scale = enabled ? 1 : 0;
+    try { if (window.EurekaPersist) scale = window.EurekaPersist.audio.sfx(!enabled); } catch {}
+    if (scale <= 0) return;
+    vol *= scale;
     const ac = ensureCtx(); if (!ac) return;
     if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
     const t0 = ac.currentTime;
@@ -2265,6 +2270,9 @@ const SFX = (() => {
     setEnabled(on) {
       enabled = !!on;
       try { localStorage.setItem(LS.sfx, enabled ? '1' : '0'); } catch {}
+      try {
+        if (window.EurekaPersist) window.EurekaPersist.settings.update({ muted: !enabled, touched: true });
+      } catch {}
       if (enabled) ensureCtx();
     },
     isEnabled() { return enabled; },
@@ -3597,7 +3605,10 @@ function convertRoom(roomId, opts = {}) {
   if (!next) return false;
   if (!opts.auto) {
     if (cur.nextReq && !cur.nextReq()) return false;
-    if (state.cash < (cur.nextCost || 0)) return false;
+    if (state.cash < (cur.nextCost || 0)) {
+      showToast(`Need $${fmtCash(cur.nextCost - state.cash)} more to convert to ${next.label}.`, '');
+      return false;
+    }
   }
   // Gather hires currently seated in this room and plan migration
   const seatedRecords = [];
@@ -3672,7 +3683,10 @@ function addDeskToCurrentRoom() {
   const def = getPlayerRoom();
   if (!def) return;
   const cost = addDeskCost(def.id);
-  if (state.cash < cost) return;
+  if (state.cash < cost) {
+    showToast(`Need $${fmtCash(cost - state.cash)} more to add a desk in ${roomLabel(def)}.`, '');
+    return;
+  }
   if (!addExtraDeskToRoom(def.id)) return;
   state.cash -= cost; showSpendPop(cost);
   refreshHud();
@@ -3751,8 +3765,10 @@ function renderRoomPanel() {
     const btn = document.createElement('button');
     btn.className = 'room-btn room-convert';
     btn.disabled = !reqMet || !canAfford;
+    const costLabel = canAfford ? `$${fmtCash(cur.nextCost)}` : `Need $${fmtCash(cur.nextCost - state.cash)} more`;
+    if (reqMet) btn.title = `Convert to ${next.label} — ${costLabel}.`;
     btn.innerHTML = reqMet
-      ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
+      ? `⚡ Convert to ${next.label}<span class="tag">${costLabel}</span>`
       : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
     btn.onclick = () => convertRoom(roomId);
     if (reqMet) showTip('conversion');
@@ -3773,6 +3789,7 @@ function renderAddDeskButton() {
   // room, when the room is at extra-desk cap, or when they can't
   // afford the next desk.
   addDeskBtnEl.style.display = '';
+  addDeskBtnEl.title = '';
   const def = getPlayerRoom();
   if (!def) {
     addDeskBtnEl.disabled = true;
@@ -3786,8 +3803,11 @@ function renderAddDeskButton() {
     return;
   }
   const cost = addDeskCost(def.id);
-  addDeskBtnEl.disabled = state.cash < cost;
-  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">$${fmtCash(cost)}</span>`;
+  const canAfford = state.cash >= cost;
+  const costLabel = canAfford ? `$${fmtCash(cost)}` : `Need $${fmtCash(cost - state.cash)} more`;
+  addDeskBtnEl.disabled = !canAfford;
+  addDeskBtnEl.title = `Add Desk to ${roomLabel(def)} — ${costLabel}.`;
+  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">${costLabel}</span>`;
 }
 addDeskBtnEl.onclick = addDeskToCurrentRoom;
 
@@ -5407,10 +5427,13 @@ function setJeffButton() {
   if (!btn) return;
   if (!jeff) {
     btn.style.display = '';
-    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">$' + fmtCash(JEFF_COST) + '</span>';
-    btn.title = 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
+    const short = state.cash < JEFF_COST ? `Need $${fmtCash(JEFF_COST - state.cash)} more` : null;
+    btn.disabled = !!short;
+    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">' + (short || '$' + fmtCash(JEFF_COST)) + '</span>';
+    btn.title = short ? `${short} to pay Jeff Jackets’ signing bonus.` : 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
   } else if (jeff.stage === 'bdr') {
     btn.style.display = '';
+    btn.disabled = false;
     btn.innerHTML = '⬆️ Promote Jeff to AM';
     btn.title = 'Reward your star closer with a management role. What could possibly go wrong?';
   } else {
@@ -5449,10 +5472,12 @@ function updateJeff(dt) {
 
 const recruitJeffBtnEl = document.getElementById('recruit-jeff-btn');
 if (recruitJeffBtnEl) {
-  setJeffButton();
   recruitJeffBtnEl.addEventListener('click', () => {
     if (!jeff) {
-      if (state.cash < JEFF_COST) return;
+      if (state.cash < JEFF_COST) {
+        showToast(`Need $${fmtCash(JEFF_COST - state.cash)} more to pay Jeff Jackets’ signing bonus.`);
+        return;
+      }
       state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
       spawnJeff();
       SFX.hire(); Haptics.hire();
@@ -6917,7 +6942,11 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  // TYC-61: Wall / Help / Dashboard / Achievements / Elevator are the
+  // same browsing overlays as Founder Shop — they have to stay on this
+  // list when a new one lands (see the focus-trap roster). board-modal
+  // stays: a live vote is also busy.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     acqNextT = 25;
     return;
   }
@@ -7019,7 +7048,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -7116,7 +7145,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     launchNextT = 25;
     return;
   }
@@ -7202,7 +7231,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     poachNextT = 25;
     return;
   }
@@ -7321,7 +7350,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7387,7 +7416,9 @@ function updateBoard(dt) {
   boardNextT -= dt;
   if (boardNextT > 0) return;
   // Don't convene over another modal.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open')) {
+  // TYC-61: same browsing-overlay miss as the offer spawners. board-modal
+  // is omitted because this IS the board vote.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open')) {
     boardNextT = 20;
     return;
   }
@@ -7499,7 +7530,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7615,7 +7646,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     hackNextT = 25;
     return;
   }
@@ -7693,7 +7724,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     trollNextT = 25;
     return;
   }
@@ -7799,7 +7830,7 @@ function updateMentor(dt) {
   if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
   mentorNextT -= dt;
   if (mentorNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     mentorNextT = 25;
     return;
   }
@@ -7914,7 +7945,7 @@ function updateWar(dt) {
   if (warUsedSeason || rivalDone || seasonGoalHit) return;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
   if (rivalRev < rivalTarget() * 0.75 || mine >= rivalRev) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     warNextT = 25;
     return;
   }
@@ -8105,7 +8136,7 @@ function updateBridge(dt) {
   bridgeNextT = 20;
   if (prestigeLevel < 1 || bridgeTakenSeason) return;
   if (state.cash >= BRIDGE_FLOOR) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer || migrateOffer) {
     return;
   }
   makeBridgeOffer();
@@ -8213,7 +8244,7 @@ function updateKeynote(dt) {
   keynoteNextT = 25;
   if (prestigeLevel < 1 || keynoteDoneSeason || keynote) return;
   if (seasonRecurringRevenue < currentGoalTarget() * 0.25) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer || migrateOffer) {
     return;
   }
   makeKeynoteOffer();
@@ -8302,7 +8333,7 @@ function updateSre(dt) {
   if (sreNextT > 0) return;
   sreNextT = 25;
   if (prestigeLevel < 1 || outagesSeen < 1 || sreHeldSeason || sreShield || outage) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || migrateOffer) {
     return;
   }
   makeSreOffer();
@@ -8394,7 +8425,7 @@ function updateMigrate(dt) {
   if (migrateNextT > 0) return;
   migrateNextT = 25;
   if (prestigeLevel < 1 || outagesSeen < 2 || outage) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
     return;
   }
   makeMigrateOffer();
@@ -8902,6 +8933,9 @@ function buyAmenity(id) {
   SFX.purchase(); Haptics.purchase();
 }
 const amenitiesList = document.getElementById('amenities-list');
+function hasAmenityStock(am) {
+  return am.id !== 'pingpong' && am.id !== 'standup' && am.id !== 'pet';
+}
 function renderAmenities() {
   while (amenitiesList.children.length < amenities.length) {
     const btn = document.createElement('button');
@@ -8911,9 +8945,10 @@ function renderAmenities() {
   for (let i = 0; i < amenities.length; i++) {
     const am = amenities[i];
     const btn = amenitiesList.children[i];
+    btn.title = '';
     if (am.isOwned) {
       btn.className = 'amenity-btn owned';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">Owned</span>`;
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${hasAmenityStock(am) ? `${am.stock}/${am.maxStock}` : 'Owned'}</span>`;
       btn.disabled = true;
       btn.onclick = null;
     } else if (!am.unlockReq()) {
@@ -8922,10 +8957,13 @@ function renderAmenities() {
       btn.disabled = true;
       btn.onclick = null;
     } else {
+      const canAfford = state.cash >= am.buyCost;
+      const tag = canAfford ? `$${am.buyCost}` : `Need $${fmtCash(am.buyCost - state.cash)} more`;
       btn.className = 'amenity-btn';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">$${am.buyCost}</span>`;
-      btn.disabled = state.cash < am.buyCost;
-      btn.onclick = () => buyAmenity(am.id);
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${tag}</span>`;
+      btn.disabled = !canAfford;
+      btn.title = canAfford ? '' : tag;
+      btn.onclick = canAfford ? () => buyAmenity(am.id) : null;
     }
   }
 }
@@ -9240,6 +9278,7 @@ function refreshHud() {
   // so the number ticks up smoothly instead of snapping.
   renderUpgrades();
   renderHirePanel();
+  setJeffButton();
   renderAmenities();
   renderRoomPanel();
   renderFunding();
@@ -9247,6 +9286,7 @@ function refreshHud() {
   checkIPOAvailable();
   renderNextAction();
   refreshAffordability();
+  if (archiveChipReady) refreshArchiveChip();
 }
 
 // Toggle .can-afford on every purchasable button after a render pass.
@@ -11189,6 +11229,8 @@ function addTheirPanel() {
 // hire. What it buys is the deepest visit on the wall: $150 base +
 // $75 per panel (cap 5). Visits tallied in 'tyc-archive'.
 const ARCHIVE_KEY = 'tyc-archive', ARCHIVE_COST = 25000, ARCHIVE_BASE = 150, ARCHIVE_PER = 75;
+// refreshHud also runs before this section initializes.
+var archiveChipReady = true;
 let archiveVisited = false;
 function loadArchive() {
   try { const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || 'null');
@@ -11202,7 +11244,10 @@ function archiveBuilt() { return loadArchive().built; }
 function archivePurse() { return ARCHIVE_BASE + ARCHIVE_PER * Math.min(loadMark().panels || 0, 5); }
 function buyArchive() {
   if (!archiveOffered() || archiveBuilt()) return false;
-  if (state.cash < ARCHIVE_COST) return false;
+  if (state.cash < ARCHIVE_COST) {
+    showToast('Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more to build the Archive Wing.', 'warn', 'standard');
+    return false;
+  }
   state.cash -= ARCHIVE_COST;
   const a = loadArchive();
   saveArchive({ built: true, visits: a.visits });
@@ -11342,15 +11387,17 @@ function renderWall() {
 function refreshArchiveChip() {
   const el = document.getElementById('archive-chip');
   if (!el) return;
+  el.style.pointerEvents = 'auto';
   el.onclick = () => { archiveBuilt() ? visitArchive() : buyArchive(); };
   if (!archiveOffered()) { el.style.display = 'none'; el.textContent = ''; return; }
   el.style.display = '';
   if (!archiveBuilt()) {
     el.style.opacity = state.cash >= ARCHIVE_COST ? '' : '0.45';
-    el.textContent = '\u{1F5C4}\u{FE0F} wing $' + (ARCHIVE_COST / 1000) + 'k';
+    const shortfall = 'Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more';
+    el.textContent = '\u{1F5C4}\u{FE0F} ' + (state.cash >= ARCHIVE_COST ? 'wing $' + (ARCHIVE_COST / 1000) + 'k' : shortfall);
     el.title = 'The Archive Wing \u2014 three painted panels and the wall has outgrown the lobby. $' + ARCHIVE_COST.toLocaleString()
       + ', once ever, and the money is gone whether or not you were saving it. What it buys is the deepest visit on the wall: $' + archivePurse() + ' a session.'
-      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' You cannot afford it yet.');
+      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' ' + shortfall + ' to build it.');
     return;
   }
   el.style.opacity = archiveVisited ? '0.45' : '';
@@ -11446,7 +11493,7 @@ addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
-  // Escape dismisses any open modal (tip, ipo, elevator)
+  // Escape dismisses browsing modals; Board Meeting requires a decision or timeout.
   if (k === 'escape') {
     tipModalEl.classList.remove('open');
     ipoModal.classList.remove('open');
@@ -11456,6 +11503,8 @@ addEventListener('keydown', e => {
     dashModalEl.classList.remove('open');
     themeModalEl.classList.remove('open');
     document.getElementById('help-modal').classList.remove('open');
+    wallModalEl.classList.remove('open');
+    founderModalEl.classList.remove('open');
   }
   // "?" or "/" opens the help / hotkeys modal. (No movement conflict
   // since these aren't WASD/arrow keys.)
@@ -11697,11 +11746,26 @@ joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.chec
 // document is what unlocks audio in most browsers, so any hire/cash
 // after that point will be audible.
 const sfxToggleEl = document.getElementById('sfx-enabled');
+if (window.EurekaPersist && window.EurekaPersist.settings.get().touched) {
+  SFX.setEnabled(!window.EurekaPersist.settings.get().muted);
+}
 sfxToggleEl.checked = SFX.isEnabled();
 sfxToggleEl.addEventListener('change', () => {
   SFX.setEnabled(sfxToggleEl.checked);
   if (sfxToggleEl.checked) SFX.click();
 });
+if (window.EurekaPersist) {
+  const audioHost = document.getElementById('tycoon-audio');
+  if (audioHost) {
+    window.EurekaPersist.mount(audioHost, {
+      showMute: false,
+      localMuted: () => !SFX.isEnabled(),
+      onChange(s) {
+        sfxToggleEl.checked = !s.muted;
+      },
+    });
+  }
+}
 
 // Haptics toggle — only revealed on devices that actually support
 // navigator.vibrate (i.e. Android/Chrome). iOS Safari and desktop
@@ -11915,6 +11979,7 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     const joy = lsGet(LS.joystick);
     lsRemove(LS.save);
     if (joy !== null) lsSet(LS.joystick, joy);
+    if (window.EurekaPersist) window.EurekaPersist.progress.clear(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon');
   } catch (_) {}
   location.reload();
 });
@@ -12098,11 +12163,15 @@ function updateLabels() {
   }
   // (Legacy support-staff carry bubbles removed with the role.)
   // Amenity stock labels
-  for (const am of amenities) {
-    if (!am.isOwned || am.id === 'pingpong' || am.id === 'standup' || am.id === 'pet') continue;
+  for (let i = 0; i < amenities.length; i++) {
+    const am = amenities[i];
+    if (!am.isOwned || !hasAmenityStock(am)) continue;
+    const stock = `${am.stock}/${am.maxStock}`;
+    const tag = amenitiesList.children[i]?.querySelector('.tag');
+    if (tag && tag.textContent !== stock) tag.textContent = stock;
     const p = worldToScreen(am.position.x, 2.8, am.position.z);
     const empty = am.stock === 0;
-    wants.push({ text: `${am.icon} ${am.stock}/${am.maxStock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
+    wants.push({ text: `${am.icon} ${stock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
   }
   // (Supply closet removed — paper/supplies live on the Supply Rack amenity.)
   // Player proximity work indicator
@@ -13340,6 +13409,11 @@ function saveGame() {
                 offlineRatePerSec: estimateOfflineRatePerSec() };
     for (const f of SAVE_SCHEMA) f.write(p);
     localStorage.setItem(SAVE_KEY, JSON.stringify(p));
+    if (window.EurekaPersist) {
+      window.EurekaPersist.progress.note(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon', {
+        cash: Math.round(state.cash || 0),
+      });
+    }
   } catch (err) {
     console.warn('Tycoon save failed:', err);
     showToast('⚠️ Save failed — progress may not persist', 'save-fail', 'critical');
