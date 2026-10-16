@@ -234,6 +234,17 @@ const CalendarWidget = (() => {
   function init() {
     loadEvents();
     resume();
+    bindEscape();
+  }
+
+  // Esc closes this settings dialog, the way it closes every other dialog
+  // in the hub. It is aria-modal with focus trapped inside it, so without
+  // this the only way back out is the mouse. Esc cancels; it does not save.
+  function bindEscape() {
+    document.addEventListener('keydown', e => {
+      const m = document.getElementById('calendar-modal');
+      if (e.key === 'Escape' && m && m.style.display === 'flex') closeSettings();
+    });
   }
 
   function resume() {
