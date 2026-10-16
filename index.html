@@ -1105,7 +1105,7 @@
       <div id="hof-shop"></div>
       <div id="hof-insights"></div>
       <div class="hof-footer">
-        <button id="hof-reset" class="hof-reset">Reset my scores</button>
+        <button id="hof-reset" class="hof-reset" title="Erase every score, save, achievement, coin and unlock in the arcade">Reset progress</button>
         <button id="hof-backup" class="hof-reset" title="Download every score, save and unlock as a JSON file">&#11015; Backup</button>
         <button id="hof-restore" class="hof-reset" title="Restore progress from a backup file">&#11014; Restore</button>
         <input id="hof-restore-file" type="file" accept="application/json,.json" hidden aria-label="Choose a backup file to restore">
@@ -1705,7 +1705,39 @@
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', href: '#memorymatrix', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'hearthvale-v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
+    // What the reset clears is derived, never listed. Backup takes the whole
+    // origin on purpose — new games' keys are covered without a registry to
+    // forget — and the reset beside it used exactly such a registry, which
+    // left achievements, coins, rivals, stats, memory links, and any save
+    // that had not been typed onto the list.
+    //
+    // The list here is the inverse: the few things on this origin that are
+    // not a game. That set changes when an app is added, not when a round
+    // ships. Each game's own settings go with the game, so a reset hands
+    // back the game as it ships. Site-wide preferences stay, because they
+    // describe the browser rather than the run. tests/headless/reset.js
+    // fails if a game key lands on this list or an app key drops off it.
+    const RESET_KEEP = [
+      // productivity apps (js/notes.js, todo.js, bookmarks.js, pomodoro.js, calendar.js)
+      'eureka-notes', 'eureka-todos', 'eureka-bookmarks', 'eureka-pomo-sessions',
+      'eureka-calendar-config', 'eureka-gt-clientid', 'eureka-gt-lists',
+      // site-wide preferences: how the arcade looks and sounds, not how it went
+      'eureka-theme', 'arcade-muted', 'eureka-weather-optin', 'eureka-settings',
+    ];
+    // Whole namespaces rather than their current members, so a new key in
+    // either is covered the day it is written: the personal vault including
+    // its PIN (js/personal-auth.js), and Eureka Studio, whose store holds a
+    // GitHub token as well as its caches (agentic-os.html).
+    const RESET_KEEP_PREFIX = ['eureka-personal-', 'studio-'];
+    const resetKeeps = k => RESET_KEEP.includes(k) || RESET_KEEP_PREFIX.some(p => k.startsWith(p));
+    function resetDoomedKeys() {
+      const out = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && !resetKeeps(k)) out.push(k);
+      }
+      return out;
+    }
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1909,10 +1941,18 @@
     });
 
     document.getElementById('hof-reset').addEventListener('click', () => {
-      if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
-      HOF_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch {} });
-      renderHallOfFame();
-      refreshArcadeBadges();
+      const doomed = resetDoomedKeys();
+      if (!doomed.length) { alert('Nothing to clear — this browser is holding no game progress.'); return; }
+      if (!confirm('Clear ' + doomed.length + ' saved ' + (doomed.length === 1 ? 'entry' : 'entries') +
+        ' — every score, save, achievement, coin and unlock in the arcade, all six flagship towns included.\n\n' +
+        'Your notes, to-dos, bookmarks, personal vault and Studio sign-in are not touched.\n\n' +
+        'This can’t be undone — use ⬇ Backup first if you want a copy.')) return;
+      doomed.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      // Every module holds its state in memory and writes it back on the next
+      // tick, so re-rendering the board would leave a wiped store and a live
+      // page disagreeing — and the next save would resurrect what was cleared.
+      // Restore reloads for the same reason.
+      location.reload();
     });
 
     navButtons.forEach(btn => {
@@ -2281,6 +2321,12 @@
     // every entry here shipped, verified headless, and is live for
     // everyone (installed PWAs pick waves up on service-worker bumps).
     const PATCH_NOTES = [
+      { date: '2026-10-16', title: 'Fixes that had been waiting', items: [
+        '🧬 Game of Life: the Gosper Gun no longer wraps around the board and eats itself. Gliders leave at the edge.',
+        '🧱 Neon Breaker names the sticky paddle and the extra life, and a caught ball tells you how to let go.',
+        '⎋ Connect Your Calendars and Google Tasks close on Esc, the same as the other dialogs.',
+        '⏱ Time a tab spends in the background no longer counts as time played.',
+        '🧹 Reset progress clears the arcade — scores, saves, towns, coins, and trophies — and leaves notes, tasks, bookmarks, the personal vault, and Studio sign-in alone.' ] },
       { date: '2026-08-26', title: 'Round Forty-Nine', items: [
         '\u{1F6E0}\u{FE0F} A save can go bad on you \u2014 a browser crash mid-write, an extension, a tab killed at the wrong moment. Your save is read before any of the game exists, so when it goes wrong there is nothing on screen to say so: Hearthvale, Voxel Isle and Grow Op would each hand you a blank page, every time, with no way back in. That is fixed. All six games now start from a broken save instead of refusing to start, and keep whatever of it was still readable.',
         '\u{1F50E} Found by finally testing the one thing every player supplies and nobody checks. The battery now boots every game from a deliberately wrecked save before each release \u2014 so this class of thing gets caught here, not on your town.',

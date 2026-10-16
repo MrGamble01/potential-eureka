@@ -631,7 +631,11 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   bp.on('dialog', d => d.accept());
   await bp.addInitScript(() => {
     localStorage.setItem('eureka-primer-seen', '1');
-    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17, day: 12, seenIntro: true }));
+    // Reset progress reloads the page. The seed must not come back on that
+    // reload, or the assertion that the town was cleared would be a lie.
+    if (!sessionStorage.getItem('hof-reset-done')) {
+      localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17, day: 12, seenIntro: true }));
+    }
   });
   await bp.goto(BASE + '/index.html', { waitUntil: 'load' });
   await bp.waitForTimeout(1800);
@@ -703,8 +707,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await bp.waitForTimeout(400);
+  await bp.evaluate(() => sessionStorage.setItem('hof-reset-done', '1'));
   await bp.click('#hof-reset');
-  await bp.waitForTimeout(400);
+  await bp.waitForLoadState('load');
+  await bp.waitForTimeout(800);
   const afterReset = await bp.evaluate(() => {
     const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test(r.textContent));
     return {
