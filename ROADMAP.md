@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+TYC — The Amenities shop shows live cabinet/stash stock and names cash
+shortfalls on disabled unlocked purchases. Hook-free `tycamenity` covers first
+paint, stock changes, stockless amenities and affordable buying. Cache: `eureka-20261016-tyc-amenity`.
+
 LIFE — A drag erases when it starts on a live cell and paints when it starts on a dead one. Hook-free `life`.
 
 HUD — Stacker, Vector Defense, and Word Cascade rewind their info bar when leaving the view rewinds the run. Hook-free `hudreset`.
@@ -126,6 +130,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **TYC amenity stock** | ✅ live stock + cash shortfalls; `tests/headless/tycamenity.js`; cache `eureka-20261016-tyc-amenity` |
 | **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |
 | **Hearthvale windmill lift** | ✅ live finished-farm count and +50% reminder; `hvalewind` at 1280/768; cache `eureka-20260929-hvale-windmill` |
 | **P0** (3 tickets) | ✅ all closed |
