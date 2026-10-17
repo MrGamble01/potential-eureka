@@ -409,7 +409,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
   <button type="button" id="camOut" title="Farther">−</button>
 </div>
 <div class="hud" id="mateDock" aria-label="Deckhand orders">
-  <button type="button" id="mateName" title="Double-tap to let the studio booth color a line">🧭</button>
+  <button type="button" id="mateName" title="Double-tap to let the isle booth color a line">🧭</button>
   <button type="button" id="mateFollow" data-order="follow">Follow</button>
   <button type="button" id="mateGather" data-order="gather">Gather</button>
   <button type="button" id="mateBuild" data-order="build">Build</button>
@@ -481,7 +481,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛🧀 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
     <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello. Greet the cat five times and it starts bringing you <b>little gifts</b></li>
-    <li><b>🧭 Deckhand</b> &mdash; with you from the first morning. <b>Follow</b>, <b>Gather</b>, <b>Build</b>, and <b>Wait</b> sit at the side, thumb-sized. Gather hauls ripe crops, dropped goods, and crates nearby, and shoos crows. Build finishes an open line or floor, or lays a short run where you last stood. They call out cliffs, crows, rain, and a thin purse, in a speech bubble. No account and no network. Double-tap their name if a studio booth is running on this machine &mdash; a line may be rewritten, and the rule line shows first either way</li>
+    <li><b>🧭 Deckhand</b> &mdash; with you from the first morning. <b>Follow</b>, <b>Gather</b>, <b>Build</b>, and <b>Wait</b> sit at the side, thumb-sized. Gather hauls ripe crops, dropped goods, and crates nearby, and shoos crows. Build finishes an open line or floor, or lays a short run where you last stood. They call out cliffs, crows, rain, and a thin purse, in a speech bubble. No account and no network. Double-tap their name and the isle booth may recolor a line; the rule line shows first, and a missing booth leaves it</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
@@ -7098,9 +7098,9 @@ function updateAmbient(dt,dn){
 // A solo companion. Follows the last place you worked (and your eyes, in
 // first person), speaks from a state machine, and takes four orders:
 // follow, gather, build here, wait. No account and no network.
-// If localStorage voxel-mate-booth is "1", a line may be rewritten by the
-// studio booth (agentic-os-chat POST /api/chat). The rule line shows first;
-// a miss, a timeout, or no key leaves it as it is.
+// If localStorage voxel-mate-booth is "1", a line may be recolored by the
+// flagship isle booth (ArcadeAI's offline stub — the same voice as the
+// booth panel). The rule line shows first. No fetch, no key.
 let isleMate=null;
 const playerAnchor={x:1.5,z:1.2};
 const MATE_NAMES=['Brine','Lark','Cove','Pebble','Nell','Kite','Sedge','Hali','Marlow','Salt'];
@@ -7164,36 +7164,38 @@ function mateBoothOn(){
 let mateBoothBusy=false;
 function matePolish(kind, rule){
   if(mateBoothBusy||!mateBoothOn())return;
+  const AI=window.ArcadeAI;
+  if(!AI||typeof AI.createStubProvider!=='function')return;
   mateBoothBusy=true;
-  const ctrl=typeof AbortController==='function'?new AbortController():null;
-  const timer=setTimeout(()=>{if(ctrl)ctrl.abort();},1400);
-  const who=isleMate?isleMate.name:'Deckhand';
-  fetch('http://localhost:3001/api/chat',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    signal:ctrl?ctrl.signal:undefined,
-    body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      systemPrompt:'You are '+who+', a deckhand on a floating sky-isle garden. One sentence, under 12 words, no quotes.',
-      messages:[{role:'user', content:'Moment: '+kind+'. A plain line would be: '+rule}]
-    })
-  }).then(r=>r.ok?r.text():'').then(raw=>{
-    let line='';
-    String(raw||'').split('\n').forEach(l=>{
-      if(l.indexOf('data: ')!==0)return;
-      try{const ev=JSON.parse(l.slice(6)); if(ev.type==='text'&&ev.text)line+=ev.text;}catch(e){}
-    });
-    line=line.replace(/\s+/g,' ').replace(/^["']|["']$/g,'').trim().slice(0,90);
-    if(line&&isleMate&&isleMate.bubbleKind===kind&&isleMate.bubbleT>0){
-      isleMate.bubbleText=line;
-      const el=$('mateBubbleText'); if(el)el.textContent=line;
-    }
-  }).catch(()=>{}).finally(()=>{clearTimeout(timer);mateBoothBusy=false;});
+  const req={
+    game:'voxel', npcId:'deckhand',
+    turn:isleMate?(isleMate.turns=(isleMate.turns||0)+1):0,
+    context:{
+      day:(typeof state!=='undefined'&&state.day)||'',
+      coins:(typeof state!=='undefined'&&state.coins)||0,
+      moment:kind||'',
+      rule:rule||'',
+      goal:($('qText')&&$('qText').textContent)||'',
+    },
+  };
+  let settled=false;
+  const finish=()=>{ if(!settled){settled=true;mateBoothBusy=false;} };
+  const timer=setTimeout(finish, 1400);
+  AI.createStubProvider().talk(req).then(res=>{
+    const line=res&&res.line?String(res.line).replace(/\s+/g,' ').trim().slice(0,90):'';
+    if(!line)return;
+    setTimeout(()=>{
+      if(isleMate&&isleMate.bubbleKind===kind&&isleMate.bubbleT>0){
+        isleMate.bubbleText=line;
+        const el=$('mateBubbleText'); if(el)el.textContent=line;
+      }
+    }, 320);
+  }).catch(()=>{}).finally(()=>{clearTimeout(timer);finish();});
 }
 function mateToggleBooth(){
   const on=!mateBoothOn();
   try{localStorage.setItem('voxel-mate-booth', on?'1':'0');}catch(e){}
-  toast(on?'🧭 Booth voice on — if the studio answers, a line may change. The rule line shows first.':'🧭 Booth voice off — the deckhand speaks for themselves.');
+  toast(on?'🧭 Booth voice on — the isle booth may recolor a line. The rule line shows first.':'🧭 Booth voice off — the deckhand speaks for themselves.');
 }
 let mateNameTaps=0, mateNameTimer=0;
 function mateOnName(){

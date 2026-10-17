@@ -171,8 +171,20 @@ const SAVE = {
   });
   ok(kept === 'wait', 'the order rides the save');
 
-  const net = await page.evaluate(() => performance.getEntriesByType('resource').some(r => /3001|\/api\/chat/.test(r.name)));
-  ok(!net, 'playing never calls the booth');
+  const colored = await page.evaluate(async () => {
+    localStorage.setItem('voxel-mate-booth', '1');
+    mateSay('Lead on.', 'follow', true);
+    const first = document.getElementById('mateBubbleText').textContent;
+    await new Promise(r => setTimeout(r, 500));
+    const later = document.getElementById('mateBubbleText').textContent;
+    localStorage.setItem('voxel-mate-booth', '0');
+    return { first, later, hasStub: typeof ArcadeAI !== 'undefined' && typeof ArcadeAI.createStubProvider === 'function' };
+  });
+  ok(colored.hasStub && colored.first === 'Lead on.', 'the rule line shows before the booth');
+  ok(colored.later === 'On your heel, and I will keep the pace.', `the isle booth recolors a line: ${colored.later}`);
+
+  const net = await page.evaluate(() => performance.getEntriesByType('resource').some(r => /3001|\/api\/chat|\/api\/ai|openai\.com/.test(r.name)));
+  ok(!net, 'playing never calls a model');
 
   const covered = await page.evaluate(() => {
     const out = [];
