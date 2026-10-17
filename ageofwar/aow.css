@@ -1654,6 +1654,104 @@
   #aow-order-chip.aow-order-pop { animation: none; }
 }
 
+/* The Ridge — a side front with two companions and one boss. */
+#aow-ridge-btn {
+  display: none;
+  position: fixed;
+  z-index: 45;
+  top: 72px;
+  right: 16px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(252,211,77,0.7);
+  background: rgba(28, 22, 10, 0.94);
+  color: #fcd34d;
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+}
+#aow-ridge-btn.aow-show { display: inline-flex; align-items: center; }
+#aow-squire-chip {
+  text-transform: none;
+  letter-spacing: 0;
+  color: #fcd34d;
+  font-weight: 800;
+}
+#aow-ridge {
+  display: none;
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  background: rgba(4, 8, 14, 0.72);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 16px 16px;
+}
+#aow-ridge.aow-open { display: flex; }
+.aow-ridge-card {
+  width: min(520px, 100%);
+  background: linear-gradient(180deg, #1a2433 0%, #121820 40%, #243044 40%, #1a2830 100%);
+  border: 1px solid rgba(252,211,77,0.45);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  color: #E6EDF3;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+  text-align: center;
+}
+.aow-ridge-kicker {
+  font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: #fcd34d; font-weight: 800;
+}
+.aow-ridge-title { font-size: 26px; font-weight: 900; margin: 2px 0; }
+.aow-ridge-sub { font-size: 13px; color: #b7c0ca; margin-bottom: 8px; }
+.aow-ridge-scene {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  height: 72px; margin: 8px 0 10px; padding: 0 18px 8px;
+  background: linear-gradient(#7a8ea8, #7a8ea8 46%, #5c6b4a 46%, #3e4a32 100%);
+  border-radius: 10px;
+  font-size: 28px;
+}
+.aow-ridge-scene b { font-size: 34px; font-weight: 400; }
+.aow-ridge-bossname { font-size: 12px; font-weight: 800; letter-spacing: 0.4px; margin-top: 6px; }
+.aow-ridge-bar {
+  height: 10px; border-radius: 99px; overflow: hidden;
+  background: rgba(255,255,255,0.08); margin: 4px 0;
+}
+#aow-ridge-warden { height: 100%; width: 100%; background: linear-gradient(90deg, #F85149, #ffb4a8); }
+#aow-ridge-company { height: 100%; width: 100%; background: linear-gradient(90deg, #3FB950, #b6f3c0); }
+#aow-ridge-warden-label, #aow-ridge-company-label, #aow-ridge-log {
+  font-size: 12px; color: #c9d1d9;
+}
+#aow-ridge-log { min-height: 2.6em; margin: 8px 0; font-weight: 700; color: #E6EDF3; }
+.aow-ridge-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.aow-ridge-actions button {
+  flex: 1; min-width: 140px; min-height: 48px;
+  border-radius: 10px; border: 1px solid rgba(252,211,77,0.45);
+  background: rgba(252,211,77,0.08); color: #E6EDF3;
+  font-family: inherit; font-weight: 800; cursor: pointer;
+  touch-action: manipulation;
+}
+#aow-ridge-follow { background: rgba(63,185,80,0.18); border-color: rgba(63,185,80,0.6); }
+@media (max-width: 720px) {
+  #aow-ridge-btn.aow-show { top: 58px; right: 8px; left: auto; min-height: 44px; }
+  #aow-ridge {
+    align-items: flex-end;
+    padding: 8px;
+  }
+  .aow-ridge-card {
+    box-sizing: border-box;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .aow-ridge-actions { flex-direction: column; }
+  .aow-ridge-actions button { width: 100%; min-height: 64px; }
+}
+
 /* ===== Touch hygiene (mobile): kill double-tap zoom, tap-flash, selection
    when mashing controls during play. Harmless on desktop. ===== */
 .aow-action, .aow-spawn-btn, .aow-tab, .aow-diff button,

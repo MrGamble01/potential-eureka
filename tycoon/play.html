@@ -824,13 +824,64 @@
     #goal-hall-label strong { color: #ddd6fe; }
     #goal-hall-label.lead { color: #86efac; animation: hallPop .45s ease; }
     @keyframes hallPop { 45% { transform: scale(1.06); } }
+    #annex-btn {
+      pointer-events: auto;
+      display: none;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(134,239,172,0.55);
+      background: rgba(63,185,80,0.12);
+      color: #bbf7d0;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #annex-btn.on { display: flex; align-items: center; justify-content: center; }
+    #annex-chip { display: none; font-size: 9px; color: #86efac; margin-top: 2px; letter-spacing: 0.3px; }
+    #annex-chip.on { display: block; }
+    #annex-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 345;
+    }
+    #annex-modal.open { display: flex; }
+    .annex-kicker { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: #86efac; font-weight: 800; }
+    .annex-scene {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      height: 64px; margin: 8px 0; padding: 0 16px 6px;
+      background: linear-gradient(#1e293b, #1e293b 42%, #334155 42%, #3f3f46 100%);
+      border-radius: 10px; font-size: 26px;
+    }
+    .annex-boss-name { font-weight: 800; font-size: 13px; color: #fecaca; }
+    .annex-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 4px 0 8px; }
+    #annex-pressure { height: 100%; width: 100%; background: linear-gradient(90deg, #F85149, #fdba74); }
+    .annex-crew { display: flex; gap: 8px; text-align: left; margin: 8px 0; }
+    .annex-card {
+      flex: 1; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      padding: 8px; font-size: 12px; background: rgba(255,255,255,0.03);
+    }
+    .annex-card.lead { border-color: rgba(134,239,172,0.8); box-shadow: 0 0 0 1px rgba(134,239,172,0.35); }
+    .annex-card b { display: block; font-size: 13px; }
+    .annex-card span { color: #9aa3ad; }
+    #annex-log { font-size: 13px; font-weight: 700; min-height: 2.6em; margin: 6px 0; }
+    #annex-morale { font-size: 12px; color: #fcd34d; margin-bottom: 8px; }
     @media (max-width: 900px) {
       #partner-modal.open { align-items: flex-end; padding: 10px; }
       #partner-modal .win-panel {
         width: 100%; max-height: min(82dvh, 640px); overflow: auto;
         margin: 0 0 env(safe-area-inset-bottom, 0px);
       }
-      #partner-yes, #partner-no { min-height: 48px; font-size: 15px; }
+      #partner-yes, #partner-no, #annex-follow, #annex-close { min-height: 48px; font-size: 15px; }
+      #annex-modal.open { align-items: flex-end; padding: 10px; }
+      #annex-modal .win-panel {
+        width: 100%; max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
+        overflow: auto; box-sizing: border-box;
+        margin: 0 0 env(safe-area-inset-bottom, 0px);
+      }
+      .annex-crew { flex-direction: column; }
+      #annex-btn.on { min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #goal-hall-label.lead { animation: none; }
@@ -1566,6 +1617,8 @@
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
   <div id="goal-hall-label" title="The office across the hall — a ghost of your best season, saved in this browser. No server.">🚪 Hall</div>
+  <button type="button" id="annex-btn">🏢 The Annex</button>
+  <div id="annex-chip" title="Mira, Sol, and Penn kept the annex. Deals +6% this season.">🏢 Annex · +6%</div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
 <div id="achievements-modal" role="dialog" aria-modal="true" aria-label="Achievements">
@@ -1714,6 +1767,23 @@
     <div class="ipo-actions" style="flex-direction:column;gap:8px">
       <button class="ipo-confirm" id="board-yes"></button>
       <button class="ipo-cancel" id="board-no"></button>
+    </div>
+  </div>
+</div>
+<div id="annex-modal" role="dialog" aria-modal="true" aria-labelledby="annex-title">
+  <div class="win-panel">
+    <div class="annex-kicker">New area</div>
+    <div class="win-title" id="annex-title">The Annex</div>
+    <div class="win-sub" id="annex-body">Across the street from the office. Three companions hold it. The Auditor is already in the stairwell.</div>
+    <div class="annex-scene" aria-hidden="true"><span>👩‍💻</span><span>🤝</span><span>🗂️</span><b>🕵️</b></div>
+    <div class="annex-boss-name">The Auditor</div>
+    <div class="annex-bar"><div id="annex-pressure"></div></div>
+    <div class="annex-crew" id="annex-crew"></div>
+    <div id="annex-log"></div>
+    <div id="annex-morale"></div>
+    <div class="ipo-actions" style="flex-direction:column;gap:8px">
+      <button class="ipo-confirm" id="annex-follow" type="button">Follow the lead</button>
+      <button class="ipo-cancel" id="annex-close" type="button">Back to the floor</button>
     </div>
   </div>
 </div>
@@ -2419,6 +2489,10 @@ const SFX = (() => {
     hall() {
       [392, 494, 587].forEach((f, i) => setTimeout(
         () => tone({ freq: f, dur: 0.14, type: 'triangle', vol: 0.2 }), i * 70));
+    },
+    annex() {
+      tone({ freq: 294, dur: 0.08, type: 'square', vol: 0.1 });
+      setTimeout(() => tone({ freq: 440, dur: 0.12, type: 'triangle', vol: 0.18 }), 60);
     },
   };
 })();
@@ -6185,7 +6259,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult()
+    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -10278,6 +10352,113 @@ function refreshPartnerChip() {
     el.textContent = '';
     el.title = '';
   }
+  refreshAnnexOffer();
+}
+const ANNEX_CREW = [
+  { id: 'mira', name: 'Mira', role: 'engineer', icon: '👩‍💻', focus: 'findings', line: 'Mira closes the finding before the Auditor can write it up.' },
+  { id: 'sol', name: 'Sol', role: 'seller', icon: '🤝', focus: 'revenue', line: 'Sol walks the Auditor through the number until it holds.' },
+  { id: 'penn', name: 'Penn', role: 'PM', icon: '🗂️', focus: 'timeline', line: 'Penn resequences the week so the raid loses its hour.' },
+];
+const ANNEX_FOCUS = ['findings', 'revenue', 'timeline'];
+let annexLive = false;
+let annexPressure = 108;
+let annexMorale = 90;
+let annexFocus = 'findings';
+let annexNoteT = 0;
+function annexDealMult() { return annexLive ? 1.06 : 1; }
+function annexLead() { return ANNEX_CREW.find(c => c.focus === annexFocus) || ANNEX_CREW[0]; }
+function refreshAnnexOffer() {
+  const btn = document.getElementById('annex-btn');
+  const chip = document.getElementById('annex-chip');
+  if (btn) {
+    const show = partnerBeat >= 6 && !annexLive;
+    btn.classList.toggle('on', show);
+    btn.title = 'Across the street. Mira, Sol, and Penn hold the annex. The Auditor is the boss of the block.';
+  }
+  if (chip) chip.classList.toggle('on', annexLive);
+}
+function paintAnnex() {
+  const bar = document.getElementById('annex-pressure');
+  const crew = document.getElementById('annex-crew');
+  const log = document.getElementById('annex-log');
+  const morale = document.getElementById('annex-morale');
+  const follow = document.getElementById('annex-follow');
+  const lead = annexLead();
+  if (bar) bar.style.width = Math.max(0, Math.round(annexPressure / 108 * 100)) + '%';
+  if (morale) morale.textContent = 'Crew morale ' + annexMorale + ' / 90';
+  if (follow) follow.textContent = 'Follow ' + lead.name + ' — the Auditor is on ' + annexFocus;
+  if (crew) {
+    crew.textContent = '';
+    for (const c of ANNEX_CREW) {
+      const card = document.createElement('div');
+      card.className = 'annex-card' + (c.id === lead.id ? ' lead' : '');
+      const b = document.createElement('b');
+      b.textContent = c.icon + ' ' + c.name;
+      const span = document.createElement('span');
+      span.textContent = c.role + (c.id === lead.id ? ' · leading' : '');
+      card.append(b, span);
+      crew.append(card);
+    }
+  }
+  if (log && !log.textContent) log.textContent = 'The Auditor opens on ' + annexFocus + '. ' + lead.name + ' steps up.';
+}
+function openAnnex() {
+  if (partnerBeat < 6 || annexLive) return;
+  const modal = document.getElementById('annex-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  paintAnnex();
+  SFX.event();
+}
+function closeAnnex() {
+  const modal = document.getElementById('annex-modal');
+  if (modal) modal.classList.remove('open');
+}
+function resetAnnex() {
+  annexLive = false;
+  annexPressure = 108;
+  annexMorale = 90;
+  annexFocus = 'findings';
+  annexNoteT = 0;
+  closeAnnex();
+  const log = document.getElementById('annex-log');
+  if (log) log.textContent = '';
+  refreshAnnexOffer();
+}
+function followAnnex() {
+  if (partnerBeat < 6 || annexLive) return;
+  if (!document.getElementById('annex-modal').classList.contains('open')) return;
+  const lead = annexLead();
+  annexPressure = Math.max(0, annexPressure - 36);
+  annexMorale = Math.max(0, annexMorale - 14);
+  annexFocus = ANNEX_FOCUS[(ANNEX_FOCUS.indexOf(annexFocus) + 1) % ANNEX_FOCUS.length];
+  const log = document.getElementById('annex-log');
+  if (log) log.textContent = lead.line;
+  paintAnnex();
+  SFX.annex();
+  if (annexPressure <= 0) return claimAnnex();
+  if (annexMorale <= 0) {
+    annexMorale = 90;
+    annexPressure = 108;
+    if (log) log.textContent = 'The crew regroups in the stairwell. The Auditor is still in the building.';
+    paintAnnex();
+  }
+}
+function claimAnnex() {
+  annexLive = true;
+  closeAnnex();
+  showToast('🏢 The Annex is yours. Mira, Sol, and Penn stay. Deals +6% this season.', 'good', 'standard');
+  addFeedEntry('🏢 Annex live — Mira, Sol, and Penn. Deals +6% this season.');
+  SFX.win();
+  refreshAnnexOffer();
+}
+function updateAnnex(dt) {
+  if (!annexLive) return;
+  annexNoteT += dt;
+  if (annexNoteT < 22) return;
+  annexNoteT = 0;
+  const c = ANNEX_CREW[Math.floor(annexNoteT + seasonT) % ANNEX_CREW.length];
+  addFeedEntry(c.icon + ' ' + c.name + ' is still in the annex');
 }
 function resetPartnerChain() {
   partnerBeat = 0;
@@ -10290,6 +10471,7 @@ function resetPartnerChain() {
   renewalT = 0;
   const m = partnerModalEl();
   if (m) m.classList.remove('open');
+  resetAnnex();
   refreshPartnerChip();
 }
 function openPartnerModal(beat) {
@@ -10502,6 +10684,9 @@ function updatePartner(dt) {
 }
 document.getElementById('partner-yes').onclick = () => choosePartner('yes');
 document.getElementById('partner-no').onclick = () => choosePartner('no');
+document.getElementById('annex-btn').onclick = () => openAnnex();
+document.getElementById('annex-follow').onclick = () => followAnnex();
+document.getElementById('annex-close').onclick = () => closeAnnex();
 
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -12816,6 +13001,7 @@ function frameBody(now) {
   updateEvents(dt);
   updatePartner(dt);
   updateHall(dt);
+  updateAnnex(dt);
   updatePingPong(dt);
   updatePet(dt);
   updateBugs(dt);
@@ -13311,6 +13497,22 @@ const SAVE_SCHEMA = [
       hallSampleT = Math.max(0, Number(h.sampleT) || 0);
       hallSamples = Array.isArray(h.samples) ? h.samples.map(n => Math.max(0, n | 0)).slice(-48) : [0];
       if (!hallSamples.length) hallSamples = [0];
+    },
+  },
+  {
+    key: 'annex',
+    write: p => {
+      if (!annexLive && annexPressure === 108 && annexMorale === 90 && annexFocus === 'findings') return;
+      p.annex = { live: annexLive, pressure: annexPressure, morale: annexMorale, focus: annexFocus };
+    },
+    read: p => {
+      const a = p.annex;
+      if (!a || typeof a !== 'object') return;
+      annexLive = !!a.live;
+      annexPressure = Math.max(0, Math.min(108, a.pressure | 0 || 108));
+      annexMorale = Math.max(0, Math.min(90, a.morale | 0 || 90));
+      annexFocus = ANNEX_FOCUS.indexOf(a.focus) >= 0 ? a.focus : 'findings';
+      refreshAnnexOffer();
     },
   },
   {
