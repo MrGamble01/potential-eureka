@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Hearthvale cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ec6e8"/>
+      <stop offset="1" stop-color="#d7efc8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <path d="M0 250 Q160 210 320 240 T640 220 V400 H0 Z" fill="#6aaa58"/>
+      <path d="M0 300 Q180 270 340 310 T640 280 V400 H0 Z" fill="#3d7ea6"/>
+      <path d="M0 318 Q200 300 360 330 T640 300" fill="none" stroke="#d5f0ff" stroke-width="3" opacity="0.7"/>
+      <g>
+        <rect x="78" y="168" width="86" height="70" fill="#f4e2c4"/>
+        <polygon points="66,168 121,112 176,168" fill="#c45c3e"/>
+        <rect x="108" y="198" width="22" height="40" fill="#6b4630"/>
+        <rect x="150" y="128" width="10" height="28" fill="#8a5a44"/>
+        <path d="M155 112 q8 -18 4 -28" fill="none" stroke="#f7f7f7" stroke-width="3"/>
+      </g>
+      <g>
+        <rect x="250" y="150" width="110" height="86" fill="#f7ead2"/>
+        <polygon points="236,150 305,86 374,150" fill="#a34432"/>
+        <rect x="292" y="186" width="26" height="50" fill="#5c3b28"/>
+        <rect x="262" y="168" width="22" height="18" fill="#9fd0e6"/>
+        <rect x="328" y="168" width="22" height="18" fill="#9fd0e6"/>
+        <rect x="340" y="104" width="12" height="36" fill="#8a5a44"/>
+      </g>
+      <g>
+        <rect x="450" y="176" width="92" height="64" fill="#efe0c4"/>
+        <polygon points="438,176 496,124 554,176" fill="#b85a3c"/>
+        <rect x="484" y="204" width="20" height="36" fill="#6b4630"/>
+      </g>
+      <circle cx="560" cy="70" r="22" fill="#fff4c8"/>
+      <ellipse cx="210" cy="250" rx="26" ry="10" fill="#3e8f45"/>
+      <ellipse cx="430" cy="246" rx="20" ry="8" fill="#3e8f45"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

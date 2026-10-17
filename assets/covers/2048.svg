@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">2048 cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3018"/>
+      <stop offset="1" stop-color="#1a1408"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#facc15" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#facc15" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <rect x="150" y="36" width="340" height="328" rx="16" fill="#2a2416"/>
+      <rect x="170" y="56" width="68" height="64" rx="8" fill="#3a3424"/><rect x="250" y="56" width="68" height="64" rx="8" fill="#3a3424"/><rect x="330" y="56" width="68" height="64" rx="8" fill="#3a3424"/><rect x="410" y="56" width="68" height="64" rx="8" fill="#3a3424"/><rect x="170" y="132" width="68" height="64" rx="8" fill="#3a3424"/><rect x="250" y="132" width="68" height="64" rx="8" fill="#3a3424"/><rect x="330" y="132" width="68" height="64" rx="8" fill="#3a3424"/><rect x="410" y="132" width="68" height="64" rx="8" fill="#3a3424"/><rect x="170" y="208" width="68" height="64" rx="8" fill="#3a3424"/><rect x="250" y="208" width="68" height="64" rx="8" fill="#3a3424"/><rect x="330" y="208" width="68" height="64" rx="8" fill="#3a3424"/><rect x="410" y="208" width="68" height="64" rx="8" fill="#3a3424"/><rect x="170" y="284" width="68" height="64" rx="8" fill="#3a3424"/><rect x="250" y="284" width="68" height="64" rx="8" fill="#3a3424"/><rect x="330" y="284" width="68" height="64" rx="8" fill="#3a3424"/><rect x="410" y="284" width="68" height="64" rx="8" fill="#3a3424"/>
+      <g font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" text-anchor="middle">
+        <rect x="170" y="56" width="68" height="64" rx="8" fill="#4a4030"/>
+        <text x="204" y="96" fill="#efe6d2" font-size="28">2</text>
+        <rect x="250" y="132" width="68" height="64" rx="8" fill="#6b5830"/>
+        <text x="284" y="172" fill="#fff6d8" font-size="28">8</text>
+        <rect x="330" y="208" width="68" height="64" rx="8" fill="#c48a22"/>
+        <text x="364" y="248" fill="#1a1408" font-size="22">64</text>
+        <rect x="410" y="56" width="68" height="64" rx="8" fill="#facc15"/>
+        <text x="444" y="88" fill="#1a1408" font-size="16">2048</text>
+        <rect x="170" y="284" width="68" height="64" rx="8" fill="#5a4a2c"/>
+        <text x="204" y="324" fill="#fff6d8" font-size="28">4</text>
+      </g>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

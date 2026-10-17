@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Neon Breaker cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c2430"/>
+      <stop offset="1" stop-color="#061018"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <rect x="48" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="118" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="188" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="258" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="328" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="398" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="468" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="538" y="48" width="60" height="26" rx="4" fill="#f778ba"/><rect x="48" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="118" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="258" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="328" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="398" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="468" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="538" y="84" width="60" height="26" rx="4" fill="#facc15"/><rect x="48" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="118" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="188" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="258" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="398" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="468" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="538" y="120" width="60" height="26" rx="4" fill="#3fb950"/><rect x="48" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="118" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="188" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="258" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="328" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="398" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="468" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="538" y="156" width="60" height="26" rx="4" fill="#58a6ff"/><rect x="48" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="118" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="188" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="258" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="328" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="398" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="468" y="192" width="60" height="26" rx="4" fill="#a78bfa"/><rect x="538" y="192" width="60" height="26" rx="4" fill="#a78bfa"/>
+      <circle cx="360" cy="250" r="12" fill="#e8fbff"/>
+      <circle cx="360" cy="250" r="22" fill="#22d3ee" opacity="0.25"/>
+      <path d="M360 250 Q330 290 300 320" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.5"/>
+      <rect x="250" y="332" width="120" height="16" rx="8" fill="#22d3ee"/>
+      <rect x="286" y="332" width="28" height="16" rx="4" fill="#e8fbff"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

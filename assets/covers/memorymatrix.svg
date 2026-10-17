@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Memory Matrix cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1030"/>
+      <stop offset="1" stop-color="#100818"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      
+          <rect x="150" y="48" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="240" y="48" width="74" height="66" rx="10" fill="#a78bfa" stroke="#3a2860"/>
+          <text x="277" y="90" fill="#1a1030" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="800" text-anchor="middle">1</text>
+        
+          <rect x="330" y="48" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="420" y="48" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="150" y="130" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="240" y="130" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="330" y="130" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="420" y="130" width="74" height="66" rx="10" fill="#a78bfa" stroke="#3a2860"/>
+          <text x="457" y="172" fill="#1a1030" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="800" text-anchor="middle">2</text>
+        
+          <rect x="150" y="212" width="74" height="66" rx="10" fill="#a78bfa" stroke="#3a2860"/>
+          <text x="187" y="254" fill="#1a1030" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="800" text-anchor="middle">3</text>
+        
+          <rect x="240" y="212" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="330" y="212" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="420" y="212" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="150" y="294" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="240" y="294" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+          <rect x="330" y="294" width="74" height="66" rx="10" fill="#a78bfa" stroke="#3a2860"/>
+          <text x="367" y="336" fill="#1a1030" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="800" text-anchor="middle">4</text>
+        
+          <rect x="420" y="294" width="74" height="66" rx="10" fill="#241838" stroke="#3a2860"/>
+          
+        
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

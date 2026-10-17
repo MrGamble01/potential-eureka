@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Drop Four cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2744"/>
+      <stop offset="1" stop-color="#101828"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#f7c948" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#f7c948" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <rect x="120" y="50" width="400" height="300" rx="16" fill="#1d4e89"/>
+      <circle cx="162" cy="92" r="16" fill="#0c1a30"/><circle cx="216" cy="92" r="16" fill="#0c1a30"/><circle cx="270" cy="92" r="16" fill="#0c1a30"/><circle cx="324" cy="92" r="16" fill="#0c1a30"/><circle cx="378" cy="92" r="16" fill="#0c1a30"/><circle cx="432" cy="92" r="16" fill="#0c1a30"/><circle cx="486" cy="92" r="16" fill="#0c1a30"/><circle cx="162" cy="138" r="16" fill="#0c1a30"/><circle cx="216" cy="138" r="16" fill="#0c1a30"/><circle cx="270" cy="138" r="16" fill="#0c1a30"/><circle cx="324" cy="138" r="16" fill="#0c1a30"/><circle cx="378" cy="138" r="16" fill="#0c1a30"/><circle cx="432" cy="138" r="16" fill="#0c1a30"/><circle cx="486" cy="138" r="16" fill="#0c1a30"/><circle cx="162" cy="184" r="16" fill="#0c1a30"/><circle cx="216" cy="184" r="16" fill="#0c1a30"/><circle cx="270" cy="184" r="16" fill="#0c1a30"/><circle cx="324" cy="184" r="16" fill="#0c1a30"/><circle cx="378" cy="184" r="16" fill="#0c1a30"/><circle cx="432" cy="184" r="16" fill="#0c1a30"/><circle cx="486" cy="184" r="16" fill="#0c1a30"/><circle cx="162" cy="230" r="16" fill="#0c1a30"/><circle cx="216" cy="230" r="16" fill="#0c1a30"/><circle cx="270" cy="230" r="16" fill="#0c1a30"/><circle cx="324" cy="230" r="16" fill="#0c1a30"/><circle cx="378" cy="230" r="16" fill="#0c1a30"/><circle cx="432" cy="230" r="16" fill="#0c1a30"/><circle cx="486" cy="230" r="16" fill="#0c1a30"/><circle cx="162" cy="276" r="16" fill="#0c1a30"/><circle cx="216" cy="276" r="16" fill="#0c1a30"/><circle cx="270" cy="276" r="16" fill="#0c1a30"/><circle cx="324" cy="276" r="16" fill="#0c1a30"/><circle cx="378" cy="276" r="16" fill="#0c1a30"/><circle cx="432" cy="276" r="16" fill="#0c1a30"/><circle cx="486" cy="276" r="16" fill="#0c1a30"/><circle cx="162" cy="322" r="16" fill="#0c1a30"/><circle cx="216" cy="322" r="16" fill="#0c1a30"/><circle cx="270" cy="322" r="16" fill="#0c1a30"/><circle cx="324" cy="322" r="16" fill="#0c1a30"/><circle cx="378" cy="322" r="16" fill="#0c1a30"/><circle cx="432" cy="322" r="16" fill="#0c1a30"/><circle cx="486" cy="322" r="16" fill="#0c1a30"/>
+      <g>
+        <circle cx="270" cy="276" r="16" fill="#e23b3b"/>
+        <circle cx="324" cy="276" r="16" fill="#f7c948"/>
+        <circle cx="378" cy="276" r="16" fill="#e23b3b"/>
+        <circle cx="432" cy="276" r="16" fill="#f7c948"/>
+        <circle cx="324" cy="230" r="16" fill="#e23b3b"/>
+        <circle cx="378" cy="230" r="16" fill="#f7c948"/>
+        <circle cx="378" cy="184" r="16" fill="#e23b3b"/>
+      </g>
+      <circle cx="486" cy="40" r="16" fill="#f7c948"/>
+      <path d="M486 58 V70" stroke="#f7c948" stroke-width="3"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

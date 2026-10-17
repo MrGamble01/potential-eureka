@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Voxel Isle cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ec8ff"/>
+      <stop offset="1" stop-color="#16324a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <ellipse cx="320" cy="340" rx="180" ry="28" fill="#0e4a6e" opacity="0.45"/>
+      <g>
+        <polygon points="250,250 320,210 390,250 320,290" fill="#6b8f4a"/>
+        <polygon points="250,250 320,290 320,330 250,290" fill="#4e7334"/>
+        <polygon points="390,250 320,290 320,330 390,290" fill="#3e5c28"/>
+        <polygon points="300,210 360,176 420,214 360,248" fill="#7ea85a"/>
+        <polygon points="300,210 360,248 360,280 300,242" fill="#5e8640"/>
+        <polygon points="420,214 360,248 360,280 420,246" fill="#4c7034"/>
+      </g>
+      <g>
+        <polygon points="300,176 328,160 356,176 328,192" fill="#8fd06a"/>
+        <polygon points="300,176 328,192 328,210 300,194" fill="#5ea84a"/>
+        <polygon points="356,176 328,192 328,210 356,194" fill="#4e903c"/>
+        <polygon points="360,168 388,152 416,168 388,184" fill="#d2b48a"/>
+        <polygon points="360,168 388,184 388,202 360,186" fill="#b8926a"/>
+        <polygon points="416,168 388,184 388,202 416,186" fill="#9a7450"/>
+      </g>
+      <g>
+        <polygon points="250,150 270,138 290,150 270,162" fill="#2f6b34"/>
+        <polygon points="270,110 286,138 254,138" fill="#3fb950"/>
+      </g>
+      <polygon points="470,250 500,232 530,250 500,268" fill="#c4a574"/>
+      <polygon points="470,250 500,268 500,290 470,272" fill="#a68458"/>
+      <polygon points="530,250 500,268 500,290 530,272" fill="#8a6c44"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

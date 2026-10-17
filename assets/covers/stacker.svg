@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Stacker cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a220f"/>
+      <stop offset="1" stop-color="#120e08"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#f7c948" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#f7c948" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <rect x="300" y="40" width="4" height="320" fill="#3a3018"/>
+      <g>
+        <rect x="150" y="300" width="340" height="36" rx="4" fill="#c48a22"/>
+        <rect x="180" y="256" width="280" height="36" rx="4" fill="#e0a030"/>
+        <rect x="210" y="212" width="220" height="36" rx="4" fill="#f0b840"/>
+        <rect x="240" y="168" width="160" height="36" rx="4" fill="#f7c948"/>
+        <rect x="270" y="124" width="100" height="36" rx="4" fill="#ffe08a"/>
+      </g>
+      <rect x="360" y="72" width="140" height="36" rx="4" fill="#fff4c8" stroke="#f7c948" stroke-width="2"/>
+      <path d="M340 90 H360 M510 90 H530" stroke="#f7c948" stroke-width="3"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>
