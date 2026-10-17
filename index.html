@@ -64,6 +64,10 @@
   </nav>
 
   <nav class="arcade-secondary-nav arcade-shell" aria-label="Studio links">
+    <a class="sec-link career-chip" href="#trophy" data-view="trophy" id="career-chip" aria-label="Your profile and trophy room">
+      <span class="career-chip-face" aria-hidden="true">&#127918;</span>
+      <span class="career-chip-text">Lv 1</span>
+    </a>
     <a class="sec-link" href="#halloffame" data-view="halloffame">&#127942; Hall of Fame</a>
     <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
     <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
@@ -1086,6 +1090,14 @@
     </div>
   </section>
 
+  <!-- ===================== TROPHY ROOM ===================== -->
+  <section id="view-trophy" class="view">
+    <div class="trophy-wrap">
+      <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+      <div id="trophy-room"></div>
+    </div>
+  </section>
+
   <!-- ===================== HALL OF FAME ===================== -->
   <section id="view-halloffame" class="view">
     <div class="hof-wrap">
@@ -1422,6 +1434,7 @@
 
   <!-- SCRIPTS -->
   <script src="js/persist.js" defer></script>
+  <script src="js/progression.js" defer></script>
   <script src="js/sfx.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/scores.js" defer></script>
@@ -1628,6 +1641,7 @@
       if (typeof Coins !== 'undefined') Coins.credit();
       if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
+      if (name === 'trophy' && typeof EurekaProgress !== 'undefined') EurekaProgress.render('trophy-room');
       if (name !== 'arcade') clearScanLand();
       if (name === 'arcade') {
         const pending = readLeave();
@@ -1988,8 +2002,11 @@
     function applyTheme(id, persist) {
       if (id) document.documentElement.dataset.theme = id;
       else delete document.documentElement.dataset.theme;
-      if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
-      const cur = THEMES.find(t => t.id === id) || THEMES[0];
+      if (persist) {
+        try { localStorage.setItem('eureka-theme', id); } catch {}
+        if (typeof EurekaProgress !== 'undefined') EurekaProgress.noteTheme(id);
+      }
+      const cur = THEMES.find(t => t.id === id) || { label: id ? id.charAt(0).toUpperCase() + id.slice(1) : 'Midnight' };
       themeToggle.title = 'Theme: ' + cur.label;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) {

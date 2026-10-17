@@ -536,6 +536,7 @@ function finishAction(a){
       : G.weather==='cold'
         ? 'You rest, but the cold gets into the sleep. Health +'+h+'.'
         : 'You rest. Health +'+h+'.');
+    try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'rest'); } catch (e) {}
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){

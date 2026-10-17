@@ -26,7 +26,7 @@ const HubRoutes = (() => {
 
   // In-page views. `arcade` is the catalogue itself.
   const VIEWS = [
-    'arcade', 'dashboard', 'productivity', 'orgchart', 'personal',
+    'arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'trophy',
     'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048',
     'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
     'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'halloffame',
@@ -37,6 +37,10 @@ const HubRoutes = (() => {
     game2048: '2048',
     g2048: '2048',
     hof: 'halloffame',
+    trophies: 'trophy',
+    trophyroom: 'trophy',
+    'trophy-room': 'trophy',
+    career: 'trophy',
     'hall-of-fame': 'halloffame',
     scores: 'halloffame',
     minefield: 'minesweeper',
@@ -91,6 +95,7 @@ const HubRoutes = (() => {
     wordcascade: 'Word Cascade — Eureka Games',
     memorymatrix: 'Memory Matrix — Eureka Games',
     halloffame: 'Hall of Fame — Eureka Games',
+    trophy: 'Trophy Room — Eureka Games',
   };
 
   function norm(raw) {

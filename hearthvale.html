@@ -650,6 +650,7 @@
   </div>
 
 <script src="/js/persist.js"></script>
+<script src="/js/progression.js"></script>
 <script>
 "use strict";
 (function () {
@@ -1553,6 +1554,7 @@
     toast('🎪 ' + (state.townName || 'Hearthvale') + ' throws a festival — spirits soar!');
     chron('🎪', 'The town throws its ' + ordinal(state.festivalsHeld) + ' festival');
     updateHUD(); checkAchievements(); save();
+    careerEmit('festival', state.festivalsHeld);
   }
 
   // ── The Stonemason & the Monument (HVALE-16) ───────────────
@@ -2420,6 +2422,7 @@
     SFX('place');
     toast('🏗️ ' + def.name + ' under construction…');
     save();
+    careerEmit('build', state.buildings.length);
     return b;
   }
   function completeBuilding(b) {
@@ -2592,6 +2595,7 @@
       xp: plasterXp(),
     };
     state.villagers.push(v);
+    careerEmit('pop', state.villagers.length);
     return v;
   }
   function findWalkableNear(tx, ty) {
@@ -6375,6 +6379,17 @@
     cam = { x: start.startX * TILE - 200, y: start.startY * TILE - 150, z: 3 };
   }
 
+  function careerEmit(event, value) {
+    try { if (window.EurekaProgress) EurekaProgress.emit('hearthvale', event, value); } catch (e) {}
+  }
+  function noteHearthCareer() {
+    if (!state || !state.seenIntro) return;
+    careerEmit('found', 1);
+    if (state.buildings && state.buildings.length) careerEmit('build', state.buildings.length);
+    if (state.villagers && state.villagers.length) careerEmit('pop', state.villagers.length);
+    if (state.festivalsHeld) careerEmit('festival', state.festivalsHeld);
+  }
+
   function init() {
     buildTileSprites();
     Object.keys(BUILDINGS).forEach(makeBuildingSprite);
@@ -6495,6 +6510,7 @@
         if (mult !== 1) Object.keys(state.res).forEach(k => state.res[k] = Math.round(state.res[k] * mult));
         document.getElementById('welcome').classList.remove('show');
         buildBar(); updateHUD(); renderGoal(); hideHint(); save();
+        noteHearthCareer();
       };
       document.getElementById('welcome-close').onclick = beginGame;
       if (nameInput) nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') beginGame(); });
@@ -6508,6 +6524,7 @@
       cam.x = wx - view.w / cam.z / 2; cam.y = wy - view.h / cam.z / 2; clampCam();
     });
     if (state.seenIntro) hideHint();
+    noteHearthCareer();
 
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
     document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());

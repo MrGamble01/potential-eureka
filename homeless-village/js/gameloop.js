@@ -187,6 +187,7 @@ function snapAtDawn(){
 
 function onNewDay(){
   G.days++;
+  try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'dawn', G.days); } catch (e) {}
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll

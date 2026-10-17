@@ -316,3 +316,4 @@ function frame(ts){
 }
 
 requestAnimationFrame(gameLoop);
+try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'visit', 1); } catch (e) {}
