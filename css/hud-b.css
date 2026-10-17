@@ -84,7 +84,7 @@ html.hud-b :is(
   #lab-tray button, .act-btn, .upg-btn, .strain-btn,
   #manage-btn, #lab-help-btn, #sfx-btn, #back-btn,
   #intro-go, .diff-opt, #contract-offer button,
-  #camPad button, #buildBar button, #darePanel button, #gullPanel button,
+  #camPad button, #darePanel button, #gullPanel button,
   #helpOv button, #achOv button, #almanacOv button,
   #back a, #back button, .still-recipe, .still-row button, #still-anoint,
   #cup-enter, #cup-add, #chain-close, #rival-pay, #tip-buy, #bw-hammer, #bw-wait
@@ -488,6 +488,15 @@ html.hud-b[data-game="voxel"] #camPad button {
 html.hud-b[data-game="voxel"] #buildBar button.on {
   border-color: var(--hud-accent);
   color: var(--hud-ink);
+}
+
+/* Desktop build buttons stay compact. A 44px minimum lifts the bar into
+   the chip tray, and the policy chip then steals the Line click. */
+@media (max-width: 700px) {
+  html.hud-b[data-game="voxel"] #buildBar button {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 html.hud-b[data-game="voxel"] :is(#helpOv, #achOv, #almanacOv, #chain-modal) {
