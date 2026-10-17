@@ -174,7 +174,8 @@ canvas{display:block;touch-action:none;}
 #left-panel{
   position:fixed;top:54px;left:14px;
   display:flex;flex-direction:column;gap:7px;
-  max-width:210px;user-select:none;
+  max-width:236px;user-select:none;
+  /* fitLeftPanel() shortens this once the corner tray reaches the column. */
   max-height:calc(100vh - 68px);overflow-y:auto;
 }
 #left-panel::-webkit-scrollbar{width:4px;}
@@ -233,6 +234,30 @@ canvas{display:block;touch-action:none;}
   border-top:1px solid rgba(255,255,255,0.05);
 }
 .upg-cat:first-child{border-top:none;margin-top:0;}
+.upg-btn.locked:not(:disabled){opacity:0.78;border-color:rgba(255,255,255,0.06);}
+#heat-rate{font-size:9px;font-weight:700;color:#aa6644;letter-spacing:0.2px;
+  margin-top:3px;text-align:right;line-height:1.35;}
+#strain-panel{border-color:rgba(180,140,255,0.28);}
+.strain-note{font-size:10px;color:#8d78b0;line-height:1.4;margin:-2px 0 6px;}
+.strain-quote{
+  font-size:10px;font-weight:800;color:#efe6ff;line-height:1.4;
+  background:rgba(120,80,180,0.16);
+  border:1px solid rgba(180,140,255,0.32);
+  border-radius:4px;padding:5px 7px;margin-bottom:6px;
+}
+.strain-btn{
+  display:block;width:100%;margin-top:4px;text-align:left;cursor:pointer;
+  background:rgba(140,90,220,0.06);border:1px solid rgba(180,140,255,0.22);
+  color:#d9c8f5;border-radius:4px;padding:6px 8px;
+  font-weight:700;font-size:11px;font-family:inherit;line-height:1.35;
+}
+.strain-btn:hover{background:rgba(140,90,220,0.16);border-color:rgba(180,140,255,0.5);}
+.strain-btn.on{background:rgba(140,90,220,0.22);border-color:rgba(210,180,255,0.75);color:#fff;}
+.strain-btn.locked{opacity:0.72;}
+.strain-btn .tag{float:right;font-size:9px;font-weight:800;color:#c8b0ee;letter-spacing:0.3px;}
+.strain-btn.on .tag{color:#fff;}
+.strain-btn .sub{display:block;clear:both;color:#a894cc;font-size:10px;font-weight:700;margin-top:2px;}
+.strain-btn.on .sub{color:#e6d8ff;}
 
 /* ── Labels overlay ── */
 #labels{position:fixed;inset:0;pointer-events:none;z-index:5;}
@@ -781,6 +806,7 @@ canvas{display:block;touch-action:none;}
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
   <div class="heat-val"><span id="heat-val">0</span>%</div>
+  <div id="heat-rate"></div>
 </div>
 <div id="goal-hud">
   <div class="goal-label">🎯 Next Goal</div>
@@ -792,6 +818,12 @@ canvas{display:block;touch-action:none;}
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
+  <div id="strain-panel" class="panel">
+    <div class="panel-title">🌱 Strains</div>
+    <div class="strain-note">The cut in the tent right now. Switching retimes plants that are already growing.</div>
+    <div id="strain-quote" class="strain-quote">🌿 Garage Kush</div>
+    <div id="strain-list"></div>
+  </div>
   <div id="upgrades-panel" class="panel"></div>
   <div id="hire-panel" class="panel">
     <div class="panel-title">👥 Crew</div>
@@ -866,7 +898,8 @@ canvas{display:block;touch-action:none;}
     </div>
     <div id="intro-flavor">A grow in the back of a garage. Turn it into something bigger before the block turns on you.</div>
     <div id="intro-body">
-      <div class="intro-row">&bull; <b>The loop is plant → harvest → sell.</b> Click a plot to plant, wait for it to ripen, then bag it. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>The loop is grow → harvest → sell.</b> Plants ripen on their own. Walk up to a ripe one, carry it to the trim table, stash the bags, and sell to the buyers who come to you. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>The strain board is the cut in the tent.</b> Garage Kush is free and even. The other cuts trade speed, price and heat, and the line on that board is what the next bag pays.</div>
       <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
       <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
       <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
@@ -905,6 +938,9 @@ let state = {
   totalSold: 0,
   heat: 0,
   crunch: false,   // LAB-12: night shifts — faster production, hotter heat
+  strain: 'kush',
+  strainsOwned: ['kush'],
+  taxLeft: 0,
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -929,15 +965,62 @@ let state = {
 // again. If you change an effect, change its `desc` in the same edit.
 const UPG = [
   {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level \u2014 and you move 5% quicker'},
+  {id:'drip',     name:'Drip Lines',             icon:'💧', cat:'Grow Op',       maxLv:2, base:240, mult:2.0, desc:'Plants grow 15% faster per level'},
   {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+1 bag per trimmed batch per level \u2014 Lv1 doubles your output'},
   {id:'trim',     name:'Electric Trimmer',       icon:'✂️', cat:'Processing',    maxLv:3, base:180, mult:2.0, desc:'Trim 25% faster per level'},
+  {id:'fan',      name:'Trim Fan',               icon:'🌀', cat:'Processing',    maxLv:2, base:200, mult:2.0, desc:'Trim 15% faster per level'},
   {id:'bags',     name:'Vac-Seal Bags',          icon:'📦', cat:'Processing',    maxLv:3, base:250, mult:2.0, desc:'+15% sale price per level'},
   {id:'network',  name:'Distribution Network',   icon:'🚗', cat:'Sales',         maxLv:4, base:400, mult:1.8, desc:'Buyers arrive 30% faster per level'},
   {id:'price',    name:'Premium Product',        icon:'💎', cat:'Sales',         maxLv:3, base:500, mult:2.2, desc:'+40% sale price per level'},
   {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Sales run 25% cooler per level \u2014 75% at Lv3'},
+  {id:'filter',   name:'Carbon Filter',          icon:'🫧', cat:'Security',      maxLv:2, base:280, mult:2.2, desc:'+0.2 heat cleared per second per level'},
   {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'+0.5 heat cleared per second per level'},
   {id:'chemistry',name:'Chemistry Equipment',    icon:'⚗️', cat:'The Next Level',maxLv:1, base:2500,mult:1.0, desc:'Unlock the cook station — harder product, way more $'},
 ];
+
+// ── Strains ──────────────────────────────────────────────
+// One cut runs the whole tent. Garage Kush is the classic 1× line, so a
+// save with no strain field grows, sells and heats exactly as before.
+// Each paid cut wins one race and loses another. Per second of grow time,
+// versus Kush:
+//   Sour Diesel  fastest finish (0.70× time) but the hottest per second
+//   Purple Haze  coolest per second, and still more cash per second
+//   Chem Dawg    most cash per second, hotter than Kush, Act II only
+// None of them wins both cash-per-second and heat-per-second. Lights stay
+// the better first grow buy than Drip Lines (30% for $120 vs 15% for $240),
+// and the Electric Trimmer stays the better first trim buy than the fan.
+const STRAINS = [
+  { id:'kush',   name:'Garage Kush', icon:'🌿', cost:0,   act:1, grow:1,    price:1,    heat:1,    color:0x22cc44, light:0x8833ee },
+  { id:'diesel', name:'Sour Diesel', icon:'⛽', cost:160, act:1, grow:0.70, price:0.88, heat:1.25, color:0xc6d84a, light:0x88aa22 },
+  { id:'haze',   name:'Purple Haze', icon:'🟣', cost:280, act:1, grow:1.25, price:1.48, heat:0.72, color:0xb06cff, light:0xaa44ff },
+  { id:'dawg',   name:'Chem Dawg',   icon:'🧪', cost:750, act:2, grow:1.05, price:1.70, heat:1.40, color:0x3ddc97, light:0x22ffaa },
+];
+function strainById(id) { return STRAINS.find(s => s.id === id) || STRAINS[0]; }
+function activeStrain() { return strainById(state.strain || 'kush'); }
+function strainUnlocked(s) { return (state.strainsOwned || ['kush']).includes(s.id); }
+function strainBlurb(s) {
+  if (s.grow === 1 && s.price === 1 && s.heat === 1) return 'The starter cut. Even grow, street price, and heat.';
+  const time = Math.round(s.grow * 100);
+  const heatPct = Math.round(Math.abs(s.heat - 1) * 100);
+  const heatWord = s.heat > 1 ? heatPct + '% hotter' : heatPct + '% cooler';
+  const act = s.act > 1 ? 'Act II genetics. ' : '';
+  return act + 'Finishes in ' + time + '% of the time. Sells at ' + s.price.toFixed(2) + '\u00d7 and runs ' + heatWord + '.';
+}
+function strainStat(s) {
+  const m = n => (n === 1 ? '1' : n.toFixed(2));
+  return m(s.grow) + '\u00d7 grow \u00b7 ' + m(s.price) + '\u00d7 price \u00b7 ' + m(s.heat) + '\u00d7 heat';
+}
+function nextStrain() {
+  const act = currentAct();
+  return STRAINS.find(s => !strainUnlocked(s) && act >= (s.act || 1)) || null;
+}
+function normalizeStrains(owned, current) {
+  const ids = new Set(STRAINS.map(s => s.id));
+  const list = Array.isArray(owned) ? owned.filter(id => typeof id === 'string' && ids.has(id)) : [];
+  if (!list.includes('kush')) list.unshift('kush');
+  const strain = typeof current === 'string' && ids.has(current) && list.includes(current) ? current : 'kush';
+  return { strain, owned: list };
+}
 
 // ── Room definitions ──
 const ROOM_DEFS = [
@@ -980,7 +1063,25 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
+// The corner tray is bottom-anchored and grows left as buttons unlock.
+// Once it crosses into the management column, the last controls (Reset
+// Game among them) scroll underneath it and cannot be clicked. Keep that
+// column's scrollport above the tray. On a phone the column is a sheet
+// and the tray is already lifted, so the stylesheet rule stands.
+function fitLeftPanel() {
+  const panel = document.getElementById('left-panel');
+  const tray = document.getElementById('lab-tray');
+  if (!panel || !tray) return;
+  if (innerWidth <= 700) { panel.style.maxHeight = ''; return; }
+  const tr = tray.getBoundingClientRect();
+  const panelRight = 14 + 236;
+  if (tr.width < 2 || tr.left >= panelRight - 4) { panel.style.maxHeight = ''; return; }
+  const limit = Math.max(160, Math.floor(tr.top - 54 - 8));
+  panel.style.maxHeight = limit + 'px';
+}
+window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); fitLeftPanel(); });
+new ResizeObserver(fitLeftPanel).observe(document.getElementById('lab-tray'));
+fitLeftPanel();
 
 // ── Lights ──
 const ambLight = new THREE.AmbientLight(0x1a2a14, 0.8);
@@ -1180,7 +1281,12 @@ const growPlots = [];
 const GROW_TIME_BASE = 18; // seconds
 
 function upgLv(id) { return state.upgrades[id] || 0; }
-function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1); }   // LAB-12
+function growTime() {
+  // Kush with no drip matches the classic lights / night-shift formula.
+  // The strain multiplier and the drip divisor are both 1 until bought.
+  const tuned = GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1);   // LAB-12
+  return tuned * activeStrain().grow / (1 + upgLv('drip') * 0.15);
+}
 
 function buildGrowPlot(x, z, roomId) {
   const g = new THREE.Group();
@@ -1227,14 +1333,17 @@ function buildGrowPlot(x, z, roomId) {
 function updatePlantMesh(plot) {
   const {plantG, progress} = plot;
   const stage = progress <= 0.01 ? 0 : progress < 0.35 ? 1 : progress < 0.7 ? 2 : 3;
-  if (stage === plot.stage) return;
+  const tint = activeStrain().color;
+  if (stage === plot.stage && tint === plot.tint) return;
+  plot.tint = tint;
   // Only clear/rebuild when the visible stage actually changed, so a no-op
   // call no longer blanks a fully-grown plant.
   while (plantG.children.length) plantG.remove(plantG.children[0]);
   plot.stage = stage;
   if (stage === 0) return;
 
-  const greenShade = stage === 3 ? 0x22cc44 : stage === 2 ? 0x2a8a2a : 0x1a5a1a;
+  const cut = activeStrain();
+  const greenShade = stage === 3 ? cut.color : stage === 2 ? 0x2a8a2a : 0x1a5a1a;
   const mat = new THREE.MeshLambertMaterial({
     color: greenShade,
     emissive: stage === 3 ? 0x114411 : 0x000000,
@@ -1263,7 +1372,7 @@ function updatePlantMesh(plot) {
   // Buds on stage 3
   if (stage === 3) {
     const budMat = new THREE.MeshLambertMaterial({
-      color:0x44dd44, emissive:0x00aa00, emissiveIntensity:0.5});
+      color:cut.color, emissive:cut.light, emissiveIntensity:0.45});
     const bud = new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6), budMat);
     bud.position.y = h + 0.14; plantG.add(bud);
   }
@@ -1995,6 +2104,53 @@ let busted = false;
 // that had just been cleared. "Reset Game" had never reset anything.
 let resetting = false;
 
+// Street tax: refuse the crew and the next few hands pay TAX_RATE.
+// The skim percent in the copy is derived from TAX_RATE so it cannot drift.
+const TAX_RATE = 0.85, TAX_HANDS = 4;
+const SMELL_PAY = 220, SMELL_RELIEF = 16, SMELL_HEAT = 14, SMELL_HEAT_FILTERED = 4;
+const MOLD_COST = 150, MOLD_RELIEF = 8, MOLD_AIR_RELIEF = 3, CROP_SETBACK = 0.22;
+const CLONE_TIP = 80, CLONE_HEAT = 4;
+function streetTaxCost() {
+  return Math.min(1200, Math.max(50, Math.floor(state.cash * 0.10)));
+}
+function fmtTenths(n) {
+  const r = Math.round(n * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
+function heatClause(before) {
+  const d = Math.round(state.heat - before);
+  if (d === 0) return 'Heat unchanged.';
+  return 'Heat ' + (d > 0 ? '+' : '\u2212') + Math.abs(d) + '.';
+}
+function applyStreetTax(price) {
+  if ((state.taxLeft || 0) <= 0 || price <= 0) return { price, skim: 0 };
+  state.taxLeft--;
+  const kept = Math.min(price, Math.max(1, Math.floor(price * TAX_RATE)));
+  if (state.taxLeft === 0) addFeed('The skim is paid. Street price is clean.');
+  refreshStrainQuote();
+  return { price: kept, skim: price - kept };
+}
+function previewBag() {
+  const list = salePrice();
+  if ((state.taxLeft || 0) <= 0 || list <= 0) return list;
+  return Math.min(list, Math.max(1, Math.floor(list * TAX_RATE)));
+}
+function setBackCrop() {
+  let hit = 0;
+  for (const p of growPlots) {
+    if (p.ready || p.progress <= 0.02) continue;
+    p.progress = Math.max(0, +(p.progress - CROP_SETBACK).toFixed(4));
+    p.ready = false;
+    p.stage = -1;
+    updatePlantMesh(p);
+    hit++;
+  }
+  return hit;
+}
+function retintPlots() {
+  for (const p of growPlots) { p.stage = -1; updatePlantMesh(p); }
+}
+
 const EVENTS = [
   {
     id:'close_call', icon:'🚔', title:'Unmarked Car Outside',
@@ -2052,11 +2208,120 @@ const EVENTS = [
       {text:'Ignore it. Just pay the bill.', effect:()=>{ addHeat(15); return 'Paid the bill but now on a list somewhere.'; }, type:'risky'},
     ]
   },
+  {
+    id:'tent_mold', icon:'🫧', title:'Mold in the Tent',
+    body:'The tent is sweating. A rented dryer holds the crop. Cracking the tent dries the room and sets the plants back.',
+    choices:[
+      {text:'Rent a dryer overnight.', cost:MOLD_COST, type:'safe', effect:()=>{
+        if (state.cash < MOLD_COST) { showToast("Can't afford the dryer!", 'bust'); return null; }
+        state.cash -= MOLD_COST;
+        const before = state.heat;
+        addHeat(-MOLD_RELIEF);
+        return 'Dryer ran all night. The plants held. ' + heatClause(before);
+      }},
+      {text:'Crack the tent and take the setback.', type:'risky', effect:()=>{
+        const hit = setBackCrop();
+        const before = state.heat;
+        addHeat(-MOLD_AIR_RELIEF);
+        const what = hit
+          ? hit + ' plant' + (hit > 1 ? 's' : '') + ' set back ' + Math.round(CROP_SETBACK * 100) + '%.'
+          : 'Nothing was mid-grow.';
+        return 'Opened the tent. ' + what + ' ' + heatClause(before);
+      }},
+    ]
+  },
+  {
+    id:'clone_jar', icon:'🌱', title:'A Jar of Clones',
+    body:'A grower from across town has clones in a jar.',
+    choices:[
+      {text:'Buy the cut.', cost:160, type:'risky', effect:()=>{
+        const next = nextStrain();
+        if (!next) {
+          if (state.cash < CLONE_TIP) { showToast("Can't cover the tip!", 'bust'); return null; }
+          state.cash -= CLONE_TIP;
+          const before = state.heat;
+          addHeat(-4);
+          return 'You already run every cut they sell. $' + fmtCash(CLONE_TIP) + ' for the trip. ' + heatClause(before);
+        }
+        if (!unlockStrain(next.id, true)) return null;
+        const before = state.heat;
+        addHeat(CLONE_HEAT);
+        return next.icon + ' ' + next.name + ' is in the dirt. ' + strainBlurb(next) + ' ' + heatClause(before);
+      }},
+      {text:'Send them on.', type:'safe', effect:()=>{
+        return 'The jar walks. The tent stays on the cut you already run.';
+      }},
+    ]
+  },
+  {
+    id:'smell_check', icon:'👃', title:'Someone Asked About the Smell',
+    body:'A city inspector is two doors down, asking about that smell. Money walks him the other way. Playing dumb is fine if the tent does not reek.',
+    choices:[
+      {text:'Pay him to walk the other way.', cost:SMELL_PAY, type:'safe', effect:()=>{
+        if (state.cash < SMELL_PAY) { showToast("Can't afford it!", 'bust'); return null; }
+        state.cash -= SMELL_PAY;
+        const before = state.heat;
+        addHeat(-SMELL_RELIEF);
+        return 'He wrote down a bakery. ' + heatClause(before);
+      }},
+      {text:'Play dumb.', type:'risky', effect:()=>{
+        const filtered = upgLv('filter') > 0;
+        const before = state.heat;
+        addHeat(filtered ? SMELL_HEAT_FILTERED : SMELL_HEAT);
+        return (filtered
+          ? 'The carbon filter did the talking.'
+          : 'The alley told on you.') + ' ' + heatClause(before);
+      }},
+    ]
+  },
+  {
+    id:'corner_tax', icon:'🤝', title:'The Block Wants a Taste',
+    body:'A crew you do not run with is at the end of the alley.',
+    choices:[
+      {text:'Pay the taste. They walk.', cost:50, type:'safe', effect:()=>{
+        const cost = streetTaxCost();
+        if (state.cash < cost) { showToast("Can't cover the taste!", 'bust'); return null; }
+        state.cash -= cost;
+        const before = state.heat;
+        addHeat(-10);
+        return 'Paid $' + fmtCash(cost) + '. The alley is yours. ' + heatClause(before);
+      }},
+      {text:'Refuse. Let them skim.', type:'risky', effect:()=>{
+        state.taxLeft = TAX_HANDS;
+        const before = state.heat;
+        addHeat(6);
+        refreshStrainQuote();
+        const skimPct = Math.round((1 - TAX_RATE) * 100);
+        return 'They will take ' + skimPct + '% of the next ' + TAX_HANDS + ' street sales. ' + heatClause(before);
+      }},
+    ]
+  },
 ];
 
+function prepareEvent(ev) {
+  if (!ev) return ev;
+  if (ev.id === 'clone_jar') {
+    const next = nextStrain();
+    const skimNote = next ? strainBlurb(next) : 'You already run every cut they sell.';
+    ev.body = next
+      ? 'A grower from across town has a jar of ' + next.name + ' clones. ' + skimNote
+      : 'A grower from across town came with clones. ' + skimNote;
+    ev.choices[0].cost = next ? next.cost : CLONE_TIP;
+    ev.choices[0].text = next ? 'Buy the ' + next.name + ' cut' : 'Slip them $' + fmtCash(CLONE_TIP) + ' for the trip';
+  }
+  if (ev.id === 'corner_tax') {
+    const cost = streetTaxCost();
+    const skimPct = Math.round((1 - TAX_RATE) * 100);
+    ev.choices[0].cost = cost;
+    ev.choices[0].text = 'Pay the taste. They walk.';
+    ev.body = 'A crew you do not run with is at the end of the alley. $' + fmtCash(cost)
+      + ' and they walk. Refuse and they skim ' + skimPct + '% off the next ' + TAX_HANDS + ' street sales.';
+  }
+  return ev;
+}
 function triggerEvent(forced) {
   if (activeEvent || raidActive) return;
-  const ev = forced || EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  const ev = prepareEvent(forced || EVENTS[Math.floor(Math.random()*EVENTS.length)]);
   activeEvent = ev;
   document.getElementById('ev-icon').textContent = ev.icon;
   document.getElementById('ev-title').textContent = ev.title;
@@ -3136,7 +3401,7 @@ function addHeat(amount) {
 // qty scales the heat hit so selling more units in one sale isn't
 // strictly better than making the same number of smaller sales.
 function heatGainPerSale(qty = 1) {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain;
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain * activeStrain().heat;
 }
 // Big operations attract big attention: past the Act III threshold
 // ($15k lifetime) every sale runs hotter, up to 2.5x — otherwise maxed
@@ -3159,7 +3424,7 @@ function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('secu
 function heatDrainPerSec() {
   // LAB-13: an open laundromat out front cools things off on its own —
   // customers coming and going are the best cover there is.
-  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
+  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
 }
 
 // ── The Getaway Bag (LAB-21) ──────────────────────────────
@@ -3222,6 +3487,7 @@ function triggerBust() {
     'The DEA kicked in the door. Everything\'s seized.\n10 to 15, no deal.';
   const stats = document.getElementById('bust-stats');
   stats.innerHTML = `
+    <div class="row"><span>Cut in the tent</span><strong>${activeStrain().icon} ${activeStrain().name}</strong></div>
     <div class="row"><span>Total Earned</span><strong>$${fmtCash(state.totalEarned)}</strong></div>
     <div class="row"><span>Units Sold</span><strong>${state.totalSold}</strong></div>
     <div class="row"><span>Batches Cooked</span><strong>${state.batches}</strong></div>
@@ -3293,6 +3559,7 @@ function updateMarket(dt) {
 }
 let _lastMktShown = 0, _lastMktSeconds = null, _lastMktWindow = '';
 function updateMarketHUD() {
+  refreshStrainQuote();
   const eff = marketMult();
   const seconds = market.surge ? Math.ceil(market.surge.left) : null;
   const window = market.surge ? (market.surge.mult > 1 ? 'surge' : 'crash') : '';
@@ -3318,7 +3585,7 @@ function salePrice() {
   const chemiBonus = chemStation ? 1.8 : 1;
   // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
   const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
-  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult());
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult() * activeStrain().price);
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -3954,6 +4221,7 @@ const GROW_ACH = [
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
+  { id: 'full_menu',    name: 'The Full Menu',    test: () => (state.strainsOwned || []).length >= STRAINS.length },
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -4039,6 +4307,8 @@ function refreshHud() {
   refreshBagBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
+  paintHeatRate();
+  renderStrainPanel();
   document.getElementById('act-badge').textContent =
     ACT_LABELS[currentAct()] + (state.difficulty === 'kingpin' ? ' · 👑' : '');
 
@@ -4166,6 +4436,124 @@ function onRoomUnlocked(id) {
   }
 }
 
+function saleToast(qty, price, skim) {
+  const cut = activeStrain();
+  const who = cut.id === 'kush' ? '' : ' of ' + cut.name;
+  const skimNote = skim > 0 ? ' \u00b7 skimmed $' + fmtCash(skim) : '';
+  return '+$' + fmtCash(price) + ' \u2014 ' + qty + ' unit' + (qty > 1 ? 's' : '') + who + ' moved' + skimNote;
+}
+function paintHeatRate() {
+  const el = document.getElementById('heat-rate');
+  if (!el) return;
+  const text = '\u2212' + heatDrainPerSec().toFixed(1) + '/s \u00b7 +' + fmtTenths(heatGainPerSale(1)) + '/sale';
+  if (el.textContent !== text) el.textContent = text;
+  const hud = document.getElementById('heat-hud');
+  if (hud) hud.title = 'Heat bleeds ' + heatDrainPerSec().toFixed(2) + ' per second. The next single-bag street sale adds ' + fmtTenths(heatGainPerSale(1)) + '.';
+}
+function strainQuote() {
+  const s = activeStrain();
+  const tax = (state.taxLeft || 0) > 0
+    ? ' \u00b7 skim \u00d7' + TAX_RATE + ' on next ' + state.taxLeft
+    : '';
+  return s.icon + ' ' + s.name + ' \u00b7 bag $' + fmtCash(previewBag())
+    + ' \u00b7 heat +' + fmtTenths(heatGainPerSale(1))
+    + ' \u00b7 grow ' + fmtTenths(growTime()) + 's' + tax;
+}
+function refreshStrainQuote() {
+  const el = document.getElementById('strain-quote');
+  if (!el) return;
+  const text = strainQuote();
+  if (el.textContent !== text) el.textContent = text;
+}
+function renderStrainPanel() {
+  const el = document.getElementById('strain-list');
+  if (!el) return;
+  el.innerHTML = '';
+  const act = currentAct();
+  for (const s of STRAINS) {
+    const owned = strainUnlocked(s);
+    const running = activeStrain().id === s.id;
+    const gated = !owned && act < (s.act || 1);
+    const broke = !owned && !gated && state.cash < s.cost;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'strain-' + s.id;
+    btn.className = 'strain-btn' + (running ? ' on' : '') + (!owned ? ' locked' : '');
+    const tag = running ? 'RUNNING'
+      : owned ? 'Switch'
+      : gated ? 'Act II'
+      : broke ? 'Need $' + fmtCash(s.cost - state.cash)
+      : '$' + fmtCash(s.cost);
+    btn.innerHTML = s.icon + ' ' + s.name + ' <span class="tag">' + tag + '</span><span class="sub">' + strainStat(s) + '</span>';
+    btn.title = (gated
+      ? s.name + ' unlocks in Act II. '
+      : broke
+        ? 'Need $' + fmtCash(s.cost - state.cash) + ' more for ' + s.name + '. '
+        : running
+          ? 'Running ' + s.name + '. '
+          : owned
+            ? 'Switch the tent to ' + s.name + '. '
+            : 'Buy ' + s.name + ' for $' + fmtCash(s.cost) + '. ') + strainBlurb(s);
+    btn.onclick = () => onStrainClick(s.id);
+    el.appendChild(btn);
+  }
+  refreshStrainQuote();
+}
+function selectStrain(id) {
+  const s = strainById(id);
+  if (!strainUnlocked(s)) return false;
+  const changed = activeStrain().id !== s.id;
+  state.strain = s.id;
+  retintPlots();
+  if (changed) {
+    setStatus(s.icon + ' Running ' + s.name + '.');
+    saveGame();
+  }
+  renderStrainPanel();
+  return changed;
+}
+function unlockStrain(id, quiet) {
+  const s = strainById(id);
+  if (!s || s.id === 'kush') return false;
+  if (strainUnlocked(s)) { selectStrain(s.id); return true; }
+  if (currentAct() < (s.act || 1)) {
+    showToast(s.icon + ' ' + s.name + ' shows up in Act II.', 'bust');
+    return false;
+  }
+  if (state.cash < s.cost) {
+    showToast(s.icon + ' Need $' + fmtCash(s.cost - state.cash) + ' more for ' + s.name + '.', 'bust');
+    return false;
+  }
+  state.cash -= s.cost;
+  if (!state.strainsOwned.includes(s.id)) state.strainsOwned.push(s.id);
+  selectStrain(s.id);
+  if (!quiet) {
+    showToast(s.icon + ' ' + s.name + ' is in the tent \u2014 ' + strainBlurb(s), 'good');
+    addFeed(s.icon + ' Cut switched to ' + s.name);
+  }
+  checkGrowAchievements();
+  saveGame();
+  refreshHud();
+  renderUpgradesPanel();
+  return true;
+}
+function onStrainClick(id) {
+  const s = strainById(id);
+  if (!s) return;
+  if (strainUnlocked(s)) {
+    if (activeStrain().id === s.id) {
+      showToast(s.icon + ' ' + s.name + ' \u2014 ' + strainBlurb(s), '');
+      return;
+    }
+    selectStrain(s.id);
+    showToast(s.icon + ' Switched to ' + s.name + '. ' + strainBlurb(s), 'good');
+    addFeed(s.icon + ' Now running ' + s.name);
+    refreshHud();
+    return;
+  }
+  unlockStrain(s.id);
+}
+
 // ── Upgrades panel ──
 function upgCost(u) { return Math.floor(u.base * Math.pow(u.mult, upgLv(u.id))); }
 
@@ -4185,11 +4573,20 @@ function renderUpgradesPanel() {
     }
     const cost = upgCost(u);
     const maxed = lv>=u.maxLv;
+    const short = !maxed && state.cash<cost;
     const btn = document.createElement('button');
-    btn.className='upg-btn';
-    btn.disabled = maxed || state.cash<cost;
+    btn.className='upg-btn'+(short?' locked':'');
+    btn.disabled = maxed;
     const lvEl = maxed?`<span class="lvl maxed">MAX</span>`:`<span class="lvl">Lv${lv}</span>`;
-    btn.innerHTML=`${u.icon} ${u.name} ${lvEl}${!maxed?`<span class="cost">$${fmtCash(cost)} · ${u.desc}</span>`:''}`;
+    const costLine = short
+      ? `Need $${fmtCash(cost-state.cash)} \u00b7 ${u.desc}`
+      : `$${fmtCash(cost)} \u00b7 ${u.desc}`;
+    btn.innerHTML=`${u.icon} ${u.name} ${lvEl}${!maxed?` <span class="cost">${costLine}</span>`:''}`;
+    btn.title = maxed
+      ? u.name + ' is maxed.'
+      : short
+        ? 'Need $' + fmtCash(cost - state.cash) + ' more. ' + u.desc
+        : '$' + fmtCash(cost) + ' \u2014 ' + u.desc;
     if (!maxed) btn.onclick = () => buyUpgrade(u.id);
     el.appendChild(btn);
   }
@@ -4199,7 +4596,11 @@ function buyUpgrade(id) {
   const u = UPG.find(x=>x.id===id);
   if (!u) return;
   const cost = upgCost(u);
-  if (state.cash<cost || upgLv(id)>=u.maxLv) return;
+  if (upgLv(id)>=u.maxLv) { showToast(u.icon + ' ' + u.name + ' is already maxed.', ''); return; }
+  if (state.cash<cost) {
+    showToast(u.icon + ' Need $' + fmtCash(cost - state.cash) + ' more for ' + u.name + '.', 'bust');
+    return;
+  }
   // The Lab room builds the chem station too — once it exists this
   // upgrade buys nothing, so refuse instead of taking the cash.
   if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); renderUpgradesPanel(); return; }
@@ -4391,6 +4792,9 @@ function saveGame() {
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
+    strain: activeStrain().id,
+    strainsOwned: state.strainsOwned || ['kush'],
+    taxLeft: Math.max(0, Math.min(TAX_HANDS, Math.floor(state.taxLeft || 0))),
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
     bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
@@ -4411,12 +4815,20 @@ function loadGame() {
   try{
     const sv = JSON.parse(localStorage.getItem(LS_KEY)||'null');
     if(!sv) return;
-    state.cash=sv.cash||50;
+    // 0 is a real balance. `|| 50` used to treat a broke corner as a missing
+    // save and hand back the seed money on every reload.
+    state.cash = Number.isFinite(Number(sv.cash)) ? Math.max(0, Number(sv.cash)) : 50;
     state.difficulty = sv.difficulty === 'kingpin' ? 'kingpin' : 'careful';
     state.totalEarned=sv.totalEarned||0;
     state.totalSold=sv.totalSold||0;
     state.heat=Math.min(99,sv.heat||0); // don't load at 100
     state.upgrades=sv.upgrades||{};
+    {
+      const cuts = normalizeStrains(sv.strainsOwned, sv.strain);
+      state.strain = cuts.strain;
+      state.strainsOwned = cuts.owned;
+    }
+    state.taxLeft = Math.max(0, Math.min(TAX_HANDS, Math.floor(Number(sv.taxLeft) || 0)));
     state.trimmers=sv.trimmers||0;
     state.lookouts=sv.lookouts||0;
     state.runners=sv.runners||0;
@@ -4769,8 +5181,9 @@ function updateGrowPlots(dt) {
       p.ready=true;
     }
     updateGrowPlotLabel(p, growPlots.indexOf(p));
-    if (p.stage !== Math.floor(p.progress*3)+1) updatePlantMesh(p);
-    // UV flicker
+    if (p.stage !== Math.floor(p.progress*3)+1 || p.tint !== activeStrain().color) updatePlantMesh(p);
+    // UV flicker — the lamp takes the color of the cut in the tent
+    p.uvLight.color.setHex(activeStrain().light);
     p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
   }
 }
@@ -4778,7 +5191,7 @@ function now(){return performance.now()/1000;}
 
 // ── Update trim station ──
 let trimAutoTimer = 0;
-function trimSpeedMult() { return 1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4; }
+function trimSpeedMult() { return (1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4) * (1 + upgLv('fan')*0.15); }
 function trimBatchLabel() {
   const seconds = Math.ceil(Math.max(0, (1-trimProgress)*TRIM_TIME/trimSpeedMult()));
   return `✂️ Trimming — ${seconds}s · ${trimQueue} queued`;
@@ -5024,7 +5437,8 @@ function sellToDealer(d, idx) {
       return;
     }
     d.paid=true;
-    const price = salePrice() * WHALE_MULT * WHALE_BAGS;
+    const whaleTax = applyStreetTax(salePrice() * WHALE_MULT * WHALE_BAGS);
+    const price = whaleTax.price;
     stashCount -= WHALE_BAGS; state.totalSold += WHALE_BAGS;
     pureBags = Math.min(pureBags, stashCount);   // the ✨ ledger can't exceed what's left
     addCash(price);
@@ -5037,7 +5451,7 @@ function sellToDealer(d, idx) {
     const sw=worldToScreen(d.group.position.x,2,d.group.position.z);
     cashPop(sw.x,sw.y,price);
     addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
-    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list.', 'good');
+    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list' + (whaleTax.skim > 0 ? ' (skimmed $' + fmtCash(whaleTax.skim) + ')' : '') + '.', 'good');
     d.state='leaving';
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     saveGame();
@@ -5049,7 +5463,8 @@ function sellToDealer(d, idx) {
   const qty=Math.min(stashCount, d.buyCount);
   // LAB-10: pure bags move first and fetch 1.6× list
   const pureUsed=Math.min(pureBags, qty);
-  const price=salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed;
+  const streetTax=applyStreetTax(salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed);
+  const price=streetTax.price;
   pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
   state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
@@ -5069,8 +5484,8 @@ function sellToDealer(d, idx) {
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
   if(state.heat<85) heatPop(s.x,s.y+20);
-  addFeed(`💰 Sold ${qty} bags${pureUsed>0?` (${pureUsed}✨ pure)`:''} → +$${fmtCash(price)}`);
-  showToast(`+$${fmtCash(price)} — ${qty} unit${qty>1?'s':''} moved`,'good');
+  addFeed(`💰 Sold ${qty} bag${qty === 1 ? '' : 's'}${pureUsed>0?` (${pureUsed}✨ pure)`:''}${streetTax.skim>0?` · skimmed $${fmtCash(streetTax.skim)}`:''} → +$${fmtCash(price)}`);
+  showToast(saleToast(qty, price, streetTax.skim),'good');
   d.state='leaving';
   setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   saveGame();
@@ -5212,6 +5627,7 @@ function updateHeatDrain(dt) {
   state.heat=Math.min(100, Math.max(0, state.heat+net*dt));
   document.getElementById('heat-fill').style.width=state.heat+'%';
   document.getElementById('heat-val').textContent=Math.floor(state.heat);
+  paintHeatRate();
 }
 
 // ── Events ──
@@ -5296,7 +5712,7 @@ renderUpgradesPanel();
 renderExpandPanel();
 refreshGoalHud();
 addFeed('🌿 Operation started');
-addFeed('💡 Plants need ~18s to grow');
+addFeed('💡 Garage Kush finishes in about 18s');
 addFeed('🏃 Walk to ready plants to harvest');
 
 // Autosave on unload

@@ -57,6 +57,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
+| Grow Op strains and gear | `labstrain` (hook-free: strain quote matches grow/price/heat, broke and Act II refusals, live ETA, drip/fan/filter, $0 reload, event choice, 1280/768/390, zero page errors) |
 | Age of War queue-full next-slot | `aowqueueeta` (hook-free: live rounded-up wait in refusal floaters and recruit titles, unchanged gold/queue, ticking front trainee, and cancel/recruit recovery at 1280px/768px) |
 | Age of War recruit row | `aowfield` (hook-free: unit cards fully on screen at 1280×800, 1280×900, 1280×720, 1366×768, 1440×900, 1920×1080, 768×700, 390×844, 375×667, 844×390 and 667×375; the field stays 1280:560; Stone Age hides Warcry/Mercs and keeps Duel clickable; Clubman queues for 25 gold; Age II puts Warcry back; 768 field stays ≥260px) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
@@ -81,7 +82,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
 | Grow Op | `growpure` (LAB-60: the ✨ premium ledger never outgrows the stash it lives in — the DEA raid seizes 30% of the shelf and the ledger comes down with it, and an over-cap save lands its ledger on the capped bag count, not the saved one) |
-| Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
+| Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's twelve upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
 | Homeless Village | 190 suites — one per line under [Homeless Village suites](#homeless-village-suites) |

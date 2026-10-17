@@ -3,7 +3,7 @@
  * Two of the six flagships put figures in purchase copy. This suite
  * checks both against the code that implements them.
  *
- * Grow Op sells nine upgrades. Each carries a `desc` the player reads
+ * Grow Op sells twelve upgrades. Each carries a `desc` the player reads
  * before parting with in-game money. Three did not say what the code
  * did, and a fourth effect was not mentioned at all.
  *
@@ -79,8 +79,12 @@ const lookStep = coef(/Math\.max\(1, \d+ - upgLv\('lookout_sys'\)\*([\d.]+)\)/);
 const cleanAdd = coef(/upgLv\('cleanup'\)\*([\d.]+)/);
 
 // ---- guard the guard ---------------------------------------------
-ok(rows.length === 9, `the upgrade table parsed from source (${rows.length} rows)`);
-ok([growth, moveSpd, trimSpd, bagsPct, pricePct, netPct, lookBase, lookStep, cleanAdd]
+const dripPct = coef(/upgLv\('drip'\) \* ([\d.]+)/);
+const fanPct = coef(/upgLv\('fan'\)\*([\d.]+)/);
+const filterAdd = coef(/upgLv\('filter'\)\*([\d.]+)/);
+
+ok(rows.length === 12, `the upgrade table parsed from source (${rows.length} rows)`);
+ok([growth, moveSpd, trimSpd, bagsPct, pricePct, netPct, lookBase, lookStep, cleanAdd, dripPct, fanPct, filterAdd]
      .every(n => Number.isFinite(n)) && yieldAdd,
    'every effect expression was located in the source — a silent no-match would pass everything below');
 
@@ -119,6 +123,17 @@ ok(cleanAdd === 0.5 && new RegExp(`\\+${cleanAdd} heat cleared per second per le
    `Clean Operation: a flat +${cleanAdd}/sec per level, described as a flat rate`);
 ok(!/%/.test(desc('cleanup')),
    'Clean Operation: no percentage in the copy, because the effect is not one');
+
+ok(pct(dripPct) === 15 && new RegExp(`${pct(dripPct)}% faster per level`).test(desc('drip')),
+   `Drip Lines: ${pct(dripPct)}% faster per level, stated correctly`);
+ok(dripPct < growth, 'Drip Lines stay a weaker grow buy than the lights, per level');
+ok(pct(fanPct) === 15 && new RegExp(`Trim ${pct(fanPct)}% faster per level`).test(desc('fan')),
+   `Trim Fan: ${pct(fanPct)}% faster per level, stated correctly`);
+ok(fanPct < trimSpd, 'the Trim Fan stays a weaker trim buy than the Electric Trimmer, per level');
+ok(filterAdd === 0.2 && new RegExp(`\\+${filterAdd} heat cleared per second per level`).test(desc('filter')),
+   `Carbon Filter: a flat +${filterAdd}/sec per level, described as a flat rate`);
+ok(!/%/.test(desc('filter')),
+   'Carbon Filter: no percentage in the copy, because the effect is not one');
 
 // ---- Voxel Isle: five promises, all of them already true ----------
 // Kept here rather than in a suite of its own because the question is
