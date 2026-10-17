@@ -50,9 +50,9 @@ const move = moveAt >= 0 ? main.slice(moveAt, moveAt + 900) : '';
   ok(/keysDown=\{\}/.test(move) && /walkTarget=null/.test(move),
      'the early-return also drops held keys and a queued tap-walk, so closing does not lurch');
 
-  const helper = /function overlayOpen\(\)\{\s*if\(introOpen\(\)\) return true;\s*if\(bridgeOpen\(\)\) return true;\s*if\(typeof gameOverShown!=='undefined' && gameOverShown\) return true;\s*return !!document\.getElementById\('hv-graduation'\);\s*}/.exec(cfg);
+  const helper = /function overlayOpen\(\)\{\s*if\(introOpen\(\)\) return true;\s*if\(bridgeOpen\(\)\) return true;\s*var ledger=document\.getElementById\('ledger-modal'\);\s*if\(ledger && ledger\.classList\.contains\('open'\)\) return true;\s*if\(typeof gameOverShown!=='undefined' && gameOverShown\) return true;\s*return !!document\.getElementById\('hv-graduation'\);\s*}/.exec(cfg);
   ok(!!helper,
-     'overlayOpen lives in config.js beside introOpen / bridgeOpen — intro, The Bridge, game-over, Keys in Hand');
+     'overlayOpen lives in config.js beside introOpen / bridgeOpen — intro, The Bridge, the night ledger, game-over, Keys in Hand');
 
   ok(!/function overlayOpen/.test(ui) && !/function movePlayer/.test(ui),
      'ui.js was not given a move API — it still only opens and closes overlays');

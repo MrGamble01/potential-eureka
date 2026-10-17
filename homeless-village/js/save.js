@@ -134,6 +134,36 @@ function loadGame(){
     if(typeof G.grantDay!=='number') G.grantDay=-1; // saves from before HV-225
     if(typeof G.gentrifyDay!=='number') G.gentrifyDay=-1; // saves from before HV-234
     if(typeof G.sickUntil!=='number') G.sickUntil=-1; // saves from before HV-240
+    if(typeof G.structures.clinic!=='boolean') G.structures.clinic=false;
+    if(typeof G.bandages!=='number'||!isFinite(G.bandages)||G.bandages<0) G.bandages=0;
+    else G.bandages=Math.floor(G.bandages);
+    if(typeof G.bandagesRolled!=='number'||!isFinite(G.bandagesRolled)||G.bandagesRolled<0) G.bandagesRolled=0;
+    else G.bandagesRolled=Math.floor(G.bandagesRolled);
+    if(typeof G.dressings!=='number'||!isFinite(G.dressings)||G.dressings<0) G.dressings=0;
+    else G.dressings=Math.floor(G.dressings);
+    if(typeof G.care!=='number'||!isFinite(G.care)) G.care=0;
+    G.care=Math.max(0,Math.min(CLINIC_CARE_MAX,Math.floor(G.care)));
+    if(typeof G.june!=='number'||G.june<0||G.june>2) G.june=0;
+    else G.june=Math.floor(G.june);
+    if(typeof G.juneRounds!=='number'||!isFinite(G.juneRounds)||G.juneRounds<0) G.juneRounds=0;
+    if(typeof G.juneRoundDay!=='number'||!isFinite(G.juneRoundDay)) G.juneRoundDay=-9;
+    if(typeof G.clinicSteady!=='number'||!isFinite(G.clinicSteady)||G.clinicSteady<0) G.clinicSteady=0;
+    else G.clinicSteady=Math.floor(G.clinicSteady);
+    if(G.clinicAsk&&(typeof G.clinicAsk!=='object'||typeof G.clinicAsk.day!=='number')) G.clinicAsk=null;
+    G.ledgerSigned=G.ledgerSigned?1:0;
+    G.ledgerClaimed=G.ledgerClaimed?1:0;
+    if(typeof G.ledgerId!=='string') G.ledgerId='';
+    if(typeof G.structures.gate!=='boolean') G.structures.gate=false;
+    if(typeof G.rio!=='number'||G.rio<0||G.rio>2) G.rio=0;
+    else G.rio=Math.floor(G.rio);
+    G.stormDue=!!G.stormDue;
+    G.stormOn=!!G.stormOn;
+    if(typeof G.stormPhase!=='number'||G.stormPhase<0||G.stormPhase>2) G.stormPhase=0;
+    if(typeof G.stormStrikes!=='number'||!isFinite(G.stormStrikes)||G.stormStrikes<0) G.stormStrikes=0;
+    if(typeof G.stormDeadline!=='number'||!isFinite(G.stormDeadline)) G.stormDeadline=0;
+    if(typeof G.stormsCleared!=='number'||!isFinite(G.stormsCleared)||G.stormsCleared<0) G.stormsCleared=0;
+    else G.stormsCleared=Math.floor(G.stormsCleared);
+    if(typeof G.lotSalvageDay!=='number'||!isFinite(G.lotSalvageDay)) G.lotSalvageDay=-9;
     // Persist a newly revealed legacy forecast so reload cannot reroll it.
     if(ensureForecast()) saveGame();
   }catch(e){}
