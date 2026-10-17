@@ -30,7 +30,7 @@ const GAMES = {
   'Startup Tycoon':    ['tycoon/play.html'],
   'Age of War':        ['ageofwar/index.html', 'ageofwar/ageofwar.js'],
   'Homeless Village':  ['homeless-village.html', ...jsIn('homeless-village/js')],
-  'Hearthvale':        ['hearthvale.html'],
+  'Hearthvale':        ['hearthvale.html', 'js/hearthvale-expedition.js'],
   'Grow Op':           ['drug-lab.html'],
   'Voxel Isle':        ['voxel-garden.html'],
   'Hub':               ['index.html'],

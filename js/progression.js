@@ -37,6 +37,7 @@
     'tycoon.visit': 'max', 'tycoon.hire': 'inc', 'tycoon.ship': 'inc', 'tycoon.ipo': 'inc', 'tycoon.boss': 'max',
     'beagle.visit': 'max', 'beagle.hire': 'inc', 'beagle.ship': 'inc', 'beagle.ipo': 'inc', 'beagle.boss': 'max',
     'hearthvale.found': 'max', 'hearthvale.build': 'max', 'hearthvale.pop': 'max', 'hearthvale.festival': 'max', 'hearthvale.boss': 'max',
+    'hearthvale.expedition': 'max',
     'voxel.visit': 'max', 'voxel.harvest': 'max', 'voxel.level': 'max', 'voxel.build': 'max',
     'growop.visit': 'max', 'growop.sale': 'max', 'growop.earned': 'max', 'growop.hire': 'max',
     'clinic.visit': 'max', 'clinic.dawn': 'max', 'clinic.rest': 'max',
@@ -87,6 +88,10 @@
       desc: 'House 5 villagers.', test: function (d) { return stat(d, 'hearthvale.pop') >= 5; } },
     { id: 'hearth-fair', game: 'hearthvale', icon: '🎪', name: 'Fair Day', xp: 60,
       desc: 'Throw a festival.', test: function (d) { return stat(d, 'hearthvale.festival') >= 1; } },
+    { id: 'hearth-wilds', game: 'hearthvale', icon: '🌲', name: 'Beyond the Palisade', xp: 35,
+      desc: 'Reach depth 4 on a Wilds Expedition.', test: function (d) { return stat(d, 'hearthvale.expedition') >= 4; } },
+    { id: 'hearth-far', game: 'hearthvale', icon: '🏕️', name: 'The Far Camp', xp: 70,
+      desc: 'Reach depth 10 in the wilds.', test: function (d) { return stat(d, 'hearthvale.expedition') >= 10; } },
     { id: 'hearth-wolf', game: 'hearthvale', icon: '🐺', name: 'Hollow Wolf', xp: 65,
       desc: 'Turn the Hollow Wolf at the gate.', test: function (d) { return stat(d, 'hearthvale.boss') >= 1; } },
 
