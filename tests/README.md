@@ -318,6 +318,8 @@ when they touched different cards. Append yours; git merges the rest.*
 
 ### Voxel Isle suites
 
+- `voxkiln` (North Fen biome, clay/moss/brick/sea glass, kiln seal and daily firing, line/floor strokes, undo, replace, eyedropper, build-bar controls)
+
 - `voxgestures` (cancelled touches and either pinch release order leave terrain intact; zoom, drag, and deliberate taps still work)
 
 - `voxcrow` (crows & scarecrow)
