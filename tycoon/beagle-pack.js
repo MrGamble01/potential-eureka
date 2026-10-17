@@ -6,7 +6,7 @@ export const YARD_KEY = 'beagle:yard';
 
 const RANKS = [
   { at: 0, name: 'Pup', perk: 'Dig the yard. Bones buy speed.' },
-  { at: 12, name: 'Scout', perk: 'Combos of ×3 find an extra bone.' },
+  { at: 12, name: 'Scout', perk: 'The dog park opens. Combos of ×3 find an extra bone.' },
   { at: 30, name: 'Good Boy', perk: 'Howls come back 8s sooner.' },
   { at: 60, name: 'Yard Boss', perk: 'Office bones pay double.' },
   { at: 100, name: 'Best in Show', perk: 'Dirt refills 20% faster.' },
@@ -23,6 +23,8 @@ const SHOP = [
 ];
 
 const NAMES = ['Biscuit', 'Maple', 'Noodle', 'Pickle', 'Waffles', 'Moose', 'Penny', 'Cowboy', 'Dumpling', 'Beans', 'Mochi', 'Peanut', 'Hank', 'Olive', 'Cheddar', 'Pudding'];
+const PARK_AT = 12;
+const STRAY = { name: 'Scout', stray: true, style: 'fetch', coat: 1 };
 
 const SPOTS = [
   { x: 4.8, z: 4.4 },
@@ -191,6 +193,8 @@ export function create(api) {
     worldFinds: 0,
     shop: emptyShop(),
     open: true,
+    parkWins: 0,
+    patrol: false,
   };
   let dead = false;
   let saveTimer = 0;
@@ -209,6 +213,20 @@ export function create(api) {
   let knownDogs = null;
   let shopOpen = false;
   let shopSig = '';
+  let parkOpen = false;
+  let parkSig = '';
+  let alphaOn = false;
+  let alphaGrit = 100;
+  let alphaLeft = 0;
+  let alphaCd = 0;
+  let ballLoose = false;
+  let companionIn = 2.4;
+  let companionCursor = 0;
+  let patrolIn = 18;
+  let lastLine = '';
+  let lastPal = '';
+  const parkLog = [];
+  let overlay = null;
   const slots = [];
   const world = [];
 
@@ -247,6 +265,20 @@ export function create(api) {
     dogs() {
       return safeWorkers().filter((w) => w.group && w.group.userData && w.group.userData.species === 'beagle').length;
     },
+    park() {
+      return {
+        unlocked: parkUnlocked(),
+        open: parkOpen,
+        patrol: state.patrol,
+        wins: state.parkWins,
+        grit: alphaGrit,
+        running: alphaOn,
+        lastLine,
+        companions: companionRoster().map((c) => ({ name: c.name, stray: c.stray, style: c.style })),
+      };
+    },
+    companionStep() { return companionStep(); },
+    routAlpha() { return routAlpha(); },
     grant(n) { gainBones(Math.max(0, Math.floor(Number(n) || 0))); },
     dig(i) { return dig(i); },
     buy(id) { return buy(id); },
@@ -284,6 +316,9 @@ export function create(api) {
       if (goldens != null) state.goldens = goldens;
       if (best != null) state.bestCombo = best;
       if (finds != null) state.worldFinds = finds;
+      const wins = num(p.parkWins, 0, 1e7);
+      if (wins != null) state.parkWins = wins;
+      if (p.patrol === true) state.patrol = true;
       if (p.shop && typeof p.shop === 'object') {
         for (const item of SHOP) {
           const n = num(p.shop[item.id], 0, item.max);
@@ -307,6 +342,8 @@ export function create(api) {
       worldFinds: state.worldFinds,
       shop: state.shop,
       open: state.open,
+      parkWins: state.parkWins,
+      patrol: state.patrol,
     };
   }
 
@@ -342,6 +379,7 @@ export function create(api) {
 
   function workMult() {
     let m = 1 + 0.03 * state.shop.bowl + 0.04 * state.shop.bed + 0.01 * state.bondLevel;
+    if (state.patrol) m += 0.03;
     if (state.lifetime >= 160) m += 0.05;
     if (zoomiesT > 0) m *= 1.35 + 0.08 * state.shop.agility;
     if (howlT > 0) m *= 1.5;
@@ -413,6 +451,7 @@ export function create(api) {
     state.lifetime += n;
     const next = rankIndex(state.lifetime);
     if (next > prev) celebrateRank(next);
+    if (prev < 1 && next >= 1) announcePark();
     saveSoon();
     return n;
   }
@@ -738,6 +777,7 @@ export function create(api) {
       pawAcc = 0;
       dropPaw();
     }
+    tickPark(dt);
     root.classList.toggle('zoomies', zoomiesT > 0);
     root.classList.toggle('howling', howlT > 0);
     root.dataset.rank = String(rankIndex(state.lifetime));
@@ -868,6 +908,10 @@ export function create(api) {
     if (dead || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
     const ae = document.activeElement;
     if (ae && (/^(input|textarea|select)$/i.test(ae.tagName) || ae.isContentEditable)) return;
+    if (parkOpen) {
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') closePark();
+      return;
+    }
     if (document.querySelector('#welcome-modal.open, #win-modal.open, #tip-modal.open, #help-modal.open, #ipo-modal.open, #theme-modal.open, #dash-modal.open, #achievements-modal.open, #founder-modal.open, #board-modal.open, #wall-modal.open, #elevator-modal.open, #offline-modal.open')) return;
     const k = e.key;
     if (k === '1') { const i = slots.findIndex((s) => s.cd <= 0 && s.kind); if (i >= 0) dig(i); }
@@ -875,6 +919,7 @@ export function create(api) {
     else if (k === '3') giveTreat();
     else if (k === '4') pet();
     else if (k === '5') startHowl();
+    else if (k === 'p' || k === 'P') openPark();
   }
 
   function moundButton(i) {
@@ -935,6 +980,7 @@ export function create(api) {
     labelAct(petBtn, '🐾', petCdT > 0 ? Math.ceil(petCdT) + 's' : 'Pet', petCdT > 0);
     labelAct(howl, '🐺', howlT > 0 ? Math.ceil(howlT) + 's' : (howlCdT > 0 ? Math.ceil(howlCdT) + 's' : '4🦴'), state.bones < 4 || howlCdT > 0);
     labelAct(shopBtn, shopOpen ? '←' : '🏪', shopOpen ? 'Dig' : 'Shop', false);
+    paintParkButton();
     if (ball) ball.classList.toggle('on', zoomiesT > 0);
     if (howl) howl.classList.toggle('on', howlT > 0);
 
@@ -1027,11 +1073,14 @@ export function create(api) {
     el.dataset.rank = String(rankIndex(state.lifetime));
     el.setAttribute('aria-label', 'Beagle yard');
     el.innerHTML = [
+      '<div id="bgl-head">',
       '<button id="bgl-toggle" type="button" aria-expanded="' + (state.open ? 'true' : 'false') + '" aria-controls="bgl-body">',
       '<span class="bgl-pup" aria-hidden="true"><i class="ear l"></i><i class="ear r"></i><i class="face"></i><i class="eye l"></i><i class="eye r"></i><i class="nose"></i></span>',
       '<span class="bgl-toggle-copy"><strong id="bgl-rank">Pup</strong><span id="bgl-next"></span></span>',
       '<span id="bgl-bones">0 🦴</span><span id="bgl-mult">×1.00</span><span id="bgl-chev" aria-hidden="true">' + (state.open ? '▾' : '▸') + '</span>',
       '</button>',
+      '<button type="button" id="bgl-park">🌳<span class="bgl-sub">Park</span></button>',
+      '</div>',
       '<div id="bgl-body">',
       '<div id="bgl-bond" title="Pack bond"><i id="bgl-bond-fill"></i></div>',
       '<div id="bgl-perk"></div>',
@@ -1046,7 +1095,7 @@ export function create(api) {
       '</div>',
       '<div id="bgl-shop" hidden><div id="bgl-shop-list"></div><p id="bgl-shop-stats"></p></div>',
       '<div id="bgl-status"></div>',
-      '<div class="bgl-keys">1 dig · 2 ball · 3 treat · 4 pet · 5 howl</div>',
+      '<div class="bgl-keys">1 dig · 2 ball · 3 treat · 4 pet · 5 howl · P park</div>',
       '</div>',
     ].join('');
     document.body.appendChild(el);
@@ -1056,6 +1105,344 @@ export function create(api) {
     el.querySelector('#bgl-act-pet').addEventListener('click', pet);
     el.querySelector('#bgl-act-howl').addEventListener('click', startHowl);
     el.querySelector('#bgl-act-shop').addEventListener('click', () => setShop(!shopOpen));
+    el.querySelector('#bgl-park').addEventListener('click', () => { if (parkOpen) closePark(); else openPark(); });
+    overlay = buildParkOverlay();
+    return el;
+  }
+
+  function parkUnlocked() { return state.lifetime >= PARK_AT; }
+
+  function announcePark() {
+    shout('DOG PARK');
+    toast('🌳 Scout rank opens the dog park. Duke the Alpha has the hill.', 'milestone', 'critical');
+    feed('🌳 The pack may enter the dog park.');
+    banner('DOG PARK OPEN', 1.8);
+    buzz('milestone');
+  }
+
+  function companionRoster() {
+    const dogs = safeWorkers();
+    if (!dogs.length) return [STRAY];
+    return dogs.slice(0, 3).map((w, i) => ({
+      name: nameOf(w, i),
+      stray: false,
+      style: ['fetch', 'dig', 'bark'][i % 3],
+      coat: i % 4,
+    }));
+  }
+
+  function decideAct(c) {
+    if (ballLoose && c.style !== 'dig') {
+      ballLoose = false;
+      return { grit: 11, line: c.name + ' snags the loose ball and bowls Duke over' };
+    }
+    if (c.style === 'dig' && alphaGrit < 75) {
+      return { grit: 8, bones: 1, line: c.name + ' rips up a toy Duke had buried' };
+    }
+    if (c.style === 'bark' || alphaGrit > 60) {
+      return { grit: 6, line: c.name + ' plants both paws and howls in Duke\'s face' };
+    }
+    return { grit: 7, line: c.name + ' circles in and nips Duke\'s bandana' };
+  }
+
+  function pushLog(line) {
+    lastLine = line;
+    parkLog.unshift(line);
+    if (parkLog.length > 4) parkLog.pop();
+  }
+
+  function applyHit(n, line) {
+    if (!alphaOn) return;
+    alphaGrit = Math.max(0, alphaGrit - Math.max(0, Math.floor(n) || 0));
+    if (line) pushLog(line);
+    const duke = document.getElementById('bgl-duke');
+    if (duke && !reduced) {
+      duke.classList.remove('hit');
+      void duke.offsetWidth;
+      duke.classList.add('hit');
+    }
+    if (alphaGrit <= 0) endAlpha(true);
+    else paintPark();
+  }
+
+  function companionStep() {
+    if (!alphaOn) return null;
+    const roster = companionRoster();
+    const c = roster[companionCursor % roster.length];
+    companionCursor += 1;
+    lastPal = c.name;
+    const act = decideAct(c);
+    if (act.bones) gainBones(act.bones);
+    const line = (c.stray ? 'Stray ' : '') + act.line;
+    applyHit(act.grit, line);
+    sound(c.style === 'bark' ? 'bark' : c.style === 'dig' ? 'bone' : 'yip');
+    return { name: c.name, line, grit: alphaGrit, stray: c.stray };
+  }
+
+  function tickPark(dt) {
+    if (alphaCd > 0) alphaCd = Math.max(0, alphaCd - dt);
+    if (alphaOn && parkOpen) {
+      alphaLeft -= dt;
+      companionIn -= dt;
+      if (companionIn <= 0 && alphaOn) {
+        companionIn = 2.6;
+        companionStep();
+      }
+      if (alphaOn && alphaLeft <= 0) endAlpha(false);
+      else if (parkOpen) paintPark();
+    }
+    if (state.patrol && !alphaOn) {
+      patrolIn -= dt;
+      if (patrolIn <= 0) {
+        patrolIn = 18;
+        const pal = companionRoster()[0];
+        gainBones(1);
+        bumpBond(1);
+        toast('🦴 ' + pal.name + ' patrols a bone back from the park', 'good');
+        sound('yip');
+      }
+    }
+  }
+
+  function startAlpha() {
+    if (!parkUnlocked()) return { ok: false, reason: 'locked' };
+    if (alphaCd > 0 || alphaOn) return { ok: false, reason: alphaOn ? 'busy' : 'cd' };
+    alphaOn = true;
+    alphaGrit = 100;
+    alphaLeft = 42;
+    ballLoose = false;
+    companionIn = 1.8;
+    companionCursor = 0;
+    parkSig = '';
+    const lead = companionRoster()[0];
+    pushLog(lead.stray
+      ? 'Scout the stray slips under the fence to help'
+      : lead.name + ' takes the flank. The pack is with you');
+    sound('bark');
+    shout('DUKE');
+    paintPark();
+    return { ok: true };
+  }
+
+  function endAlpha(won) {
+    alphaOn = false;
+    ballLoose = false;
+    parkSig = '';
+    if (won) {
+      const first = !state.patrol;
+      state.parkWins += 1;
+      state.patrol = true;
+      alphaCd = 12;
+      gainBones(first ? 24 : 12);
+      try { api.addCash(first ? 80 : 40, 'event'); } catch { /* cash path failed */ }
+      sound('rank');
+      shout(first ? 'PARK PATROL' : 'DUKE YIELDS');
+      burstConfetti(first ? 80 : 48);
+      toast(first
+        ? '👑 Duke yields the hill. Pack Patrol unlocked — companions fetch bones home, +3% speed'
+        : '👑 Duke yields again. The pack keeps the hill', 'milestone', 'critical');
+      feed(first
+        ? '👑 Duke the Alpha is beaten. Pack Patrol begins.'
+        : '👑 The pack chases Duke off the hill again.');
+      pushLog(first
+        ? 'Duke drops the hill. Your companions start patrolling.'
+        : 'Duke slinks off. The patrol keeps its route.');
+      buzz('win');
+    } else {
+      const lost = Math.min(4, state.bones);
+      state.bones -= lost;
+      alphaCd = 16;
+      sound('whimper');
+      shout('DUKE HOLDS');
+      toast('Duke keeps the hill and noses off ' + lost + ' bones', '');
+      pushLog('Duke plants his paws. The pack needs another go.');
+      saveSoon();
+      buzz('purchase');
+    }
+    paintPark();
+    paint();
+  }
+
+  function routAlpha() {
+    if (!parkUnlocked()) return parkView();
+    if (!parkOpen) openPark();
+    if (!alphaOn) startAlpha();
+    applyHit(999, 'The pack buries Duke under a pile of paws');
+    return parkView();
+  }
+
+  function parkView() {
+    return {
+      unlocked: parkUnlocked(),
+      open: parkOpen,
+      patrol: state.patrol,
+      wins: state.parkWins,
+      grit: alphaGrit,
+      running: alphaOn,
+      lastLine,
+    };
+  }
+
+  function parkThrow() {
+    if (!alphaOn) return;
+    ballLoose = true;
+    sound('squeak');
+    applyHit(9, 'You whip a tennis ball past Duke\'s nose');
+  }
+
+  function parkDig() {
+    if (!alphaOn) return;
+    sound('bone');
+    gainBones(1);
+    applyHit(7, 'You kick up the bone Duke was sitting on');
+  }
+
+  function parkHowl() {
+    if (!alphaOn) return;
+    sound('howl');
+    shout('AWOOO');
+    applyHit(14, 'The whole hill answers your howl');
+  }
+
+  function callPack() {
+    if (!alphaOn) return;
+    const count = companionRoster().length;
+    for (let i = 0; i < count && alphaOn; i++) companionStep();
+  }
+
+  function openPark() {
+    if (!parkUnlocked()) {
+      sound('whimper');
+      toast('The dog park opens at Scout — dig up 12 bones', '');
+      return false;
+    }
+    parkOpen = true;
+    parkSig = '';
+    if (overlay) overlay.hidden = false;
+    paintPark();
+    return true;
+  }
+
+  function closePark() {
+    parkOpen = false;
+    parkSig = '';
+    if (overlay) overlay.hidden = true;
+    paintParkButton();
+  }
+
+  function paintParkButton() {
+    const btn = document.getElementById('bgl-park');
+    if (!btn) return;
+    const on = parkUnlocked();
+    const label = !on ? '12🦴' : state.patrol ? 'Patrol' : alphaOn ? 'Duke' : 'Park';
+    btn.classList.toggle('locked', !on);
+    btn.classList.toggle('hot', !!state.patrol || alphaOn);
+    btn.setAttribute('aria-label', on ? 'Enter the dog park' : 'Dog park opens at Scout, 12 bones');
+    if (btn.dataset.sig !== label) {
+      btn.dataset.sig = label;
+      btn.innerHTML = '<span class="bgl-ico">🌳</span><span class="bgl-sub">' + label + '</span>';
+    }
+  }
+
+  function paintPark() {
+    if (!overlay) return;
+    overlay.hidden = !parkOpen;
+    if (!parkOpen) return;
+    const roster = companionRoster();
+    const names = roster.map((c) => c.name).join(',');
+    const sig = [
+      names, alphaOn ? '1' : '0', alphaGrit, Math.ceil(Math.max(0, alphaLeft)),
+      ballLoose ? 'b' : '', lastLine, state.patrol ? 'p' : '', state.parkWins,
+      Math.ceil(alphaCd), lastPal,
+    ].join('|');
+    if (sig === parkSig) return;
+    parkSig = sig;
+    const sub = document.getElementById('bgl-park-sub');
+    if (sub) {
+      sub.textContent = alphaOn
+        ? 'Duke\'s grit ' + alphaGrit + ' · ' + Math.ceil(Math.max(0, alphaLeft)) + 's'
+        : state.patrol
+          ? 'Pack Patrol is out. Ring again to rematch Duke.'
+          : 'Duke the Alpha holds the hill. Your companions fight beside you.';
+    }
+    const fill = document.getElementById('bgl-grit-fill');
+    if (fill) fill.style.width = Math.max(0, Math.min(100, alphaGrit)) + '%';
+    const duke = document.getElementById('bgl-duke');
+    if (duke) duke.style.setProperty('--grit', String(Math.max(0.35, alphaGrit / 100)));
+    const ball = document.getElementById('bgl-ball');
+    if (ball) ball.hidden = !ballLoose;
+    const log = document.getElementById('bgl-park-log');
+    if (log) log.textContent = parkLog.slice(0, 2).join('  ·  ') || 'Grass, a crooked fence, and one very large beagle.';
+    const start = document.getElementById('bgl-alpha-start');
+    if (start) {
+      start.hidden = alphaOn;
+      start.disabled = alphaCd > 0;
+      start.textContent = state.parkWins
+        ? (alphaCd > 0 ? 'Resting ' + Math.ceil(alphaCd) + 's' : 'Rematch Duke')
+        : 'Ring the bell';
+    }
+    for (const id of ['bgl-park-throw', 'bgl-park-dig', 'bgl-park-howl', 'bgl-park-call']) {
+      const b = document.getElementById(id);
+      if (b) b.hidden = !alphaOn;
+    }
+    const pals = document.getElementById('bgl-pals');
+    if (pals && pals.dataset.sig !== names + lastPal) {
+      pals.dataset.sig = names + lastPal;
+      pals.replaceChildren();
+      for (const c of roster) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'bgl-pal' + (c.name === lastPal ? ' go' : '') + (c.stray ? ' stray' : '');
+        card.dataset.pal = c.name;
+        card.innerHTML = '<i class="ear l"></i><i class="ear r"></i><i class="face"></i><b></b>';
+        card.querySelector('b').textContent = c.stray ? c.name + ' · stray' : c.name;
+        card.setAttribute('aria-label', c.stray
+          ? 'Scout the stray fetches on solo visits'
+          : c.name + ' helps on their own, ' + c.style);
+        card.addEventListener('click', () => callPack());
+        pals.appendChild(card);
+      }
+    }
+  }
+
+  function buildParkOverlay() {
+    const el = document.createElement('div');
+    el.id = 'bgl-park-overlay';
+    el.hidden = true;
+    el.innerHTML = [
+      '<section class="bgl-park-sheet" role="dialog" aria-label="Dog park">',
+      '<header class="bgl-park-top">',
+      '<div><h2>Dog Park</h2><p id="bgl-park-sub"></p></div>',
+      '<button type="button" id="bgl-park-close">Close</button>',
+      '</header>',
+      '<div class="bgl-park-stage">',
+      '<i class="bgl-sun" aria-hidden="true"></i>',
+      '<i class="bgl-cloud" aria-hidden="true"></i>',
+      '<i class="bgl-tree one" aria-hidden="true"></i>',
+      '<i class="bgl-tree two" aria-hidden="true"></i>',
+      '<i class="bgl-fence" aria-hidden="true"></i>',
+      '<div id="bgl-duke" aria-hidden="true"><i class="crown"></i><i class="ear l"></i><i class="ear r"></i><i class="face"></i><i class="bandana"></i><i class="tail"></i></div>',
+      '<div id="bgl-ball" hidden>🎾</div>',
+      '<div id="bgl-pals"></div>',
+      '</div>',
+      '<div id="bgl-grit" title="Duke\'s grit"><i id="bgl-grit-fill"></i></div>',
+      '<p id="bgl-park-log"></p>',
+      '<div class="bgl-park-actions">',
+      '<button type="button" id="bgl-alpha-start">Ring the bell</button>',
+      '<button type="button" id="bgl-park-throw" hidden>Throw</button>',
+      '<button type="button" id="bgl-park-dig" hidden>Dig</button>',
+      '<button type="button" id="bgl-park-howl" hidden>Howl</button>',
+      '<button type="button" id="bgl-park-call" hidden>Call pack</button>',
+      '</div>',
+      '</section>',
+    ].join('');
+    document.body.appendChild(el);
+    el.querySelector('#bgl-park-close').addEventListener('click', closePark);
+    el.querySelector('#bgl-alpha-start').addEventListener('click', startAlpha);
+    el.querySelector('#bgl-park-throw').addEventListener('click', parkThrow);
+    el.querySelector('#bgl-park-dig').addEventListener('click', parkDig);
+    el.querySelector('#bgl-park-howl').addEventListener('click', parkHowl);
+    el.querySelector('#bgl-park-call').addEventListener('click', callPack);
     return el;
   }
 
@@ -1265,10 +1652,20 @@ const CSS = `
   font-family: inherit; color: inherit; cursor: pointer; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+#bgl-head { display: flex; align-items: stretch; }
 #bgl-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 56px;
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; width: auto; min-height: 56px;
   padding: 8px 10px; border: 0; background: transparent; text-align: left;
 }
+#bgl-park {
+  flex: none; width: 68px; min-height: 44px; border: 0; border-left: 1px solid rgba(245,176,66,.4);
+  background: rgba(90,140,60,.4); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 4px 2px; font-weight: 800;
+}
+#bgl-park .bgl-ico { font-size: 16px; line-height: 1; }
+#bgl-park .bgl-sub { font-size: 10px; font-weight: 800; }
+#bgl-park.locked { opacity: .55; }
+#bgl-park.hot { background: rgba(245,158,11,.45); }
 .bgl-toggle-copy { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 #bgl-rank { font-size: 14px; letter-spacing: .2px; }
 #bgl-next { font-size: 10px; color: #e7c89a; }
@@ -1412,8 +1809,79 @@ const CSS = `
   #bgl-actions { gap: 4px; }
   .bgl-mound, .bgl-act { min-height: 44px; }
 }
+#bgl-park-overlay {
+  position: fixed; inset: 0; z-index: 260; display: flex;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box; background: rgba(6,10,6,.5);
+}
+#bgl-park-overlay[hidden] { display: none; }
+.bgl-park-sheet {
+  width: min(920px, 100%); margin: auto; height: min(640px, 100%); max-height: 100%;
+  display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+  border-radius: 18px; color: #1c140c;
+  background: linear-gradient(#8fd3ef 0%, #c5ecb0 38%, #67a143 38%, #3f6e2c 100%);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45); border: 2px solid #f6e7c4;
+}
+.bgl-park-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; background: rgba(255,248,230,.88);
+}
+.bgl-park-top h2 { margin: 0; font-size: 18px; letter-spacing: .3px; }
+.bgl-park-top p { margin: 2px 0 0; font-size: 12px; font-weight: 700; }
+#bgl-park-close { min-height: 44px; min-width: 72px; border: 0; border-radius: 12px; background: #3a2414; color: #fff6e4; font-weight: 800; }
+.bgl-park-stage { position: relative; flex: 1; min-height: 140px; overflow: hidden; }
+.bgl-sun, .bgl-cloud, .bgl-tree, .bgl-fence, #bgl-duke, #bgl-ball { pointer-events: none; }
+.bgl-sun { position: absolute; right: 8%; top: 10px; width: 42px; height: 42px; border-radius: 50%; background: #ffe38a; box-shadow: 0 0 0 8px rgba(255,227,138,.35); }
+.bgl-cloud { position: absolute; left: 18%; top: 22px; width: 70px; height: 22px; border-radius: 20px; background: rgba(255,255,255,.85); }
+.bgl-tree { position: absolute; bottom: 28%; width: 18px; height: 46px; background: #6b4224; border-radius: 4px; }
+.bgl-tree::before { content: ''; position: absolute; left: -16px; top: -28px; width: 50px; height: 36px; border-radius: 50%; background: #2f7a32; }
+.bgl-tree.one { left: 8%; }
+.bgl-tree.two { right: 10%; }
+.bgl-fence { position: absolute; left: 0; right: 0; bottom: 22%; height: 18px; background: repeating-linear-gradient(90deg, transparent 0 18px, #f4efe6 18px 22px); border-top: 4px solid #f4efe6; opacity: .85; }
+#bgl-duke {
+  position: absolute; left: 50%; bottom: 18%; width: 120px; height: 132px; margin-left: -60px;
+  transform: scale(var(--grit, 1)); transform-origin: 50% 100%;
+}
+#bgl-duke .ear { position: absolute; top: 18px; width: 28px; height: 48px; background: #6e4124; border-radius: 16px; }
+#bgl-duke .ear.l { left: 10px; transform: rotate(-28deg); }
+#bgl-duke .ear.r { right: 10px; transform: rotate(28deg); }
+#bgl-duke .face { position: absolute; left: 22px; top: 40px; width: 76px; height: 64px; background: #f4efe6; border-radius: 36px; box-shadow: inset 0 -22px 0 #8d5a32; }
+#bgl-duke .face::before, #bgl-duke .face::after { content: ''; position: absolute; top: 22px; width: 8px; height: 10px; background: #1a120e; border-radius: 50%; }
+#bgl-duke .face::before { left: 18px; }
+#bgl-duke .face::after { right: 18px; }
+#bgl-duke .crown { position: absolute; left: 38px; top: 6px; width: 44px; height: 16px; background: #f5c542; clip-path: polygon(0 100%, 15% 20%, 35% 100%, 50% 10%, 70% 100%, 85% 20%, 100% 100%); }
+#bgl-duke .bandana { position: absolute; left: 34px; top: 96px; width: 52px; height: 14px; background: #c2413a; border-radius: 4px; }
+#bgl-duke .tail { position: absolute; right: -8px; bottom: 28px; width: 18px; height: 36px; background: #f4efe6; border-radius: 12px; transform: rotate(30deg); }
+#bgl-duke.hit { animation: bglShake .28s linear; }
+#bgl-ball { position: absolute; left: 30%; bottom: 30%; font-size: 28px; }
+#bgl-pals { position: absolute; left: 8px; right: 8px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
+.bgl-pal {
+  min-width: 72px; min-height: 44px; border: 0; border-radius: 12px; background: rgba(255,248,230,.92);
+  display: flex; align-items: flex-end; justify-content: center; position: relative; padding: 16px 8px 4px;
+}
+.bgl-pal b { font-size: 11px; }
+.bgl-pal .ear { position: absolute; top: 2px; width: 10px; height: 14px; background: #6e4124; border-radius: 6px; }
+.bgl-pal .ear.l { left: 18px; transform: rotate(-20deg); }
+.bgl-pal .ear.r { right: 18px; transform: rotate(20deg); }
+.bgl-pal .face { position: absolute; left: 22px; top: 8px; width: 28px; height: 18px; background: #f4efe6; border-radius: 10px; box-shadow: inset 0 -6px 0 #8d5a32; }
+.bgl-pal.stray { outline: 2px dashed #3a2414; }
+.bgl-pal.go { background: #fcd34d; }
+#bgl-grit { height: 12px; margin: 6px 10px 0; border-radius: 99px; background: rgba(0,0,0,.25); overflow: hidden; }
+#bgl-grit-fill { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #c2413a, #f5c542); }
+#bgl-park-log { margin: 4px 10px; min-height: 32px; font-size: 13px; font-weight: 800; color: #fff8e8; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.bgl-park-actions { display: flex; gap: 6px; padding: 8px; background: rgba(28,20,12,.88); }
+.bgl-park-actions button {
+  flex: 1; min-height: 48px; min-width: 0; border: 0; border-radius: 12px; background: #f6e7c4; color: #1c140c;
+  font-weight: 900; font-size: 14px;
+}
+.bgl-park-actions button:disabled { opacity: .5; }
+@media (max-width: 700px) {
+  .bgl-park-sheet { height: 100%; border-radius: 14px; }
+  .bgl-park-actions { flex-wrap: wrap; }
+  .bgl-park-actions button { flex: 1 1 40%; }
+}
 @media (prefers-reduced-motion: reduce) {
   .bgl-mound.ready, #bgl-yard.zoomies .bgl-pup .ear.l, #bgl-yard.zoomies .bgl-pup .ear.r,
-  .bgl-floater, .bgl-bit, .bgl-paw, .bgl-shout, .bgl-flash, #bgl-yard.shake { animation: none; }
+  .bgl-floater, .bgl-bit, .bgl-paw, .bgl-shout, .bgl-flash, #bgl-yard.shake, #bgl-duke.hit { animation: none; }
 }
 `;

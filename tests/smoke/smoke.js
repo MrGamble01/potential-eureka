@@ -414,6 +414,9 @@ async function assertBeagle(page) {
   if (Math.abs(base - 1) > 0.001) throw new Error('fresh pack speed was ' + base);
   const hint = (await page.locator('#bgl-banner').innerText()).trim();
   if (!/dirt/i.test(hint)) throw new Error('yard hint was ' + JSON.stringify(hint));
+  const solo = await page.evaluate(() => window.__beagle.park());
+  if (solo.unlocked) throw new Error('dog park opened before Scout');
+  if (!solo.companions[0] || !solo.companions[0].stray) throw new Error('solo visit had no stray companion ' + JSON.stringify(solo.companions));
 
   await page.locator('#hire-btn').click();
   await page.waitForFunction(() => {
@@ -457,6 +460,30 @@ async function assertBeagle(page) {
   const bond = await page.evaluate(() => window.__beagle.bond());
   if (bond <= 0) throw new Error('belly rub did not raise bond');
 
+  const gate = await page.evaluate(() => window.__beagle.park());
+  if (!gate.unlocked) throw new Error('Scout did not open the dog park');
+  if (!gate.companions.length || gate.companions[0].stray) throw new Error('hired pack did not show up at the park');
+  await page.locator('#bgl-park').click();
+  await page.locator('#bgl-alpha-start').click();
+  await page.locator('#bgl-park-throw').click();
+  const fight = await page.evaluate(() => {
+    const step = window.__beagle.companionStep();
+    const view = window.__beagle.park();
+    return { step, grit: view.grit, line: view.lastLine, running: view.running };
+  });
+  if (!fight.running || fight.grit >= 100) throw new Error('Duke did not take a hit ' + JSON.stringify(fight));
+  if (!fight.line) throw new Error('companion did not act');
+  await page.evaluate(() => window.__beagle.routAlpha());
+  await page.waitForFunction(() => {
+    const view = window.__beagle.park();
+    if (!view.patrol || view.wins < 1) return false;
+    const raw = localStorage.getItem('beagle:yard');
+    if (!raw) return false;
+    try { return JSON.parse(raw).patrol === true; } catch (e) { return false; }
+  });
+  await page.locator('#bgl-park-close').click();
+  await page.waitForFunction(() => document.getElementById('bgl-park-overlay').hidden);
+
   const dug = await page.evaluate(() => {
     for (let i = 0; i < 8; i++) window.__beagle.dig(i);
     return window.__beagle.dug();
@@ -473,6 +500,36 @@ async function assertBeagle(page) {
   if (await page.locator('#bgl-shop:not([hidden])').count()) {
     await page.locator('#bgl-act-shop').click();
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(320);
+  await page.locator('#bgl-park').click();
+  await page.waitForFunction(() => !document.getElementById('bgl-park-overlay').hidden);
+  const parkFit = await page.evaluate(() => {
+    const fails = [];
+    if (document.documentElement.scrollWidth > innerWidth + 1) fails.push('park scrolls sideways');
+    const sheet = document.querySelector('.bgl-park-sheet').getBoundingClientRect();
+    if (sheet.left < -1 || sheet.top < -1 || sheet.right > innerWidth + 1 || sheet.bottom > innerHeight + 1) {
+      fails.push('park sheet leaves the screen');
+    }
+    if (sheet.height < 200) fails.push('park sheet is ' + Math.round(sheet.height) + 'px tall');
+    const buttons = [...document.querySelectorAll('#bgl-park-overlay button')].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && !el.hidden && !el.closest('[hidden]');
+    });
+    if (buttons.length < 2) fails.push('park actions missing');
+    for (const el of buttons) {
+      const r = el.getBoundingClientRect();
+      if (r.height < 44 || r.width < 44) fails.push((el.id || 'park button') + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!hit || !el.contains(hit)) fails.push((el.id || 'park button') + ' is covered');
+    }
+    const duke = document.getElementById('bgl-duke').getBoundingClientRect();
+    if (duke.height < 40) fails.push('Duke is not on the hill');
+    return fails;
+  });
+  if (parkFit.length) throw new Error('phone park: ' + parkFit.join('; '));
+  await page.locator('#bgl-park-close').click();
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.locator('#joy-enabled').check();
   for (const viewport of [
     { width: 390, height: 844 },
