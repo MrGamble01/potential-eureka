@@ -507,3 +507,23 @@
     PROGRESS_KEY: PROGRESS_KEY,
   };
 });
+
+// The flagship pages already load this file. The booth stays in
+// js/ai so the game shells other branches are rewriting can stay
+// untouched. Node never sees document, so the require() tests do not.
+(function () {
+  if (typeof document === 'undefined' || !document.head) return;
+  if (document.querySelector('script[data-arcade-ai]')) return;
+  var core = document.createElement('script');
+  core.src = '/js/ai/arcade-ai.js';
+  core.async = false;
+  core.setAttribute('data-arcade-ai', 'core');
+  core.onload = function () {
+    var boot = document.createElement('script');
+    boot.src = '/js/ai/boot.js';
+    boot.async = false;
+    boot.setAttribute('data-arcade-ai', 'boot');
+    document.head.appendChild(boot);
+  };
+  document.head.appendChild(core);
+})();
