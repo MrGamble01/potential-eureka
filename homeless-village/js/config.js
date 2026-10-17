@@ -20,6 +20,9 @@ var G = {
   // lifetime tally the goal reads, so spending a roll does not unwind it.
   bandages: 0, bandagesRolled: 0, dressings: 0,
   care: 0, june: 0, juneRounds: 0, juneRoundDay: -9, clinicSteady: 0, clinicAsk: null,
+  // This camp's line on the shared night ledger (the board itself lives
+  // outside the save, so Start Over does not wipe other camps).
+  ledgerSigned: 0, ledgerClaimed: 0, ledgerId: '',
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
   structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false, clinic:false },
@@ -949,8 +952,10 @@ function maybeJuneStays(){
   if((G.june||0)!==1 || !G.structures.clinic || (G.dressings||0)<CLINIC_JUNE_AT) return false;
   G.june=2;
   log('\ud83e\ude7a June folds her canvas bag under the table. She is staying for the night shift.');
-  floatText('\ud83e\ude7a');
+  floatText('\ud83e\ude7a', 'heal');
   sfx('hire');
+  if(typeof juice==='function') juice('heal');
+  if(typeof flutterGauze==='function') flutterGauze();
   if(typeof refreshJune==='function') refreshJune();
   if(typeof buildActionUI==='function') buildActionUI();
   if(typeof buildWorkersUI==='function') buildWorkersUI();
@@ -965,9 +970,115 @@ function juneRoundAction(){
   return { id:'juneround', icon:'\ud83e\ude7a', label:"June's round", time:5000, cooldown:0,
     tooltip:'Once a day June walks the block with one gauze roll. +4 goodwill, +10 care, and the neighborhood notices. She goes whatever the sky is doing.' };
 }
+function ledgerAction(){
+  return { id:'ledger', icon:'\ud83d\udcd2', label:'Night ledger', time:0, cooldown:0,
+    tooltip:'Camps on this device share one board. Sign after a dressing. Dress more wounds than the leading camp and the block pays 8 goodwill. Start Over does not erase it.' };
+}
 function spareAction(){
   return { id:'spare', icon:'\ud83c\udfe5', label:'Spare a roll', time:3000, cooldown:0,
     tooltip:'Someone is waiting at the tarp. One gauze roll sends them off walking: +4 goodwill, +2 rep, and +8 care. Leave them until dawn and care slips '+CLINIC_ASK_HIT+'.' };
+}
+
+// The night ledger is the block's shared board. It lives in its own key,
+// like the corner fridge: Start Over wipes the camp, not the other camps'
+// lines. The first read plants three neighbors so there is always a mark
+// to beat. Your own row is excluded from the mark.
+var LEDGER_KEY='hv-night-ledger';
+var LEDGER_PAY=8;
+var LEDGER_SEED=[
+  {id:'inez', name:'Inez', days:9, dressings:4, steady:2},
+  {id:'malik', name:'Malik', days:14, dressings:7, steady:5},
+  {id:'rosa', name:'Rosa', days:6, dressings:3, steady:1}
+];
+var ledgerCache=null;
+function cleanLedgerEntry(e){
+  if(!e || typeof e!=='object') return null;
+  if(typeof e.id!=='string' || !e.id) return null;
+  if(typeof e.name!=='string' || !e.name) return null;
+  var dressings=Math.floor(Number(e.dressings));
+  if(!isFinite(dressings) || dressings<0) dressings=0;
+  return {
+    id:e.id.slice(0,40),
+    name:e.name.slice(0,24),
+    days:Math.max(0, Math.floor(Number(e.days)||0)),
+    dressings:dressings,
+    steady:Math.max(0, Math.floor(Number(e.steady)||0))
+  };
+}
+function loadLedger(){
+  if(ledgerCache) return ledgerCache.map(function(e){ return cleanLedgerEntry(e); });
+  var rows=null;
+  try{
+    var raw=localStorage.getItem(LEDGER_KEY);
+    if(raw){
+      var parsed=JSON.parse(raw);
+      if(Array.isArray(parsed)){
+        rows=parsed.map(cleanLedgerEntry).filter(Boolean).slice(0,12);
+      }
+    }
+  }catch(e){}
+  if(!rows || !rows.length){
+    rows=LEDGER_SEED.map(function(e){ return cleanLedgerEntry(e); });
+    try{ localStorage.setItem(LEDGER_KEY, JSON.stringify(rows)); }catch(err){}
+  }
+  ledgerCache=rows;
+  return rows.map(function(e){ return cleanLedgerEntry(e); });
+}
+function saveLedger(rows){
+  ledgerCache=rows.map(cleanLedgerEntry).filter(Boolean).slice(0,12);
+  try{ localStorage.setItem(LEDGER_KEY, JSON.stringify(ledgerCache)); }catch(e){}
+}
+function ledgerMark(){
+  var best=0, name='the block', rows=loadLedger();
+  rows.forEach(function(e){
+    if(G.ledgerId && e.id===G.ledgerId) return;
+    if(e.dressings>=best){ best=e.dressings; name=e.name; }
+  });
+  return {name:name, dressings:best};
+}
+function ledgerLabel(){
+  var mark=ledgerMark();
+  if(G.ledgerClaimed) return '📒 Paid';
+  if((G.dressings||0)>mark.dressings) return '📒 Claim';
+  return '📒 '+mark.name+' · '+mark.dressings;
+}
+function upsertLedgerRow(){
+  if(!G.ledgerId) G.ledgerId='camp-'+Date.now();
+  var rows=loadLedger().filter(function(e){ return e.id!==G.ledgerId; });
+  rows.push({
+    id:G.ledgerId, name:'Your camp',
+    days:G.days||0, dressings:G.dressings||0, steady:G.clinicSteady||0
+  });
+  saveLedger(rows);
+}
+function signLedger(){
+  if(!G.structures.clinic){ log('📒 The ledger hangs at the clinic, and the tarp is down.'); sfx('error'); return false; }
+  if((G.dressings||0)<1){ log('📒 Dress one wound first — the board is for camps that did the work.'); sfx('error'); return false; }
+  upsertLedgerRow();
+  G.ledgerSigned=1;
+  log('📒 Your camp is on the night ledger — '+G.dressings+' dressing'+(G.dressings===1?'':'s')+', day '+G.days+'.');
+  sfx('clinic');
+  saveGame();
+  return true;
+}
+function claimLedger(){
+  var mark=ledgerMark();
+  if(G.ledgerClaimed){ log('📒 The block already paid this camp.'); return false; }
+  if((G.dressings||0)<=mark.dressings){
+    log('📒 '+mark.name+' still leads with '+mark.dressings+' dressings.');
+    sfx('error');
+    return false;
+  }
+  G.ledgerClaimed=1;
+  G.goodwill=(G.goodwill||0)+LEDGER_PAY;
+  upsertLedgerRow();
+  G.ledgerSigned=1;
+  log('📒 More dressings than '+mark.name+' ('+mark.dressings+'). The block heard. +'+LEDGER_PAY+' goodwill.');
+  floatText('+'+LEDGER_PAY+'🩶', 'heal');
+  sfx('goal');
+  if(typeof juice==='function') juice('heal');
+  saveGame();
+  return true;
 }
 
 // Sequential goal ladder surfaced in the HUD (checkGoals in ui.js).
@@ -1109,6 +1220,8 @@ function keysOpen(){
 function overlayOpen(){
   if(introOpen()) return true;
   if(bridgeOpen()) return true;
+  var ledger=document.getElementById('ledger-modal');
+  if(ledger && ledger.classList.contains('open')) return true;
   if(typeof gameOverShown!=='undefined' && gameOverShown) return true;
   return !!document.getElementById('hv-graduation');
 }

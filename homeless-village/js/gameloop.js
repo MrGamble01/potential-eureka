@@ -94,10 +94,45 @@ function buildClinic(x,z){
   cot.position.set(0,.35,0); grp.add(cot);
   var red=new THREE.MeshLambertMaterial({color:0xc43030});
   var crossV=new THREE.Mesh(new THREE.BoxGeometry(.12,.46,.02), red);
-  crossV.position.set(0,1.28,.82); grp.add(crossV);
+  crossV.position.set(0,1.28,.82); crossV.userData.clinicCross=true; grp.add(crossV);
   var crossH=new THREE.Mesh(new THREE.BoxGeometry(.34,.12,.02), red);
-  crossH.position.set(0,1.28,.84); grp.add(crossH);
+  crossH.position.set(0,1.28,.84); crossH.userData.clinicCross=true; grp.add(crossH);
+  var lamp=new THREE.PointLight(0xffe0c0, 0.55, 7);
+  lamp.position.set(0,1.05,0); lamp.userData.clinicLamp=true; grp.add(lamp);
   grp.position.set(x,0,z); scene.add(grp); clinicMesh=grp;
+}
+var gauzeBits=[];
+function flutterGauze(){
+  if(!clinicMesh || typeof THREE==='undefined') return;
+  for(var i=0;i<6;i++){
+    var bit=new THREE.Mesh(
+      new THREE.PlaneGeometry(.24,.07),
+      new THREE.MeshBasicMaterial({color:0xf7f1e4, transparent:true, opacity:.95, side:THREE.DoubleSide})
+    );
+    bit.position.set(
+      clinicMesh.position.x+(Math.random()-.5)*.9,
+      1.25,
+      clinicMesh.position.z+(Math.random()-.5)*.6
+    );
+    bit.userData.flutter={t:0, vx:(Math.random()-.5)*.9, vy:.7+Math.random()*.9, vz:(Math.random()-.5)*.5};
+    scene.add(bit);
+    gauzeBits.push(bit);
+  }
+}
+function tickFlutter(dt){
+  var sec=(dt||16)/1000;
+  for(var i=gauzeBits.length-1;i>=0;i--){
+    var bit=gauzeBits[i], f=bit.userData.flutter;
+    if(!f) continue;
+    f.t+=sec;
+    bit.position.x+=f.vx*sec;
+    bit.position.y+=f.vy*sec;
+    bit.position.z+=f.vz*sec;
+    f.vy-=.55*sec;
+    bit.rotation.z+=sec*3;
+    if(bit.material) bit.material.opacity=Math.max(0, 1-f.t/1.25);
+    if(f.t>1.25){ scene.remove(bit); gauzeBits.splice(i,1); }
+  }
 }
 var juneMesh=null;
 function buildJuneMesh(){
@@ -147,6 +182,8 @@ function clinicAtDawn(){
     G.morale=Math.max(0,G.morale-4);
     G.clinicSteady=0;
     log('\ud83c\udfe5 Neglected clinic. People are worse for a night with no one on the tarp. -'+CLINIC_NEGLECT_HEALTH+' health.');
+    sfx('neglect');
+    if(typeof juice==='function') juice('hurt');
   } else if((G.care||0)>=CLINIC_STEADY_LINE){
     G.clinicSteady=(G.clinicSteady||0)+1;
     if(G.clinicSteady===5) log('\ud83c\udfe5 Five steady dawns. The clinic is a place people trust.');
@@ -157,6 +194,7 @@ function clinicAtDawn(){
   if(!G.clinicAsk && (G.june||0)>=1 && G.days%4===0){
     G.clinicAsk={day:G.days};
     log('\ud83c\udfe5 Someone is waiting at the clinic tarp. One gauze roll would send them off walking.');
+    sfx('knock');
     if(typeof buildActionUI==='function') buildActionUI();
   }
 }
@@ -1149,11 +1187,19 @@ function sfx(kind){
     hire:    [392,523,659],
     goal:    [523,659,784,1047],
     gameover:[330,262,196,131],
+    // Clinic voices. Soft sine for a dressing, a warmer chord when the
+    // tarp goes up, a falling tone when care hits the floor, two knocks
+    // when a neighbor is waiting.
+    dress:   [784,988,1175],
+    clinic:  [349,440,523],
+    neglect: [220,174,131],
+    knock:   [196,262],
   }[kind]||[440];
-  var spacing=kind==='gameover'?.22:.08, t=audioCtx.currentTime;
+  var spacing=kind==='gameover'?.22:kind==='neglect'?.16:kind==='dress'?.11:.08, t=audioCtx.currentTime;
+  var sine=kind==='gameover'||kind==='dress'||kind==='clinic'||kind==='neglect';
   notes.forEach(function(f,i){
     var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type=kind==='gameover'?'sine':'triangle'; o.frequency.value=f;
+    o.type=sine?'sine':'triangle'; o.frequency.value=f;
     var start=t+i*spacing;
     g.gain.setValueAtTime(0,start);
     g.gain.linearRampToValueAtTime(.09*campScale(false),start+.015);
@@ -1165,3 +1211,6 @@ function sfx(kind){
 
 document.addEventListener('click',initAudio,{once:true});
 document.addEventListener('keydown',initAudio,{once:true});
+// A thumb on the walk pad is a gesture too. iOS will not start audio
+// from a click that never arrives.
+document.addEventListener('pointerdown',initAudio,{once:true});

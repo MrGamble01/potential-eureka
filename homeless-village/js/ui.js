@@ -125,6 +125,7 @@ function buildActionUI(){
   if(G.structures.clinic){
     appendClinicButton(dressAction());
     if(G.june===2) appendClinicButton(juneRoundAction());
+    appendClinicButton(ledgerAction());
   }
   if(G.clinicAsk && G.structures.clinic) appendClinicButton(spareAction());
   // A craft or hire can rebuild this list while other actions are running.
@@ -136,6 +137,7 @@ function buildActionUI(){
   _scavGateOut=null;
   updateScavengeGate();
   refreshClinicActions();
+  placeClinicDock();
 }
 
 function appendClinicButton(a){
@@ -287,7 +289,8 @@ function refreshClinicActions(){
     var job=activeJobs.dress;
     var cd=G.cooldowns.dress && Date.now()<G.cooldowns.dress;
     var label=document.getElementById('dress-label');
-    var text='🩹 Dress wound'+(stock?' · '+stock+'🩹':'');
+    var narrow=window.matchMedia('(max-width:700px)').matches;
+    var text=narrow ? '🩹 Dress'+(stock?' '+stock:'') : '🩹 Dress wound'+(stock?' · '+stock+'🩹':'');
     if(label && label.textContent!==text) label.textContent=text;
     dress.disabled=!!job||stock<1||!!cd;
     dress.style.opacity=dress.disabled?'.5':'';
@@ -299,7 +302,7 @@ function refreshClinicActions(){
     var rjob=activeJobs.juneround;
     var done=juneRoundDone();
     var rlabel=document.getElementById('juneround-label');
-    var rtext='🩺 June\'s round'+(done?' ✓':'');
+    var rtext=(window.matchMedia('(max-width:700px)').matches?'🩺 Round':'🩺 June\'s round')+(done?' ✓':'');
     if(rlabel && rlabel.textContent!==rtext) rlabel.textContent=rtext;
     round.disabled=!!rjob||done||stock<1;
     round.style.opacity=round.disabled?'.5':'';
@@ -310,13 +313,38 @@ function refreshClinicActions(){
   if(spare){
     var sjob=activeJobs.spare;
     var slabel=document.getElementById('spare-label');
-    var stext='🏥 Spare a roll'+(stock?' · '+stock+'🩹':'');
+    var stext=window.matchMedia('(max-width:700px)').matches
+      ? '🏥 Spare'+(stock?' '+stock:'')
+      : '🏥 Spare a roll'+(stock?' · '+stock+'🩹':'');
     if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
     spare.disabled=!!sjob||stock<1;
     spare.style.opacity=spare.disabled?'.5':'';
     spare.classList.toggle('active-job',!!sjob);
     spare.setAttribute('data-tip', (stock<1?'They need one gauze roll, and the shelf is empty. ':'')+spareAction().tooltip);
   }
+  var ledger=document.getElementById('action-ledger');
+  if(ledger){
+    var llabel=document.getElementById('ledger-label');
+    var ltext=ledgerLabel();
+    if(llabel && llabel.textContent!==ltext) llabel.textContent=ltext;
+    ledger.setAttribute('data-tip', ledgerAction().tooltip);
+  }
+}
+function placeClinicDock(){
+  var dock=document.getElementById('clinic-dock');
+  var list=document.getElementById('action-list');
+  if(!dock || !list) return;
+  var mobile=window.matchMedia('(max-width:700px)').matches;
+  ['dress','juneround','spare','ledger'].forEach(function(id){
+    var btn=document.getElementById('action-'+id);
+    if(!btn) return;
+    var keep=(id==='juneround') ? (G.june===2 && !!G.structures.clinic)
+      : (id==='spare') ? !!(G.clinicAsk && G.structures.clinic)
+      : !!G.structures.clinic;
+    if(!keep){ btn.remove(); return; }
+    var home=mobile ? dock : list;
+    if(btn.parentElement!==home) home.appendChild(btn);
+  });
 }
 
 // Refresh in place so HUD ticks preserve button focus and click targets.
@@ -623,12 +651,78 @@ function packUpCamp(){
 document.getElementById('pack-up-btn').addEventListener('click', packUpCamp);
 
 // Small "+N" gain feedback that drifts up over the scene.
-function floatText(msg){
+function floatText(msg, kind){
   var d=document.createElement('div');
-  d.className='float-text'; d.textContent=msg;
+  d.className='float-text'+(kind==='heal'?' float-heal':kind==='hurt'?' float-hurt':'');
+  d.textContent=msg;
   d.style.left=(42+Math.random()*16)+'%';
   document.getElementById('hud').appendChild(d);
   setTimeout(function(){ d.remove(); },1600);
+}
+var juiceTimer=null;
+function juice(kind){
+  var hud=document.getElementById('hud');
+  if(!hud) return;
+  var flash=kind==='hurt'?'flash-hurt':'flash-heal';
+  var pop=kind==='hurt'?'juice-down':'juice-up';
+  hud.classList.remove('flash-heal','flash-hurt');
+  void hud.offsetWidth;
+  hud.classList.add(flash);
+  var pill=document.getElementById('bandage-pill');
+  if(pill){
+    pill.classList.remove('juice-up','juice-down');
+    void pill.offsetWidth;
+    pill.classList.add(pop);
+  }
+  clearTimeout(juiceTimer);
+  juiceTimer=setTimeout(function(){
+    hud.classList.remove('flash-heal','flash-hurt');
+    if(pill) pill.classList.remove('juice-up','juice-down');
+  }, 700);
+}
+function renderLedger(){
+  var list=document.getElementById('ledger-list');
+  var challenge=document.getElementById('ledger-challenge');
+  var sign=document.getElementById('ledger-sign');
+  var claim=document.getElementById('ledger-claim');
+  if(!list) return;
+  var mark=ledgerMark();
+  var rows=loadLedger().slice().sort(function(a,b){ return b.dressings-a.dressings || b.days-a.days; });
+  list.innerHTML='';
+  rows.forEach(function(e){
+    var row=document.createElement('div');
+    var yours=G.ledgerId && e.id===G.ledgerId;
+    row.className='ledger-row'+(yours?' yours':'')+(e.dressings===mark.dressings && !yours?' mark':'');
+    row.innerHTML='<span class="ledger-name">'+(yours?'Your camp':e.name)+'</span>'+
+      '<span class="ledger-note">'+e.dressings+' dressed · '+e.days+'d</span>';
+    list.appendChild(row);
+  });
+  if(challenge){
+    challenge.textContent=G.ledgerClaimed
+      ? 'The block already paid this camp.'
+      : 'Beat '+mark.name+' · '+mark.dressings+' dressings. You have '+(G.dressings||0)+'.';
+  }
+  if(sign){
+    sign.disabled=!!G.ledgerSigned || (G.dressings||0)<1;
+    sign.textContent=G.ledgerSigned?'Signed':'Sign this camp';
+  }
+  if(claim){
+    claim.disabled=!!G.ledgerClaimed || (G.dressings||0)<=mark.dressings;
+    claim.textContent=G.ledgerClaimed?'Paid':'Claim +'+LEDGER_PAY+' goodwill';
+  }
+}
+function openLedger(){
+  var modal=document.getElementById('ledger-modal');
+  if(!modal) return;
+  renderLedger();
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+function closeLedger(){
+  var modal=document.getElementById('ledger-modal');
+  if(!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
 }
 
 // Win state (IDEA-HV-3): the arc's ending. Not a reset by default —
@@ -782,4 +876,17 @@ function closeIntro(){
   // First run only: a returning camp gets straight back to work. The
   // ? button in the top bar reopens it whenever they want it.
   if(!introSeen()) openIntro();
+})();
+(function(){
+  var close=document.getElementById('ledger-close');
+  var modal=document.getElementById('ledger-modal');
+  var sign=document.getElementById('ledger-sign');
+  var claim=document.getElementById('ledger-claim');
+  if(close) close.onclick=closeLedger;
+  if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeLedger(); });
+  if(sign) sign.onclick=function(){ if(signLedger()) renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); };
+  if(claim) claim.onclick=function(){ if(claimLedger()){ renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); if(typeof updateHUD==='function') updateHUD(); } };
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && modal && modal.classList.contains('open')) closeLedger();
+  });
 })();

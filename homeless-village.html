@@ -68,6 +68,30 @@
     <div id="action-list"></div>
   </div>
 
+  <div id="clinic-dock" aria-label="Clinic actions"></div>
+
+  <div id="walk-pad" aria-label="Walk">
+    <button type="button" id="walk-up" data-dir="up" aria-label="Walk forward">&#9650;</button>
+    <button type="button" id="walk-left" data-dir="left" aria-label="Walk left">&#9664;</button>
+    <button type="button" id="walk-down" data-dir="down" aria-label="Walk back">&#9660;</button>
+    <button type="button" id="walk-right" data-dir="right" aria-label="Walk right">&#9654;</button>
+  </div>
+
+  <div id="ledger-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Night ledger">
+    <div id="ledger-panel">
+      <div id="ledger-head">
+        <span id="ledger-title">&#128210; NIGHT LEDGER</span>
+        <button id="ledger-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p id="ledger-challenge"></p>
+      <div id="ledger-list"></div>
+      <div id="ledger-actions">
+        <button id="ledger-sign" type="button">Sign this camp</button>
+        <button id="ledger-claim" type="button">Claim the block</button>
+      </div>
+    </div>
+  </div>
+
   <div id="event-banner">
     <button type="button" class="ev-close" onclick="closeEvent()" aria-label="Close event">&#10005;</button>
     <div class="ev-title" id="ev-title"></div>
@@ -93,7 +117,8 @@
         &#127795; forage (wood, cardboard), &#129309; panhandle (goodwill), &#128564; rest (health).<br>
         &bull; <b>Build the &#128295; Workbench early.</b> It costs 5 wood and 4 scraps, and
         <b>14 of the 20 recipes stay locked until it stands</b>.
-        The &#127973; Night Clinic is the longer job after that: roll gauze, keep care up, and a street medic named June may stay.<br>
+        The &#127973; Night Clinic is the longer job after that: roll gauze, keep care up, and a street medic named June may stay.
+        On a phone, hold the pad to walk &mdash; clinic actions sit in their own row, and the night ledger keeps score for every camp on this device.<br>
         &bull; <b>Cold is what kills you.</b> Warmth drains every night; below <b>20%</b> the camp starts losing
         health at dawn, and so does an empty larder. Firewood, blankets and a tent hold it back.<br>
         &bull; <b>The weather and the season matter.</b> Winter halves what the dumpsters give;
@@ -189,8 +214,12 @@ function hvFatal(msg){
   applyLayout(mq.matches);
   // addEventListener('change', ...) is the modern API; addListener is the
   // deprecated fallback some older WebViews still need.
-  if (mq.addEventListener) mq.addEventListener('change', function (e) { applyLayout(e.matches); });
-  else if (mq.addListener) mq.addListener(function (e) { applyLayout(e.matches); });
+  function onLayoutChange(isMobile) {
+    applyLayout(isMobile);
+    if (typeof placeClinicDock === 'function') placeClinicDock();
+  }
+  if (mq.addEventListener) mq.addEventListener('change', function (e) { onLayoutChange(e.matches); });
+  else if (mq.addListener) mq.addListener(function (e) { onLayoutChange(e.matches); });
 
   var soundBtn = document.getElementById('sound-btn');
   var campAudio = document.getElementById('camp-audio');

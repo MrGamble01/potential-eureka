@@ -139,6 +139,11 @@ function doAction(a){
     if(!G.structures.clinic){ log('🏥 The clinic is down.'); sfx('error'); return; }
     if((G.bandages||0)<1){ log('🏥 They need one gauze roll, and the shelf is empty.'); sfx('error'); return; }
   }
+  if(a.id==='ledger'){
+    if(!G.structures.clinic){ log('📒 The ledger hangs at the clinic, and the tarp is down.'); sfx('error'); return; }
+    if(typeof openLedger==='function') openLedger();
+    return;
+  }
   // HV-61: these four already knew how to refuse in finishAction — after
   // a 2–4s job and with the full cooldown charged as if they had paid.
   // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
@@ -443,7 +448,7 @@ function doAction(a){
     return;
   }
   if(a.id==='scavenge' && !scavengeInRange()){
-    log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
+    log('Too far from a dumpster — walk up to one first (WASD, the pad, or tap the ground).');
     sfx('error');
     return;
   }
@@ -1109,7 +1114,9 @@ function finishAction(a){
       G.morale=Math.min(100,G.morale+2);
       G.dressings=(G.dressings||0)+1;
       log('🩹 Wound dressed. +'+CLINIC_DRESS_HEALTH+' health, care '+Math.floor(G.care)+'.');
-      floatText('+'+CLINIC_DRESS_HEALTH+'❤️');
+      floatText('+'+CLINIC_DRESS_HEALTH+'❤️', 'heal');
+      if(typeof juice==='function') juice('heal');
+      if(typeof flutterGauze==='function') flutterGauze();
       maybeJuneStays();
       saveGame();
     }
@@ -1124,7 +1131,8 @@ function finishAction(a){
       G.goodwill=(G.goodwill||0)+4;
       addRep(1);
       log('🩺 June\'s night round — one roll on the block. +4 goodwill, the clinic holds.');
-      floatText('+4🩶');
+      floatText('+4🩶', 'heal');
+      if(typeof juice==='function') juice('heal');
       saveGame();
       buildActionUI();
     }
@@ -1138,12 +1146,15 @@ function finishAction(a){
       G.goodwill=(G.goodwill||0)+4;
       addRep(2);
       log('🏥 One roll, and they walk off on their own feet. +4 goodwill.');
-      floatText('+4🩶');
+      floatText('+4🩶', 'heal');
+      if(typeof juice==='function') juice('heal');
       saveGame();
       buildActionUI();
     }
   }
-  sfx('action');
+  if(a.id==='dress') sfx('dress');
+  else if(a.id==='juneround' || a.id==='spare') sfx('clinic');
+  else sfx('action');
   updateHUD();
 }
 
@@ -1201,6 +1212,9 @@ function finishCraft(r){
     log(clinicReturning
       ? '🏥 The night clinic is back up. June is already laying gauze on the cot.'
       : '🏥 A tarp, a cot, a red cross cut from a reflector. June watches from the sidewalk, canvas bag on her shoulder.');
+    sfx('clinic');
+    if(typeof juice==='function') juice('heal');
+    if(typeof flutterGauze==='function') flutterGauze();
     if(typeof buildWorkersUI==='function') buildWorkersUI();
   }
   if(r.gives.bandages) log('🩹 '+r.gives.bandages+' gauze rolls on the shelf — '+(G.bandages||0)+' ready.');

@@ -272,7 +272,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 }
 
 @media (max-width:700px){
-  #craft-toggle{display:block}
+  #craft-toggle{display:block;top:56px;right:8px;bottom:auto;min-height:44px;padding:10px 14px}
 
   #top-bar{
     flex-wrap:nowrap;gap:8px;padding:8px 10px;
@@ -294,8 +294,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   #action-list{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .action-btn{
     flex:0 0 auto;width:auto;margin-bottom:0;
-    font-size:11px;padding:8px 10px;white-space:nowrap;
+    font-size:13px;padding:10px 14px;white-space:nowrap;
+    min-height:44px;touch-action:manipulation;
   }
+  .craft-item{min-height:44px;touch-action:manipulation}
 
   /* craft + community: bottom sheet, hidden until toggled */
   #craft-panel{
@@ -327,8 +329,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
      craft sheet toggle or the bottom bar. */
   #log-feed{
     display:block;
-    left:8px;right:auto;bottom:104px;
-    width:52vw;max-width:220px;max-height:58px;
+    left:164px;right:8px;bottom:214px;
+    width:auto;max-width:none;max-height:52px;
     background:rgba(0,0,0,.45);border-radius:4px;padding:3px 6px;
   }
   #log-feed .log-line{font-size:9px;line-height:1.45}
@@ -421,3 +423,90 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 }
 #intro-go:hover{background:rgba(160,110,50,.45)}
 @media (max-width:700px){ #help-btn{font-size:10px;padding:3px 7px} #intro-body{font-size:11.5px} }
+
+/* Thumb pad — phone only. Four big holds, same directions as WASD.
+   The clinic dock is the same: hidden until a narrow screen, and hidden
+   again when it has no buttons. */
+#clinic-dock{display:none}
+#walk-pad{display:none}
+#walk-pad button{
+  width:46px;height:46px;min-width:44px;min-height:44px;
+  border-radius:50%;border:1px solid rgba(200,150,60,.55);
+  background:rgba(20,14,8,.78);color:#e8d5a0;
+  font-size:16px;font-family:inherit;cursor:pointer;
+  touch-action:none;pointer-events:auto;
+  box-shadow:0 2px 8px rgba(0,0,0,.45);
+}
+#walk-pad button.held{background:rgba(200,140,40,.72);color:#fff}
+@media (max-width:700px){
+  #walk-pad{
+    display:grid;
+    position:absolute;left:8px;bottom:168px;
+    width:150px;height:150px;
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-rows:1fr 1fr 1fr;
+    justify-items:center;align-items:center;
+    z-index:36;pointer-events:none;touch-action:none;
+  }
+  #walk-up{grid-column:2;grid-row:1}
+  #walk-left{grid-column:1;grid-row:2}
+  #walk-right{grid-column:3;grid-row:2}
+  #walk-down{grid-column:2;grid-row:3}
+  #clinic-dock{
+    display:flex;position:absolute;left:0;right:0;bottom:108px;z-index:33;
+    gap:6px;padding:0 8px;pointer-events:auto;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #clinic-dock:empty{display:none}
+  #clinic-dock .action-btn{flex:1 1 0;min-width:0;min-height:44px;text-align:center;margin:0;overflow:hidden}
+  #bottom-bar{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+}
+
+#hud.flash-heal{animation:heal-flash .65s ease}
+#hud.flash-hurt{animation:hurt-flash .65s ease}
+@keyframes heal-flash{
+  0%{box-shadow:inset 0 0 0 0 rgba(190,255,210,0)}
+  35%{box-shadow:inset 0 0 90px 12px rgba(190,255,210,.45)}
+  100%{box-shadow:inset 0 0 0 0 rgba(190,255,210,0)}
+}
+@keyframes hurt-flash{
+  0%{box-shadow:inset 0 0 0 0 rgba(255,70,40,0)}
+  35%{box-shadow:inset 0 0 90px 12px rgba(255,70,40,.45)}
+  100%{box-shadow:inset 0 0 0 0 rgba(255,70,40,0)}
+}
+#bandage-pill.juice-up{animation:pill-pop .45s ease}
+#bandage-pill.juice-down{animation:pill-drop .45s ease}
+@keyframes pill-pop{0%{transform:scale(1)}40%{transform:scale(1.16)}100%{transform:scale(1)}}
+@keyframes pill-drop{0%{transform:scale(1)}40%{transform:scale(.9)}100%{transform:scale(1)}}
+.float-heal{color:#d8ffd0;font-size:20px}
+.float-hurt{color:#ffb0a0;font-size:20px}
+
+#ledger-modal{
+  position:absolute;inset:0;z-index:92;
+  background:rgba(0,0,0,.82);
+  display:none;align-items:center;justify-content:center;
+  pointer-events:auto;
+}
+#ledger-modal.open{display:flex}
+#ledger-panel{
+  background:rgba(10,8,6,.97);border:1px solid rgba(180,60,50,.45);
+  border-radius:6px;padding:16px 18px;
+  width:min(440px,92vw);max-height:80vh;overflow-y:auto;
+  font-family:'Courier New',monospace;
+}
+#ledger-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+#ledger-title{font-size:14px;font-weight:bold;color:#e8c0b0;letter-spacing:1px;flex:1}
+#ledger-close{background:none;border:none;color:#7a6040;font-size:22px;cursor:pointer;line-height:1;min-width:44px;min-height:44px}
+#ledger-challenge{font-size:13px;color:#e0c880;margin:0 0 10px;line-height:1.45}
+.ledger-row{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:4px;margin-bottom:4px;background:rgba(255,255,255,.04);font-size:12px;color:#d8c098}
+.ledger-row.yours{background:rgba(80,160,90,.18);outline:1px solid rgba(140,200,140,.4)}
+.ledger-row.mark{background:rgba(200,80,50,.15)}
+.ledger-name{font-weight:bold}
+.ledger-note{color:#8a7050;white-space:nowrap}
+#ledger-actions{display:flex;gap:8px;margin-top:12px}
+#ledger-actions button{
+  flex:1;min-height:44px;cursor:pointer;
+  font-family:inherit;font-size:13px;border-radius:4px;
+  background:rgba(120,50,40,.35);border:1px solid rgba(180,80,60,.6);color:#e8c8b0;
+}
+#ledger-actions button:disabled{opacity:.4;cursor:default}

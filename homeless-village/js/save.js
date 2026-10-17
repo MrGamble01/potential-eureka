@@ -150,6 +150,9 @@ function loadGame(){
     if(typeof G.clinicSteady!=='number'||!isFinite(G.clinicSteady)||G.clinicSteady<0) G.clinicSteady=0;
     else G.clinicSteady=Math.floor(G.clinicSteady);
     if(G.clinicAsk&&(typeof G.clinicAsk!=='object'||typeof G.clinicAsk.day!=='number')) G.clinicAsk=null;
+    G.ledgerSigned=G.ledgerSigned?1:0;
+    G.ledgerClaimed=G.ledgerClaimed?1:0;
+    if(typeof G.ledgerId!=='string') G.ledgerId='';
     // Persist a newly revealed legacy forecast so reload cannot reroll it.
     if(ensureForecast()) saveGame();
   }catch(e){}
