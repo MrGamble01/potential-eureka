@@ -166,8 +166,12 @@ body {
   100% { transform: translate(10px, -10px) scale(1.02); }
 }
 
-/* ---- NAVIGATION ---- */
-nav {
+/* ---- NAVIGATION ----
+   Header only. The hub also has <nav> for the shell links and the
+   Hours / Studio / Minutes tabs. An element selector here painted those
+   with the header's sticky 56px bar, which clipped and misaligned the
+   tabs between 641px and 1020px (iPad portrait). */
+nav.site-nav {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -182,7 +186,7 @@ nav {
   z-index: 100;
 }
 
-nav .logo {
+nav.site-nav .logo {
   color: var(--primary);
   font-weight: 700;
   font-size: 14px;
@@ -192,7 +196,7 @@ nav .logo {
   letter-spacing: -0.02em;
 }
 
-nav button {
+nav.site-nav button {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-dim);
@@ -206,17 +210,17 @@ nav button {
   position: relative;
 }
 
-nav button:hover {
+nav.site-nav button:hover {
   color: var(--text);
   background: var(--color-white-08);
 }
 
-nav button:focus-visible {
+nav.site-nav button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-nav button.active {
+nav.site-nav button.active {
   color: var(--primary-light);
   background: rgba(108, 99, 255, 0.1);
   border-color: rgba(108, 99, 255, 0.25);
@@ -535,17 +539,17 @@ nav button.active {
   .clock-display {
     font-size: 28px;
   }
-  nav {
+  nav.site-nav {
     flex-wrap: wrap;
     height: auto;
     padding: 8px 12px;
     gap: 4px;
   }
-  nav .logo {
+  nav.site-nav .logo {
     width: 100%;
     margin-bottom: 4px;
   }
-  nav button {
+  nav.site-nav button {
     font-size: 11px;
     padding: 6px 12px;
   }
