@@ -705,44 +705,8 @@
   }
 }
 
-/* Secondary hops are one text line, not a wrap of pills.
-   min-height stays with the viewport rules so the short 720px
-   billboard can keep its compact targets. */
-#view-arcade .arcade-hero-alt {
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 0;
-  margin-top: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-#view-arcade .arcade-hero-alt::-webkit-scrollbar { display: none; }
-#view-arcade .hero-alt-dot {
-  display: inline;
-  flex: 0 0 auto;
-  color: var(--text-muted);
-}
-#view-arcade .hero-alt-link {
-  flex: 0 0 auto;
-  background: transparent;
-  border-color: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 0 8px;
-  font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--text);
-  white-space: nowrap;
-}
-#view-arcade .hero-alt-link:hover,
-#view-arcade .hero-alt-link:focus-visible {
-  background: transparent;
-  border-color: transparent;
-  color: var(--primary-light);
-}
+/* The hop row under the billboard is gone. Catalogue choice
+   lives in the segmented control under search. */
 
 /* Featured game + cover cards. Skip the short-landscape fold. */
 @media (max-width: 640px) and (min-height: 761px) {
@@ -1184,5 +1148,384 @@
   }
   #view-trophy .trophy-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---- Bold launcher: display type, art cards, segmented catalogue ---- */
+#view-arcade,
+#view-trophy {
+  --font-display: "Outfit", "Inter", sans-serif;
+}
+
+#view-arcade .arcade-flagship-name,
+#view-arcade .arcade-section-title,
+#view-arcade .arcade-card-title,
+#view-trophy .trophy-title,
+#view-trophy .trophy-h {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+#view-arcade .arcade-section-title {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+#view-arcade .arcade-section-lede {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+
+#view-arcade .arcade-flagship-name {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+#view-trophy .trophy-title {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  line-height: 0.95;
+}
+
+#view-trophy .trophy-h {
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+/* All / Long / Quick / Studio. Four short words, equal slices, no clip. */
+#view-arcade .card-search-wrap .arcade-scan:not([hidden]) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-widget) 88%, transparent);
+  padding: 4px;
+}
+
+#view-arcade .card-search-wrap .arcade-scan[hidden] {
+  display: none;
+}
+
+#view-arcade .arcade-scan-link {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: visible;
+  white-space: nowrap;
+  justify-content: center;
+  border-width: 0;
+  border-style: solid;
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 8px;
+  gap: 0;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--text-dim);
+}
+
+#view-arcade .arcade-scan-link--studio {
+  border-color: rgba(188, 140, 255, 0.4);
+}
+
+#view-arcade .arcade-scan:not(:has([aria-current])) .arcade-scan-link--all,
+#view-arcade .arcade-scan-link[aria-current="true"] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+#view-arcade .arcade-card {
+  position: relative;
+  display: flex;
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+  border-radius: 22px;
+  background: #0c0e14;
+  isolation: isolate;
+}
+
+#view-arcade .arcade-card-screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border: 0;
+}
+
+#view-arcade .arcade-card-poster,
+#view-arcade .arcade-card-clip {
+  object-fit: cover;
+  object-position: center center;
+}
+
+#view-arcade .arcade-card-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 92px;
+  min-height: 92px;
+  margin: 0;
+  padding: 28px 14px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  background: linear-gradient(to top, rgba(6, 8, 14, 0.94) 0%, rgba(6, 8, 14, 0.62) 52%, rgba(6, 8, 14, 0) 100%);
+  color: #f7f4ee;
+}
+
+#view-arcade .arcade-card-title {
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+#view-arcade .arcade-card:hover .arcade-card-title {
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+}
+
+#view-arcade .arcade-card-tags {
+  display: none;
+}
+
+#view-arcade .arcade-card-desc {
+  color: rgba(247, 244, 238, 0.82);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  min-height: 0;
+  -webkit-line-clamp: 1;
+  white-space: nowrap;
+}
+
+#view-arcade .arcade-card-play {
+  flex: 0 0 16px;
+  height: 16px;
+  margin-top: 4px;
+  padding: 0;
+  line-height: 16px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f0c552;
+}
+
+#view-arcade .arcade-card-flag {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Phone portrait: each catalogue is a thumbnail rail. */
+@media (max-width: 640px) and (min-height: 761px) {
+  #view-arcade .arcade-section-head {
+    margin-bottom: 8px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 1.5rem;
+  }
+  #view-arcade .arcade-section-lede {
+    display: none;
+  }
+  #view-arcade .arcade-hero,
+  #view-arcade .card-search-wrap,
+  #view-arcade .arcade-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    margin-right: 0;
+    align-self: stretch;
+  }
+  #view-arcade .arcade-grid,
+  #view-arcade .arcade-grid--studio {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  #view-arcade .arcade-grid::-webkit-scrollbar { display: none; }
+  #view-arcade .arcade-card {
+    flex: 0 0 78%;
+    width: 78%;
+    scroll-snap-align: start;
+    aspect-ratio: 3 / 4;
+  }
+  #view-arcade .arcade-grid--studio .arcade-card {
+    flex-basis: 86%;
+    width: 86%;
+  }
+}
+
+/* Short landscape keeps the compact billboard. Don't grow the scan. */
+@media (max-width: 1020px) and (max-height: 760px) {
+  #view-arcade .arcade-scan-link {
+    min-height: 36px;
+    font-size: 0.8125rem;
+    padding: 0 6px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 1.25rem;
+  }
+  #view-arcade .arcade-section-lede {
+    display: none;
+  }
+  #view-arcade .arcade-card {
+    aspect-ratio: 4 / 5;
+  }
+  #view-arcade .arcade-card-body {
+    height: 76px;
+    min-height: 76px;
+    padding: 22px 10px 8px;
+  }
+  #view-arcade .arcade-card-title {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  #view-arcade .card-search-wrap .arcade-scan:not([hidden]) {
+    max-width: 440px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 2rem;
+  }
+  #view-arcade .arcade-card {
+    aspect-ratio: 3 / 4;
+    border-radius: 24px;
+  }
+  #view-arcade .arcade-card-title {
+    font-size: 1.375rem;
+  }
+}
+
+/* Trophy room: avatar icons in a grid, titles as chips. */
+#view-trophy .trophy-avatars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: min(100%, 360px);
+}
+
+#view-trophy .trophy-avatars .trophy-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 64px;
+  padding: 0;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--bg-widget) 70%, #1a1408);
+  border: 1px solid color-mix(in srgb, #e3b341 28%, var(--border));
+}
+
+#view-trophy .trophy-avatars .trophy-pick-glyph {
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#view-trophy .trophy-lock {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(8, 8, 12, 0.82);
+  font-size: 12px;
+  line-height: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-locked {
+  opacity: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-locked .trophy-pick-glyph {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-on {
+  border-color: #e3b341;
+  box-shadow: 0 0 0 2px #e3b341, 0 10px 24px color-mix(in srgb, #e3b341 28%, transparent);
+}
+
+#view-trophy .trophy-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-template-columns: none;
+}
+
+#view-trophy .trophy-titles .trophy-pick {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  #view-trophy .trophy-avatars {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #view-trophy .trophy-titles {
+    display: flex;
+    flex-wrap: wrap;
+    grid-template-columns: none;
+  }
+  #view-trophy .trophy-title {
+    font-size: 2.25rem;
   }
 }
