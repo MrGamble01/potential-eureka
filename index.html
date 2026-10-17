@@ -38,17 +38,17 @@
        SW_VERSION has to move in the same change or installed PWAs
        keep the previous sheet. game-cards.css stays after arcade.css.
        hub-pages.css is last so the studio subpage rules win the cascade. -->
-  <link rel="stylesheet" href="css/base.css?v=20261017bar">
-  <link rel="stylesheet" href="css/effects.css?v=20261017bar">
-  <link rel="stylesheet" href="css/arcade.css?v=20261017bar">
-  <link rel="stylesheet" href="css/feel.css?v=20261017bar">
-  <link rel="stylesheet" href="css/game-cards.css?v=20261017bar">
-  <link rel="stylesheet" href="css/dashboard.css?v=20261017bar">
-  <link rel="stylesheet" href="css/games.css?v=20261017bar">
-  <link rel="stylesheet" href="css/productivity.css?v=20261017bar">
-  <link rel="stylesheet" href="css/personal.css?v=20261017bar">
-  <link rel="stylesheet" href="css/orgchart.css?v=20261017bar">
-  <link rel="stylesheet" href="css/hub-pages.css?v=20261017bar">
+  <link rel="stylesheet" href="css/base.css?v=20261017launch">
+  <link rel="stylesheet" href="css/effects.css?v=20261017launch">
+  <link rel="stylesheet" href="css/arcade.css?v=20261017launch">
+  <link rel="stylesheet" href="css/feel.css?v=20261017launch">
+  <link rel="stylesheet" href="css/game-cards.css?v=20261017launch">
+  <link rel="stylesheet" href="css/dashboard.css?v=20261017launch">
+  <link rel="stylesheet" href="css/games.css?v=20261017launch">
+  <link rel="stylesheet" href="css/productivity.css?v=20261017launch">
+  <link rel="stylesheet" href="css/personal.css?v=20261017launch">
+  <link rel="stylesheet" href="css/orgchart.css?v=20261017launch">
+  <link rel="stylesheet" href="css/hub-pages.css?v=20261017launch">
 </head>
 <body>
 
@@ -70,12 +70,15 @@
       <span class="career-chip-face" aria-hidden="true">&#127918;</span>
       <span class="career-chip-text">Lv 1</span>
     </a>
-    <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
-    <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
-    <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
+    <div class="nav-icon-cluster">
+      <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
+      <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
+      <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
+    </div>
+    <button type="button" class="studio-menu" id="studio-menu" aria-controls="studio-links" aria-expanded="false" aria-label="Open studio menu">Menu</button>
   </nav>
 
-  <nav class="arcade-secondary-nav arcade-shell" aria-label="Studio links">
+  <nav class="arcade-secondary-nav arcade-shell" id="studio-links" aria-label="Studio links">
     <a class="sec-link" href="#halloffame" data-view="halloffame">&#127942; Hall of Fame</a>
     <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
     <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
@@ -1582,15 +1585,61 @@
     function rememberLaunch(section) {
       try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section: section || '', q: '' })); } catch {}
     }
+    const studioMenu = document.getElementById('studio-menu');
+    const studioLinks = document.getElementById('studio-links');
+    const iconCluster = document.querySelector('.nav-icon-cluster');
+    const studioQuery = window.matchMedia('(max-width: 1099px)');
     function syncChrome() {
       const bar = document.querySelector('nav.site-nav');
       const shell = document.querySelector('.arcade-shell');
+      const header = document.querySelector('.hub-chrome');
+      const menuOpen = !!(header && header.classList.contains('is-menu-open') && studioQuery.matches);
       if (bar) document.documentElement.style.setProperty('--nav-height', bar.offsetHeight + 'px');
-      if (shell) document.documentElement.style.setProperty('--shell-height', shell.offsetHeight + 'px');
+      const shellH = menuOpen && shell ? shell.offsetHeight : 0;
+      document.documentElement.style.setProperty('--shell-height', shellH + 'px');
+      document.documentElement.style.setProperty('--studio-menu-h', shellH + 'px');
     }
-    syncChrome();
+    function placeStudioChrome() {
+      if (!iconCluster || !studioLinks || !studioMenu) return;
+      const header = document.querySelector('.hub-chrome');
+      if (studioQuery.matches) {
+        if (iconCluster.parentElement !== studioLinks) studioLinks.appendChild(iconCluster);
+      } else {
+        const nav = document.querySelector('nav.site-nav');
+        if (nav && iconCluster.parentElement !== nav) nav.insertBefore(iconCluster, studioMenu);
+        if (header) header.classList.remove('is-menu-open');
+        studioMenu.setAttribute('aria-expanded', 'false');
+        studioMenu.setAttribute('aria-label', 'Open studio menu');
+      }
+      syncChrome();
+    }
+    function setStudioMenu(open) {
+      const header = document.querySelector('.hub-chrome');
+      if (!header || !studioMenu || !studioQuery.matches) {
+        syncChrome();
+        return;
+      }
+      header.classList.toggle('is-menu-open', !!open);
+      studioMenu.setAttribute('aria-expanded', open ? 'true' : 'false');
+      studioMenu.setAttribute('aria-label', open ? 'Close studio menu' : 'Open studio menu');
+      syncChrome();
+    }
+    placeStudioChrome();
+    if (studioQuery.addEventListener) studioQuery.addEventListener('change', placeStudioChrome);
     addEventListener('resize', syncChrome);
     addEventListener('load', syncChrome);
+    if (studioMenu) {
+      studioMenu.addEventListener('click', () => {
+        const header = document.querySelector('.hub-chrome');
+        setStudioMenu(!(header && header.classList.contains('is-menu-open')));
+      });
+    }
+    if (studioLinks) {
+      studioLinks.addEventListener('click', (e) => {
+        if (e.target.closest('.nav-icon-cluster')) return;
+        if (e.target.closest('.sec-link')) setStudioMenu(false);
+      });
+    }
     function readLeave() {
       try {
         const raw = sessionStorage.getItem(RETURN_KEY);
@@ -1626,6 +1675,7 @@
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
       navUtils.classList.remove('open');
       syncNavUtilsExpanded();
+      setStudioMenu(false);
       document.title = (typeof HubRoutes !== 'undefined') ? HubRoutes.titleFor(name) : 'EUREKA GAMES';
       // Keep the URL hash in sync so Back/reload and deep links stay consistent.
       // Suppress the hashchange listener: it would re-enter this function
@@ -2078,6 +2128,8 @@
     navUtilsToggle.addEventListener('click', () => { navUtils.classList.toggle('open'); syncNavUtilsExpanded(); });
     document.addEventListener('click', (e) => {
       if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) { navUtils.classList.remove('open'); syncNavUtilsExpanded(); }
+      const header = document.querySelector('.hub-chrome');
+      if (header && header.classList.contains('is-menu-open') && !header.contains(e.target)) setStudioMenu(false);
     });
 
     // Cabinet high-score / best-stat badges — read each game's own localStorage.
