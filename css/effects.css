@@ -149,3 +149,18 @@
   88% { transform: translate(-2px, -1px); }
   92% { transform: translate(1px, 0); }
 }
+
+/* The top-bar wordmark is a 44px flex control. These ghosts are
+   position:absolute; top:0, so they sit above the centered label and
+   the bar draws ">_ EUREKA GAMES" twice. The hero title still glitches. */
+.logo-btn.glitch,
+.logo-link.glitch {
+  animation: none;
+}
+.logo-btn.glitch::before,
+.logo-btn.glitch::after,
+.logo-link.glitch::before,
+.logo-link.glitch::after {
+  content: none;
+  display: none;
+}

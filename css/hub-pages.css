@@ -137,6 +137,42 @@
   text-decoration: none;
 }
 
+/* Phone chrome. The shell token is 36px and the pills are 44px.
+   overflow-x:auto can keep that short floor and let the pills paint
+   on the page under the bar. Size the bar from the controls, keep
+   each target at 44px, and scroll the row instead of crushing labels.
+   Scoped under .hub-chrome so the Hours / Studio / Minutes nav keeps
+   the nav.site-nav rule from the iPad fix. */
+@media (max-width: 640px) {
+  .hub-chrome > nav.site-nav {
+    height: auto;
+    flex-wrap: wrap;
+    align-content: center;
+  }
+  .hub-chrome > .arcade-shell {
+    justify-content: safe center;
+    flex-wrap: nowrap;
+    height: auto;
+    min-height: calc(44px + 6px + 6px + 1px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hub-chrome > .arcade-shell::-webkit-scrollbar {
+    display: none;
+  }
+  .hub-chrome > .arcade-shell .sec-link,
+  .hub-chrome > nav.site-nav .career-chip,
+  .hub-chrome > nav.site-nav .nav-sfx-toggle,
+  .hub-chrome > nav.site-nav .nav-utils-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* ---- CHALLENGE ---- */
 #daily-banner.hub-challenge {
   align-items: center;
