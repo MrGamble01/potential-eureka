@@ -193,7 +193,10 @@
       background: var(--panel-2); color: var(--ink); font-family: var(--font);
       font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
     }
-    #panel #p-festival { flex: 1 0 100%; }
+    #panel #p-festival, #panel #p-still { flex: 1 0 100%; }
+    #panel button.crop { flex: 1 0 30%; }
+    #panel button.crop.on { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 1px rgba(242,193,78,0.45); }
+    #panel button.crop:active { transform: scale(0.97); }
     #panel button:hover { border-color: rgba(242,193,78,0.6); }
     #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
 
@@ -207,14 +210,90 @@
     }
     @keyframes toastin { from { transform: translateX(-16px); opacity: 0; } }
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
+    #juice {
+      position: fixed; left: 50%; top: 22%; z-index: 720; pointer-events: none;
+      display: flex; align-items: center; gap: 10px; max-width: min(420px, calc(100% - 24px));
+      background: rgba(28, 22, 14, 0.92); border: 1px solid var(--gold); border-radius: 16px;
+      padding: 10px 16px; font-weight: 800; font-size: 16px; color: #f2e3c8;
+      transform: translateX(-50%);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    #juice[hidden] { display: none; }
+    #juice .j-emoji { font-size: 28px; line-height: 1; }
+    #juice.pop { animation: juicepop 2.1s ease forwards; }
+    #juice-motes { position: fixed; inset: 0; z-index: 710; pointer-events: none; overflow: hidden; }
+    #juice-motes span {
+      position: absolute; font-size: 22px; margin-left: -11px; margin-top: -11px;
+      animation: motefloat 1.2s ease-out forwards;
+    }
+    @keyframes motefloat {
+      to { transform: translate(var(--dx), var(--dy)) scale(0.55); opacity: 0; }
+    }
+    @keyframes juicepop {
+      0% { transform: translateX(-50%) scale(0.72); opacity: 0; }
+      12% { transform: translateX(-50%) scale(1.06); opacity: 1; }
+      20% { transform: translateX(-50%) scale(1); opacity: 1; }
+      72% { opacity: 1; }
+      100% { transform: translateX(-50%) translateY(-16px) scale(0.98); opacity: 0; }
+    }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome, #achv, #chronicle, #decrees {
+    #trader, #event, #welcome, #achv, #chronicle, #decrees, #stillroom, #hollow {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show { display: flex; }
+    #still-path { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; }
+    .still-step { font-size: 12.5px; padding: 4px 8px; border-radius: 7px; background: rgba(255,255,255,0.04); color: var(--ink-dim); }
+    .still-step.done { color: #b7d7a8; }
+    .still-h { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--gold); margin: 12px 0 2px; }
+    #still-stores { font-family: var(--mono); font-size: 12px; line-height: 1.5; margin-bottom: 4px; }
+    .still-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .still-row .who { flex: 1; min-width: 0; }
+    .still-row .who b { display: block; font-size: 13.5px; }
+    .still-row .who span { display: block; font-size: 12px; color: var(--ink-dim); line-height: 1.35; }
+    .still-row button, .still-recipe, #still-anoint {
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
+    }
+    .still-recipe { width: 100%; text-align: left; margin-top: 6px; }
+    .still-recipe:hover, .still-row button:hover, #still-anoint:hover,
+    #cup-enter:hover, #cup-add:hover { border-color: var(--gold); }
+    .still-recipe:active, .still-row button:active, #still-anoint:active,
+    #cup-enter:active, #cup-add:active { transform: scale(0.97); }
+    #still-anoint, #cup-enter { width: 100%; margin-top: 8px; }
+    #cup-need { font-size: 13px; line-height: 1.45; }
+    #cup-day { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+    #cup-enter, #cup-add {
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
+    }
+    .cup-lab { display: block; margin-top: 10px; font-size: 11px; color: var(--ink-dim); }
+    #cup-code, #cup-paste {
+      width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      font-family: var(--mono); font-size: 13px;
+    }
+    .cup-addrow { display: flex; gap: 8px; align-items: flex-end; }
+    .cup-addrow #cup-paste { flex: 1 1 auto; min-width: 0; }
+    #cup-add { flex: 0 0 auto; min-width: 72px; margin-top: 4px; }
+    #cup-board { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+    .cup-row, .cup-empty { padding: 6px 8px; border-radius: 7px; background: rgba(255,255,255,0.05); font-size: 13px; }
+    .cup-row { display: flex; justify-content: space-between; gap: 8px; }
+    .cup-empty { color: var(--ink-dim); font-size: 12px; }
+    #still-anoint-wrap[hidden] { display: none; }
+    /* The board is long. The copy scrolls; Back to the lane and Games stay put. */
+    #stillroom .trader-card, #hollow .trader-card { display: flex; flex-direction: column; overflow: hidden; }
+    #stillroom .still-body, #hollow .hollow-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+    #stillroom .sheet-ctas, #hollow .sheet-ctas { flex: 0 0 auto; }
+    #hollow-resolve { font-family: var(--mono); letter-spacing: 2px; color: var(--gold); margin: 4px 0 8px; }
+    #hollow-line { font-size: 13.5px; line-height: 1.45; min-height: 2.6em; margin: 8px 0; }
+    #hollow-offer, #hollow-open, #hollow-away, .hollow-talk {
+      width: 100%; margin-top: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font); text-align: left;
+    }
+    #hollow-away { color: #e7b2aa; }
     #decree-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
     .decree-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; }
     .decree-row .demoji { font-size: 20px; }
@@ -435,10 +514,24 @@
       .btab { white-space: nowrap; padding: 6px 10px; font-size: 12px; }
       #panel {
         top: auto; bottom: 150px; right: 8px; left: 8px; width: auto;
-        max-height: 32vh; overflow-y: auto;
+        max-height: 46vh; overflow-y: auto;
       }
       #hint { display: none; }
       #paused { left: 8px; right: 8px; top: 50%; transform: translateY(-50%); min-width: 0; }
+      #menu-btn, #touch-pause, #zoom-ctl button { width: 44px; height: 44px; }
+      #touch-pause { right: calc(64px + env(safe-area-inset-right, 0px)); }
+      #stillroom .trader-card, #hollow .trader-card {
+        box-sizing: border-box; width: calc(100% - 16px); max-height: calc(100dvh - 12px);
+        border-radius: 14px; padding: 12px;
+      }
+      .still-recipe, .still-row button, #still-anoint, #cup-enter, #cup-add, #panel button,
+      #hollow-offer, #hollow-open, #hollow-away, .hollow-talk, #menu button, #hollow .closebtn {
+        min-height: 44px; touch-action: manipulation;
+      }
+      .still-row { flex-wrap: wrap; }
+      .still-row button { flex: 1 0 100%; }
+      #townname-input, #cup-paste, #cup-code { font-size: 16px !important; }
+      #juice { top: 14%; }
     }
   </style>
 <style>
@@ -495,6 +588,7 @@
     <button id="m-gallery">The Long Gallery</button>
     <button id="chain-btn" title="The Hall — everything this valley remembers, in the order it happened, and what the next one is waiting on.">🧱 The Hall</button>
     <button id="m-achv">Achievements</button>
+    <button id="m-hollow" type="button">The Lantern Hollow</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Hall">
@@ -559,6 +653,8 @@
   <canvas id="minimap" width="56" height="42" title="Click to jump there"></canvas>
 
   <div id="toasts"></div>
+  <div id="juice" hidden></div>
+  <div id="juice-motes"></div>
 
   <div id="trader">
     <div class="trader-card">
@@ -617,6 +713,61 @@
     </div>
   </div>
 
+  <div id="stillroom">
+    <div class="trader-card">
+      <div class="still-body">
+        <h2><span>&#127861;</span><span>The Stillroom</span></h2>
+        <div class="flavor" id="still-flavor">&mdash;</div>
+        <div id="still-path"></div>
+        <div id="still-stores"></div>
+        <div class="still-h">Bench</div>
+        <div id="still-recipes"></div>
+        <div id="still-anoint-wrap" hidden></div>
+        <div class="still-h">Neighbours</div>
+        <div id="still-neighbours"></div>
+        <div class="still-h">Valley Cup</div>
+        <div id="cup-need" data-tea="0" data-linen="0" data-pie="0"></div>
+        <div id="cup-day"></div>
+        <button type="button" id="cup-enter">Enter today&rsquo;s cup</button>
+        <label class="cup-lab" for="cup-code">Your slip</label>
+        <input id="cup-code" readonly aria-label="Your Valley Cup slip">
+        <label class="cup-lab" for="cup-paste">A neighbour&rsquo;s slip</label>
+        <div class="cup-addrow">
+          <input id="cup-paste" maxlength="80" autocomplete="off" placeholder="HV1." aria-label="Paste a Valley Cup slip">
+          <button type="button" id="cup-add">Add</button>
+        </div>
+        <div id="cup-board"></div>
+        <button type="button" class="still-recipe" id="still-hollow">The Lantern Hollow</button>
+      </div>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="still-close" type="button">Back to the lane</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div id="hollow">
+    <div class="trader-card">
+      <div class="hollow-body">
+        <h2><span>&#128293;</span><span>The Lantern Hollow</span></h2>
+        <div class="flavor" id="hollow-flavor">&mdash;</div>
+        <div id="hollow-seal" data-open="0"></div>
+        <button type="button" id="hollow-open">Part the briar</button>
+        <div id="hollow-warden" data-id="" data-season=""></div>
+        <div id="hollow-resolve" data-resolve="3"></div>
+        <button type="button" id="hollow-offer">Offer</button>
+        <div class="still-h">Companions</div>
+        <div id="hollow-people"></div>
+        <div id="hollow-line"></div>
+        <button type="button" id="hollow-away">Leave the warden</button>
+      </div>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="hollow-close" type="button">Back to the lane</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
+    </div>
+  </div>
+
   <div id="welcome">
     <div class="trader-card">
       <div class="welcome-body">
@@ -629,6 +780,9 @@
         &bull; Place workshops beside their <b>supplier</b> (bakery by a windmill&hellip;) for a &#9889; bonus.<br>
         &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
+        &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
+        &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
+        &bull; Once the valley <b>knows</b> you, the <b>Lantern Hollow</b> opens. A warden waits each season.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -751,6 +905,15 @@
       case 'goal':    tone(523, 0.10, 'triangle', 0.12); tone(659, 0.10, 'triangle', 0.12, 0.10); tone(784, 0.20, 'triangle', 0.12, 0.20); break;
       case 'error':   tone(150, 0.16, 'sawtooth', 0.08); break;
       case 'trader':  tone(440, 0.10, 'sine', 0.10); tone(330, 0.16, 'sine', 0.09, 0.09); break;
+      case 'steep':   tone(523, 0.08, 'sine', 0.10); tone(784, 0.16, 'sine', 0.08, 0.07); break;
+      case 'weave':   tone(220, 0.06, 'triangle', 0.09); tone(330, 0.10, 'triangle', 0.08, 0.05); tone(440, 0.14, 'triangle', 0.07, 0.12); break;
+      case 'bake':    tone(196, 0.08, 'triangle', 0.10); tone(294, 0.14, 'triangle', 0.09, 0.08); break;
+      case 'salve':   tone(392, 0.10, 'sine', 0.09); tone(523, 0.16, 'sine', 0.08, 0.08); tone(659, 0.20, 'sine', 0.06, 0.18); break;
+      case 'plant':   tone(262, 0.07, 'triangle', 0.09); tone(392, 0.14, 'triangle', 0.08, 0.06); break;
+      case 'deliver': tone(440, 0.07, 'square', 0.08); tone(554, 0.09, 'square', 0.08, 0.06); tone(659, 0.16, 'triangle', 0.09, 0.14); break;
+      case 'rank':    tone(523, 0.08, 'triangle', 0.11); tone(659, 0.09, 'triangle', 0.11, 0.08); tone(784, 0.12, 'triangle', 0.11, 0.16); tone(1046, 0.24, 'triangle', 0.10, 0.28); break;
+      case 'lantern': tone(392, 0.08, 'sine', 0.08); tone(523, 0.12, 'sine', 0.08, 0.08); tone(659, 0.18, 'triangle', 0.07, 0.16); break;
+      case 'warden':  tone(146, 0.16, 'triangle', 0.10); tone(220, 0.18, 'triangle', 0.09, 0.12); tone(330, 0.22, 'sine', 0.07, 0.24); break;
     }
   }
 
@@ -997,6 +1160,9 @@
     school:    { roof: 'blue',   wall: 'stone',  chimney: true },
     apiary:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
     furrier:   { roof: 'red',    wall: 'timber', chimney: true,  open: true },
+    stillroom: { roof: 'thatch', wall: 'timber', chimney: true,  open: true },
+    watchtower:{ roof: 'slate',  wall: 'stone',  chimney: false },
+    beacon:    { roof: 'slate',  wall: 'stone',  chimney: false },
     townhall:  { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
   };
   const B_ROOF = {
@@ -1304,6 +1470,12 @@
       P(sx0, floor - 6, 6, 6, C.wood); P(sx0, floor - 6, 6, 1, C.fenceHi); P(sx0 + 1, floor - 4, 4, 2, '#8fbcd0'); P(sx0 + 2, floor - 3, 1, 1, '#e8e8ee');
       P(sx0 + 3, floor - 11, 1, 6, '#8a5a2b');   // rod
     }
+    else if (type === 'stillroom') {            // kettle, jar, and a bundle of feverfew
+      P(sx0, floor - 8, 6, 8, '#3e2a1c'); P(sx0, floor - 8, 6, 1, '#5a4030');
+      P(sx0 + 1, floor - 6, 4, 3, '#6b8f71'); P(sx0 + 2, floor - 9, 2, 3, '#d5e6dc');
+      P(oX + 2, floor - 6, 3, 5, '#d7c4a3'); P(oX + 2, floor - 6, 3, 1, '#efe4cf');
+      P(oX + 6, floor - 5, 3, 4, '#7dcea0'); P(oX + 7, floor - 8, 1, 3, '#3f8a4c');
+    }
     // worker on the left (implies the shop is staffed)
     const wk = oX + 2;
     P(wk, floor - 5, 4, 3, '#5f83c8'); P(wk, floor - 2, 1, 2, '#3a2f22'); P(wk + 2, floor - 2, 1, 2, '#3a2f22');
@@ -1319,6 +1491,7 @@
     lumber:     { name: 'Woodcutter',  emoji: '🪓', w: 2, h: 2, cost: { wood: 6, gold: 8 },    prod: { wood: 5 }, worker: true, roof: C.roofBlue, roofDk: C.roofBlueDk, wantsNear: 'tree', desc: 'Fells nearby trees for lumber. Better beside a forest.' },
     quarry:     { name: 'Quarry',      emoji: '⛏️', w: 2, h: 2, tier: 1, cost: { wood: 18 },           prod: { stone: 4 }, worker: true, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, wantsNear: 'rock', desc: 'Cuts stone from the earth. Best beside rocks.' },
     bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, likes: { types: ['windmill'], bonus: 0.5, label: 'a Windmill' }, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Bakes far more with flour from a nearby windmill.' },
+    stillroom:  { name: 'Stillroom',   emoji: '🍵', w: 2, h: 2, tier: 2, cost: { wood: 18, stone: 8 }, unique: true, happy: 2, charm: 2, chimney: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A bench for willow tea, linen, harvest pies and fever salve. Mara, Tomas and Nessa pin what the valley needs on the board inside.' },
     carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, likes: { types: ['lumber'], bonus: 0.5, label: 'a Woodcutter' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods. Works faster with a woodcutter next door.' },
     mason:      { name: 'Stonemason',  emoji: '🗿', w: 2, h: 2, tier: 2, cost: { wood: 12, stone: 20 }, prod: { gold: 7 }, cons: { stone: 2 }, worker: true, chimney: true, likes: { types: ['quarry'], bonus: 0.5, label: 'a Quarry' }, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Dresses quarry stone into coin — and every worked cycle carves at the town Monument, a lasting joy raised in four stages.' },
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
@@ -1352,7 +1525,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'icehouse', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'stillroom', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'icehouse', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1736,13 +1909,21 @@
     const tended = physicBuilt();
     state.feverUntil = state.day + (tended ? 1 : FEVER_DAYS);
     state.happy = Math.max(0, state.happy - (tended ? 4 : 8));
+    let warded = false;
+    if ((state.ward || 0) > 0 && state.feverUntil > state.day + 1) {
+      state.ward -= 1;
+      state.feverUntil -= 1;
+      warded = true;
+    }
+    const sickDays = state.feverUntil - state.day;
     if (tended) {
       toast('🤒 A fever moves through town — but the herbalist goes door to door. One hard day. −4 cheer.');
       chron('🌿', 'A fever came with the cold rain — the physic garden broke it in a day');
     } else {
       toast('🤒 A FEVER moves through town — the workshops slow until it breaks. −8 cheer.');
-      chron('🤒', 'A fever came with the cold rain — three slow days');
+      chron('🤒', 'A fever came with the cold rain — ' + sickDays + ' slow day' + (sickDays === 1 ? '' : 's'));
     }
+    if (warded) toast('🧴 A salve Mara left on the shelf shortens the sick days by one.');
     save();
   }
 
@@ -1864,6 +2045,8 @@
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
+  let juiceMotes = [];     // craft sparkles over the stillroom, real-time
+  let juiceTimer = 0;
   // ambient life (cosmetic, non-persistent) — all move on continuous curves, never blink
   let birds = [], butters = [], fireflies = [], leaves = [], critters = [];
   let waterlife = [], waterSpots = [];   // ducks drifting on the river + fish-jump spots
@@ -1931,6 +2114,16 @@
       elderId: null,       // HVALE-12: who speaks for the town
       elderTrade: null,    // …and which trade stands taller for it
       beaconWarns: 0,      // HVALE-13: nights the watchfire called it early
+      // Stillroom: crops, crafted goods, and the neighbours' goodwill.
+      stores: { herbs: 0, fibre: 0, tea: 0, salve: 0, linen: 0, pie: 0 },
+      kinship: 0,
+      deliveries: 0,
+      crafted: 0,
+      posts: { mara: 0, tomas: 0, nessa: 0 },
+      asksFilled: {},
+      ward: 0,
+      cup: null,
+      hollow: null,
     };
   }
   const ACHIEVEMENTS = [
@@ -2015,6 +2208,12 @@
     { id: 'newcomers_panel', emoji: '\u{270D}\u{FE0F}', name: 'The Newcomer\u2019s Panel', desc: 'Let a newcomer paint their panel on three sessions.', done: () => loadMark().panels >= 3 },
     { id: 'long_gallery', emoji: '\u{1F3DB}\u{FE0F}', name: 'The Long Gallery', desc: 'Sit in the Long Gallery on three sessions.', done: () => loadGall().sits >= 3 },
     { id: 'fresh_plaster', emoji: '\u{1F9F1}', name: 'The Fresh Plaster', desc: 'Prime the bare end of the Long Gallery.', done: () => plasterUp() },
+    { id: 'firstkettle', emoji: '🍵', name: 'First Kettle', desc: 'Craft something at the Stillroom bench.', done: () => (state.crafted || 0) >= 1 },
+    { id: 'goodneighbour', emoji: '🤝', name: 'Good Neighbour', desc: 'Deliver three requests for the valley neighbours.', done: () => (state.deliveries || 0) >= 3, prog: () => [state.deliveries || 0, 3] },
+    { id: 'valleykin', emoji: '🌿', name: 'Kin of the Valley', desc: 'Earn 10 goodwill with the neighbours.', done: () => (state.kinship || 0) >= 10, prog: () => [state.kinship || 0, 10] },
+    { id: 'cupday', emoji: '🏆', name: 'Cup Day', desc: 'Enter the Valley Cup.', done: () => !!(state.cup && state.cup.day) },
+    { id: 'hollowopen', emoji: '🔥', name: 'The Briar Parts', desc: 'Open the Lantern Hollow.', done: () => !!(state.hollow && state.hollow.open) },
+    { id: 'wardenfaced', emoji: '🦌', name: 'Season\'s Warden', desc: 'See a hollow warden off.', done: () => { const f = state.hollow && state.hollow.faced; return !!f && Object.keys(f).length > 0; } },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2175,6 +2374,8 @@
     { text: 'Raise a Town Hall, the city’s pride', prog: () => [countType('townhall'), 1], done: () => countType('townhall') >= 1, reward: { gold: 300 } },
     { text: 'Stand the night watch — repel a wolf raid', prog: () => [state.raidsRepelled || 0, 1], done: () => (state.raidsRepelled || 0) >= 1, reward: { gold: 150 } },
     { text: 'Train a ⭐ Journeyman worker', prog: () => [Math.min(12, Math.max(0, ...state.villagers.map(v => v.xp || 0))), 12], done: () => state.villagers.some(v => (v.xp || 0) >= 12), reward: { gold: 60 } },
+    { text: 'Plant feverfew or flax on a farm', prog: () => [state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain') ? 1 : 0, 1], done: () => state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain'), reward: { gold: 25 } },
+    { text: 'Deliver a neighbour\u2019s request at the Stillroom', prog: () => [Math.min(1, state.deliveries || 0), 1], done: () => (state.deliveries || 0) >= 1, reward: { gold: 40 } },
   ];
   function checkGoals() {
     if (!state || state.goalIndex >= GOALS.length) return;
@@ -2322,8 +2523,37 @@
     pushDeco('well', startX - 2, startY - 2);
     pushDeco('lamp', startX - 1, startY - 3); pushDeco('lamp', startX + 4, startY + 2); pushDeco('lamp', startX + 7, startY - 2);
     pushDeco('barrel', startX + 3, startY - 2); pushDeco('logs', startX - 3, startY + 2);
+    carveHollow(startX, startY);
 
     return { startX, startY };
+  }
+  let hollowPad = null;
+  function carveHollow(startX, startY) {
+    hollowPad = null;
+    const w = 5, h = 4;
+    const spots = [];
+    for (let dy = -14; dy <= -6; dy++) for (let dx = -8; dx <= 2; dx++) spots.push([startX + dx, startY + dy]);
+    for (let i = 0; i < spots.length; i++) {
+      const tx = spots[i][0], ty = spots[i][1];
+      if (tx < 3 || ty < 3 || tx + w >= MAP_W - 2 || ty + h >= MAP_H - 2) continue;
+      let ok = true;
+      for (let y = 0; y < h && ok; y++) for (let x = 0; x < w; x++) {
+        const t = tiles[idx(tx + x, ty + y)];
+        if (t === T_WATER || t === T_BRIDGE || t === T_DIRT) ok = false;
+      }
+      if (!ok) continue;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = idx(tx + x, ty + y);
+        tiles[i] = T_GRASS;
+        tileObj[i] = O_NONE;
+      }
+      hollowPad = { tx: tx, ty: ty, w: w, h: h };
+      return;
+    }
+  }
+  function inHollow(tx, ty) {
+    const p = hollowPad;
+    return !!(p && tx >= p.tx && ty >= p.ty && tx < p.tx + p.w && ty < p.ty + p.h);
   }
 
   // walkable for villagers
@@ -2365,6 +2595,7 @@
         if (occ[idx(gx, gy)] >= 0) return false;
         const o = tileObj[idx(gx, gy)];
         if (o === O_TREE || o === O_ROCK || o === O_BUSH || o === O_MTN) return false;
+        if (inHollow(gx, gy)) return false;
       }
     return true;
   }
@@ -2835,6 +3066,841 @@
     return m;
   }
 
+  // ── The Stillroom ──────────────────────────────────────────
+  // Farms stay on grain unless the player switches the plot.
+  // Feverfew and flax leave the pantry and bank in the stillroom,
+  // where the player crafts goods the valley neighbours ask for.
+  // Goodwill is the progression: Known, Trusted, then Kin.
+  function blankStores() { return { herbs: 0, fibre: 0, tea: 0, salve: 0, linen: 0, pie: 0 }; }
+  function readStores(raw) {
+    const blank = blankStores();
+    const src = raw && typeof raw === 'object' ? raw : {};
+    Object.keys(blank).forEach(k => { blank[k] = clampStore(src[k]); });
+    return blank;
+  }
+  function readPosts(raw) {
+    const out = { mara: 0, tomas: 0, nessa: 0 };
+    NEIGHBOURS.forEach(n => {
+      const v = raw && typeof raw === 'object' ? Math.floor(Number(raw[n.id])) : 0;
+      out[n.id] = Number.isFinite(v) ? Math.max(0, Math.min(n.asks.length - 1, v)) : 0;
+    });
+    return out;
+  }
+  function readAsks(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    NEIGHBOURS.forEach(n => n.asks.forEach(a => {
+      const key = n.id + ':' + a.id;
+      if (raw[key]) out[key] = 1;
+    }));
+    return out;
+  }
+  function clampStore(n) {
+    const v = Math.floor(Number(n));
+    return Number.isFinite(v) ? Math.max(0, Math.min(999, v)) : 0;
+  }
+  function farmCrop(b) {
+    return (b && b.type === 'farm' && (b.crop === 'feverfew' || b.crop === 'flax')) ? b.crop : 'grain';
+  }
+  function farmBank(b, foodAmt) {
+    const crop = farmCrop(b);
+    if (crop === 'grain') return { crop: crop, key: 'food', n: foodAmt };
+    let n = Math.max(1, Math.ceil(foodAmt * 0.5));
+    if (crop === 'feverfew' && (state.kinship || 0) >= 3 && physicBuilt()) n += 1;
+    return { crop: crop, key: crop === 'feverfew' ? 'herbs' : 'fibre', n: n };
+  }
+  function stillroomBuilt() { return state.buildings.some(b => b.type === 'stillroom' && b.done !== false); }
+  const KIN_RANKS = [
+    { at: 0, name: 'Stranger', perk: 'The bench will take a first kettle, a first bolt, a first pie.' },
+    { at: 3, name: 'Known', perk: 'Salve opens, and feverfew beside a physic garden yields one herb more.' },
+    { at: 6, name: 'Trusted', perk: 'Every delivery lifts the town by 2 cheer.' },
+    { at: 10, name: 'Kin', perk: 'Recipes ask for one less of their dearest ingredient.' },
+  ];
+  function rankAt(kin) {
+    let r = KIN_RANKS[0];
+    for (let i = 0; i < KIN_RANKS.length; i++) if (kin >= KIN_RANKS[i].at) r = KIN_RANKS[i];
+    return r;
+  }
+  const STORE_GLYPH = { herbs: '🌿', fibre: '🧵', tea: '🍵', salve: '🧴', linen: '🧵', pie: '🥧', food: '🍎', wood: '🪵', stone: '🪨', gold: '💰' };
+  const STORE_NAME = { herbs: 'feverfew', fibre: 'flax', tea: 'willow tea', salve: 'salve', linen: 'linen', pie: 'pie', food: 'food', wood: 'wood', stone: 'stone', gold: 'gold' };
+  const RECIPES = [
+    { id: 'tea', name: 'Willow tea', emoji: '🍵', out: { tea: 1 }, cost: { herbs: 2 }, blurb: 'A bitter cup the lane swears by.' },
+    { id: 'linen', name: 'Linen bolt', emoji: '🧵', out: { linen: 1 }, cost: { fibre: 3, wood: 1 }, blurb: 'Flax, beaten and woven.' },
+    { id: 'pie', name: 'Harvest pie', emoji: '🥧', out: { pie: 1 }, cost: { food: 3, herbs: 1 }, blurb: 'Herb, fruit, and a golden crust.' },
+    { id: 'salve', name: 'Fever salve', emoji: '🧴', out: { salve: 1 }, cost: { herbs: 3, food: 1 }, blurb: 'Willowbark worked into fat.', minKin: 3 },
+  ];
+  const NEIGHBOURS = [
+    { id: 'mara', name: 'Mara Wren', emoji: '🌿', asks: [
+      { id: 'kettle', minKin: 0, need: { tea: 1 }, say: 'Bring a kettle of willow tea for the lane.', reward: { gold: 16 }, kin: 1 },
+      { id: 'salves', minKin: 3, need: { salve: 2 }, say: 'Two salves, before the sick season finds us.', reward: { gold: 28 }, kin: 1, ward: 1 },
+    ]},
+    { id: 'tomas', name: 'Tomas Reed', emoji: '🧵', asks: [
+      { id: 'shuttle', minKin: 0, need: { linen: 1 }, say: 'One linen bolt and the shuttle can fly.', reward: { gold: 18, wood: 6 }, kin: 1 },
+      { id: 'pair', minKin: 3, need: { linen: 2 }, say: 'A pair of bolts for the fair cloth.', reward: { gold: 32 }, kin: 1 },
+    ]},
+    { id: 'nessa', name: 'Nessa Holt', emoji: '🥧', asks: [
+      { id: 'table', minKin: 0, need: { pie: 1 }, say: 'A harvest pie for whoever comes in cold.', reward: { gold: 14 }, happy: 6, kin: 1 },
+      { id: 'feast', minKin: 6, need: { pie: 2, tea: 1 }, say: 'Pies and tea. The kin-feast is waiting on you.', reward: { gold: 36 }, happy: 8, kin: 2 },
+    ]},
+  ];
+  function neighbourById(id) { return NEIGHBOURS.find(n => n.id === id); }
+  function postIndex(id) {
+    const n = neighbourById(id);
+    const raw = state.posts && state.posts[id];
+    const i = Math.max(0, Math.floor(Number(raw) || 0));
+    return Math.min(i, n.asks.length - 1);
+  }
+  function currentAsk(id) {
+    const n = neighbourById(id);
+    const idx = postIndex(id);
+    const posted = n.asks[idx];
+    return { ask: posted, index: idx, locked: (state.kinship || 0) < (posted.minKin || 0) };
+  }
+  function askKey(npcId, ask) { return npcId + ':' + ask.id; }
+  function stockOf(key) {
+    if (key === 'food' || key === 'wood' || key === 'stone' || key === 'gold') return state.res[key] || 0;
+    return (state.stores && state.stores[key]) || 0;
+  }
+  function takeStock(key, n) {
+    if (key === 'food' || key === 'wood' || key === 'stone' || key === 'gold') state.res[key] -= n;
+    else state.stores[key] -= n;
+  }
+  function giveStock(key, n) {
+    if (key === 'gold') state.res.gold += n;
+    else if (key === 'food' || key === 'wood' || key === 'stone') state.res[key] = Math.min(capOf(key), (state.res[key] || 0) + n);
+    else state.stores[key] = Math.min(999, (state.stores[key] || 0) + n);
+  }
+  function recipeCost(recipe) {
+    const cost = Object.assign({}, recipe.cost);
+    if ((state.kinship || 0) >= 10) {
+      let key = null, best = 0;
+      for (const k in cost) if (cost[k] > best) { best = cost[k]; key = k; }
+      if (key && cost[key] > 1) cost[key] -= 1;
+    }
+    return cost;
+  }
+  function costText(cost) {
+    return Object.keys(cost).map(k => cost[k] + ' ' + STORE_GLYPH[k]).join(' ');
+  }
+  function gapsFor(need) {
+    const parts = [];
+    for (const k in need) {
+      const have = stockOf(k);
+      if (have < need[k]) parts.push((need[k] - have) + ' more ' + STORE_GLYPH[k] + ' ' + STORE_NAME[k]);
+    }
+    return parts;
+  }
+  function valleyPath() {
+    const planted = state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain');
+    return [
+      { id: 'room', text: 'Raise the Stillroom', done: stillroomBuilt() },
+      { id: 'plot', text: 'Plant feverfew or flax', done: planted },
+      { id: 'craft', text: 'Craft something at the bench', done: (state.crafted || 0) >= 1 },
+      { id: 'door', text: 'Deliver a neighbour\u2019s ask', done: (state.deliveries || 0) >= 1 },
+      { id: 'known', text: 'Be Known (3 goodwill)', done: (state.kinship || 0) >= 3 },
+      { id: 'trusted', text: 'Be Trusted (6 goodwill)', done: (state.kinship || 0) >= 6 },
+      { id: 'kin', text: 'Be counted Kin (10 goodwill)', done: (state.kinship || 0) >= 10 },
+      { id: 'cup', text: 'Enter the Valley Cup', done: !!(state.cup && state.cup.day) },
+      { id: 'hollow', text: 'Part the briar of the Lantern Hollow', done: !!(state.hollow && state.hollow.open) },
+    ];
+  }
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function juice(emoji, line) {
+    const el = document.getElementById('juice');
+    if (!el) return;
+    el.innerHTML = '<span class="j-emoji">' + emoji + '</span><span class="j-line">' + escHtml(line) + '</span>';
+    el.hidden = false;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    juiceTimer = 2.1;
+  }
+  function stillroomWorld() {
+    if (!state || !state.buildings) return null;
+    const b = state.buildings.find(x => x.type === 'stillroom' && x.done !== false);
+    if (!b) return null;
+    const def = BUILDINGS.stillroom;
+    return { x: (b.tx + def.w / 2) * TILE, y: (b.ty + 0.2) * TILE };
+  }
+  function spawnJuiceMotes(emoji) {
+    const w = stillroomWorld();
+    if (!w) return;
+    for (let i = 0; i < 8; i++) {
+      juiceMotes.push({
+        x: w.x + (rrand(i * 17 + (state.crafted || 0) * 3) - 0.5) * 22,
+        y: w.y,
+        vy: -16 - rrand(i * 9 + 2) * 18,
+        vx: (rrand(i * 13 + 4) - 0.5) * 26,
+        life: 1.25,
+        max: 1.25,
+        emoji: emoji,
+      });
+    }
+    if (juiceMotes.length > 48) juiceMotes.splice(0, juiceMotes.length - 48);
+    const layer = document.getElementById('juice-motes');
+    if (!layer) return;
+    const sheet = document.querySelector('#stillroom.show .trader-card');
+    const origin = sheet || document.getElementById('game');
+    if (!origin) return;
+    const rect = origin.getBoundingClientRect();
+    const x = rect.left + rect.width * (sheet ? 0.5 : 0.5);
+    const y = rect.top + rect.height * (sheet ? 0.42 : 0.45);
+    while (layer.childElementCount > 24) layer.firstChild.remove();
+    for (let i = 0; i < 10; i++) {
+      const span = document.createElement('span');
+      span.textContent = emoji;
+      span.style.left = Math.round(x + (rrand(i * 19 + 1) - 0.5) * 80) + 'px';
+      span.style.top = Math.round(y) + 'px';
+      span.style.setProperty('--dx', Math.round((rrand(i * 23 + 5) - 0.5) * 220) + 'px');
+      span.style.setProperty('--dy', Math.round(-70 - rrand(i * 11 + 3) * 160) + 'px');
+      layer.appendChild(span);
+      setTimeout(() => { if (span.parentNode) span.remove(); }, 1300);
+    }
+  }
+  function updateJuiceMotes(dt) {
+    for (const m of juiceMotes) {
+      m.life -= dt;
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+      m.vy += 20 * dt;
+    }
+    if (juiceMotes.length) juiceMotes = juiceMotes.filter(m => m.life > 0);
+    if (juiceTimer > 0) {
+      juiceTimer -= dt;
+      if (juiceTimer <= 0) {
+        const el = document.getElementById('juice');
+        if (el) el.hidden = true;
+      }
+    }
+  }
+  const CUP_KEY = 'hvale-cup-rivals';
+  const CUP_BASKETS = [
+    { tea: 1, linen: 1 },
+    { pie: 1, tea: 1 },
+    { linen: 1, pie: 1 },
+  ];
+  function cupDayKey(d) {
+    const dt = d || new Date();
+    const y = dt.getUTCFullYear();
+    const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(dt.getUTCDate()).padStart(2, '0');
+    return '' + y + m + day;
+  }
+  function cupBasket() { return CUP_BASKETS[Number(cupDayKey()) % 3]; }
+  function cupScore() { return 80 + (state.kinship || 0) * 12 + (state.deliveries || 0) * 3; }
+  function cupEncodeName(name) {
+    const clean = String(name || 'Vale').trim().slice(0, 16) || 'Vale';
+    return btoa(unescape(encodeURIComponent(clean))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+  function cupDecodeName(b64) {
+    try {
+      const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+      const raw = atob(String(b64).replace(/-/g, '+').replace(/_/g, '/') + pad);
+      const name = decodeURIComponent(escape(raw)).trim().slice(0, 16);
+      return name;
+    } catch (e) { return ''; }
+  }
+  function cupCodeFor(name, day, score) {
+    return 'HV1.' + cupEncodeName(name) + '.' + day + '.' + score;
+  }
+  function parseCupCode(code) {
+    const m = String(code || '').trim().match(/^HV1\.([A-Za-z0-9_-]+)\.(\d{8})\.(\d{1,5})$/);
+    if (!m) return null;
+    const name = cupDecodeName(m[1]);
+    if (!name) return null;
+    const score = parseInt(m[3], 10);
+    if (!Number.isFinite(score)) return null;
+    return { name: name, day: m[2], score: score };
+  }
+  function readCup(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const day = String(raw.day || '');
+    if (!/^\d{8}$/.test(day)) return null;
+    const score = Math.floor(Number(raw.score) || 0);
+    return { day: day, score: Math.max(0, Math.min(99999, score)) };
+  }
+  function readCupBoard() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CUP_KEY) || '[]');
+      if (!Array.isArray(raw)) return [];
+      return raw.map(r => {
+        if (!r || typeof r.name !== 'string' || !/^\d{8}$/.test(String(r.day))) return null;
+        const score = Math.floor(Number(r.score));
+        if (!Number.isFinite(score)) return null;
+        const name = String(r.name).trim().slice(0, 16);
+        if (!name) return null;
+        return { name: name, day: String(r.day), score: Math.max(0, Math.min(99999, score)) };
+      }).filter(Boolean).slice(0, 12);
+    } catch (e) { return []; }
+  }
+  function writeCupBoard(rows) {
+    try { localStorage.setItem(CUP_KEY, JSON.stringify(rows.slice(0, 12))); } catch (e) {}
+  }
+  function ensureStillroomState() {
+    if (!state.stores) state.stores = blankStores();
+    if (!state.posts) state.posts = { mara: 0, tomas: 0, nessa: 0 };
+    if (!state.asksFilled) state.asksFilled = {};
+  }
+  function stillroomOpen() {
+    const el = document.getElementById('stillroom');
+    return !!(el && el.classList.contains('show'));
+  }
+  function renderStillroom() {
+    ensureStillroomState();
+    const kin = state.kinship || 0;
+    const rank = rankAt(kin);
+    document.getElementById('still-flavor').textContent = rank.name + ' · ' + kin + ' goodwill. ' + rank.perk;
+    document.getElementById('still-path').innerHTML = valleyPath().map(s =>
+      '<div class="still-step' + (s.done ? ' done' : '') + '" data-step="' + s.id + '" data-done="' + (s.done ? '1' : '0') + '">' + (s.done ? '✓ ' : '○ ') + s.text + '</div>'
+    ).join('');
+    const st = state.stores;
+    let shelf = '🌿 ' + st.herbs + ' feverfew · 🧵 ' + st.fibre + ' flax · 🍵 ' + st.tea + ' tea · 🧴 ' + st.salve + ' salve · 🧵 ' + st.linen + ' linen · 🥧 ' + st.pie + ' pie';
+    if (state.ward) shelf += ' · a shelf salve will shorten the next fever';
+    document.getElementById('still-stores').textContent = shelf;
+    document.getElementById('still-recipes').innerHTML = RECIPES.map(r => {
+      const locked = (r.minKin || 0) > kin;
+      const cost = recipeCost(r);
+      const label = locked
+        ? r.emoji + ' ' + r.name + ' — opens when you are Known'
+        : r.emoji + ' ' + r.name + ' — ' + costText(cost) + ((kin >= 10) ? ' · kin' : '');
+      const title = locked ? 'Opens when you are Known (3 goodwill).' : r.blurb;
+      return '<button type="button" class="still-recipe" id="still-recipe-' + r.id + '" data-recipe="' + r.id + '" title="' + title + '">' + label + '</button>';
+    }).join('');
+    const wrap = document.getElementById('still-anoint-wrap');
+    if (feverActive()) {
+      wrap.hidden = false;
+      wrap.innerHTML = '<button type="button" id="still-anoint">🧴 Anoint the town (1 salve)</button>';
+    } else { wrap.hidden = true; wrap.innerHTML = ''; }
+    document.getElementById('still-neighbours').innerHTML = NEIGHBOURS.map(n => {
+      const cur = currentAsk(n.id);
+      const note = cur.locked
+        ? 'Waiting until you are ' + rankAt(cur.ask.minKin).name + '. ' + cur.ask.say
+        : cur.ask.say;
+      return '<div class="still-row"><div class="who"><b>' + n.emoji + ' ' + n.name + '</b><span id="still-ask-' + n.id + '">' + note + '</span></div>'
+        + '<button type="button" id="still-deliver-' + n.id + '" data-deliver="' + n.id + '">Deliver</button></div>';
+    }).join('');
+    renderCup();
+  }
+  function renderCup() {
+    const needEl = document.getElementById('cup-need');
+    if (!needEl) return;
+    const day = cupDayKey();
+    const need = cupBasket();
+    needEl.dataset.tea = String(need.tea || 0);
+    needEl.dataset.linen = String(need.linen || 0);
+    needEl.dataset.pie = String(need.pie || 0);
+    const entered = !!(state.cup && state.cup.day === day);
+    const bits = Object.keys(need).map(k => need[k] + ' ' + STORE_GLYPH[k] + ' ' + STORE_NAME[k]);
+    needEl.textContent = entered
+      ? 'Today\u2019s basket is spent. You stand at ' + state.cup.score + '.'
+      : 'Today\u2019s basket: ' + bits.join(' and ') + '.';
+    const dayEl = document.getElementById('cup-day');
+    if (dayEl) dayEl.textContent = day;
+    const code = document.getElementById('cup-code');
+    if (code) code.value = entered ? cupCodeFor(state.townName || 'Hearthvale', day, state.cup.score) : '';
+    const rows = [];
+    if (entered) rows.push({ name: (state.townName || 'Hearthvale').slice(0, 16), score: state.cup.score, you: true });
+    readCupBoard().forEach(r => { if (r.day === day) rows.push(r); });
+    rows.sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name)));
+    const board = document.getElementById('cup-board');
+    if (!board) return;
+    board.innerHTML = rows.length
+      ? rows.map(r => '<div class="cup-row" data-name="' + escHtml(r.name) + '" data-score="' + r.score + '"><b>' + escHtml(r.name) + (r.you ? ' (you)' : '') + '</b><span>' + r.score + '</span></div>').join('')
+      : '<div class="cup-empty">No slips for today yet.</div>';
+  }
+  function openStillroom() {
+    if (!stillroomBuilt()) { toast('Raise a Stillroom first.'); SFX('error'); return; }
+    renderStillroom();
+    document.getElementById('stillroom').classList.add('show');
+  }
+  function afterStillroomAct() {
+    updateHUD(); checkGoals(); checkAchievements(); save();
+    if (stillroomOpen()) renderStillroom();
+  }
+  function craftRecipe(id) {
+    ensureStillroomState();
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const recipe = RECIPES.find(r => r.id === id);
+    if (!recipe) return;
+    if ((recipe.minKin || 0) > (state.kinship || 0)) {
+      toast('Fever salve opens when you are Known (3 goodwill).');
+      SFX('error'); return;
+    }
+    const cost = recipeCost(recipe);
+    const gaps = gapsFor(cost);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cost) takeStock(k, cost[k]);
+    for (const k in recipe.out) giveStock(k, recipe.out[k]);
+    const first = (state.crafted || 0) === 0;
+    state.crafted = (state.crafted || 0) + 1;
+    const craftSfx = recipe.id === 'tea' ? 'steep' : recipe.id === 'linen' ? 'weave' : recipe.id === 'pie' ? 'bake' : recipe.id === 'salve' ? 'salve' : 'coin';
+    SFX(craftSfx);
+    juice(recipe.emoji, recipe.name + ' is ready');
+    spawnJuiceMotes(recipe.emoji);
+    toast(recipe.emoji + ' ' + recipe.name + ' is ready on the bench.');
+    if (first) chron(recipe.emoji, 'The Stillroom bench turns out its first ' + recipe.name.toLowerCase());
+    afterStillroomAct();
+  }
+  function deliverAsk(npcId) {
+    ensureStillroomState();
+    const n = neighbourById(npcId);
+    if (!n) return;
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const cur = currentAsk(npcId);
+    if (cur.locked) {
+      toast(n.name.split(' ')[0] + ' is waiting until you are ' + rankAt(cur.ask.minKin).name + '.');
+      SFX('error'); return;
+    }
+    const gaps = gapsFor(cur.ask.need);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cur.ask.need) takeStock(k, cur.ask.need[k]);
+    for (const k in (cur.ask.reward || {})) giveStock(k, cur.ask.reward[k]);
+    if (cur.ask.happy) state.happy = Math.min(100, state.happy + cur.ask.happy);
+    const key = askKey(npcId, cur.ask);
+    const before = rankAt(state.kinship || 0);
+    if (!state.asksFilled[key]) {
+      state.asksFilled[key] = 1;
+      state.kinship = (state.kinship || 0) + (cur.ask.kin || 0);
+      if (cur.ask.ward) state.ward = (state.ward || 0) + cur.ask.ward;
+    }
+    state.deliveries = (state.deliveries || 0) + 1;
+    if ((state.kinship || 0) >= 6) state.happy = Math.min(100, state.happy + 2);
+    if (cur.index === postIndex(npcId) && postIndex(npcId) < n.asks.length - 1) state.posts[npcId] = postIndex(npcId) + 1;
+    const after = rankAt(state.kinship || 0);
+    toast(n.emoji + ' ' + n.name.split(' ')[0] + ' takes it. The valley remembers.');
+    chron(n.emoji, n.name + ' collected ' + cur.ask.say.replace(/\.$/, '').toLowerCase());
+    if (after.name !== before.name) {
+      SFX('rank');
+      celebrateT = CELEBRATE_DUR;
+      juice('🤝', 'The valley calls you ' + after.name);
+      toast('🤝 The valley calls you ' + after.name + '. ' + after.perk);
+      chron('🤝', 'The neighbours name the town ' + after.name);
+    } else {
+      SFX('deliver');
+      juice(n.emoji, n.name.split(' ')[0] + ' takes it');
+    }
+    spawnJuiceMotes(n.emoji);
+    afterStillroomAct();
+  }
+  function anointTown() {
+    ensureStillroomState();
+    if (!feverActive()) { toast('Nobody is fevered. Save the salve.'); SFX('error'); return; }
+    if ((state.stores.salve || 0) < 1) { toast('Need 1 more 🧴 salve'); SFX('error'); return; }
+    state.stores.salve -= 1;
+    state.feverUntil = -1;
+    state.feversWeathered = (state.feversWeathered || 0) + 1;
+    state.happy = Math.min(100, state.happy + 4);
+    SFX('salve');
+    juice('🧴', 'The fever breaks');
+    spawnJuiceMotes('🧴');
+    toast('🧴 The salve goes door to door. The fever breaks. +4 cheer.');
+    chron('🧴', 'A stillroom salve broke the fever before it could settle');
+    afterStillroomAct();
+  }
+  function setFarmCrop(b, crop) {
+    if (!b || b.type !== 'farm' || b.done === false) return;
+    const next = (crop === 'feverfew' || crop === 'flax') ? crop : 'grain';
+    if (farmCrop(b) === next) return;
+    if (next === 'grain') delete b.crop; else b.crop = next;
+    const label = next === 'feverfew' ? '🌿 Feverfew' : next === 'flax' ? '🧵 Flax' : '🌾 Grain';
+    toast(label + ' goes in on the ' + BUILDINGS.farm.name.toLowerCase() + '.');
+    SFX('plant');
+    juice(next === 'feverfew' ? '🌿' : next === 'flax' ? '🧵' : '🌾', label + ' is in the ground');
+    updateHUD(); checkGoals(); save();
+    if (selected === b) showPanel(b);
+  }
+  function enterValleyCup() {
+    ensureStillroomState();
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const day = cupDayKey();
+    if (state.cup && state.cup.day === day) {
+      toast('The cup already has your name today.');
+      SFX('error');
+      return;
+    }
+    const need = cupBasket();
+    const gaps = gapsFor(need);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    const score = cupScore();
+    for (const k in need) takeStock(k, need[k]);
+    state.cup = { day: day, score: score };
+    SFX('rank');
+    celebrateT = CELEBRATE_DUR;
+    juice('🏆', 'Valley Cup · ' + score);
+    spawnJuiceMotes('🏆');
+    toast('🏆 ' + (state.townName || 'Hearthvale') + ' enters the Valley Cup at ' + score + '.');
+    chron('🏆', 'The town entered the Valley Cup at ' + score);
+    afterStillroomAct();
+  }
+  function addCupRival() {
+    const field = document.getElementById('cup-paste');
+    const parsed = parseCupCode(field ? field.value : '');
+    if (!parsed) { toast('That code isn\u2019t a Valley Cup slip.'); SFX('error'); return; }
+    const today = cupDayKey();
+    const board = readCupBoard().filter(r => !(r.name === parsed.name && r.day === parsed.day));
+    board.unshift(parsed);
+    writeCupBoard(board);
+    if (field) field.value = '';
+    if (parsed.day !== today) toast(parsed.name + ' slipped in from another day. The board shows today.');
+    else {
+      toast(parsed.name + ' is on today\u2019s board.');
+      SFX('deliver');
+      juice('🍵', parsed.name + ' · ' + parsed.score);
+    }
+    if (stillroomOpen()) renderStillroom();
+  }
+
+  // The Lantern Hollow is a northern clearing. It stays briared until the
+  // valley knows you. Each season a warden stands there. Companions are the
+  // solo-play voices: local lines by default, and the shared booth when it
+  // is on the page (ArcadeAI.boothTalk, else ArcadeAI.createStubProvider).
+  const WARDENS = [
+    { id: 'hart', season: 'Spring', name: 'The Bloom Hart', emoji: '🦌', need: { tea: 1, herbs: 1 }, bless: { happy: 6 } },
+    { id: 'boar', season: 'Summer', name: 'The Sun Boar', emoji: '🐗', need: { pie: 1, food: 4 }, bless: { gold: 24 } },
+    { id: 'stag', season: 'Autumn', name: 'The Briar Stag', emoji: '🍂', need: { linen: 1, fibre: 2 }, bless: { wood: 20 } },
+    { id: 'frost', season: 'Winter', name: 'The Frost Warden', emoji: '❄️', need: { salve: 1, wood: 8 }, bless: { happy: 8, food: 12 } },
+  ];
+  const COMPANIONS = [
+    { id: 'wren', name: 'Elder Wren', role: 'Hearth', icon: '🔥', ready: (c) => (c.food || 0) >= 8, lines: [
+      { when: (c) => (c.food || 0) < 8, mood: 'grave', text: (c) => 'The stores show ' + c.food + ' food. I will not walk into the hollow hungry.' },
+      { mood: 'soft', text: (c) => 'Day ' + c.day + '. The hearth is lit. I will stand with you.' },
+    ]},
+    { id: 'ada', name: 'Reeve Ada', role: 'Watch', icon: '🪵', ready: (c) => (c.wood || 0) >= 12, lines: [
+      { when: (c) => (c.wood || 0) < 12, mood: 'brisk', text: (c) => 'Wood is ' + c.wood + '. I will not face the warden with an empty yard.' },
+      { mood: 'plain', text: () => 'The watch is with you. Say the word.' },
+    ]},
+    { id: 'sable', name: 'Sable', role: 'Merchant', icon: '🧳', ready: (c) => (c.gold || 0) >= 20, lines: [
+      { when: (c) => (c.gold || 0) < 20, mood: 'wry', text: (c) => 'Coin is ' + c.gold + '. I still have thread, if you have patience.' },
+      { mood: 'bright', text: () => 'I will stand in the lantern light. The road can wait.' },
+    ]},
+  ];
+  function blankHollow() {
+    return { open: 0, faced: {}, fled: '', counsel: {}, counselKey: '', announced: '', talks: 0 };
+  }
+  function readHollow(raw) {
+    const out = blankHollow();
+    if (!raw || typeof raw !== 'object') return out;
+    out.open = raw.open ? 1 : 0;
+    out.fled = /^(Spring|Summer|Autumn|Winter)$/.test(String(raw.fled || '').split('-').pop()) && /^\d+-/.test(String(raw.fled || '')) ? String(raw.fled) : '';
+    out.counselKey = typeof raw.counselKey === 'string' ? raw.counselKey.slice(0, 24) : '';
+    out.announced = typeof raw.announced === 'string' ? raw.announced.slice(0, 24) : '';
+    out.talks = Math.max(0, Math.min(999, Math.floor(Number(raw.talks) || 0)));
+    if (raw.faced && typeof raw.faced === 'object') {
+      Object.keys(raw.faced).forEach(k => {
+        if (/^\d+-(Spring|Summer|Autumn|Winter)$/.test(k) && raw.faced[k]) out.faced[k] = 1;
+      });
+    }
+    if (raw.counsel && typeof raw.counsel === 'object') {
+      COMPANIONS.forEach(c => { if (raw.counsel[c.id]) out.counsel[c.id] = 1; });
+    }
+    return out;
+  }
+  function ensureHollow() {
+    if (!state.hollow) state.hollow = blankHollow();
+  }
+  function hollowIsOpen() { return !!(state.hollow && state.hollow.open); }
+  function currentWarden() {
+    const name = seasonOf(state.day).name;
+    return WARDENS.find(w => w.season === name) || WARDENS[0];
+  }
+  function wardenKey() { return yearOf(state.day) + '-' + currentWarden().season; }
+  function wardenGone() {
+    if (!state.hollow) return false;
+    const key = wardenKey();
+    return !!(state.hollow.faced && state.hollow.faced[key]) || state.hollow.fled === key;
+  }
+  function syncCounsel() {
+    ensureHollow();
+    const key = wardenKey();
+    if (state.hollow.counselKey !== key) {
+      state.hollow.counsel = {};
+      state.hollow.counselKey = key;
+    }
+  }
+  function counselCount() {
+    syncCounsel();
+    return COMPANIONS.filter(c => state.hollow.counsel && state.hollow.counsel[c.id]).length;
+  }
+  function wardenResolve() {
+    if (!hollowIsOpen() || wardenGone()) return 0;
+    return Math.max(0, 3 - counselCount());
+  }
+  function offerCost() {
+    const cost = Object.assign({}, currentWarden().need);
+    let waive = counselCount();
+    while (waive > 0) {
+      let key = null, best = 0;
+      for (const k in cost) if (cost[k] > best) { best = cost[k]; key = k; }
+      if (!key) break;
+      cost[key] -= 1;
+      if (cost[key] <= 0) delete cost[key];
+      waive -= 1;
+    }
+    return cost;
+  }
+  function hearthContext() {
+    const w = currentWarden();
+    return {
+      day: state.day | 0,
+      food: Math.floor(state.res.food || 0),
+      wood: Math.floor(state.res.wood || 0),
+      gold: Math.floor(state.res.gold || 0),
+      pop: (state.villagers && state.villagers.length) || 0,
+      season: w.season,
+      kinship: state.kinship || 0,
+      hollow: hollowIsOpen(),
+      warden: w.id,
+    };
+  }
+  function localCompanionLine(req) {
+    const person = COMPANIONS.find(c => c.id === req.npcId) || COMPANIONS[0];
+    const ctx = req.context || {};
+    let chosen = person.lines[person.lines.length - 1];
+    for (let i = 0; i < person.lines.length; i++) {
+      const line = person.lines[i];
+      if (!line.when || line.when(ctx)) { chosen = line; break; }
+    }
+    return {
+      provider: 'local',
+      game: 'hearthvale',
+      npcId: person.id,
+      name: person.name,
+      role: person.role,
+      icon: person.icon,
+      mood: chosen.mood,
+      line: chosen.text(ctx),
+    };
+  }
+  function companionLine(npcId) {
+    const req = { game: 'hearthvale', npcId: npcId, context: hearthContext(), turn: (state.hollow && state.hollow.talks) || 0 };
+    try { document.dispatchEvent(new CustomEvent('hearthvale-npc-talk', { detail: req })); } catch (e) {}
+    const ai = window.ArcadeAI;
+    let pending = null;
+    try {
+      if (ai && typeof ai.boothTalk === 'function') pending = Promise.resolve().then(() => ai.boothTalk(req));
+      else if (ai && typeof ai.createStubProvider === 'function') pending = Promise.resolve().then(() => ai.createStubProvider().talk(req));
+    } catch (e) { pending = null; }
+    const finish = (result) => {
+      if (!result || !result.line) result = localCompanionLine(req);
+      if (!result.npcId) result.npcId = npcId;
+      try { document.dispatchEvent(new CustomEvent('hearthvale-npc-said', { detail: result })); } catch (e) {}
+      return result;
+    };
+    if (!pending) return Promise.resolve(finish(null));
+    return pending.then(finish).catch(() => finish(localCompanionLine(req)));
+  }
+  function companionById(id) { return COMPANIONS.find(c => c.id === id) || COMPANIONS[0]; }
+  function grantBlessing(w) {
+    const b = w.bless || {};
+    if (b.happy) state.happy = Math.min(100, Math.max(0, state.happy + b.happy));
+    ['gold', 'wood', 'food', 'stone'].forEach(k => { if (b[k]) giveStock(k, b[k]); });
+  }
+  function faceWarden() {
+    ensureHollow();
+    const w = currentWarden();
+    state.hollow.faced[wardenKey()] = 1;
+    state.hollow.counsel = {};
+    grantBlessing(w);
+    SFX('warden');
+    celebrateT = CELEBRATE_DUR;
+    juice(w.emoji, w.name + ' bows');
+    toast(w.emoji + ' ' + w.name + ' bows and leaves a blessing.');
+    chron(w.emoji, w.name + ' left the hollow a blessing');
+    afterHollow();
+  }
+  function hollowAtDawn() {
+    if (!hollowIsOpen()) return;
+    const key = wardenKey();
+    if (state.hollow.announced === key) return;
+    state.hollow.announced = key;
+    syncCounsel();
+    if (wardenGone()) return;
+    const w = currentWarden();
+    toast(w.emoji + ' ' + w.name + ' is in the lantern hollow.');
+    chron(w.emoji, w.name + ' stepped into the hollow');
+  }
+  function renderHollow() {
+    ensureHollow();
+    syncCounsel();
+    const open = hollowIsOpen();
+    const w = currentWarden();
+    const key = wardenKey();
+    const gone = wardenGone();
+    const seal = document.getElementById('hollow-seal');
+    if (seal) {
+      seal.dataset.open = open ? '1' : '0';
+      seal.textContent = open
+        ? 'The briar is parted. The lanterns are lit.'
+        : 'The briar is shut. The hollow opens when the valley knows you.';
+    }
+    const flavor = document.getElementById('hollow-flavor');
+    if (flavor) flavor.textContent = open
+      ? (gone ? 'The hollow is quiet until the season turns.' : w.name + ' holds the clearing.')
+      : 'Strangers see only thorns.';
+    const openBtn = document.getElementById('hollow-open');
+    if (openBtn) openBtn.hidden = open;
+    const ward = document.getElementById('hollow-warden');
+    if (ward) {
+      ward.dataset.id = w.id;
+      ward.dataset.season = w.season;
+      ward.textContent = open ? (w.emoji + ' ' + w.name + ' · ' + w.season) : '';
+    }
+    const resolve = wardenResolve();
+    const resEl = document.getElementById('hollow-resolve');
+    if (resEl) {
+      resEl.dataset.resolve = String(resolve);
+      resEl.textContent = open && !gone ? 'Resolve ' + '●'.repeat(resolve) + '○'.repeat(3 - resolve) : '';
+    }
+    const cost = offerCost();
+    const offer = document.getElementById('hollow-offer');
+    if (offer) {
+      offer.hidden = !open || gone;
+      ['tea', 'herbs', 'pie', 'food', 'linen', 'fibre', 'salve', 'wood'].forEach(k => {
+        offer.dataset[k] = String(cost[k] || 0);
+      });
+      const label = Object.keys(cost).length ? 'Offer ' + costText(cost) : 'The companions have stood';
+      offer.textContent = label;
+    }
+    const away = document.getElementById('hollow-away');
+    if (away) away.hidden = !open || gone;
+    const people = document.getElementById('hollow-people');
+    if (people) {
+      people.innerHTML = COMPANIONS.map(c => {
+        const stood = open && state.hollow.counsel && state.hollow.counsel[c.id] ? ' · stood' : '';
+        return '<button type="button" class="hollow-talk" id="hollow-talk-' + c.id + '" data-talk="' + c.id + '">' + c.icon + ' ' + c.name + stood + '</button>';
+      }).join('');
+    }
+    const line = document.getElementById('hollow-line');
+    if (line && !line.dataset.hold) {
+      if (!open) line.textContent = 'Wren, Ada, and Sable will walk in with you once the briar parts.';
+      else if (state.hollow.faced && state.hollow.faced[key]) line.textContent = 'The warden has left a blessing on the lane.';
+      else if (state.hollow.fled === key) line.textContent = 'The warden raked the lane and left.';
+    }
+  }
+  function openHollow() {
+    renderHollow();
+    document.getElementById('hollow').classList.add('show');
+  }
+  function afterHollow() {
+    const line = document.getElementById('hollow-line');
+    if (line) delete line.dataset.hold;
+    updateHUD(); checkAchievements(); save();
+    if (document.getElementById('hollow').classList.contains('show')) renderHollow();
+    if (stillroomOpen()) renderStillroom();
+  }
+  function partTheBriar() {
+    ensureHollow();
+    if (hollowIsOpen()) { openHollow(); return; }
+    if ((state.kinship || 0) < 3) {
+      toast('The briar keeps the hollow until the valley knows you (3 goodwill).');
+      SFX('error');
+      return;
+    }
+    state.hollow.open = 1;
+    state.hollow.announced = wardenKey();
+    SFX('lantern');
+    juice('🔥', 'The briar parts');
+    toast('🔥 The briar parts. Lanterns wake in the northern hollow.');
+    chron('🔥', 'The Lantern Hollow opened to a known valley');
+    const w = currentWarden();
+    toast(w.emoji + ' ' + w.name + ' is already waiting.');
+    afterHollow();
+  }
+  function offerWarden() {
+    ensureHollow();
+    ensureStillroomState();
+    if (!hollowIsOpen()) { toast('The hollow is still shut.'); SFX('error'); return; }
+    if (wardenGone()) { toast('The warden has already left this season.'); SFX('error'); return; }
+    const cost = offerCost();
+    const gaps = gapsFor(cost);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cost) takeStock(k, cost[k]);
+    faceWarden();
+  }
+  function leaveWarden() {
+    ensureHollow();
+    if (!hollowIsOpen() || wardenGone()) return;
+    state.hollow.fled = wardenKey();
+    state.hollow.counsel = {};
+    state.happy = Math.max(0, state.happy - 6);
+    SFX('error');
+    toast(currentWarden().emoji + ' You turn away. The warden rakes the lane. −6 cheer.');
+    chron(currentWarden().emoji, 'The town left the hollow warden unfaced');
+    afterHollow();
+  }
+  function askCompanion(id) {
+    ensureHollow();
+    if (!hollowIsOpen()) { toast('The hollow is still shut.'); SFX('error'); return; }
+    const person = companionById(id);
+    companionLine(id).then(result => {
+      state.hollow.talks = (state.hollow.talks || 0) + 1;
+      const line = document.getElementById('hollow-line');
+      if (line) {
+        line.dataset.hold = '1';
+        line.textContent = result.line;
+      }
+      const key = wardenKey();
+      const fresh = !wardenGone() && !(state.hollow.counsel && state.hollow.counsel[person.id]) && person.ready(hearthContext());
+      if (fresh) {
+        syncCounsel();
+        state.hollow.counsel[person.id] = 1;
+        if (counselCount() >= 3 && !(state.hollow.faced && state.hollow.faced[key])) {
+          faceWarden();
+          if (line) { line.dataset.hold = '1'; line.textContent = result.line; }
+          return;
+        }
+        SFX('deliver');
+        juice(person.icon, person.name + ' stands with you');
+      } else SFX(result.provider === 'local' ? 'trader' : 'deliver');
+      save();
+      if (document.getElementById('hollow').classList.contains('show')) {
+        const kept = line ? line.textContent : '';
+        renderHollow();
+        if (line && kept) { line.dataset.hold = '1'; line.textContent = kept; }
+      }
+    });
+  }
+  function drawHollow(sx, sy, z) {
+    const p = hollowPad;
+    if (!p) return;
+    const x = sx + p.tx * TILE * z, y = sy + p.ty * TILE * z;
+    const w = p.w * TILE * z, h = p.h * TILE * z;
+    ctx.save();
+    ctx.fillStyle = hollowIsOpen() ? 'rgba(242,193,78,0.16)' : 'rgba(20,28,18,0.28)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = hollowIsOpen() ? '#f2c14e' : '#3d4a38';
+    ctx.lineWidth = Math.max(1, z);
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    const bob = Math.sin(ambientTime * 2.4) * 1.5 * z;
+    const corners = [[0.15, 0.2], [0.85, 0.2], [0.15, 0.82], [0.85, 0.82]];
+    corners.forEach((c, i) => {
+      const lx = x + c[0] * w, ly = y + c[1] * h + bob * (i % 2 ? 1 : -1);
+      ctx.fillStyle = hollowIsOpen() ? '#f2c14e' : '#6a5a3a';
+      ctx.beginPath();
+      ctx.arc(lx, ly, 2.2 * z, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(242,193,78,0.35)';
+      if (hollowIsOpen()) { ctx.beginPath(); ctx.arc(lx, ly, 5 * z, 0, Math.PI * 2); ctx.fill(); }
+    });
+    if (hollowIsOpen() && !wardenGone()) {
+      ctx.font = Math.round(16 * z) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(currentWarden().emoji, x + w / 2, y + h * 0.55);
+    }
+    ctx.restore();
+  }
+
+  window.HearthvaleAI = {
+    game: 'hearthvale',
+    companions: () => COMPANIONS.map(c => ({ id: c.id, name: c.name, role: c.role, icon: c.icon })),
+    context: () => hearthContext(),
+    pad: () => hollowPad ? { tx: hollowPad.tx, ty: hollowPad.ty, w: hollowPad.w, h: hollowPad.h } : null,
+    talk: (npcId) => companionLine(npcId),
+  };
+
   function runProduction() {
     const pop = state.villagers.length;
     const morale = moraleMult();
@@ -2911,8 +3977,15 @@
           { const em = elderTradeMult(b); if (em !== 1) amt = Math.max(1, Math.round(amt * em)); } // the Elder's trade (HVALE-12)
           { const gm = goldenMult(); if (gm !== 1) amt = Math.max(1, Math.round(amt * gm)); } // a Golden Day (HVALE-14)
           { const fv = feverMult(); if (fv !== 1) amt = Math.max(1, Math.round(amt * fv)); } // the Fever (HVALE-17)
-          state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
-          floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
+          if (b.type === 'farm' && k === 'food' && farmCrop(b) !== 'grain') {
+            const bank = farmBank(b, amt);
+            if (!state.stores) state.stores = blankStores();
+            state.stores[bank.key] = Math.min(999, (state.stores[bank.key] || 0) + bank.n);
+            floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + bank.n, color: bank.key === 'herbs' ? '#7dcea0' : '#e6d3a3', life: 1.5, maxLife: 1.5 });
+          } else {
+            state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
+            floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
+          }
         }
         if (wk) {   // a cycle actually worked is a cycle learned
           const before = mastery.name;
@@ -4029,6 +5102,7 @@
     iceAtDawn();    // HVALE-24: winter banked, summer withdrawn
     advanceAtDawn(); // HVALE-27: and the merchant's wagon calls its debt
     ledgerAtDawn(); // HVALE-29: and the reeve counts the coffers
+    hollowAtDawn();
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4419,6 +5493,7 @@
         ctx.drawImage(d.spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + drawY * z), wpx * z, hpx * z);
       }
     }
+    drawHollow(sx, sy, z);
 
     // road tool: single-tile hover highlight
     if (buildMode === 'road' && hoverTile && inMap(hoverTile.tx, hoverTile.ty)) {
@@ -4480,6 +5555,7 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
+    drawJuiceMotes(sx, sy, z);
     // a rainbow lingers in the sky after the rain clears
     if (rainbowT > 0) drawRainbow();
     // cloud shadows drift over the whole scene; flying life renders above them
@@ -4563,6 +5639,20 @@
     ctx.restore();
     ctx.globalAlpha = 1;
   }
+  function drawJuiceMotes(sx, sy, z) {
+    if (!juiceMotes.length) return;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = Math.round(9 * z) + 'px sans-serif';
+    for (const m of juiceMotes) {
+      const px = sx + m.x * z, py = sy + m.y * z;
+      if (px < -24 || px > view.w + 24 || py < -24 || py > view.h + 24) continue;
+      ctx.globalAlpha = Math.max(0, m.life / m.max);
+      ctx.fillText(m.emoji, px, py);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   // A gentle dawn mist that drifts low over the valley and lifts as the sun
   // climbs. Screen-space soft bands on continuous sines — thin enough to keep
   // the town readable, and it never blinks.
@@ -4637,6 +5727,35 @@
     return SITE_SPR[key];
   }
 
+  function drawCropPlot(b, sx, sy, z) {
+    const crop = farmCrop(b);
+    if (crop === 'grain') return;
+    const def = BUILDINGS[b.type];
+    const fever = crop === 'feverfew';
+    const stem = fever ? '#3f8a4c' : '#c9a24a';
+    const tip = fever ? '#c9e87a' : '#f2e2a0';
+    const sway = Math.sin(ambientTime * 2.2 + b.id * 0.7) * 1.6 * z;
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.6) / n;
+      const x = sx + (b.tx * TILE + u * def.w * TILE) * z + sway * (i % 2 ? 1 : -0.5);
+      const y = sy + ((b.ty + def.h - 0.35) * TILE) * z;
+      ctx.strokeStyle = stem;
+      ctx.lineWidth = Math.max(1, z * 0.8);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + sway, y - 7 * z, x + sway * 0.35, y - 12 * z);
+      ctx.stroke();
+      ctx.fillStyle = tip;
+      if (fever) {
+        ctx.beginPath();
+        ctx.arc(x + sway * 0.35, y - 13 * z, 1.7 * z, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x + sway * 0.35 - 1.2 * z, y - 14 * z, 2.4 * z, 3.2 * z);
+      }
+    }
+  }
   function drawBuilding(b, sx, sy, z) {
     const def = BUILDINGS[b.type];
     if (b.done === false) {   // construction site + progress bar
@@ -4656,6 +5775,7 @@
     ctx.ellipse(sx + (b.tx * TILE + def.w * TILE / 2) * z, sy + (b.ty + def.h) * TILE * z - 2 * z, def.w * TILE * 0.5 * z, 3 * z, 0, 0, 7);
     ctx.fill();
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
+    if (b.type === 'farm') drawCropPlot(b, sx, sy, z);
     // drifting hearth-smoke from chimneys
     if (B_ART[b.type] && B_ART[b.type].chimney) drawSmoke(b, sx, sy, z);
     // (warm night lighting — braziers, windows — is drawn post-tint in drawNightLights)
@@ -4808,6 +5928,7 @@
     ambientTime += rdt;
     if (rainbowT > 0) rainbowT = Math.max(0, rainbowT - rdt);
     if (celebrateT > 0) celebrateT = Math.max(0, celebrateT - rdt);
+    updateJuiceMotes(rdt);
     updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
@@ -5312,6 +6433,10 @@
     state.villagers.forEach(v => mx.fillRect(Math.round(v.x / TILE), Math.round(v.y / TILE), 1, 1));
     // the traveling merchant's wagon stands out in gold
     if (cart) { mx.fillStyle = '#f2c14e'; mx.fillRect(Math.round(cart.x / TILE) - 1, Math.round(cart.y / TILE), 2, 1); }
+    if (hollowPad) {
+      mx.fillStyle = hollowIsOpen() ? '#f2c14e' : '#6a4a78';
+      mx.fillRect(hollowPad.tx, hollowPad.ty, hollowPad.w, hollowPad.h);
+    }
     const vw = view.w / cam.z / TILE, vh = view.h / cam.z / TILE;
     mx.strokeStyle = 'rgba(255,255,255,0.9)'; mx.lineWidth = 1;
     mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
@@ -5469,7 +6594,7 @@
         if (mm !== 1) amt = Math.max(1, Math.round(amt * mm));
         if (tm !== 1) amt = Math.max(1, Math.round(amt * tm));
         { const cw = cobbledMult(b); if (cw !== 1) amt = Math.max(1, Math.round(amt * cw)); }
-        net[k] += amt;
+        if (!(b.type === 'farm' && k === 'food' && farmCrop(b) !== 'grain')) net[k] += amt;
       }
       if (def.cons) for (const k in def.cons) net[k] -= Math.ceil(def.cons[k] * consM);
     });
@@ -5558,8 +6683,8 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'icehouse', 'warehouse', 'cellar'] },
-    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'palisade', 'tavern', 'chapel', 'school', 'townhall'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'stillroom', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'icehouse', 'warehouse', 'cellar'] },
+    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'watchtower', 'palisade', 'beacon', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
   let buildTab = 'homes';
@@ -5748,7 +6873,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; if (b.type === 'farm' && farmCrop(b) !== 'grain') { const banked = farmBank(b, base); const glyph = farmCrop(b) === 'feverfew' ? '🌿' : '🧵'; html += statRow('Plot', farmCrop(b) === 'feverfew' ? '🌿 Feverfew' : '🧵 Flax'); html += statRow('Banks', banked.n + ' ' + glyph + tag + ' / cycle'); } else { if (b.type === 'farm') html += statRow('Plot', '🌾 Grain'); html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); } if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '<span id="p-windmill">' + windmillLiftReport(b) + '</span>');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -5789,6 +6914,13 @@
       btns += '<button id="p-oak"' + (oaked ? ' disabled' : '') + '>' + olbl + '</button>';
     }
     if (b.type === 'well') btns += '<button id="p-wish"></button>';
+    if (b.type === 'farm' && b.done !== false) {
+      const crop = farmCrop(b);
+      btns += '<button type="button" class="crop' + (crop === 'grain' ? ' on' : '') + '" id="p-crop-grain">🌾 Grain</button>';
+      btns += '<button type="button" class="crop' + (crop === 'feverfew' ? ' on' : '') + '" id="p-crop-feverfew">🌿 Feverfew</button>';
+      btns += '<button type="button" class="crop' + (crop === 'flax' ? ' on' : '') + '" id="p-crop-flax">🧵 Flax</button>';
+    }
+    if ((b.type === 'stillroom' || b.type === 'farm') && stillroomBuilt()) btns += '<button type="button" id="p-still">🍵 Open the stillroom</button>';
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     refreshFestivalBtn();
@@ -5805,6 +6937,14 @@
     if (oakBtn) oakBtn.onclick = () => { plantOak(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
     if (wBtn) wBtn.onclick = () => { makeWish(); refreshWishBtn(); };
+    const grainBtn = document.getElementById('p-crop-grain');
+    if (grainBtn) grainBtn.onclick = () => setFarmCrop(b, 'grain');
+    const fewBtn = document.getElementById('p-crop-feverfew');
+    if (fewBtn) fewBtn.onclick = () => setFarmCrop(b, 'feverfew');
+    const flaxBtn = document.getElementById('p-crop-flax');
+    if (flaxBtn) flaxBtn.onclick = () => setFarmCrop(b, 'flax');
+    const stillBtn = document.getElementById('p-still');
+    if (stillBtn) stillBtn.onclick = () => openStillroom();
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -5963,6 +7103,7 @@
     // else: select a building
     const o = occ[idx(t.tx, t.ty)];
     if (o >= 0) showPanel(buildingById(o));
+    else if (inHollow(t.tx, t.ty)) openHollow();
     else hidePanel();
   }
 
@@ -5986,11 +7127,15 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') {
-      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show');
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show');
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
       document.getElementById('chronicle').classList.remove('show');
       document.getElementById('decrees').classList.remove('show');
+      const stillroom = document.getElementById('stillroom');
+      if (stillroom) stillroom.classList.remove('show');
+      const hollow = document.getElementById('hollow');
+      if (hollow) hollow.classList.remove('show');
       const trader = document.getElementById('trader');
       const event = document.getElementById('event');
       const hall = document.getElementById('chain-modal');
@@ -6044,7 +7189,7 @@
     if (townDropped || !townKept()) return;
     try {
       const s = {
-        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
+        res: state.res, buildings: state.buildings.map(b => { const row = { id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 }; if (b.type === 'farm' && (b.crop === 'feverfew' || b.crop === 'flax')) row.crop = b.crop; return row; }),
         villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph, name: v.name, xp: v.xp || 0 })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
@@ -6098,6 +7243,15 @@
         fevers: state.fevers || 0, feversWeathered: state.feversWeathered || 0,   // HVALE-17
         feverUntil: typeof state.feverUntil === 'number' ? state.feverUntil : -1,
         lastFeverYear: typeof state.lastFeverYear === 'number' ? state.lastFeverYear : -1,
+        stores: state.stores || blankStores(),
+        kinship: state.kinship || 0,
+        deliveries: state.deliveries || 0,
+        crafted: state.crafted || 0,
+        posts: state.posts || { mara: 0, tomas: 0, nessa: 0 },
+        asksFilled: state.asksFilled || {},
+        ward: state.ward || 0,
+        cup: state.cup && state.cup.day ? { day: String(state.cup.day), score: state.cup.score | 0 } : null,
+        hollow: state.hollow || blankHollow(),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
       if (typeof EurekaPersist !== 'undefined') {
@@ -6155,6 +7309,7 @@
         if (!BUILDINGS[sb.type]) return;
         const def = BUILDINGS[sb.type];
         const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null, done: sb.done !== false, buildTotal: sb.buildTotal || 0, buildLeft: sb.buildLeft || 0, preserves: sb.preserves || 0 };
+        if (b.type === 'farm' && (sb.crop === 'feverfew' || sb.crop === 'flax')) b.crop = sb.crop;
         if (b.done === false && !b.buildTotal) { b.buildTotal = buildWorkOf(sb.type); b.buildLeft = b.buildTotal; }
         for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
         state.buildings.push(b);
@@ -6229,6 +7384,15 @@
       state.feversWeathered = s.feversWeathered || 0;
       state.feverUntil = typeof s.feverUntil === 'number' ? s.feverUntil : -1;
       state.lastFeverYear = typeof s.lastFeverYear === 'number' ? s.lastFeverYear : -1;
+      state.stores = readStores(s.stores);
+      state.kinship = clampStore(s.kinship);
+      state.deliveries = clampStore(s.deliveries);
+      state.crafted = clampStore(s.crafted);
+      state.ward = clampStore(s.ward);
+      state.posts = readPosts(s.posts);
+      state.asksFilled = readAsks(s.asksFilled);
+      state.cup = readCup(s.cup);
+      state.hollow = readHollow(s.hollow);
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -6323,7 +7487,7 @@
 
   function playerHeld() {
     if (gameSpeed !== 0 || _modalPrevSpeed !== null) return false;
-    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees'];
+    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees', 'stillroom', 'hollow'];
     return !blocked.some(id => {
       const el = document.getElementById(id);
       return el && el.classList.contains('show');
@@ -6430,6 +7594,41 @@
       });
     }
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
+    const stillClose = document.getElementById('still-close');
+    if (stillClose) stillClose.onclick = () => document.getElementById('stillroom').classList.remove('show');
+    const stillSheet = document.getElementById('stillroom');
+    if (stillSheet) stillSheet.addEventListener('click', e => {
+      const recipe = e.target.closest('[data-recipe]');
+      if (recipe) { craftRecipe(recipe.dataset.recipe); return; }
+      const npc = e.target.closest('[data-deliver]');
+      if (npc) { deliverAsk(npc.dataset.deliver); return; }
+      if (e.target.closest('#still-anoint')) { anointTown(); return; }
+      if (e.target.closest('#cup-enter')) { enterValleyCup(); return; }
+      if (e.target.closest('#cup-add')) { addCupRival(); return; }
+      if (e.target.closest('#still-hollow')) {
+        document.getElementById('stillroom').classList.remove('show');
+        openHollow();
+      }
+    });
+    const hollowClose = document.getElementById('hollow-close');
+    if (hollowClose) hollowClose.onclick = () => document.getElementById('hollow').classList.remove('show');
+    const hollowSheet = document.getElementById('hollow');
+    if (hollowSheet) hollowSheet.addEventListener('click', e => {
+      if (e.target.closest('#hollow-open')) { partTheBriar(); return; }
+      if (e.target.closest('#hollow-offer')) { offerWarden(); return; }
+      if (e.target.closest('#hollow-away')) { leaveWarden(); return; }
+      const who = e.target.closest('[data-talk]');
+      if (who) askCompanion(who.dataset.talk);
+    });
+    const hollowMenu = document.getElementById('m-hollow');
+    if (hollowMenu) hollowMenu.onclick = () => {
+      document.getElementById('menu').classList.remove('show');
+      openHollow();
+    };
+    const cupPaste = document.getElementById('cup-paste');
+    if (cupPaste) cupPaste.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addCupRival(); }
+    });
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
     document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };
     document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
