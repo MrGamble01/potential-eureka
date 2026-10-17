@@ -19,7 +19,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   touch-action:pan-x;
 }
 #top-bar .left{display:flex;gap:16px;align-items:center}
-#top-bar .right{display:flex;gap:16px;align-items:center}
+#top-bar .right{display:flex;gap:8px;align-items:center}
+/* Six resource pills plus a long goal used to shove warmth past a
+   1280px window. The row still scrolls on a phone; a laptop should
+   see health and warmth without hunting. */
+#top-bar .right .stat-pill{padding:3px 8px}
 
 .stat-pill{
   display:flex;align-items:center;gap:5px;
@@ -28,6 +32,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 }
 .stat-pill .icon{font-size:14px}
 .stat-pill .val{font-weight:bold}
+.stat-pill.vital-low{border-color:rgba(224,150,40,.85);color:#f0c878}
+.stat-pill.vital-critical{border-color:rgba(220,64,40,.95);color:#ffb0a0;box-shadow:inset 0 0 0 1px rgba(220,64,40,.55)}
+#stat-care{margin-left:6px;font-size:11px;letter-spacing:.2px}
+#bandage-pill{white-space:nowrap}
+#clinic-row .w-status{font-size:10px;white-space:nowrap}
 
 #days-counter{
   font-size:15px;font-weight:bold;color:#a0b8a0;

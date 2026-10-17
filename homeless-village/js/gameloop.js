@@ -74,6 +74,91 @@ function refreshStructures(){
   if(!G.structures.soup_kitchen&&soupKitchenMesh){ scene.remove(soupKitchenMesh); soupKitchenMesh=null; }
   if(G.structures.garden&&!gardenMesh)          buildGarden(-7,4);
   if(!G.structures.garden&&gardenMesh){         scene.remove(gardenMesh); gardenMesh=null; }
+  if(G.structures.clinic&&!clinicMesh)          buildClinic(6.4,-1.6);
+  if(!G.structures.clinic&&clinicMesh){         scene.remove(clinicMesh); clinicMesh=null; }
+  refreshJune();
+}
+
+// ── Night clinic ──
+var clinicMesh=null;
+function buildClinic(x,z){
+  if(clinicMesh){ scene.remove(clinicMesh); clinicMesh=null; }
+  var grp=new THREE.Group();
+  var tarp=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,1.6), new THREE.MeshLambertMaterial({color:0xd8d4cc}));
+  tarp.position.y=1.35; grp.add(tarp);
+  [[-1,-.7],[1,-.7],[-1,.7],[1,.7]].forEach(function(p){
+    var pole=new THREE.Mesh(new THREE.BoxGeometry(.06,1.35,.06), MAT.metal);
+    pole.position.set(p[0],.67,p[1]); grp.add(pole);
+  });
+  var cot=new THREE.Mesh(new THREE.BoxGeometry(1.4,.12,.6), MAT.cardboard);
+  cot.position.set(0,.35,0); grp.add(cot);
+  var red=new THREE.MeshLambertMaterial({color:0xc43030});
+  var crossV=new THREE.Mesh(new THREE.BoxGeometry(.12,.46,.02), red);
+  crossV.position.set(0,1.28,.82); grp.add(crossV);
+  var crossH=new THREE.Mesh(new THREE.BoxGeometry(.34,.12,.02), red);
+  crossH.position.set(0,1.28,.84); grp.add(crossH);
+  grp.position.set(x,0,z); scene.add(grp); clinicMesh=grp;
+}
+var juneMesh=null;
+function buildJuneMesh(){
+  var grp=new THREE.Group();
+  var coat=new THREE.MeshLambertMaterial({color:0xe8e4dc});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(.35,.6,.25), coat);
+  body.position.y=.7; grp.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28), new THREE.MeshLambertMaterial({color:0x8a6a50}));
+  head.position.y=1.18; grp.add(head);
+  var bag=new THREE.Mesh(new THREE.BoxGeometry(.22,.16,.12), new THREE.MeshLambertMaterial({color:0x2a4a38}));
+  bag.position.set(.22,.55,.12); grp.add(bag);
+  var cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.02), new THREE.MeshLambertMaterial({color:0xc43030}));
+  cross.position.set(0,.78,.14); grp.add(cross);
+  return grp;
+}
+function refreshJune(){
+  if((G.june||0)>0&&!juneMesh){ juneMesh=buildJuneMesh(); scene.add(juneMesh); }
+  if((G.june||0)===0&&juneMesh){ scene.remove(juneMesh); juneMesh=null; }
+  if(!juneMesh) return;
+  if(G.june===2&&G.structures.clinic){ juneMesh.position.set(5.2,0,-.4); juneMesh.rotation.y=1.1; }
+  else if(G.june===2){ juneMesh.position.set(7.4,0,3.2); juneMesh.rotation.y=Math.PI; }
+  else { juneMesh.position.set(8.4,0,3.6); juneMesh.rotation.y=-2.2; }
+}
+function clinicAtDawn(){
+  if(!G.structures.clinic) return;
+  if(G.clinicAsk && G.days-G.clinicAsk.day>=1){
+    G.clinicAsk=null;
+    G.care=Math.max(0,(G.care||0)-CLINIC_ASK_HIT);
+    G.clinicSteady=0;
+    log('\ud83c\udfe5 The clinic turned someone away overnight. Care slipped.');
+    if(typeof buildActionUI==='function') buildActionUI();
+  }
+  var drop=G.june===2?CLINIC_JUNE_DROP:CLINIC_DROP;
+  G.care=Math.max(0,(G.care||0)-drop);
+  if(G.june===2 && (G.bandages||0)>=1 && (G.care||0)<70){
+    G.bandages--;
+    G.care=Math.min(CLINIC_CARE_MAX,G.care+20);
+    G.health=Math.min(100,G.health+4);
+    G.juneRounds=(G.juneRounds||0)+1;
+    log('\ud83e\ude7a June walks the tarp before dawn — one gauze, four points of health, the night shift covered.');
+    floatText('+4\u2764\ufe0f');
+  } else if(G.june===2 && (G.care||0)<70){
+    log('\ud83e\ude7a June is here, but the shelf is empty. She cannot dress anyone.');
+  }
+  if((G.care||0)<=0){
+    G.health=Math.max(0,G.health-CLINIC_NEGLECT_HEALTH);
+    G.morale=Math.max(0,G.morale-4);
+    G.clinicSteady=0;
+    log('\ud83c\udfe5 Neglected clinic. People are worse for a night with no one on the tarp. -'+CLINIC_NEGLECT_HEALTH+' health.');
+  } else if((G.care||0)>=CLINIC_STEADY_LINE){
+    G.clinicSteady=(G.clinicSteady||0)+1;
+    if(G.clinicSteady===5) log('\ud83c\udfe5 Five steady dawns. The clinic is a place people trust.');
+  } else {
+    G.clinicSteady=0;
+  }
+  maybeJuneStays();
+  if(!G.clinicAsk && (G.june||0)>=1 && G.days%4===0){
+    G.clinicAsk={day:G.days};
+    log('\ud83c\udfe5 Someone is waiting at the clinic tarp. One gauze roll would send them off walking.');
+    if(typeof buildActionUI==='function') buildActionUI();
+  }
 }
 
 // ── Day / New Day ──
@@ -399,6 +484,7 @@ function onNewDay(){
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
+  clinicAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -667,6 +753,14 @@ var EVENTS_BAD=[
      // HV-176: the weather band sat in camp among the supplies.
      // Theft taking the radio is HV-248 — a different verb.
      if(G.structures.radio){ G.structures.radio=false; log('They took the radio.'); }
+    // The night clinic is a tarp and a cot, the same class of shelter
+    // as the tent. Bandages in a pocket are not this card.
+    if(G.structures.clinic){
+      G.structures.clinic=false;
+      G.clinicAsk=null;
+      log('\ud83c\udfe5 The night clinic was pulled down.');
+      if(typeof buildActionUI==='function') buildActionUI();
+    }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried

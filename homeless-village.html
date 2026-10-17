@@ -46,8 +46,8 @@
       <div class="stat-pill"><span class="icon">🧱</span><span class="val" id="stat-scraps">0</span><span> scraps</span></div>
       <div class="stat-pill"><span class="icon">🫙</span><span class="val" id="stat-cans">0</span><span> cans</span></div>
       <div class="stat-pill"><span class="icon">🩶</span><span class="val" id="stat-goodwill">0</span><span> goodwill</span></div>
-      <div class="stat-pill"><span class="icon">❤️</span><span class="val" id="stat-health">100</span><span>%</span></div>
-      <div class="stat-pill"><span class="icon">🌡️</span><span class="val" id="stat-warmth">100</span><span>%</span></div>
+      <div class="stat-pill" id="health-pill"><span class="icon">❤️</span><span class="val" id="stat-health">100</span><span>%</span></div>
+      <div class="stat-pill" id="warmth-pill"><span class="icon">🌡️</span><span class="val" id="stat-warmth">100</span><span>%</span></div>
     </div>
   </div>
 
@@ -92,7 +92,8 @@
         &bull; <b>Four ways to bring something home:</b> &#128465;&#65039; scavenge (cans, scraps, food),
         &#127795; forage (wood, cardboard), &#129309; panhandle (goodwill), &#128564; rest (health).<br>
         &bull; <b>Build the &#128295; Workbench early.</b> It costs 5 wood and 4 scraps, and
-        <b>13 of the 18 recipes stay locked until it stands</b>.<br>
+        <b>14 of the 20 recipes stay locked until it stands</b>.
+        The &#127973; Night Clinic is the longer job after that: roll gauze, keep care up, and a street medic named June may stay.<br>
         &bull; <b>Cold is what kills you.</b> Warmth drains every night; below <b>20%</b> the camp starts losing
         health at dawn, and so does an empty larder. Firewood, blankets and a tent hold it back.<br>
         &bull; <b>The weather and the season matter.</b> Winter halves what the dumpsters give;
@@ -131,6 +132,7 @@
     <div class="stat-pill">
       <span class="icon">👥</span><span id="pop-val" class="val">1</span><span> residents</span>
     </div>
+    <div class="stat-pill" id="bandage-pill" hidden title="Gauze on the clinic shelf, and how well the tarp is keeping up. Care falls every dawn the clinic stands."><span class="icon">🩹</span><span class="val" id="stat-bandages">0</span><span id="stat-care" hidden>care 0</span></div>
   </div>
 </div>
 

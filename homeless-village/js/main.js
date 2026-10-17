@@ -247,6 +247,9 @@ function frame(ts){
 
   // NPC wander + bob (the player figure is driven by movePlayer() below,
   // not this random-target AI — see the "Player input" block above).
+  if(typeof juneMesh!=='undefined' && juneMesh){
+    juneMesh.position.y=Math.abs(Math.sin(ts*.002))*.04;
+  }
   figures.forEach(function(f){
     f.userData.bobPhase+=dt*.003;
     f.position.y=Math.abs(Math.sin(f.userData.bobPhase))*.06;

@@ -16,9 +16,13 @@ var G = {
 
   food: 0, scraps: 0, cans: 0, cardboard: 0, wood: 0, goodwill: 0,
   health: 100, warmth: 80, morale: 50, population: 1,
+  // Night clinic stores. bandages is the shelf; bandagesRolled is the
+  // lifetime tally the goal reads, so spending a roll does not unwind it.
+  bandages: 0, bandagesRolled: 0, dressings: 0,
+  care: 0, june: 0, juneRounds: 0, juneRoundDay: -9, clinicSteady: 0, clinicAsk: null,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false, clinic:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -90,6 +94,8 @@ var RECIPES = [
   {id:'meal',        icon:'🥣', name:'Hot Meal',       cost:{food:4,cans:1},                  gives:{goodwill:3},             time:3000,  desc:'Feed a community member.'},
   {id:'shelter',     icon:'⛺', name:'Patch Shelter',  cost:{cardboard:4,scraps:2},           gives:{warmth:8},               time:5000,  desc:'Reinforce a sleeping spot.'},
   {id:'workbench',   icon:'🔧', name:'Workbench',      cost:{wood:5,scraps:4},                gives:{structure:'workbench'},  time:8000,  desc:'Enables crafting upgrades.'},
+  {id:'clinic',      icon:'\ud83c\udfe5', name:'Night Clinic',    cost:{wood:7,scraps:5,cardboard:3,goodwill:4}, gives:{structure:'clinic'}, time:11000, desc:'A tarp, a cot, and a red cross cut from a reflector. Care falls every dawn. Dress wounds here, and a street medic may decide the fire is worth staying for.', requires:'workbench'},
+  {id:'gauze',       icon:'\ud83e\ude79', name:'Gauze Roll',      cost:{scraps:2,cardboard:1},           gives:{bandages:2},             time:3000,  desc:'Two clean rolls from scrap cloth. The clinic keeps them dry. Each roll dresses one wound.', requires:'clinic'},
   {id:'tent',        icon:'🏕️', name:'Tent',           cost:{cardboard:8,scraps:6,wood:3},   gives:{structure:'tent',warmth:20}, time:10000, desc:'A roof of sorts.', requires:'workbench'},
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Soup night: feeds everyone at dusk (1 food each) for +4 morale, +2 health — and neighbors sometimes chip in.', requires:'workbench'},
@@ -908,6 +914,62 @@ var WORKER_DEFS = [
   {id:'lookout',  icon:'👁️', name:'Lookout',  cost:15, desc:'Warns before police sweeps'},
 ];
 
+// ── Night clinic ──────────────────────────────────────────
+// A longer job than a recipe. The tarp has a care meter that falls
+// every dawn it stands. Gauze dresses it back up. Three dressings and
+// June, who has been watching from the sidewalk, takes the night shift.
+// Five dawns that still end at 40 care or better is the streak. A
+// neighbor asks for a roll every fourth day; turning them away costs
+// more care than the roll was worth.
+var CLINIC_CARE_MAX = 100;
+var CLINIC_DROP = 8;
+var CLINIC_JUNE_DROP = 4;
+var CLINIC_DRESS_CARE = 25;
+var CLINIC_DRESS_HEALTH = 8;
+var CLINIC_JUNE_AT = 3;
+var CLINIC_STEADY_LINE = 40;
+var CLINIC_NEGLECT_HEALTH = 6;
+var CLINIC_ASK_HIT = 12;
+var CLINIC_REBUILD_CARE = 45;
+function openClinic(){
+  var returning=(G.june||0)>=1;
+  if(!returning){
+    G.june=1;
+    G.care=60;
+  } else if((G.care||0)<CLINIC_REBUILD_CARE){
+    G.care=CLINIC_REBUILD_CARE;
+  }
+  return returning;
+}
+function grantGauze(n){
+  G.bandages=(G.bandages||0)+n;
+  G.bandagesRolled=(G.bandagesRolled||0)+n;
+}
+function maybeJuneStays(){
+  if((G.june||0)!==1 || !G.structures.clinic || (G.dressings||0)<CLINIC_JUNE_AT) return false;
+  G.june=2;
+  log('\ud83e\ude7a June folds her canvas bag under the table. She is staying for the night shift.');
+  floatText('\ud83e\ude7a');
+  sfx('hire');
+  if(typeof refreshJune==='function') refreshJune();
+  if(typeof buildActionUI==='function') buildActionUI();
+  if(typeof buildWorkersUI==='function') buildWorkersUI();
+  return true;
+}
+function dressAction(){
+  return { id:'dress', icon:'\ud83e\ude79', label:'Dress wound', time:4000, cooldown:12000,
+    tooltip:'One gauze roll at the night clinic. +'+CLINIC_DRESS_CARE+' care and +'+CLINIC_DRESS_HEALTH+' health. Care falls every dawn the tarp stands — at the floor, the camp pays in health.' };
+}
+function juneRoundDone(){ return G.juneRoundDay===G.days; }
+function juneRoundAction(){
+  return { id:'juneround', icon:'\ud83e\ude7a', label:"June's round", time:5000, cooldown:0,
+    tooltip:'Once a day June walks the block with one gauze roll. +4 goodwill, +10 care, and the neighborhood notices. She goes whatever the sky is doing.' };
+}
+function spareAction(){
+  return { id:'spare', icon:'\ud83c\udfe5', label:'Spare a roll', time:3000, cooldown:0,
+    tooltip:'Someone is waiting at the tarp. One gauze roll sends them off walking: +4 goodwill, +2 rep, and +8 care. Leave them until dawn and care slips '+CLINIC_ASK_HIT+'.' };
+}
+
 // Sequential goal ladder surfaced in the HUD (checkGoals in ui.js).
 // Each goal reads counters G already tracks, so progress accrues even
 // before a goal becomes current; only goalIndex is new state, and it
@@ -966,6 +1028,11 @@ var GOALS = [
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
   {id:'star3',      desc:'Beat the longest hold three times under the chalk star', target:3, reward:5, value:function(){ return loadHvStar().cheers; }},
+  {id:'clinic1',    desc:'Raise the Night Clinic', target:1, reward:6, value:function(){ return G.structures.clinic?1:0; }},
+  {id:'gauze4',     desc:'Roll 4 gauze rolls', target:4, reward:4, value:function(){ return G.bandagesRolled||0; }},
+  {id:'dress6',     desc:'Dress 6 wounds', target:6, reward:6, value:function(){ return G.dressings||0; }},
+  {id:'june1',      desc:'June takes the night shift', target:1, reward:8, value:function(){ return G.june===2?1:0; }},
+  {id:'care5',      desc:'Keep the clinic steady 5 dawns', target:5, reward:8, value:function(){ return G.clinicSteady||0; }},
 ];
 
 var activeJobs = {};
