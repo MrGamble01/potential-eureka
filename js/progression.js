@@ -576,8 +576,17 @@
         const btn = el(document, 'button', 'trophy-pick' + (on ? ' is-on' : '') + (open ? '' : ' is-locked'));
         btn.type = 'button';
         btn.disabled = !open;
-        if (isAvatar) btn.appendChild(el(document, 'span', 'trophy-pick-glyph', open ? item.glyph : '🔒'));
-        btn.appendChild(el(document, 'span', 'trophy-pick-name', open ? item.name : item.hint));
+        if (isAvatar) {
+          btn.appendChild(el(document, 'span', 'trophy-pick-glyph', item.glyph));
+          if (!open) {
+            const lock = el(document, 'span', 'trophy-lock', '🔒');
+            lock.setAttribute('aria-hidden', 'true');
+            btn.appendChild(lock);
+          }
+        }
+        const name = el(document, 'span', 'trophy-pick-name', open ? item.name : item.hint);
+        if (isAvatar) name.setAttribute('aria-hidden', 'true');
+        btn.appendChild(name);
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.setAttribute('aria-label', (open ? item.name : item.hint) + (on ? ', equipped' : ''));
         if (open) btn.addEventListener('click', function () { onPick(item.id); });

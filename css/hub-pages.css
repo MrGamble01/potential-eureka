@@ -137,6 +137,10 @@
   text-decoration: none;
 }
 
+/* Phone used to keep a second scrolling row of pills. The launcher
+   bar below replaces that. Scoped under .hub-chrome so the Hours /
+   Studio / Minutes scan keeps the nav.site-nav rule from the iPad fix. */
+
 /* ---- CHALLENGE ---- */
 #daily-banner.hub-challenge {
   align-items: center;
@@ -426,4 +430,1102 @@
   border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
   color: var(--primary-light);
   text-decoration: none;
+}
+
+/* ============================================================
+   LAUNCHER
+   One bar. Featured game, then cover cards. Trophy shelves.
+   8px spacing. Phone first. Short landscape (the 720×700
+   fold) is left to arcade.css so the compact billboard stays.
+   ============================================================ */
+
+#view-arcade,
+#view-trophy {
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --type-kicker: 0.75rem;
+  --type-body: 1rem;
+  --type-card: 1.25rem;
+  --type-title: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+#view-arcade {
+  background:
+    radial-gradient(80% 42% at 50% -8%, color-mix(in srgb, var(--primary) 20%, transparent), transparent 62%);
+}
+
+.hub-chrome {
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-top: env(safe-area-inset-top);
+}
+
+.hub-chrome > nav.site-nav {
+  height: 56px;
+  min-height: 56px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-1, 8px);
+  padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  background: transparent;
+  border-bottom: none;
+}
+
+.hub-chrome > nav.site-nav .logo {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+}
+
+.hub-chrome > nav.site-nav .logo-btn {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 44px;
+  line-height: 44px;
+  padding: 0 4px;
+}
+
+.hub-chrome .nav-spacer { display: none; }
+
+.hub-chrome .career-chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  background: color-mix(in srgb, #e3b341 18%, var(--bg-widget));
+  border-color: color-mix(in srgb, #e3b341 55%, var(--border));
+  color: var(--text);
+}
+
+.hub-chrome .nav-icon-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 8px);
+  flex: 0 0 auto;
+}
+
+.hub-chrome .nav-icon-cluster .nav-sfx-toggle,
+.hub-chrome .nav-icon-cluster .nav-utils-toggle {
+  margin: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+}
+
+.studio-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-widget);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.studio-menu[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  color: var(--primary-light);
+}
+
+/* Phone and tablet: the four studio links live in one menu.
+   Closed, the shell is a zero-height overlay so it sits on the
+   bar's bottom edge and does not cover the page. */
+@media (max-width: 1099px) {
+  .hub-chrome > .arcade-shell {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    z-index: 120;
+    pointer-events: none;
+  }
+  .hub-chrome > .arcade-shell .sec-link,
+  .hub-chrome > .arcade-shell .nav-icon-cluster {
+    pointer-events: none;
+  }
+  .hub-chrome.is-menu-open > .arcade-shell {
+    height: auto;
+    padding: var(--space-1, 8px);
+    gap: var(--space-1, 8px);
+    overflow: visible;
+    pointer-events: auto;
+    background: var(--bg-widget);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 24px 48px color-mix(in srgb, black 40%, transparent);
+  }
+  .hub-chrome.is-menu-open > .arcade-shell .sec-link,
+  .hub-chrome.is-menu-open > .arcade-shell .nav-icon-cluster,
+  .hub-chrome.is-menu-open > .arcade-shell .nav-icon-cluster * {
+    pointer-events: auto;
+  }
+  .hub-chrome.is-menu-open > .arcade-shell .sec-link {
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+  }
+  .hub-chrome.is-menu-open .nav-icon-cluster {
+    width: 100%;
+    padding-top: var(--space-1, 8px);
+  }
+  .hub-chrome.is-menu-open .nav-icon-cluster .nav-utils-toggle {
+    flex: 1 1 auto;
+  }
+  .hub-chrome > .nav-utils.open {
+    position: absolute;
+    top: calc(100% + var(--studio-menu-h, 0px));
+    right: max(8px, env(safe-area-inset-right));
+    left: auto;
+    width: min(280px, calc(100vw - 16px));
+    max-width: none;
+    margin: 8px 0 0;
+    border-radius: 16px;
+    border-top: 1px solid var(--border);
+    z-index: 140;
+  }
+}
+
+/* Wide launcher: logo, one centered row, level and tools. */
+@media (min-width: 1100px) {
+  .hub-chrome > nav.site-nav {
+    height: 64px;
+    min-height: 64px;
+    display: flex;
+  }
+  .hub-chrome > nav.site-nav .logo {
+    flex: 0 1 auto;
+    font-size: 0.875rem;
+  }
+  .hub-chrome .nav-spacer { display: block; }
+  .studio-menu { display: none; }
+  .hub-chrome > .arcade-shell {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    height: 64px;
+    min-height: 0;
+    width: max-content;
+    max-width: calc(100% - 560px);
+    margin: 0;
+    padding: 0;
+    gap: 4px;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    z-index: 2;
+    pointer-events: none;
+    justify-content: center;
+  }
+  .hub-chrome > .arcade-shell .sec-link {
+    pointer-events: auto;
+    min-height: 44px;
+    padding: 0 12px;
+    border-color: transparent;
+    background: transparent;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .hub-chrome > .arcade-shell .sec-link:hover,
+  .hub-chrome > .arcade-shell .sec-link.active {
+    background: var(--color-white-08);
+    border-color: transparent;
+  }
+}
+
+/* Short landscape already keeps a compact billboard. The daily
+   strip was still sitting above Long games and pushing that card
+   off a 700px screen. Same catalogue-first order as the phone. */
+@media (max-width: 1020px) and (max-height: 760px) {
+  #view-arcade.view.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #view-arcade.view.active > * {
+    width: 100%;
+    min-width: 0;
+  }
+  #view-arcade .arcade-hero { order: 0; position: relative; }
+  #view-arcade .card-search-wrap { order: 1; }
+  #view-arcade .jump-back-in { order: 2; }
+  #view-arcade #arcade-empty { order: 3; }
+  #view-arcade .arcade-section--long { order: 4; }
+  #view-arcade .arcade-section--studio { order: 5; }
+  #view-arcade .arcade-section--quick { order: 6; }
+  #view-arcade #primer-hint { order: 7; }
+  #view-arcade #daily-banner { order: 8; }
+  #view-arcade #flag-daily { order: 9; }
+  #view-arcade .arcade-hero-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* The hop row under the billboard is gone. Catalogue choice
+   lives in the segmented control under search. */
+
+/* Featured game + cover cards. Skip the short-landscape fold. */
+@media (max-width: 640px) and (min-height: 761px) {
+  #view-arcade.view.active {
+    padding: var(--space-2, 16px);
+    padding-bottom: calc(var(--space-4, 32px) + env(safe-area-inset-bottom));
+  }
+  #view-arcade .arcade-hero {
+    position: relative;
+    max-width: none;
+    margin: 0 0 var(--space-1, 8px);
+    text-align: left;
+  }
+  #view-arcade .arcade-hero-kicker {
+    font-size: var(--type-kicker, 0.75rem);
+    letter-spacing: 0.12em;
+    margin-bottom: var(--space-1, 8px);
+  }
+  #view-arcade .arcade-hero-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  #view-arcade .arcade-hero-sub { display: none; }
+  #view-arcade .arcade-flagship {
+    grid-template-columns: 1fr;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    border-radius: 20px;
+    box-shadow: 0 12px 28px color-mix(in srgb, #e3b341 16%, transparent);
+  }
+  #view-arcade .arcade-flagship-art {
+    min-height: 0;
+    height: 120px;
+    aspect-ratio: auto;
+  }
+  #view-arcade .arcade-flagship-poster {
+    object-position: center 42%;
+  }
+  #view-arcade .arcade-flagship-copy {
+    padding: 8px 12px 12px;
+    gap: 4px;
+  }
+  #view-arcade .arcade-flagship-kicker {
+    font-size: var(--type-kicker, 0.75rem);
+  }
+  #view-arcade .arcade-flagship-name {
+    font-family: var(--font-sans);
+    font-size: 1.375rem;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  #view-arcade .arcade-flagship-pitch {
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+  #view-arcade .hero-cta--flagship {
+    min-height: 44px;
+    margin-top: 4px;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+  }
+  #view-arcade .arcade-hero-alt { margin-top: 8px; }
+  #view-arcade .hero-alt-link {
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 0.875rem;
+  }
+  #view-arcade .card-search-wrap {
+    margin-bottom: var(--space-2, 16px);
+    gap: var(--space-1, 8px);
+  }
+  #view-arcade .card-search-wrap .arcade-scan:not([hidden]) {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-widget);
+  }
+  #view-arcade .card-search-wrap .arcade-scan::-webkit-scrollbar { display: none; }
+  #view-arcade .arcade-scan[hidden] { display: none; }
+  #view-arcade .arcade-scan-link {
+    flex: 1 0 auto;
+    width: auto;
+    min-width: max-content;
+    max-width: none;
+    overflow: visible;
+    white-space: nowrap;
+    border-radius: 0;
+    border-width: 0 1px 0 0;
+    border-style: solid;
+    border-color: var(--border);
+    background: transparent;
+    padding: 0 10px;
+    gap: 6px;
+    min-height: 44px;
+  }
+  #view-arcade .arcade-scan-time,
+  #view-arcade .arcade-scan-count {
+    padding: 1px 5px;
+    letter-spacing: 0.04em;
+  }
+  #view-arcade .arcade-scan-link:last-child { border-right-width: 0; }
+  #view-arcade .arcade-scan-link--long { border-bottom: 2px solid #f0c552; }
+  #view-arcade .arcade-scan-link--studio { border-bottom: 2px solid #d2b4ff; }
+  #view-arcade .arcade-scan-link--quick { border-bottom: 2px solid #8b83ff; }
+  #view-arcade .card-search {
+    min-height: 48px;
+    font-size: 1rem;
+    border-radius: 16px;
+  }
+  #view-arcade .arcade-section {
+    margin-bottom: var(--space-4, 32px);
+    padding-left: 0;
+    border-left: 0;
+  }
+  #view-arcade .arcade-section-head {
+    margin-bottom: var(--space-1, 8px);
+  }
+  #view-arcade .arcade-section-title {
+    font-family: var(--font-sans);
+    font-size: var(--type-card, 1.25rem);
+    letter-spacing: -0.02em;
+  }
+  #view-arcade .arcade-section-lede {
+    font-size: var(--type-body, 1rem);
+  }
+  #view-arcade .arcade-grid,
+  #view-arcade .arcade-grid--studio {
+    gap: var(--space-2, 16px);
+    max-width: none;
+  }
+  #view-arcade .arcade-card {
+    border-radius: 20px;
+    min-height: 44px;
+  }
+  #view-arcade .arcade-card-screen {
+    aspect-ratio: 16 / 9;
+  }
+  #view-arcade .arcade-card-body {
+    gap: var(--space-1, 8px);
+    padding: var(--space-2, 16px);
+    min-height: 0;
+  }
+  #view-arcade .arcade-card-title {
+    font-family: var(--font-sans);
+    font-size: var(--type-card, 1.25rem);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  #view-arcade .arcade-card-tags { display: none; }
+  #view-arcade .arcade-card-desc {
+    font-size: var(--type-body, 1rem);
+    line-height: 1.4;
+    min-height: 0;
+    -webkit-line-clamp: 1;
+  }
+  #view-arcade .arcade-card-play {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0.04em;
+    min-height: 24px;
+  }
+}
+
+@media (min-width: 1100px) {
+  #view-arcade.view.active {
+    padding: var(--space-4, 32px) var(--space-3, 24px) calc(var(--space-5, 48px) + env(safe-area-inset-bottom));
+  }
+  #view-arcade .arcade-hero {
+    position: relative;
+    max-width: 1120px;
+    margin: 0 auto var(--space-4, 32px);
+    text-align: left;
+  }
+  #view-arcade .arcade-hero-kicker {
+    font-size: var(--type-kicker, 0.75rem);
+    letter-spacing: 0.14em;
+    margin-bottom: var(--space-2, 16px);
+  }
+  #view-arcade .arcade-hero-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  #view-arcade .arcade-hero-sub {
+    margin: 0 0 var(--space-2, 16px);
+    font-size: var(--type-body, 1rem);
+  }
+  #view-arcade .arcade-flagship {
+    max-width: none;
+    min-height: 248px;
+    grid-template-columns: minmax(280px, 42%) minmax(0, 1fr);
+    border-radius: 24px;
+    margin-top: 0;
+    box-shadow: 0 20px 48px color-mix(in srgb, #e3b341 16%, transparent);
+  }
+  #view-arcade .arcade-flagship-art { min-height: 248px; }
+  #view-arcade .arcade-flagship-copy {
+    padding: var(--space-4, 32px);
+    gap: var(--space-2, 16px);
+  }
+  #view-arcade .arcade-flagship-name {
+    font-family: var(--font-sans);
+    font-size: clamp(2rem, 3vw, 2.75rem);
+    letter-spacing: -0.03em;
+  }
+  #view-arcade .arcade-flagship-pitch { font-size: 1.0625rem; }
+  #view-arcade .hero-cta--flagship {
+    min-height: 48px;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+  }
+  #view-arcade .arcade-hero-alt {
+    justify-content: flex-start;
+    margin-top: var(--space-2, 16px);
+  }
+  #view-arcade .card-search-wrap {
+    max-width: 1120px;
+    margin-bottom: var(--space-4, 32px);
+  }
+  #view-arcade .card-search {
+    min-height: 48px;
+    font-size: 1rem;
+    border-radius: 16px;
+  }
+  #view-arcade .arcade-section {
+    max-width: 1120px;
+    margin-bottom: var(--space-5, 48px);
+    padding-left: 0;
+    border-left: 0;
+  }
+  #view-arcade .arcade-section-head { margin-bottom: var(--space-2, 16px); }
+  #view-arcade .arcade-section-title {
+    font-family: var(--font-sans);
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+  }
+  #view-arcade .arcade-grid { gap: var(--space-2, 16px); }
+  #view-arcade .arcade-card { border-radius: 20px; }
+  #view-arcade .arcade-card-body {
+    gap: var(--space-1, 8px);
+    padding: var(--space-2, 16px);
+  }
+  #view-arcade .arcade-card-title {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+  }
+  #view-arcade .arcade-card-desc {
+    font-size: 0.9375rem;
+    -webkit-line-clamp: 1;
+  }
+  #view-arcade .arcade-card-screen { aspect-ratio: 16 / 9; }
+}
+
+/* Trophy room: a case, then shelves of cards. */
+#view-trophy {
+  background:
+    radial-gradient(90% 36% at 50% -10%, color-mix(in srgb, #e3b341 16%, transparent), transparent 60%);
+}
+
+#view-trophy .trophy-wrap {
+  max-width: 880px;
+  padding: var(--space-2, 16px) var(--space-2, 16px) calc(var(--space-4, 32px) + env(safe-area-inset-bottom));
+}
+
+#view-trophy .game-back-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: var(--space-2, 16px);
+  padding: 0 16px;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+#view-trophy .trophy-profile {
+  gap: var(--space-2, 16px);
+  align-items: center;
+  margin: 0 0 var(--space-3, 24px);
+  padding: var(--space-3, 24px);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: var(--bg-widget);
+  box-shadow: 0 16px 40px color-mix(in srgb, #e3b341 12%, transparent);
+}
+
+#view-trophy .trophy-face {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  font-size: 40px;
+  background: color-mix(in srgb, #e3b341 16%, var(--bg-widget));
+  border-color: color-mix(in srgb, #e3b341 48%, var(--border));
+}
+
+#view-trophy .trophy-kicker {
+  font-family: var(--font-sans);
+  font-size: var(--type-kicker, 0.75rem);
+  letter-spacing: 0.12em;
+}
+
+#view-trophy .trophy-title {
+  margin: 4px 0 var(--space-2, 16px);
+  font-family: var(--font-sans);
+  font-size: var(--type-title, 2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+#view-trophy .trophy-name-input {
+  min-height: 44px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+#view-trophy .trophy-bar {
+  height: 8px;
+  margin-top: var(--space-2, 16px);
+}
+
+#view-trophy .trophy-meta,
+#view-trophy .trophy-blurb,
+#view-trophy .trophy-note {
+  font-size: var(--type-body, 1rem);
+  line-height: 1.45;
+}
+
+#view-trophy .trophy-h {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+
+#view-trophy .trophy-cosmetics,
+#view-trophy .trophy-shelf {
+  margin: var(--space-4, 32px) 0;
+}
+
+#view-trophy .trophy-shelf {
+  border-top: 0;
+  padding-top: 0;
+}
+
+#view-trophy .trophy-shelf::before {
+  content: "";
+  display: block;
+  height: 8px;
+  margin-bottom: var(--space-2, 16px);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--shelf, #e3b341), color-mix(in srgb, var(--shelf, #e3b341) 20%, transparent));
+  box-shadow: 0 10px 0 color-mix(in srgb, var(--shelf, #e3b341) 22%, transparent);
+}
+
+#view-trophy .trophy-shelf-head { margin-bottom: var(--space-1, 8px); }
+
+#view-trophy .trophy-avatars,
+#view-trophy .trophy-titles,
+#view-trophy .trophy-themes,
+#view-trophy .trophy-grid {
+  gap: var(--space-2, 16px);
+  margin-top: var(--space-2, 16px);
+}
+
+#view-trophy .trophy-card {
+  gap: var(--space-1, 8px);
+  min-height: 132px;
+  padding: var(--space-2, 16px);
+  border-radius: 16px;
+  background: var(--bg-widget);
+  opacity: 1;
+}
+
+#view-trophy .trophy-card:not(.is-got) {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--bg-widget) 92%, var(--text) 8%);
+}
+
+#view-trophy .trophy-shelf::before {
+  height: 10px;
+  background: var(--shelf, #e3b341);
+  box-shadow: 0 8px 0 color-mix(in srgb, black 28%, transparent);
+}
+
+#view-trophy .trophy-card-name {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+#view-trophy .trophy-card-desc,
+#view-trophy .trophy-card-when {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  #view-trophy .trophy-profile {
+    align-items: flex-start;
+    padding: var(--space-2, 16px);
+  }
+  #view-trophy .trophy-face {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+    border-radius: 16px;
+  }
+  #view-trophy .trophy-title { font-size: 1.75rem; }
+  #view-trophy .trophy-grid,
+  #view-trophy .trophy-avatars { grid-template-columns: 1fr 1fr; }
+  #view-trophy .trophy-titles,
+  #view-trophy .trophy-themes { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1100px) {
+  #view-trophy .trophy-wrap {
+    padding-top: var(--space-4, 32px);
+  }
+  #view-trophy .trophy-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---- Bold launcher: display type, art cards, segmented catalogue ---- */
+#view-arcade,
+#view-trophy {
+  --font-display: "Outfit", "Inter", sans-serif;
+}
+
+#view-arcade .arcade-flagship-name,
+#view-arcade .arcade-section-title,
+#view-arcade .arcade-card-title,
+#view-trophy .trophy-title,
+#view-trophy .trophy-h {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+#view-arcade .arcade-section-title {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+#view-arcade .arcade-section-lede {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+
+#view-arcade .arcade-flagship-name {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+#view-trophy .trophy-title {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  line-height: 0.95;
+}
+
+#view-trophy .trophy-h {
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+/* All / Long / Quick / Studio. Four short words, equal slices, no clip. */
+#view-arcade .card-search-wrap .arcade-scan:not([hidden]) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-widget) 88%, transparent);
+  padding: 4px;
+}
+
+#view-arcade .card-search-wrap .arcade-scan[hidden] {
+  display: none;
+}
+
+#view-arcade .arcade-scan-link {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: visible;
+  white-space: nowrap;
+  justify-content: center;
+  border-width: 0;
+  border-style: solid;
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 8px;
+  gap: 0;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--text-dim);
+}
+
+#view-arcade .arcade-scan-link--studio {
+  border-color: rgba(188, 140, 255, 0.4);
+}
+
+#view-arcade .arcade-scan:not(:has([aria-current])) .arcade-scan-link--all,
+#view-arcade .arcade-scan-link[aria-current="true"] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+#view-arcade .arcade-card {
+  position: relative;
+  display: flex;
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+  border-radius: 22px;
+  background: #0c0e14;
+  isolation: isolate;
+}
+
+#view-arcade .arcade-card-screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border: 0;
+}
+
+#view-arcade .arcade-card-poster,
+#view-arcade .arcade-card-clip {
+  object-fit: cover;
+  object-position: center center;
+}
+
+#view-arcade .arcade-card-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 92px;
+  min-height: 92px;
+  margin: 0;
+  padding: 28px 14px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  background: linear-gradient(to top, rgba(6, 8, 14, 0.94) 0%, rgba(6, 8, 14, 0.62) 52%, rgba(6, 8, 14, 0) 100%);
+  color: #f7f4ee;
+}
+
+#view-arcade .arcade-card-title {
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+#view-arcade .arcade-card:hover .arcade-card-title {
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+}
+
+#view-arcade .arcade-card-tags {
+  display: none;
+}
+
+#view-arcade .arcade-card-desc {
+  color: rgba(247, 244, 238, 0.82);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  min-height: 0;
+  -webkit-line-clamp: 1;
+  white-space: nowrap;
+}
+
+#view-arcade .arcade-card-play {
+  flex: 0 0 16px;
+  height: 16px;
+  margin-top: 4px;
+  padding: 0;
+  line-height: 16px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f0c552;
+}
+
+#view-arcade .arcade-card-flag {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Phone portrait: each catalogue is a thumbnail rail. */
+@media (max-width: 640px) and (min-height: 761px) {
+  #view-arcade .arcade-section-head {
+    margin-bottom: 8px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 1.5rem;
+  }
+  #view-arcade .arcade-section-lede {
+    display: none;
+  }
+  #view-arcade .arcade-hero,
+  #view-arcade .card-search-wrap,
+  #view-arcade .arcade-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    margin-right: 0;
+    align-self: stretch;
+  }
+  #view-arcade .arcade-grid,
+  #view-arcade .arcade-grid--studio {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  #view-arcade .arcade-grid::-webkit-scrollbar { display: none; }
+  #view-arcade .arcade-card {
+    flex: 0 0 78%;
+    width: 78%;
+    scroll-snap-align: start;
+    aspect-ratio: 3 / 4;
+  }
+  #view-arcade .arcade-grid--studio .arcade-card {
+    flex-basis: 86%;
+    width: 86%;
+  }
+}
+
+/* Short landscape keeps the compact billboard. Don't grow the scan. */
+@media (max-width: 1020px) and (max-height: 760px) {
+  #view-arcade .arcade-scan-link {
+    min-height: 36px;
+    font-size: 0.8125rem;
+    padding: 0 6px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 1.25rem;
+  }
+  #view-arcade .arcade-section-lede {
+    display: none;
+  }
+  #view-arcade .arcade-card {
+    aspect-ratio: 4 / 5;
+  }
+  #view-arcade .arcade-card-body {
+    height: 76px;
+    min-height: 76px;
+    padding: 22px 10px 8px;
+  }
+  #view-arcade .arcade-card-title {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  #view-arcade .card-search-wrap .arcade-scan:not([hidden]) {
+    max-width: 440px;
+  }
+  #view-arcade .arcade-section-title {
+    font-size: 2rem;
+  }
+  #view-arcade .arcade-card {
+    aspect-ratio: 3 / 4;
+    border-radius: 24px;
+  }
+  #view-arcade .arcade-card-title {
+    font-size: 1.375rem;
+  }
+}
+
+/* Trophy room: avatar icons in a grid, titles as chips. */
+#view-trophy .trophy-avatars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: min(100%, 360px);
+}
+
+#view-trophy .trophy-avatars .trophy-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 64px;
+  padding: 0;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--bg-widget) 70%, #1a1408);
+  border: 1px solid color-mix(in srgb, #e3b341 28%, var(--border));
+}
+
+#view-trophy .trophy-avatars .trophy-pick-glyph {
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#view-trophy .trophy-lock {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(8, 8, 12, 0.82);
+  font-size: 12px;
+  line-height: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-locked {
+  opacity: 1;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-locked .trophy-pick-glyph {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
+#view-trophy .trophy-avatars .trophy-pick.is-on {
+  border-color: #e3b341;
+  box-shadow: 0 0 0 2px #e3b341, 0 10px 24px color-mix(in srgb, #e3b341 28%, transparent);
+}
+
+#view-trophy .trophy-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-template-columns: none;
+}
+
+#view-trophy .trophy-titles .trophy-pick {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  #view-trophy .trophy-avatars {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #view-trophy .trophy-titles {
+    display: flex;
+    flex-wrap: wrap;
+    grid-template-columns: none;
+  }
+  #view-trophy .trophy-title {
+    font-size: 2.25rem;
+  }
 }
