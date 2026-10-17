@@ -399,6 +399,146 @@ async function assertTycoon(page, expectedTitle) {
   await assertGl(page, expectedTitle);
   const cash = (await page.locator('#cash-val').innerText()).replace(/[^0-9]/g, '');
   if (!cash) throw new Error(`${expectedTitle} cash HUD did not render`);
+  if (expectedTitle === 'Beagle Sim') await assertBeagle(page);
+  else {
+    const yards = await page.locator('#bgl-yard').count();
+    if (yards) throw new Error('Startup Tycoon rendered the Beagle yard');
+    const saved = await page.evaluate(() => localStorage.getItem('beagle:yard'));
+    if (saved) throw new Error('Startup Tycoon wrote a Beagle yard save');
+  }
+}
+
+async function assertBeagle(page) {
+  await page.waitForFunction(() => window.__beagle && window.__beagle.ready === true);
+  const base = await page.evaluate(() => window.__beagle.workMult());
+  if (Math.abs(base - 1) > 0.001) throw new Error('fresh pack speed was ' + base);
+  const hint = (await page.locator('#bgl-banner').innerText()).trim();
+  if (!/dirt/i.test(hint)) throw new Error('yard hint was ' + JSON.stringify(hint));
+
+  await page.locator('#hire-btn').click();
+  await page.waitForFunction(() => {
+    const t = document.getElementById('emp-count');
+    return t && /^\s*1\s*\//.test(t.textContent || '');
+  });
+  const dogs = await page.evaluate(() => window.__beagle.dogs());
+  if (dogs < 1) throw new Error('hired worker was not a beagle');
+  const tip = page.locator('#tip-modal.open #tip-ok');
+  if (await tip.count()) await tip.click();
+
+  await page.locator('#bgl-mounds button.ready').first().click();
+  await page.waitForFunction(() => window.__beagle.dug() >= 1 && window.__beagle.bones() >= 1);
+  await page.waitForFunction(() => {
+    const raw = localStorage.getItem('beagle:yard');
+    if (!raw) return false;
+    try { return JSON.parse(raw).dug >= 1; } catch (e) { return false; }
+  });
+
+  await page.evaluate(() => window.__beagle.grant(40));
+  const ranked = await page.evaluate(() => window.__beagle.rank());
+  if (ranked === 'Pup') throw new Error('grant did not raise the pack rank');
+  await page.locator('#bgl-act-shop').click();
+  await page.locator('#bgl-shop button[data-buy="bowl"]').click();
+  const shop = await page.evaluate(() => window.__beagle.shop());
+  if (!shop || shop.bowl !== 1) throw new Error('water bowl did not buy ' + JSON.stringify(shop));
+  const bowed = await page.evaluate(() => window.__beagle.workMult());
+  if (bowed < 1.029) throw new Error('bowl did not speed the pack (' + bowed + ')');
+
+  await page.locator('#bgl-act-ball').click();
+  const zoom = await page.evaluate(() => ({ z: window.__beagle.zoomies(), m: window.__beagle.workMult() }));
+  if (zoom.z <= 0) throw new Error('tennis ball did not start zoomies');
+  if (zoom.m < 1.3) throw new Error('zoomies multiplier was ' + zoom.m);
+
+  await page.locator('#bgl-act-howl').click();
+  const howl = await page.evaluate(() => ({ h: window.__beagle.howl(), m: window.__beagle.workMult() }));
+  if (howl.h <= 0) throw new Error('howl did not start');
+  if (howl.m < 1.8) throw new Error('howl multiplier was ' + howl.m);
+
+  await page.locator('#bgl-act-pet').click();
+  const bond = await page.evaluate(() => window.__beagle.bond());
+  if (bond <= 0) throw new Error('belly rub did not raise bond');
+
+  const dug = await page.evaluate(() => {
+    for (let i = 0; i < 8; i++) window.__beagle.dig(i);
+    return window.__beagle.dug();
+  });
+  if (dug < 2) throw new Error('digging the yard did not count (' + dug + ')');
+
+  const tags = await page.evaluate(() => window.__beagle.forceBone());
+  if (tags < 1) throw new Error('office bone did not spawn');
+  const tagCount = await page.locator('.bgl-bone-tag').count();
+  if (tagCount < 1) throw new Error('office bone has no marker');
+
+  await page.locator('body > canvas').click({ position: { x: 700, y: 340 } });
+
+  if (await page.locator('#bgl-shop:not([hidden])').count()) {
+    await page.locator('#bgl-act-shop').click();
+  }
+  await page.locator('#joy-enabled').check();
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 375, height: 667 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => {
+      const panel = document.getElementById('left-panel');
+      if (panel && panel.classList.contains('open')) panel.classList.remove('open');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (backdrop) backdrop.classList.remove('open');
+    });
+    await page.waitForTimeout(320);
+    const problems = await page.evaluate(() => {
+      const fails = [];
+      const vw = innerWidth;
+      const vh = innerHeight;
+      if (document.documentElement.scrollWidth > vw + 1) {
+        fails.push('page scrolls sideways ' + document.documentElement.scrollWidth + ' > ' + vw);
+      }
+      const yard = document.getElementById('bgl-yard');
+      const yb = yard.getBoundingClientRect();
+      if (yb.width < 120 || yb.height < 44) fails.push('yard is ' + Math.round(yb.width) + '×' + Math.round(yb.height));
+      if (yb.left < -1 || yb.top < -1 || yb.right > vw + 1 || yb.bottom > vh + 1) {
+        fails.push('yard leaves the screen');
+      }
+      const buttons = [...yard.querySelectorAll('button')].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && !el.closest('[hidden]');
+      });
+      for (const el of buttons) {
+        const r = el.getBoundingClientRect();
+        if (r.height < 44 || r.width < 36) fails.push(el.id || el.className || 'button' + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        if (r.top < -1 || r.left < -1 || r.bottom > vh + 1 || r.right > vw + 1) {
+          fails.push((el.id || 'button') + ' leaves the screen');
+        }
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const hit = document.elementFromPoint(cx, cy);
+        if (!hit || !el.contains(hit)) {
+          fails.push((el.id || el.className || 'button') + ' is covered');
+        }
+      }
+      const overlap = (a, b) => {
+        const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+        const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        return x * y;
+      };
+      const box = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return null;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return null;
+        return r;
+      };
+      for (const id of ['joystick', 'sprint-btn', 'next-action-card']) {
+        const other = box(id);
+        if (other && overlap(yb, other) > 8) fails.push('yard overlaps ' + id);
+      }
+      return fails.slice(0, 8);
+    });
+    if (problems.length) throw new Error(viewport.width + '×' + viewport.height + ': ' + problems.join('; '));
+  }
 }
 
 // Vite source for the local chat app. It is not a static arcade page and

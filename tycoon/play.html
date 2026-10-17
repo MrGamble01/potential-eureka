@@ -1896,6 +1896,7 @@ const VARIANTS = {
       ['Engineers',                  'Beagles'],
       ['Hire an engineer',           'Adopt a beagle'],
       ['Welcome to Startup Tycoon',  'Welcome to Beagle Sim'],
+      ['They sit at a desk and ship features for cash.', 'They sit at a desk and ship features. Tap the yard at the bottom to dig up bones.'],
     ],
     // Nouns the game re-renders every HUD tick, so a one-shot DOM patch
     // can't hold them — these are read at the render site instead.
@@ -1917,6 +1918,16 @@ const VARIANT = (() => {
   } catch {}
   return VARIANTS.default;
 })();
+
+// Beagle Sim's yard, pack audio, and beagle meshes live in beagle-pack.js.
+// Startup Tycoon never imports it. If the file fails to load, the reskin
+// still runs — the office just won't grow a yard.
+let BEAGLE = null;
+let beaglePack = null;
+if (VARIANT.id === 'beagle') {
+  try { BEAGLE = await import('./beagle-pack.js'); }
+  catch (err) { console.warn('Beagle pack failed to load', err); }
+}
 
 // Identity + copy. Both are no-ops for the base build, which declares
 // neither, so nothing here can change how Startup Tycoon looks.
@@ -3820,6 +3831,9 @@ const BEANIE_COLORS  = [0x202048, 0x882030, 0x206838, 0x582878, 0xa87828, 0x2828
 const SKIN_COLORS    = [0xffe0b0, 0xf5c890, 0xe0ad70, 0xc08850, 0xa06838, 0x704828];
 
 function buildScrappyCharacter(opts) {
+  if (opts && opts.species === 'beagle' && BEAGLE && typeof BEAGLE.buildBeagle === 'function') {
+    return BEAGLE.buildBeagle(THREE, opts);
+  }
   const g = new THREE.Group();
   const bodyColor   = opts.bodyColor   ?? HOODIE_COLORS[0];
   const pantsColor  = opts.pantsColor  ?? PANTS_COLORS[0];
@@ -4365,6 +4379,7 @@ function spawnIdeaWorker(opts = {}) {
   desk.occupied = true;
 
   const look = randomWorkerLook(ideaWorkers.length + 1);
+  if (VARIANT.id === 'beagle') look.species = 'beagle';
   if (opts.external) {
     // Collared button-down + neutral slacks
     look.isCollared = true;
@@ -4414,6 +4429,13 @@ function spawnIdeaWorker(opts = {}) {
 // binding initializes (same reason the campus check guards founderHas).
 function alumniXp() { try { return Math.min(poachesLost || 0, 5); } catch (e) { return 0; } }
 
+function beagleWorkMult() {
+  if (!beaglePack) return 1;
+  try {
+    const m = beaglePack.workMult();
+    return Number.isFinite(m) && m > 0 ? m : 1;
+  } catch { return 1; }
+}
 function updateIdeaWorkers(dt) {
   const coffeeAm  = amenities.find(a => a.id === 'coffee'   && a.isOwned);
   const printerAm = amenities.find(a => a.id === 'printer'  && a.isOwned);
@@ -4453,7 +4475,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult() * retroWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult() * retroWorkMult() * beagleWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -5970,7 +5992,9 @@ hireBtnEl.addEventListener('click', () => {
   if (!spawnIdeaWorker()) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
-  addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
+  addFeedEntry(VARIANT.id === 'beagle'
+    ? `🐶 Adopted beagle #${ideaWorkers.length}!`
+    : `💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
   SFX.hire(); Haptics.hire();
   showTip('goal');
@@ -5991,7 +6015,9 @@ hireExtEngBtnEl.addEventListener('click', () => {
   if (!spawnIdeaWorker({ external: true })) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
-  addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
+  addFeedEntry(VARIANT.id === 'beagle'
+    ? `🦮 Adopted a pedigree beagle (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% dig rate)`
+    : `👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
   changeMorale(-2, 'External hire rattles the team');
   SFX.hire(); Haptics.hire();
 });
@@ -11577,6 +11603,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   if (tryFixBugAt(raycaster)) return;   // clicking a bugged desk hotfixes instead of walking
+  if (beaglePack && beaglePack.tryCollect(raycaster)) return;
   if (raycaster.ray.intersectPlane(groundPlane, _v3B)) target = { x: _v3B.x, z: _v3B.z };
 });
 
@@ -11978,6 +12005,10 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   try {
     const joy = lsGet(LS.joystick);
     lsRemove(LS.save);
+    if (VARIANT.id === 'beagle') {
+      if (beaglePack) beaglePack.wipe();
+      else { try { localStorage.removeItem('beagle:yard'); } catch {} }
+    }
     if (joy !== null) lsSet(LS.joystick, joy);
     if (window.EurekaPersist) window.EurekaPersist.progress.clear(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon');
   } catch (_) {}
@@ -12348,6 +12379,7 @@ function frameBody(now) {
   }
 
   tickCashHud(dt);
+  if (beaglePack) beaglePack.tick(dt);
   tickIdleBreathing(now);
   renderer.render(scene, activeCamera());
 }
@@ -13549,6 +13581,33 @@ addEventListener('pagehide', () => saveGame());
 // (welcome only fires for fresh games; welcome-back implies a save).
 if (_pendingOfflineEarnings && _pendingOfflineEarnings.amount > 0) {
   setTimeout(() => showOfflineModal(_pendingOfflineEarnings.amount, _pendingOfflineEarnings.seconds), 600);
+}
+
+if (BEAGLE && typeof BEAGLE.create === 'function') {
+  try {
+    beaglePack = BEAGLE.create({
+      THREE,
+      scene,
+      addCash,
+      changeMorale,
+      showToast,
+      addFeedEntry,
+      haptics: Haptics,
+      sfxScale() {
+        let enabled = true;
+        try { enabled = SFX.isEnabled(); } catch { /* settings unreadable */ }
+        let scale = enabled ? 1 : 0;
+        try { if (window.EurekaPersist) scale = window.EurekaPersist.audio.sfx(!enabled); } catch { /* keep local */ }
+        return scale;
+      },
+      confetti: launchConfetti,
+      worldToScreen,
+      getPlayer: () => player.position,
+      getWorkers: () => ideaWorkers,
+    });
+  } catch (err) {
+    console.warn('Beagle yard failed to start', err);
+  }
 }
 
 requestAnimationFrame(loop);
