@@ -16,8 +16,8 @@ const AgeOfWarGame = (() => {
   const ENEMY_BASE_X  = WIDTH - BASE_W - 14;
 
   // ---- Era definitions ----
-  // Five ages, each with a sky palette, base color, age-up XP cost,
-  // and a per-era special ability.
+  // Each age has a sky palette, base color, age-up XP cost,
+  // and a per-era special ability. Eclipse sits past Singularity.
   const ERAS = [
     { id: 'stone',    name: 'Stone Age',   icon: '🪨', sky: ['#4a3a2a', '#7a604a'], baseColor: '#7a5a3a', upXP:    100,
       special: { name: 'Boulder',    icon: '🪨', dmg: 180, color: '#a07040' } },
@@ -33,45 +33,67 @@ const AgeOfWarGame = (() => {
     // have SEEN the Future in some past run before you can transcend it.
     { id: 'singularity', name: 'Singularity', icon: '🌌', sky: ['#170a2e', '#3a1560'], baseColor: '#c86bff', upXP: 99999,
       special: { name: 'Reality Tear', icon: '🌀', dmg: 2400, color: '#c86bff' } },
+    // Era 7: gated behind void_walk (reach Singularity once). The XP wall
+    // on the row above is what a normal run never clears.
+    { id: 'eclipse', name: 'Eclipse', icon: '🌑', sky: ['#120818', '#3a2410'], baseColor: '#ffb45a', upXP: 999999,
+      special: { name: 'Corona', icon: '☀️', dmg: 3200, color: '#ffb45a' } },
   ];
 
   // ---- Unit catalog ----
-  // Three units per era: cheap melee / ranged / heavy.
-  // Stats are sim-tuned so every era forms an intransitive counter
-  // triangle (no dominant or dominated unit; see the balance PR for the
-  // duel matrices). Two structural premiums to preserve when retuning:
-  // walls (short-range heavies) need outsized HP because only the front
-  // melee unit fights, and long range must be paid for with fire rate.
+  // Each era keeps its melee / ranged / heavy triangle, then a fast
+  // skirmisher and a shielded tank. `line` is the counter tag.
+  // `anchor` is the boss body — the old heavy — so new units do not
+  // steal the wave leader. Walls need outsized HP because only the
+  // front melee unit fights, and long range is paid for in fire rate.
   const UNITS = {
     // Stone Age
-    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 84,   dmg: 12,  range: 26,  atkSpd: 1.0,  speed: 50, color: '#b07040', xp: 10,  gold: 12,  silhouette: 'humanoid' },
-    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 36,   dmg: 21,  range: 150, atkSpd: 1.15, speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
-    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 90,   hp: 170,  dmg: 20,  range: 30,  atkSpd: 0.95, speed: 40, color: '#5d8a4a', xp: 30,  gold: 42,  silhouette: 'beast' },
+    club:     { era: 0, line: 'melee', name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 84,   dmg: 12,  range: 26,  atkSpd: 1.0,  speed: 50, color: '#b07040', xp: 10,  gold: 12,  silhouette: 'humanoid' },
+    sling:    { era: 0, line: 'ranged', name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 36,   dmg: 21,  range: 150, atkSpd: 1.15, speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
+    dino:     { era: 0, line: 'heavy', anchor: true, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 90,   hp: 170,  dmg: 20,  range: 30,  atkSpd: 0.95, speed: 40, color: '#5d8a4a', xp: 30,  gold: 42,  silhouette: 'beast' },
+    runner:   { era: 0, line: 'skirmish', name: 'Runner', icon: '💨', cost: 40, hp: 46, dmg: 11, range: 24, atkSpd: 0.62, speed: 74, color: '#c4884a', xp: 12, gold: 16, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks shields and heavies; ranged fire picks them apart.' },
+    bulwark:  { era: 0, line: 'shield', name: 'Bulwark', icon: '🛡️', cost: 70, hp: 220, dmg: 9, range: 26, atkSpd: 1.2, speed: 28, color: '#8d9aa8', xp: 20, gold: 28, silhouette: 'humanoid', blurb: 'Shielded tank. Shrugs off slings and arrows; a Runner gets around the shield.' },
 
     // Medieval
-    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 240,  dmg: 38,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
-    archer:   { era: 1, name: 'Archer',     icon: '🏹', sprite: '🏹',  cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.25, speed: 40, color: '#b5985a', xp: 48,  gold: 92,  silhouette: 'humanoid' },
-    knight:   { era: 1, name: 'Knight',     icon: '🐴', sprite: '🐎',  cost: 380,  hp: 560,  dmg: 55,  range: 30,  atkSpd: 1.0,  speed: 54, color: '#9a9bc5', xp: 90,  gold: 175, silhouette: 'beast' },
+    swordsman:{ era: 1, line: 'melee', name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 240,  dmg: 38,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
+    archer:   { era: 1, line: 'ranged', name: 'Archer',     icon: '🏹', sprite: '🏹',  cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.25, speed: 40, color: '#b5985a', xp: 48,  gold: 92,  silhouette: 'humanoid' },
+    knight:   { era: 1, line: 'heavy', anchor: true, name: 'Knight',     icon: '🐴', sprite: '🐎',  cost: 380,  hp: 560,  dmg: 55,  range: 30,  atkSpd: 1.0,  speed: 54, color: '#9a9bc5', xp: 90,  gold: 175, silhouette: 'beast' },
+    outrider: { era: 1, line: 'skirmish', name: 'Outrider', icon: '🗡️', cost: 160, hp: 110, dmg: 30, range: 26, atkSpd: 0.55, speed: 70, color: '#d2b48c', xp: 40, gold: 70, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks shields and knights; archers pick them apart.' },
+    shieldman:{ era: 1, line: 'shield', name: 'Shieldman', icon: '🛡️', cost: 260, hp: 680, dmg: 26, range: 28, atkSpd: 1.15, speed: 30, color: '#b7c0cc', xp: 70, gold: 120, silhouette: 'humanoid', blurb: 'Shielded tank. Blocks arrows; an Outrider slips the shield.' },
 
     // Industrial
-    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 100, range: 230, atkSpd: 0.7,  speed: 46, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
-    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 190, range: 270, atkSpd: 1.6,  speed: 36, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
-    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 2600, dmg: 200, range: 90,  atkSpd: 0.95, speed: 42, color: '#6b5848', xp: 320, gold: 520, silhouette: 'vehicle' },
+    rifleman: { era: 2, line: 'ranged', name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 100, range: 230, atkSpd: 0.7,  speed: 46, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
+    cannon:   { era: 2, line: 'ranged', name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 190, range: 270, atkSpd: 1.6,  speed: 36, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
+    tank1:    { era: 2, line: 'heavy', anchor: true, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 2600, dmg: 200, range: 90,  atkSpd: 0.95, speed: 42, color: '#6b5848', xp: 320, gold: 520, silhouette: 'vehicle' },
+    dragoon:  { era: 2, line: 'skirmish', name: 'Dragoon', icon: '🐎', cost: 460, hp: 190, dmg: 68, range: 36, atkSpd: 0.48, speed: 68, color: '#8a6840', xp: 130, gold: 210, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks ironclads and the steam tank; rifles chew them up.' },
+    ironclad: { era: 2, line: 'shield', name: 'Ironclad', icon: '🛡️', cost: 800, hp: 1500, dmg: 80, range: 34, atkSpd: 1.15, speed: 26, color: '#7d8794', xp: 200, gold: 340, silhouette: 'humanoid', blurb: 'Shielded tank. Soaks rifle fire; a Dragoon gets inside the plate.' },
 
     // Modern
-    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 500,  dmg: 190, range: 240, atkSpd: 0.7,  speed: 46, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
-    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', sprite: '🥷',  cost: 1500, hp: 240,  dmg: 490, range: 360, atkSpd: 2.5,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
-    tank2:    { era: 3, name: 'Tank',       icon: '🪖', sprite: '🚜',  cost: 2400, hp: 4200, dmg: 380, range: 100, atkSpd: 1.0,  speed: 36, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
+    soldier:  { era: 3, line: 'ranged', name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 500,  dmg: 190, range: 240, atkSpd: 0.7,  speed: 46, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
+    sniper:   { era: 3, line: 'ranged', name: 'Sniper',     icon: '🎯', sprite: '🥷',  cost: 1500, hp: 240,  dmg: 490, range: 360, atkSpd: 2.5,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
+    tank2:    { era: 3, line: 'heavy', anchor: true, name: 'Tank',       icon: '🪖', sprite: '🚜',  cost: 2400, hp: 4200, dmg: 380, range: 100, atkSpd: 1.0,  speed: 36, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
+    raider:   { era: 3, line: 'skirmish', name: 'Raider', icon: '🏍️', cost: 1050, hp: 320, dmg: 140, range: 40, atkSpd: 0.42, speed: 72, color: '#c4a35a', xp: 280, gold: 480, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks riot shields and tanks; soldiers and snipers punish the rush.' },
+    riot:     { era: 3, line: 'shield', name: 'Riot Guard', icon: '🛡️', cost: 1700, hp: 2500, dmg: 145, range: 34, atkSpd: 1.1, speed: 26, color: '#9aa4b0', xp: 460, gold: 760, silhouette: 'humanoid', blurb: 'Shielded tank. Walks through small-arms fire; a Raider slips the shield.' },
 
     // Future
-    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 800,  silhouette: 'humanoid' },
-    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
-    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
+    laser:    { era: 4, line: 'ranged', name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 800,  silhouette: 'humanoid' },
+    mech:     { era: 4, line: 'heavy', name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
+    flier:    { era: 4, line: 'heavy', anchor: true, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
+    blink:    { era: 4, line: 'skirmish', name: 'Blink Knife', icon: '✨', cost: 2100, hp: 460, dmg: 250, range: 44, atkSpd: 0.4, speed: 78, color: '#9ad7ff', xp: 620, gold: 960, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks the Aegis and the heavies; laser fire catches the blink.' },
+    aegis:    { era: 4, line: 'shield', name: 'Aegis', icon: '🛡️', cost: 3400, hp: 4600, dmg: 270, range: 36, atkSpd: 1.05, speed: 24, color: '#7eb0d4', xp: 900, gold: 1400, silhouette: 'humanoid', blurb: 'Shielded tank. The plate eats beams; a Blink Knife gets around it.' },
 
     // Singularity (IDEA-AOW-3)
-    nano:     { era: 5, name: 'Nanite Swarm',  icon: '🦠', sprite: '🦠', cost: 3200, hp: 1300, dmg: 650,  range: 290, atkSpd: 0.5,  speed: 52, color: '#c86bff', xp: 900,  gold: 1400, silhouette: 'humanoid' },
-    construct:{ era: 5, name: 'War Construct', icon: '🗿', sprite: '🗿', cost: 5600, hp: 6500, dmg: 950,  range: 120, atkSpd: 0.9,  speed: 36, color: '#8f6bff', xp: 1900, gold: 2600, silhouette: 'vehicle' },
-    seraph:   { era: 5, name: 'Void Seraph',   icon: '🪽', sprite: '🪽', cost: 8200, hp: 2600, dmg: 1500, range: 270, atkSpd: 1.2,  speed: 58, color: '#ff6bd8', xp: 2800, gold: 3900, silhouette: 'flier' },
+    nano:     { era: 5, line: 'ranged', name: 'Nanite Swarm',  icon: '🦠', sprite: '🦠', cost: 3200, hp: 1300, dmg: 650,  range: 290, atkSpd: 0.5,  speed: 52, color: '#c86bff', xp: 900,  gold: 1400, silhouette: 'humanoid' },
+    construct:{ era: 5, line: 'heavy', name: 'War Construct', icon: '🗿', sprite: '🗿', cost: 5600, hp: 6500, dmg: 950,  range: 120, atkSpd: 0.9,  speed: 36, color: '#8f6bff', xp: 1900, gold: 2600, silhouette: 'vehicle' },
+    seraph:   { era: 5, line: 'heavy', anchor: true, name: 'Void Seraph',   icon: '🪽', sprite: '🪽', cost: 8200, hp: 2600, dmg: 1500, range: 270, atkSpd: 1.2,  speed: 58, color: '#ff6bd8', xp: 2800, gold: 3900, silhouette: 'flier' },
+    shard:    { era: 5, line: 'skirmish', name: 'Shard Dancer', icon: '💠', cost: 4000, hp: 820, dmg: 460, range: 46, atkSpd: 0.38, speed: 82, color: '#e2b6ff', xp: 1100, gold: 1700, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks the Phase Bastion and the heavies; the swarm unmakes them.' },
+    bastion:  { era: 5, line: 'shield', name: 'Phase Bastion', icon: '🛡️', cost: 6400, hp: 8200, dmg: 440, range: 38, atkSpd: 1.1, speed: 22, color: '#a98cff', xp: 1600, gold: 2400, silhouette: 'humanoid', blurb: 'Shielded tank. Phases ranged fire; a Shard Dancer steps through the guard.' },
+
+    // Eclipse
+    dusk:     { era: 6, line: 'melee', name: 'Dusk Blade', icon: '🌒', cost: 15000, hp: 2600, dmg: 980, range: 30, atkSpd: 0.7, speed: 50, color: '#c9b6ff', xp: 3200, gold: 4600, silhouette: 'humanoid' },
+    corona:   { era: 6, line: 'ranged', name: 'Corona', icon: '☀️', cost: 19000, hp: 1200, dmg: 1400, range: 300, atkSpd: 1.1, speed: 42, color: '#ffe1a8', xp: 3800, gold: 5400, silhouette: 'humanoid' },
+    colossus: { era: 6, line: 'heavy', anchor: true, name: 'Star Colossus', icon: '☄️', cost: 32000, hp: 15000, dmg: 1700, range: 110, atkSpd: 0.95, speed: 32, color: '#ffd27a', xp: 6400, gold: 9000, silhouette: 'vehicle' },
+    comet:    { era: 6, line: 'skirmish', name: 'Comet', icon: '💫', cost: 12000, hp: 1500, dmg: 820, range: 46, atkSpd: 0.36, speed: 84, color: '#ffb45a', xp: 2800, gold: 4000, silhouette: 'humanoid', blurb: 'Fast skirmisher. Flanks the Umbra and the Colossus; the Corona burns the rush.' },
+    umbra:    { era: 6, line: 'shield', name: 'Umbra', icon: '🌑', cost: 24000, hp: 11000, dmg: 720, range: 38, atkSpd: 1.08, speed: 22, color: '#6a5a88', xp: 4800, gold: 6800, silhouette: 'humanoid', blurb: 'Shielded tank. The disc eats the Corona; a Comet gets around it.' },
 
     // Walls (IDEA-AOW-4): role:'wall' — no attack, no movement, pure HP
     // planted at your gate. Cheap lane-stall so a rush can be absorbed
@@ -83,6 +105,7 @@ const AgeOfWarGame = (() => {
     wall3: { era: 3, role: 'wall', name: 'Barricade',      icon: '🚧', cost: 950,  hp: 4600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#7a7a7a', xp: 120, gold: 130, silhouette: 'humanoid' },
     wall4: { era: 4, role: 'wall', name: 'Energy Barrier', icon: '🛡️', cost: 1800, hp: 7800, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#4cc9f0', xp: 240, gold: 260, silhouette: 'humanoid' },
     wall5: { era: 5, role: 'wall', name: 'Phase Wall',     icon: '🌀', cost: 3400, hp: 14000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#c86bff', xp: 480, gold: 520, silhouette: 'humanoid' },
+    wall6: { era: 6, role: 'wall', name: 'Event Horizon', icon: '🌑', cost: 18000, hp: 24000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#ffb45a', xp: 900, gold: 980, silhouette: 'humanoid' },
 
     // The Ridge company. era -1 keeps them off the recruit row; they
     // march only after the Warden falls.
@@ -108,6 +131,29 @@ const AgeOfWarGame = (() => {
       .map(([k]) => k);
   }
 
+  // Bosses stay on the anchored heavy. New skirmishers and shields
+  // sit in the same era without becoming the wave leader.
+  function heavyKey(choices) {
+    if (!choices || !choices.length) return null;
+    for (let i = choices.length - 1; i >= 0; i--) {
+      if (UNITS[choices[i]] && UNITS[choices[i]].anchor) return choices[i];
+    }
+    return choices[choices.length - 1];
+  }
+
+  // Counter tags. Existing triangle pairs stay at 1 so the old duel
+  // matrix is unchanged. The new lines are the ones with a winner.
+  function counterFactor(atkLine, defLine) {
+    if (atkLine === 'skirmish' && defLine === 'shield') return 1.5;
+    if (atkLine === 'skirmish' && defLine === 'heavy') return 1.35;
+    if (atkLine === 'ranged' && defLine === 'shield') return 0.6;
+    if (atkLine === 'ranged' && defLine === 'skirmish') return 1.4;
+    if (atkLine === 'heavy' && defLine === 'shield') return 1.2;
+    if (atkLine === 'shield' && defLine === 'skirmish') return 0.75;
+    if (atkLine === 'shield' && defLine === 'ranged') return 1.25;
+    return 1;
+  }
+
   // ---- Turret catalog (one per era — upgrade to next era's tier) ----
   const TURRETS = [
     { era: 0, name: 'Rock Sling',    icon: '🪨', cost: 250,  dmg: 14,  range: 200, atkSpd: 1.6, color: '#7a5a3a' },
@@ -116,6 +162,7 @@ const AgeOfWarGame = (() => {
     { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 240, range: 300, atkSpd: 0.8, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
     { era: 5, name: 'Singularity Beam', icon: '🌌', cost: 30000, dmg: 1600, range: 380, atkSpd: 1.0, color: '#c86bff' },
+    { era: 6, name: 'Eclipse Lens', icon: '🌑', cost: 72000, dmg: 2600, range: 400, atkSpd: 0.95, color: '#ffb45a' },
   ];
   // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
   // Enemy keeps all 4 unlocked so the AI ramps as it would in canon.
@@ -928,6 +975,45 @@ const AgeOfWarGame = (() => {
   // players who've asked the OS for reduced motion (same signal hapticsOK
   // already honors below).
   let reducedMotion = false;
+  const juice = { flash: 0, knock: 0, number: 0, puff: 0, impact: 0, shake: 0 };
+  function motionReduced() {
+    try {
+      if (window.EurekaFeel && typeof EurekaFeel.reduced === 'function') return !!EurekaFeel.reduced();
+    } catch {}
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch {}
+    return reducedMotion;
+  }
+  function syncMotion() {
+    reducedMotion = motionReduced();
+    hapticsOK = !reducedMotion;
+  }
+  function noteJuice(kind) {
+    juice[kind] = (juice[kind] || 0) + 1;
+    if (!canvas || !canvas.dataset) return;
+    const key = 'juice' + kind.charAt(0).toUpperCase() + kind.slice(1);
+    canvas.dataset[key] = String(juice[kind]);
+  }
+  function screenPoint(x, y) {
+    if (!canvas || !canvas.getBoundingClientRect) return { x: x, y: y };
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: r.left + (x / WIDTH) * r.width,
+      y: r.top + (y / HEIGHT) * r.height,
+    };
+  }
+  function feelAt(x, y, opts) {
+    const feel = window.EurekaFeel;
+    if (!feel) return;
+    const p = screenPoint(x, y);
+    const o = opts || {};
+    try {
+      if (o.burst && !motionReduced() && typeof feel.burst === 'function') feel.burst(p.x, p.y, o.color || '#ffd2c0', o.n || 10);
+      if (o.text && typeof feel.popup === 'function') feel.popup(p.x, p.y, o.text, o.color || '#fff');
+      if (o.shake && !motionReduced() && typeof feel.shake === 'function') feel.shake(canvas, o.mag || 3, o.ms || 150);
+    } catch {}
+  }
   function vibrateBaseHit() {
     if (!hapticsOK || gameOver) return;
     if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
@@ -950,6 +1036,8 @@ const AgeOfWarGame = (() => {
     { id: 'industrial',   icon: '🏭',  title: 'Renaissance Man',  desc: 'Reach the Renaissance Age.' },
     { id: 'modern',       icon: '🪖',  title: 'Modern Warfare',   desc: 'Reach the Modern Age.' },
     { id: 'max_age',      icon: '🚀',  title: 'Singularity',      desc: 'Reach the Future Age.' },
+    { id: 'void_walk',    icon: '🌌',  title: 'Past the Future',  desc: 'Reach the Singularity.' },
+    { id: 'eclipse_age',  icon: '🌑',  title: 'Eclipse',          desc: 'Reach the Eclipse.' },
     { id: 'streak_10',    icon: '🔥',  title: 'Heating Up',       desc: '10-kill combo streak.' },
     { id: 'streak_25',    icon: '💀',  title: 'Godlike',          desc: '25-kill combo streak.' },
     { id: 'rich',         icon: '💰',  title: 'Tycoon',           desc: 'Hold $5,000 at once.' },
@@ -1175,6 +1263,7 @@ const AgeOfWarGame = (() => {
     { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 65 },
     { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 70 },
     { era: 5, key: 'hero_avatar',  name: 'The Avatar',       icon: '🌌', sprite: '🌌',  cost: 32000, hp: 15000, dmg: 1700, range: 260, atkSpd: 0.8, speed: 42, color: '#c86bff', xp: 5600, gold: 11000, silhouette: 'humanoid', cd: 80 },
+    { era: 6, key: 'hero_penumbra', name: 'The Penumbra',    icon: '🌑', sprite: '🌑',  cost: 64000, hp: 24000, dmg: 2600, range: 180, atkSpd: 0.8, speed: 40, color: '#ffb45a', xp: 9000, gold: 18000, silhouette: 'humanoid', cd: 85 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -1254,9 +1343,25 @@ const AgeOfWarGame = (() => {
   let shakeT = 0;
   let shakeMag = 0;
   function shake(mag, dur) {
-    if (reducedMotion) return; // no-op the camera-shake effect
+    if (motionReduced()) return; // no-op the camera-shake effect
     if (mag > shakeMag) shakeMag = mag;
     if (dur > shakeT)   shakeT   = dur;
+  }
+  // Light kick for a big hit or a base strike. The shared feel kit
+  // shakes the canvas element when it is on the page; the in-canvas
+  // translate still moves the battlefield. Reduced motion skips both.
+  function lightShake(mag, dur) {
+    if (motionReduced()) return;
+    const m = Math.min(4, mag || 2.5);
+    const d = dur || 0.14;
+    try {
+      if (window.EurekaFeel && typeof EurekaFeel.shake === 'function') {
+        EurekaFeel.shake(canvas, m, Math.round(d * 1000));
+      }
+    } catch {}
+    if (m > shakeMag) shakeMag = m;
+    if (d > shakeT) shakeT = d;
+    noteJuice('shake');
   }
 
   // ---- Sound (Web Audio API, no samples) ----
@@ -1402,8 +1507,12 @@ const AgeOfWarGame = (() => {
     // backing store changes, and only up to the pixels on screen.
     ctx = canvas.getContext('2d');
     fitCanvas();
-    try { reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
-    hapticsOK = !reducedMotion;
+    syncMotion();
+    try {
+      document.addEventListener('eureka-feel-change', syncMotion);
+      const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (mq && mq.addEventListener) mq.addEventListener('change', syncMotion);
+    } catch {}
     try {
       const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
                   || localStorage.getItem('aow-difficulty');
@@ -1465,6 +1574,13 @@ const AgeOfWarGame = (() => {
       for (let i = 0; i < 2; i++) ambient.push({
         type: 'jet', x: -120 - Math.random() * 200, y: 40 + Math.random() * 50,
         vx: 80 + Math.random() * 40,
+      });
+    } else if (eraIdx >= 6) {
+      // Eclipse: ember dust drifting off the corona
+      for (let i = 0; i < 16; i++) ambient.push({
+        type: 'dust', x: Math.random() * WIDTH, y: 20 + Math.random() * (GROUND_Y * 0.7),
+        vx: 10 + Math.random() * 16, vy: -4 + Math.random() * 8,
+        size: 1.4 + Math.random() * 2.2, color: 'rgba(255,180,90,0.55)',
       });
     } else if (eraIdx >= 4) {
       // Future/Singularity: floating neon hex particles
@@ -1694,6 +1810,8 @@ const AgeOfWarGame = (() => {
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
+      knock: 0,
+      line: def.line || null,
       aliveT: 0,                           // veterancy clock (AOW-5)
       walkPhase: Math.random() * Math.PI * 2,
       attackPose: 0,                       // seconds remaining in strike pose
@@ -1860,6 +1978,19 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  function cueEclipse() {
+    const era = document.getElementById('aow-era-name');
+    if (era) era.dataset.ageCue = 'eclipse';
+    const audio = window.EurekaAudio;
+    if (!audio) return;
+    try {
+      audio.bind({ muted: () => soundMuted, musicOff: () => false });
+      if (!audio.playing()) audio.start('tense');
+      audio.sfx('levelup');
+      audio.setMood('victory', { hold: 14 });
+    } catch {}
+  }
+
   function ageUp() {
     if (gameOver || userPaused) return;
     if (playerEra >= ERAS.length - 1) return;
@@ -1867,6 +1998,11 @@ const AgeOfWarGame = (() => {
     // achievement from a PAST run — reach the Future once, then ascend.
     if (playerEra === 4 && !earnedAchievements.max_age) {
       ageBannerText = '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era';
+      ageBannerT = 2.4;
+      return;
+    }
+    if (playerEra === 5 && !earnedAchievements.void_walk) {
+      ageBannerText = '🔒 ECLIPSE — reach the Singularity once to unlock the next age';
       ageBannerT = 2.4;
       return;
     }
@@ -1883,7 +2019,17 @@ const AgeOfWarGame = (() => {
     if (playerEra === 2) unlock('industrial');
     if (playerEra === 3) unlock('modern');
     if (playerEra === 4) unlock('max_age');
-    if (playerEra === 5) { ageBannerText = '🌌 SINGULARITY — beyond the Future'; ageBannerT = 3.0; }
+    if (playerEra === 5) {
+      unlock('void_walk');
+      ageBannerText = '🌌 SINGULARITY — beyond the Future';
+      ageBannerT = 3.0;
+    }
+    if (playerEra === 6) {
+      unlock('eclipse_age');
+      ageBannerText = '🌑 ECLIPSE — the sun steps aside';
+      ageBannerT = 3.2;
+      cueEclipse();
+    }
     // New era → new hero costs/CD baseline. GAME-1f: don't touch the
     // player's actual remaining cooldown here -- clamping it to <=10s let
     // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
@@ -1912,8 +2058,8 @@ const AgeOfWarGame = (() => {
     ageFlash = 1;
     seedAmbient(playerEra);  // refresh ambient particles for new era
     const e = ERAS[playerEra];
-    ageBannerText = `Welcome to the ${e.name}`;
-    ageBannerT = 2.4;
+    ageBannerText = playerEra === 6 ? '🌑 ECLIPSE — the sun steps aside' : `Welcome to the ${e.name}`;
+    ageBannerT = playerEra === 6 ? 3.2 : 2.4;
     // Confetti-ish particle burst as celebration
     for (let i = 0; i < 26; i++) {
       const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
@@ -3657,6 +3803,10 @@ const AgeOfWarGame = (() => {
       });
     }
     if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
+    const motionBtn = document.getElementById('aow-motion-btn');
+    if (motionBtn && window.EurekaFeel && typeof EurekaFeel.bindButton === 'function') {
+      EurekaFeel.bindButton(motionBtn, 'motion');
+    }
     // Replay tutorial
     const replayBtn = document.getElementById('aow-replay-tutorial');
     if (replayBtn) replayBtn.onclick = () => {
@@ -4011,7 +4161,7 @@ const AgeOfWarGame = (() => {
       // Spawn a single beefy boss instead of normal unit.
       // Boss strength now scales with wave# rather than a flat 5x, so
       // early bosses (wave 5) are tough-but-fair and late bosses ramp up.
-      const baseKey = choices[choices.length - 1];
+      const baseKey = heavyKey(choices);
       const baseDef = UNITS[baseKey];
       // Keyed by the (bounded, era-derived) baseKey only -- NOT by
       // waveNum. baseKey only ever takes one of a handful of values (the
@@ -4069,7 +4219,7 @@ const AgeOfWarGame = (() => {
       waveEnemiesRemaining = 0;  // breather waits for boss death
     } else {
       const heavy = Math.random() < 0.15 + (waveNum - 1) * 0.035;
-      const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
+      const key = heavy ? heavyKey(choices) : choices[Math.floor(Math.random() * choices.length)];
       spawnUnit('enemy', key);
       waveEnemiesRemaining--;
     }
@@ -4095,9 +4245,11 @@ const AgeOfWarGame = (() => {
     sling: 'stone', archer: 'arrow', rifleman: 'bullet', cannon: 'shell',
     tank1: 'shell', soldier: 'bullet', sniper: 'tracer', tank2: 'shell',
     laser: 'laser', flier: 'plasma',
+    nano: 'plasma', construct: 'shell', seraph: 'plasma',
+    corona: 'laser', colossus: 'shell',
     hero_general: 'bullet', hero_seal: 'tracer',
   };
-  const TURRET_PROJECTILE_KINDS = ['stone', 'arrow', 'shell', 'bullet', 'plasma'];
+  const TURRET_PROJECTILE_KINDS = ['stone', 'arrow', 'shell', 'bullet', 'plasma', 'plasma', 'laser'];
   function projectileKindFor(key) {
     if (!key) return null;
     if (key.startsWith('boss_')) key = key.slice(5).replace(/_\d+$/, '');
@@ -4219,6 +4371,10 @@ const AgeOfWarGame = (() => {
     for (const u of units) {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
+      if (u.knock) {
+        u.knock *= Math.exp(-dt * 8);
+        if (Math.abs(u.knock) < 0.35) u.knock = 0;
+      }
       u.aliveT += dt;
       if (u.side === 'player' && councilBoons.medics && u.hp < u.hpMax)   // AOW-10
         u.hp = Math.min(u.hpMax, u.hp + 2 * dt);
@@ -4282,6 +4438,7 @@ const AgeOfWarGame = (() => {
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
                 vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
+                line: u.line || null,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
@@ -4291,11 +4448,8 @@ const AgeOfWarGame = (() => {
               const dd = u.side === 'player' ? dd0 : Math.max(1, Math.round(dd0 * armorMult()));
               if (u.side === 'player') enemyBaseHp -= dd;
               else                   { playerBaseHp -= dd; vibrateBaseHit(); }
-              spawnDmgFloater(dd, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
-              spawnHitSparks(baseTargetX, GROUND_Y - 90, u.color);
+              flavorBase(dd, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d', u.color);
               SFX.hit();
-              // Heavy hit = noticeable shake; small hit = light shake.
-              shake(Math.min(8, 1 + vetDmg(u) / 80), 0.18);
             }
           } else if (target) {
             if (u.range > 60) {
@@ -4305,14 +4459,13 @@ const AgeOfWarGame = (() => {
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
                 vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
+                line: u.line || null,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
               const dd = orderMitigate(target, vetDmg(u));
-              target.hp -= dd; target.hitFlash = 0.2;
-              spawnDmgFloater(dd, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
-              spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
+              flavorHit(u, target, dd, { x: target.x, y: GROUND_Y - target.h - 6, fromX: u.x });
               SFX.hit();
             }
           }
@@ -4354,9 +4507,9 @@ const AgeOfWarGame = (() => {
         if (u.hp <= 0) continue;
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           const hit = p.side === 'enemy' ? orderMitigate(u, p.dmg) : p.dmg;
-          u.hp -= hit; u.hitFlash = 0.2;
-          spawnDmgFloater(hit, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
-          spawnHitSparks(p.x, p.y, p.color);
+          flavorHit({ side: p.side, line: p.line || 'ranged', x: p.x }, u, hit, {
+            x: u.x, y: GROUND_Y - u.h - 6, fromX: p.x, sx: p.x, sy: p.y, spark: p.color,
+          });
           SFX.hit();
           p.life = 0;
           break;
@@ -4365,19 +4518,15 @@ const AgeOfWarGame = (() => {
       if (p.life > 0) {
         if (p.side === 'player' && p.x >= ENEMY_BASE_X) {
           enemyBaseHp -= p.dmg;
-          spawnDmgFloater(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d');
-          spawnHitSparks(ENEMY_BASE_X + 10, GROUND_Y - 90, p.color);
+          flavorBase(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d', p.color);
           SFX.hit();
-          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
           const pd = Math.max(1, Math.round(p.dmg * armorMult()));   // AOW-14
           playerBaseHp -= pd;
           vibrateBaseHit();
-          spawnDmgFloater(pd, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
-          spawnHitSparks(PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, p.color);
+          flavorBase(pd, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149', p.color);
           SFX.hit();
-          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         }
       }
@@ -4395,8 +4544,9 @@ const AgeOfWarGame = (() => {
         for (const u of units) {
           if (u.side === s.side) continue;
           if (u.hp > 0 && Math.abs(u.x - s.x) < s.dmgRadius) {
-            u.hp -= s.dmgEach; u.hitFlash = 0.3;
-            spawnDmgFloater(s.dmgEach | 0, u.x, GROUND_Y - u.h - 6, '#ff7733');
+            flavorHit({ side: s.side, x: s.x }, u, s.dmgEach, {
+              x: u.x, y: GROUND_Y - u.h - 6, fromX: s.x, color: '#ff7733', flash: 0.3, shake: false,
+            });
           }
         }
         // Also damages base if very close
@@ -4432,19 +4582,7 @@ const AgeOfWarGame = (() => {
           dir: u.side === 'player' ? 1 : -1,
           rot: 0, t: 0.9,
         });
-        // Burst of body-color particles
-        for (let i = 0; i < 8; i++) {
-          const ang = Math.random() * Math.PI * 2;
-          const spd = 60 + Math.random() * 90;
-          particles.push({
-            x: u.x, y: GROUND_Y - u.h * 0.5 - u.yOffset,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd - 40,
-            color: u.color,
-            size: 2 + Math.random() * 2,
-            life: 0.5 + Math.random() * 0.4,
-          });
-        }
+        spawnDeathPuff(u);
         if (u.side === 'enemy') {
           // Combo: each kill within COMBO_WINDOW seconds of the last
           // stacks. Multiplier boosts XP gain + coin gold value.
@@ -4472,8 +4610,8 @@ const AgeOfWarGame = (() => {
             }
             shake(10, 0.5);
             ageFlash = Math.max(ageFlash, 0.4);
-            // Boss explosion
-            for (let i = 0; i < 40; i++) {
+            // Boss explosion. Reduced motion keeps the banner and skips the burst.
+            if (!motionReduced()) for (let i = 0; i < 40; i++) {
               const a = Math.random() * Math.PI * 2;
               const s = 80 + Math.random() * 200;
               particles.push({
@@ -4520,7 +4658,7 @@ const AgeOfWarGame = (() => {
     if (ageBannerT > 0) ageBannerT -= dt;
 
     // Floater + coin tick
-    for (const f of dmgFloaters) { f.t -= dt; f.y -= 28 * dt; }
+    for (const f of dmgFloaters) { f.t -= dt; if (!f.still) f.y -= 28 * dt; }
     dmgFloaters = dmgFloaters.filter(f => f.t > 0);
     for (const f of goldFloaters) { f.t -= dt; f.y -= 26 * dt; }
     for (const f of killFeed) { f.t -= dt; f.y += 20 * dt; }
@@ -4663,6 +4801,7 @@ const AgeOfWarGame = (() => {
           dmg: side === 'player' && fieldOrder === 'sapper' ? Math.round(t.dmg * 1.18) : t.dmg,
           life: 1.2, color: t.color || '#fcd34d',
           kind: tKind, vy: tArc.vy, grav: tArc.grav,
+          line: 'ranged',
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
         const sapperReload = side === 'player' && fieldOrder === 'sapper' ? 0.92 : 1;
@@ -4672,15 +4811,90 @@ const AgeOfWarGame = (() => {
     }
   }
 
-  function spawnDmgFloater(amount, x, y, color) {
-    dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
+  function unitLine(u) {
+    if (!u) return null;
+    if (u.line) return u.line;
+    if (u.key && UNITS[u.key]) return UNITS[u.key].line || null;
+    return null;
   }
 
-  // Quick burst of yellow sparks at every hit so combat reads as
-  // physical instead of two boxes silently overlapping.
+  // Slide the body away from the blow. Walls stay planted. Reduced
+  // motion skips the slide and the real nudge, so juiceKnock stays 0.
+  function applyKnock(target, fromX, dealt) {
+    if (!target || target.role === 'wall') return;
+    if (motionReduced()) return;
+    const origin = fromX == null ? target.x - 20 : fromX;
+    let dir = Math.sign(target.x - origin);
+    if (!dir) dir = target.side === 'player' ? -1 : 1;
+    const mag = Math.min(18, 4 + (dealt || 0) / 40);
+    target.knock = Math.max(-22, Math.min(22, (target.knock || 0) + dir * mag));
+    target.x += dir * Math.min(5, Math.max(1.5, (dealt || 0) / 80));
+    noteJuice('knock');
+  }
+
+  // `dmg` is already order-mitigated. The counter matrix is applied here
+  // so shields and skirmishers actually trade the way their blurbs say.
+  function flavorHit(attacker, target, dmg, opts) {
+    const o = opts || {};
+    const dealt = Math.max(1, Math.round((dmg || 0) * counterFactor(unitLine(attacker), unitLine(target))));
+    target.hp -= dealt;
+    target.hitFlash = o.flash || 0.28;
+    noteJuice('flash');
+    applyKnock(target, o.fromX != null ? o.fromX : (attacker && attacker.x != null ? attacker.x : target.x - 20), dealt);
+    const color = o.color || (attacker && attacker.side === 'player' ? '#F85149' : '#fcd34d');
+    const x = o.x != null ? o.x : target.x;
+    const y = o.y != null ? o.y : GROUND_Y - (target.h || 40) - 6;
+    spawnDmgFloater(dealt, x, y, color);
+    if (!o.quiet) spawnHitSparks(o.sx != null ? o.sx : x, o.sy != null ? o.sy : y, o.spark || color);
+    if (o.shake !== false && dealt >= 70) lightShake(Math.min(4, 1.6 + dealt / 180), 0.14);
+    if (attacker && attacker.side === 'player' && canvas && canvas.dataset) canvas.dataset.lastDealt = String(dealt);
+    return dealt;
+  }
+
+  // Every base strike gets a number, an impact, and a light shake.
+  // Specials and bosses keep the heavier shake() path.
+  function flavorBase(dmg, x, y, color, spark) {
+    const n = Math.max(1, dmg | 0);
+    spawnDmgFloater(n, x, y, color || '#fcd34d');
+    spawnHitSparks(x, y, spark || color);
+    lightShake(Math.min(4, 1.8 + n / 160), 0.16);
+  }
+
+  function spawnDeathPuff(u) {
+    if (!u || motionReduced()) return;
+    noteJuice('puff');
+    const y = GROUND_Y - (u.h || 40) * 0.45 - (u.yOffset || 0);
+    for (let i = 0; i < 10; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 40 + Math.random() * 110;
+      particles.push({
+        x: u.x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 50,
+        color: i % 2 ? '#f4f1ea' : (u.color || '#ddd'),
+        size: 3 + Math.random() * 4,
+        life: 0.45 + Math.random() * 0.35,
+        puff: true,
+      });
+    }
+    impactRings.push({ x: u.x, y, t: 0.36, max: 0.36, color: u.color || '#fff' });
+    feelAt(u.x, y, { burst: true, color: u.color || '#f4f1ea', n: 12 });
+  }
+
+  function spawnDmgFloater(amount, x, y, color) {
+    const n = Math.max(1, amount | 0);
+    dmgFloaters.push({ amount: n, x, y, color, t: 0.9, still: motionReduced() });
+    noteJuice('number');
+    feelAt(x, y, { text: String(n), color: color || '#fff' });
+  }
+
+  // Quick burst of sparks at every hit so combat reads as physical
+  // instead of two boxes silently overlapping. Reduced motion keeps the
+  // number and the white flash, and skips the particles.
   function spawnHitSparks(x, y, tint) {
     const color = tint || '#fcd34d';
-    for (let i = 0; i < 5; i++) {
+    if (motionReduced()) return;
+    for (let i = 0; i < 6; i++) {
       const a = Math.random() * Math.PI * 2;
       const s = 60 + Math.random() * 90;
       particles.push({
@@ -4692,8 +4906,9 @@ const AgeOfWarGame = (() => {
         life: 0.3 + Math.random() * 0.2,
       });
     }
-    // Shockwave ring at the impact point
     impactRings.push({ x, y, t: 0.32, max: 0.32, color });
+    noteJuice('impact');
+    feelAt(x, y, { burst: true, color, n: 8 });
   }
 
   // Touch devices: bigger hit area so fingers can reliably catch coins.
@@ -4809,7 +5024,8 @@ const AgeOfWarGame = (() => {
     }
     // ---- Atmosphere ----
     // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.
-    const [skyTop, skyHorizon] = OG_SKY[playerEra];
+    const [skyTop, skyHorizon] = OG_SKY[playerEra] || ['#120818', '#3a2410'];
+    if (canvas && canvas.dataset) canvas.dataset.skyTop = skyTop;
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
     grad.addColorStop(0,    skyTop);
     grad.addColorStop(0.55, skyHorizon);
@@ -4857,6 +5073,7 @@ const AgeOfWarGame = (() => {
       }
       ctx.restore();
     }
+    if (playerEra === 6) drawEclipseDisc();
 
     // Far-back parallax silhouette — darker, lower-amplitude.
     // Sits below the near hill to suggest a distant horizon.
@@ -4997,7 +5214,13 @@ const AgeOfWarGame = (() => {
       const a = Math.max(0, Math.min(1, p.life * 1.5));
       ctx.fillStyle = p.color;
       ctx.globalAlpha = a;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      if (p.puff) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -5151,21 +5374,24 @@ const AgeOfWarGame = (() => {
     ['#5d8fb4', '#c2d0d8'],  // modern — overcast
     ['#2c3d80', '#7c92d2'],  // future — twilight
     ['#170a2e', '#5a2a92'],  // singularity — violet void
+    ['#120818', '#3a2410'],  // eclipse — the sun steps aside
   ];
-  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff', '#e0a8ff'];
-  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68', '#2a1548'];
-  const OG_GROUND = ['#a9824e', '#88aa50', '#7a6648', '#6a7060', '#4a5a90'];
+  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff', '#e0a8ff', null];
+  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68', '#2a1548', '#1a1020'];
+  const OG_GROUND = ['#a9824e', '#88aa50', '#7a6648', '#6a7060', '#4a5a90', '#2a1840', '#2a1a14'];
   // Grass/decor tint per era
   const GROUND_COLORS = OG_GROUND;
-  const GROUND_SPECKS = ['#8a5a30', '#4a6a30', '#5a4828', '#4a5040', '#3a4a78'];
+  const GROUND_SPECKS = ['#8a5a30', '#4a6a30', '#5a4828', '#4a5040', '#3a4a78', '#3a2060', '#5a3018'];
   // Atmosphere palettes
-  const SKY_HORIZON = ['#a26845', '#7e88a8', '#564f5e', '#5c7c8a', '#3a4a90'];
+  const SKY_HORIZON = ['#a26845', '#7e88a8', '#564f5e', '#5c7c8a', '#3a4a90', '#4a2070', '#3a2410'];
   const HORIZON_HAZE = [
     'rgba(220,160,90,0.22)',   // stone — orange dust
     'rgba(180,200,220,0.16)',  // medieval — pale fog
     'rgba(200,180,140,0.16)',  // industrial — smog
     'rgba(150,220,220,0.14)',  // modern — clean haze
     'rgba(120,200,255,0.18)',  // future — neon blue
+    'rgba(180,90,255,0.18)',   // singularity — violet
+    'rgba(255,160,70,0.22)',   // eclipse — corona dust
   ];
   // Per-era sun / moon — color, radius, position offset from top
   const CELESTIALS = [
@@ -5175,7 +5401,33 @@ const AgeOfWarGame = (() => {
     { color: '#dde0e6', glow: 'rgba(220,225,235,0.25)', r: 13, x: 0.18, y: 56, halo: false },  // modern — overcast moon
     { color: '#7ec8ff', glow: 'rgba(120,200,255,0.55)', r: 20, x: 0.80, y: 64, halo: true },   // future — neon sun
     { color: '#d88bff', glow: 'rgba(200,107,255,0.6)',  r: 22, x: 0.50, y: 56, halo: true },   // singularity — the tear itself
+    { color: '#1a0c14', glow: 'rgba(255,180,90,0.55)', r: 26, x: 0.72, y: 58, halo: true },   // eclipse — the covered sun
   ];
+
+  function drawEclipseDisc() {
+    const cx = WIDTH * 0.72, cy = 68, r = 28;
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 3.4);
+    glow.addColorStop(0, 'rgba(255,180,90,0.45)');
+    glow.addColorStop(1, 'rgba(255,180,90,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 3.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#07040c';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffb45a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,180,90,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 12, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   function drawSunOrMoon(eraIdx) {
     const c = CELESTIALS[eraIdx];
@@ -5442,6 +5694,24 @@ const AgeOfWarGame = (() => {
       ctx.fillRect(x - 2 * scale, GROUND_Y - 14 * scale, 4 * scale, 4 * scale);
       ctx.shadowBlur = 0;
     };
+    const drawEmberSpire = (x, scale) => {
+      ctx.fillStyle = '#2a140c';
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y - 34 * scale);
+      ctx.lineTo(x + 5 * scale, GROUND_Y);
+      ctx.lineTo(x - 5 * scale, GROUND_Y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffb45a';
+      ctx.shadowColor = '#ffb45a'; ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(x, GROUND_Y - 34 * scale, 3.2 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    };
 
     // Per-era pick + palette
     let drawer, paletteA, paletteB;
@@ -5453,7 +5723,9 @@ const AgeOfWarGame = (() => {
       drawer = drawConifer; paletteA = '#2a5a2a';
     } else if (eraIdx === 3) { // modern — pipes + bushes
       drawer = drawPipe;
-    } else {                    // future — neon pylons
+    } else if (eraIdx === 6) { // eclipse — ember spires
+      drawer = drawEmberSpire;
+    } else {                    // future / singularity — neon pylons
       drawer = drawNeonPylon;
     }
 
@@ -5475,6 +5747,7 @@ const AgeOfWarGame = (() => {
       ctx.save();
       ctx.globalAlpha = 0.7;
       if (eraIdx === 2) drawConifer(s.x, scale, '#1f4520');
+      else if (eraIdx === 6) drawEmberSpire(s.x, scale);
       else if (eraIdx >= 4) drawNeonPylon(s.x, scale);
       else drawTree(s.x, scale, '#1f5a25', '#3b8a3b');
       ctx.restore();
@@ -5492,6 +5765,8 @@ const AgeOfWarGame = (() => {
       } else if (eraIdx === 3) {
         if ((s.seed & 1) === 0) drawBush(s.x, scale, '#4a5a40');
         else drawPipe(s.x, scale);
+      } else if (eraIdx === 6) {
+        drawEmberSpire(s.x, scale);
       } else {
         drawNeonPylon(s.x, scale);
       }
@@ -5536,6 +5811,11 @@ const AgeOfWarGame = (() => {
         ctx.beginPath();
         ctx.moveTo(xi - 5, yi + 5); ctx.lineTo(xi + 5, yi + 5);
         ctx.stroke();
+      } else if (eraIdx === 6) {
+        ctx.fillStyle = 'rgba(255,180,90,0.7)';
+        ctx.beginPath();
+        ctx.arc(xi, yi + 4, 2, 0, Math.PI * 2);
+        ctx.fill();
       } else if (eraIdx >= 4) {
         // Future/Singularity: glowing hex chips
         ctx.fillStyle = 'rgba(110,196,255,0.45)';
@@ -5683,6 +5963,20 @@ const AgeOfWarGame = (() => {
         ctx.arc(ax, baseY - 62 * s, 2 * s, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+      } else if (eraIdx === 6) {
+        ctx.strokeStyle = silColor;
+        ctx.lineWidth = 3 * s;
+        ctx.beginPath();
+        ctx.arc(g.cx, baseY + 8 * s, 46 * s, Math.PI * 1.15, Math.PI * 1.85);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(g.cx, baseY + 8 * s, 30 * s, Math.PI * 1.2, Math.PI * 1.8);
+        ctx.stroke();
+        ctx.fillStyle = '#ffb45a';
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.arc(g.cx, baseY - 38 * s, 3.5 * s, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         for (let i = 0; i < 4; i++) {
           const sx = g.cx + (i - 1.5) * 14 * s;
@@ -5711,6 +6005,7 @@ const AgeOfWarGame = (() => {
       case 2: drawBaseIndustrial(x, color); break;
       case 3: drawBaseModern(x, color); break;
       case 4: drawBaseFuture(x, color); break;
+      case 6: drawBaseEclipse(x, color); break;
       default: drawBaseMedieval(x, color);
     }
     if (hpFrac < 0.7) drawBaseDamage(x, hpFrac);
@@ -6219,6 +6514,42 @@ const AgeOfWarGame = (() => {
     ctx.beginPath(); ctx.ellipse(ox, oy + 4, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
   }
 
+  function drawBaseEclipse(x, color) {
+    const cx = x + BASE_W / 2;
+    const grad = ctx.createLinearGradient(x, GROUND_Y - 100, x, GROUND_Y);
+    grad.addColorStop(0, '#2a140c');
+    grad.addColorStop(1, '#120810');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x + 8, GROUND_Y - 96, BASE_W - 16, 96);
+    ctx.strokeStyle = color || '#ffb45a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 8, GROUND_Y - 96, BASE_W - 16, 96);
+    ctx.fillStyle = '#1a0c14';
+    ctx.beginPath();
+    ctx.moveTo(cx, GROUND_Y - 128);
+    ctx.lineTo(cx + 16, GROUND_Y - 96);
+    ctx.lineTo(cx - 16, GROUND_Y - 96);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#ffb45a';
+    ctx.stroke();
+    const pulse = 0.65 + Math.sin(performance.now() / 280) * 0.25;
+    ctx.strokeStyle = `rgba(255,180,90,${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, GROUND_Y - 48, BASE_W / 2 + 8, 78, 0, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ffb45a';
+    ctx.shadowColor = '#ffb45a';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(cx, GROUND_Y - 118, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,180,90,0.35)';
+    for (let i = 0; i < 4; i++) ctx.fillRect(x + 18 + i * 28, GROUND_Y - 88, 3, 70);
+  }
+
   function drawTurrets(baseX, slots, facing) {
     // facing: +1 = aim right (player), -1 = aim left (enemy).
     // For the player side, slots beyond playerSlotsOwned render as
@@ -6376,6 +6707,23 @@ const AgeOfWarGame = (() => {
         ctx.fillRect(x, y - 9, dir * 10, 2);
         ctx.fillStyle = `rgba(110,196,255,${pulse})`;
         ctx.fillRect(x + dir * 9, y - 10, dir * 2, 4);
+        break;
+      }
+      case 'Singularity Beam':
+      case 'Eclipse Lens': {
+        const amber = t.name === 'Eclipse Lens';
+        const pulse = 0.7 + Math.sin(performance.now() / 260) * 0.3;
+        ctx.fillStyle = amber ? '#2a180c' : '#241430';
+        ctx.fillRect(x - 5, y - 2, 10, 6);
+        ctx.strokeStyle = '#15110c';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(x - 5, y - 2, 10, 6);
+        ctx.fillStyle = amber ? `rgba(255,180,90,${pulse})` : `rgba(200,107,255,${pulse})`;
+        ctx.beginPath();
+        ctx.arc(x, y - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = amber ? '#ffb45a' : '#c86bff';
+        ctx.fillRect(x, y - 9, dir * 11, 2);
         break;
       }
       default: {
@@ -6622,7 +6970,7 @@ const AgeOfWarGame = (() => {
   function drawWall(u, x, y, facing, walk, bodyColor) {
     const w = u.w * 0.78, h = u.h * 0.6;
     const baseY = y + u.h;                 // feet line
-    if (u.key === 'wall4' || u.key === 'wall5') {
+    if (u.key === 'wall4' || u.key === 'wall5' || u.key === 'wall6') {
       ctx.fillStyle = 'rgba(76,201,240,0.28)';
       ctx.strokeStyle = bodyColor;
       ctx.lineWidth = 2.5;
@@ -8844,6 +9192,45 @@ const AgeOfWarGame = (() => {
     for (const k of Object.keys(SPRITE_DEFS)) getSprite(k, 'run');
   }
 
+  const drawSkirmisher = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 5;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 0.86, facing, swing, bodyColor, {
+      skin: skinFor(0), pantsColor: '#3a2418', bootColor: '#1a120c',
+    });
+    drawHead(x, base.headCenterY, base.headR * 0.92, skinFor(0), { facing });
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX, y: base.handY }, bodyColor, (hx, hy) => {
+      ctx.strokeStyle = '#e8e0c8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx + facing * 16, hy - 10);
+      ctx.stroke();
+    });
+  };
+
+  const drawShielded = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 2.2;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.05, facing, swing, bodyColor, {
+      skin: skinFor(1), pantsColor: '#2a3038', bootColor: '#111418',
+    });
+    drawHead(x, base.headCenterY, base.headR, '#c8b8a0', { facing });
+    const sx = x + facing * (u.w * 0.28);
+    const sy = base.bodyTop + 4;
+    ctx.fillStyle = shadeColor(bodyColor, 24);
+    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx - facing * 4, sy);
+    ctx.lineTo(sx + facing * 14, sy + 6);
+    ctx.lineTo(sx + facing * 12, sy + u.h * 0.42);
+    ctx.lineTo(sx - facing * 6, sy + u.h * 0.36);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#f4f1ea';
+    ctx.fillRect(sx + facing * 2, sy + 10, 3, u.h * 0.18);
+  };
+
   // ---- Dispatch table ----
   const UNIT_DRAWERS = {
     club:         drawClubman,
@@ -8861,7 +9248,12 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
-    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall, wall5: drawWall,
+    runner: drawSkirmisher, outrider: drawSkirmisher, dragoon: drawSkirmisher,
+    raider: drawSkirmisher, blink: drawSkirmisher, shard: drawSkirmisher, comet: drawSkirmisher,
+    bulwark: drawShielded, shieldman: drawShielded, ironclad: drawShielded,
+    riot: drawShielded, aegis: drawShielded, bastion: drawShielded, umbra: drawShielded,
+    dusk: drawSwordsman, corona: drawArcher, colossus: drawMech,
+    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall, wall5: drawWall, wall6: drawWall,
     hero_grog:    drawHeroGrog,
     hero_paladin: drawHeroPaladin,
     hero_general: drawHeroGeneral,
@@ -8875,6 +9267,8 @@ const AgeOfWarGame = (() => {
   // drawers accept (u, x, y, facing, walkSwing, bodyColor) where
   // y is the top of the unit and (x, y, u.w, u.h) is the bounding box.
   function drawUnit(u) {
+    ctx.save();
+    if (u.knock) ctx.translate(u.knock, 0);
     const def = UNITS[u.key] || {};
     const facing = u.side === 'player' ? 1 : -1;
     const isHero = u.key && u.key.startsWith('hero_');
@@ -9029,6 +9423,13 @@ const AgeOfWarGame = (() => {
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
     ctx.lineWidth = 1;
     ctx.strokeRect(u.x - barW / 2 + 0.5, barY + 0.5, barW - 1, 4);
+    if (u.hitFlash > 0) {
+      ctx.globalAlpha = Math.min(0.72, u.hitFlash * 2.4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(u.x - drawW * 0.42, feetY - drawH, drawW * 0.84, drawH);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
   }
 
   function drawProjectile(p) {
@@ -9298,9 +9699,11 @@ const AgeOfWarGame = (() => {
         const nextEra = ERAS[playerEra + 1].name;
         const hint = playerEra === 4 && !earnedAchievements.max_age
           ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
-          : xp < ageNeedBtn
-            ? `Need ${ageNeedBtn - xp} more XP for ${nextEra}`
-            : `Ready to age up to ${nextEra}`;
+          : playerEra === 5 && !earnedAchievements.void_walk
+            ? '🔒 ECLIPSE — reach the Singularity once to unlock the next age'
+            : xp < ageNeedBtn
+              ? `Need ${ageNeedBtn - xp} more XP for ${nextEra}`
+              : `Ready to age up to ${nextEra}`;
         ageBtn.title = hint;
         ageBtn.setAttribute('aria-label', hint);
       }
@@ -9894,7 +10297,8 @@ const AgeOfWarGame = (() => {
     const price = recruitCost(def);
     const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
       : gold < price ? `Need $${Math.ceil(price - gold)} more. ` : '';
-    return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
+    const stats = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
+    return reason + stats + (def.blurb ? ' ' + def.blurb : '');
   }
 
   function renderSpawnPanel() {

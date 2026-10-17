@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Age of War</title>
-  <meta name="description" content="Side-scrolling lane battler — spawn units, push the enemy base, age up through 5 eras. Last base standing wins.">
+  <meta name="description" content="Side-scrolling lane battler — spawn units, push the enemy base, age up through Eclipse. Last base standing wins.">
   <meta name="theme-color" content="#0d1117">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Age of War — Eureka Games">
-  <meta property="og:description" content="Spawn units, push the enemy base, age up through 5 eras. Last base standing wins.">
+  <meta property="og:description" content="Spawn units, push the enemy base, age up through Eclipse. Last base standing wins.">
   <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
   <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/ageofwar">
   <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/ageofwar">
@@ -17,7 +17,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/ageofwar/aow.css">
+  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261017folk2">
+  <link rel="stylesheet" href="/css/feel.css?v=20261017folk2">
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
     /* Page-level styles (these were inherited from base.css in the
@@ -293,6 +294,10 @@
           <button class="aow-setting-action" id="aow-endless-toggle" aria-pressed="false">∞ Endless off</button>
         </div>
         <div class="aow-setting-row">
+          <div class="aow-setting-label">Motion</div>
+          <button class="aow-setting-action" id="aow-motion-btn" type="button">Motion: Auto</button>
+        </div>
+        <div class="aow-setting-row">
           <div class="aow-setting-label">Sound</div>
           <div id="aow-audio"></div>
           <button class="aow-setting-toggle" id="aow-mute-toggle" aria-pressed="false">
@@ -326,7 +331,9 @@
     };
   </script>
   <script src="/js/persist.js"></script>
-  <script src="/ageofwar/ageofwar.js"></script>
+  <script src="/js/feel.js"></script>
+  <script src="/js/audio.js"></script>
+  <script src="/ageofwar/ageofwar.js?v=20261017folk2"></script>
   <script>AgeOfWarGame.init();</script>
 </body>
 </html>

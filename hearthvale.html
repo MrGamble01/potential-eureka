@@ -18,6 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap">
   <link rel="stylesheet" href="css/arcade-chrome.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Inter:wght@400;600;700&display=swap">
   <style>
     :root {
       --panel: rgba(24, 30, 26, 0.92);
@@ -536,6 +537,65 @@
       #townname-input, #cup-paste, #cup-code { font-size: 16px !important; }
       #juice { top: 14%; }
     }
+
+    /* Townsfolk talk — hub sheet (Outfit headings, dark palette, 8px rhythm). */
+    #vale-folk-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+    .vale-folk {
+      position: fixed; z-index: 30; pointer-events: auto; box-sizing: border-box;
+      width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin: 0; padding: 0;
+      border-radius: 999px; border: 2px solid #e3b341;
+      background: rgba(13, 17, 23, 0.72); color: #e6edf3;
+      font-size: 20px; line-height: 1; cursor: pointer;
+      transform: translate(-50%, -78%);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+      touch-action: manipulation;
+    }
+    .vale-folk[hidden] { display: none !important; }
+    .vale-folk:focus-visible, #vale-talk button:focus-visible {
+      outline: 2px solid #8b83ff; outline-offset: 2px;
+    }
+    #vale-talk {
+      position: fixed; z-index: 420; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 8px;
+      width: min(340px, calc(100vw - 16px));
+      max-height: min(320px, calc(100dvh - 180px));
+      padding: 8px; margin: 0;
+      background: #0d1117; color: #e6edf3;
+      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+    }
+    #vale-talk[hidden] { display: none !important; }
+    #vale-talk .vale-talk-kicker {
+      margin: 0; font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #7d8590;
+    }
+    #vale-talk h2 {
+      margin: 0; font-family: Outfit, Inter, "Segoe UI", system-ui, sans-serif;
+      font-size: 1.35rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1;
+      color: #e6edf3;
+    }
+    #vale-talk .vale-talk-line {
+      margin: 0; overflow: auto; min-height: 0;
+      font-size: 15px; font-weight: 400; line-height: 1.5; color: #e6edf3;
+    }
+    #vale-talk .vale-talk-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+    #vale-talk button {
+      flex: 1 1 0; box-sizing: border-box; min-width: 44px; min-height: 44px;
+      padding: 8px 16px; border-radius: 10px; cursor: pointer;
+      font-family: Outfit, Inter, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px; font-weight: 800; letter-spacing: -0.02em;
+      touch-action: manipulation;
+    }
+    #vale-talk-again {
+      background: transparent; color: #e6edf3; border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    #vale-talk-close { background: #6c63ff; color: #fff; border: 0; }
+    @media (max-width: 640px) {
+      #vale-talk { width: auto; }
+      #vale-talk .vale-talk-line, #vale-talk button { font-size: 16px; }
+    }
   </style>
 <style>
 /* The chain panel — shared shape across the last two houses. */
@@ -558,7 +618,7 @@
 .chain-open{background:rgba(255,255,255,.05)}
 .chain-locked{opacity:.45}
 </style>
-<link rel="stylesheet" href="css/hud-b.css?v=20261017hudb">
+<link rel="stylesheet" href="css/hud-b.css?v=20261017hudb2">
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
@@ -790,7 +850,8 @@
         &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
         &bull; Once the valley <b>knows</b> you, the <b>Lantern Hollow</b> opens. A warden waits each season.<br>
         &bull; The gear menu's <b>Wilds Expedition</b> grows a fresh trail from a seed. Deeper pays more, and the same seed walks it again.<br>
-        &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
+        &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.<br>
+        &bull; Tap <b>Elder Wren</b>, <b>Reeve Ada</b>, <b>Sable</b>, or a neighbour on the green to talk.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
       <div id="diffsel" style="display:flex; gap:6px;">
@@ -2551,9 +2612,11 @@
     pushDeco('lamp', startX - 1, startY - 3); pushDeco('lamp', startX + 4, startY + 2); pushDeco('lamp', startX + 7, startY - 2);
     pushDeco('barrel', startX + 3, startY - 2); pushDeco('logs', startX - 3, startY + 2);
     carveHollow(startX, startY);
+    townStart = { startX: startX, startY: startY };
 
     return { startX, startY };
   }
+  let townStart = null;
   let hollowPad = null;
   function carveHollow(startX, startY) {
     hollowPad = null;
@@ -3680,9 +3743,32 @@
       pop: (state.villagers && state.villagers.length) || 0,
       season: w.season,
       kinship: state.kinship || 0,
+      tier: goodwillTier(),
+      quest: currentQuestText(),
       hollow: hollowIsOpen(),
+      hollowState: hollowStateName(),
       warden: w.id,
+      wardenName: w.name,
     };
+  }
+  function goodwillTier() {
+    const k = state.kinship || 0;
+    if (k >= 10) return 'kin';
+    if (k >= 6) return 'trusted';
+    if (k >= 3) return 'known';
+    return 'stranger';
+  }
+  function currentQuestText() {
+    if (!state || state.goalIndex >= GOALS.length) return 'The town is thriving';
+    const g = GOALS[state.goalIndex];
+    return g ? g.text : 'The town is thriving';
+  }
+  function hollowStateName() {
+    if (!state || !state.hollow || !state.hollow.open) return 'shut';
+    const key = wardenKey();
+    if (state.hollow.faced && state.hollow.faced[key]) return 'blessed';
+    if (state.hollow.fled === key) return 'fled';
+    return 'waiting';
   }
   function localCompanionLine(req) {
     const person = COMPANIONS.find(c => c.id === req.npcId) || COMPANIONS[0];
@@ -3709,8 +3795,11 @@
     const ai = window.ArcadeAI;
     let pending = null;
     try {
+      // boothTalk wins. A stub installed in place of the booth (no booth
+      // handle yet) can speak too. Once the shared booth is mounted, the
+      // hollow keeps its own counsel lines.
       if (ai && typeof ai.boothTalk === 'function') pending = Promise.resolve().then(() => ai.boothTalk(req));
-      else if (ai && typeof ai.createStubProvider === 'function') pending = Promise.resolve().then(() => ai.createStubProvider().talk(req));
+      else if (ai && typeof ai.createStubProvider === 'function' && !ai.booth) pending = Promise.resolve().then(() => ai.createStubProvider().talk(req));
     } catch (e) { pending = null; }
     const finish = (result) => {
       if (!result || !result.line) result = localCompanionLine(req);
@@ -3923,12 +4012,445 @@
     ctx.restore();
   }
 
+  // In-world townsfolk. Wren, Ada, and Sable are the hollow companions;
+  // the rest keep the green. Lines are local. The booth is used only
+  // when ArcadeAI.boothTalk or the stub is already on the page.
+  function seasonBank(map) {
+    return ['Spring', 'Summer', 'Autumn', 'Winter'].map(name => ({
+      id: name,
+      when: (c) => c.season === name,
+      mood: name === 'Winter' ? 'grave' : 'soft',
+      text: () => map[name],
+    }));
+  }
+  function tierBank(map) {
+    return [
+      { id: 'kin', when: (c) => c.tier === 'kin', mood: 'warm', text: () => map.kin },
+      { id: 'trusted', when: (c) => c.tier === 'trusted', mood: 'plain', text: () => map.trusted },
+      { id: 'known', when: (c) => c.tier === 'known', mood: 'soft', text: () => map.known },
+      { id: 'stranger', mood: 'wry', text: () => map.stranger },
+    ];
+  }
+  function questBank() {
+    return [
+      { id: 'cottages', when: (c) => /cottages/i.test(c.quest || ''), mood: 'plain', text: (c) => 'Two roofs before anything clever. The work in front of the town: ' + c.quest + '.' },
+      { id: 'farm', when: (c) => /farm/i.test(c.quest || ''), mood: 'plain', text: (c) => 'The pantry wants a farm. The work in front of the town: ' + c.quest + '.' },
+      { id: 'thriving', when: (c) => /thriving/i.test(c.quest || ''), mood: 'bright', text: (c) => 'Nothing left to assign. The work in front of the town: ' + c.quest + '.' },
+      { id: 'quest', mood: 'plain', text: (c) => 'The work in front of the town: ' + (c.quest || 'a quiet day') + '.' },
+    ];
+  }
+  function hollowBank(map) {
+    return [
+      { id: 'shut', when: (c) => c.hollowState === 'shut', mood: 'grave', text: () => map.shut },
+      { id: 'waiting', when: (c) => c.hollowState === 'waiting', mood: 'soft', text: () => map.waiting },
+      { id: 'blessed', when: (c) => c.hollowState === 'blessed', mood: 'warm', text: () => map.blessed },
+      { id: 'fled', when: (c) => c.hollowState === 'fled', mood: 'low', text: () => map.fled },
+    ];
+  }
+  const TOWNSFOLK = [
+    { id: 'wren', name: 'Elder Wren', role: 'Hearth', icon: '🔥', color: '#c4574a', dx: -3, dy: -2,
+      seasons: seasonBank({
+        Spring: 'Spring is in the hearth smoke.',
+        Summer: 'Summer dusk still wants the hearth.',
+        Autumn: 'Autumn counts jars by the hearth.',
+        Winter: 'Winter sits in the hearth chimney.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger at the hearth.',
+        known: 'The hearth knows you now.',
+        trusted: 'Trusted at the hearth.',
+        kin: 'Kin of the hearth.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar still keeps the Lantern Hollow.',
+        waiting: 'The Lantern Hollow is waiting on its warden.',
+        blessed: 'A blessing rests on the hearth lane.',
+        fled: 'The warden raked the lane and left the hollow.',
+      }) },
+    { id: 'ada', name: 'Reeve Ada', role: 'Watch', icon: '🪵', color: '#3f6a44', dx: -4, dy: 3,
+      seasons: seasonBank({
+        Spring: 'Spring watch is a wet palisade.',
+        Summer: 'Summer heat on the watch.',
+        Autumn: 'Autumn fog hides the palisade.',
+        Winter: 'Winter watch burns the woodpile.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger to the watch.',
+        known: 'The watch knows your step.',
+        trusted: 'Trusted on the watch.',
+        kin: 'Kin of the watch.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar is a wall I will not cut.',
+        waiting: 'The Lantern Hollow is waiting. I have counted the lanterns.',
+        blessed: 'A blessing on the lane, and the watch can rest.',
+        fled: 'The warden raked the lane. The watch noted it.',
+      }) },
+    { id: 'sable', name: 'Sable', role: 'Merchant', icon: '🧳', color: '#c4a03a', dx: 4, dy: 3,
+      seasons: seasonBank({
+        Spring: 'Spring roads dry from the middle.',
+        Summer: 'Summer dust on the merchant road.',
+        Autumn: 'Autumn coin spends slower.',
+        Winter: 'Winter closes the merchant road at dusk.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger to the stall.',
+        known: 'The stall knows your coin.',
+        trusted: 'Trusted at the stall.',
+        kin: 'Kin get the honest price.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar has nothing I can sell.',
+        waiting: 'The Lantern Hollow is waiting. I brought thread, not a sword.',
+        blessed: 'A blessing spends better than a bargain.',
+        fled: 'The warden raked the lane. I packed the stall.',
+      }) },
+    { id: 'mira', name: 'Mira', role: 'Baker', icon: '🍞', color: '#d07a45', dx: -2, dy: 3,
+      seasons: seasonBank({
+        Spring: 'Spring dough wants a cool morning.',
+        Summer: 'Summer ovens start before dawn.',
+        Autumn: 'Autumn crusts are the thick ones.',
+        Winter: 'Winter bread is the whole supper.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger at the oven.',
+        known: 'The oven knows your hunger.',
+        trusted: 'Trusted with the peel.',
+        kin: 'Kin eat the heel of the loaf.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar does not take bread.',
+        waiting: 'The Lantern Hollow is waiting. I saved a warm loaf.',
+        blessed: 'A blessing, and the crust cracked true.',
+        fled: 'The warden raked the lane. The loaf went cold.',
+      }) },
+    { id: 'bram', name: 'Bram', role: 'Woods', icon: '🪓', color: '#6b4a30', dx: 3, dy: -2,
+      seasons: seasonBank({
+        Spring: 'Spring sap is up. The axe can wait an hour.',
+        Summer: 'Summer timber dries in the yard.',
+        Autumn: 'Autumn is the honest cutting.',
+        Winter: 'Winter axes stick in the frost.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger in the timber.',
+        known: 'The yard knows your order.',
+        trusted: 'Trusted with the good oak.',
+        kin: 'Kin may take from the dry stack.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar is not firewood.',
+        waiting: 'The Lantern Hollow is waiting. I left the axe at the yard.',
+        blessed: 'A blessing, and the stack is taller.',
+        fled: 'The warden raked the lane. I went back to the trees.',
+      }) },
+    { id: 'hazel', name: 'Hazel', role: 'Herbs', icon: '🌿', color: '#3f8f55', dx: -5, dy: -2,
+      seasons: seasonBank({
+        Spring: 'Spring feverfew is only leaves yet.',
+        Summer: 'Summer herbs want the shade.',
+        Autumn: 'Autumn feverfew is ready to dry.',
+        Winter: 'Winter feverfew is what we dried.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger in the herb bed.',
+        known: 'The bed knows your hands.',
+        trusted: 'Trusted with the willowbark.',
+        kin: 'Kin may cut the feverfew.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar keeps its own medicine.',
+        waiting: 'The Lantern Hollow is waiting. I have willowbark if the warden asks.',
+        blessed: 'A blessing smells like crushed feverfew.',
+        fled: 'The warden raked the lane. I tied the bundles anyway.',
+      }) },
+    { id: 'odo', name: 'Odo', role: 'River', icon: '🎣', color: '#3d88c4', dx: 5, dy: -3,
+      seasons: seasonBank({
+        Spring: 'Spring river runs high and brown.',
+        Summer: 'Summer river shows the stones.',
+        Autumn: 'Autumn fish take the late light.',
+        Winter: 'Winter river keeps a dark center.',
+      }),
+      tiers: tierBank({
+        stranger: 'You are still a stranger on the bank.',
+        known: 'The bank knows your shadow.',
+        trusted: 'Trusted with the spare line.',
+        kin: 'Kin may take the first fish.',
+      }),
+      hollows: hollowBank({
+        shut: 'The briar does not grow by the river.',
+        waiting: 'The Lantern Hollow is waiting. I can see the lanterns from the bend.',
+        blessed: 'A blessing, and the river answered.',
+        fled: 'The warden raked the lane. The river did not care.',
+      }) },
+  ];
+  TOWNSFOLK.forEach(p => { p.quests = questBank(); });
+  const folkTurns = {};
+  let activeFolkId = '';
+  let talkSeq = 0;
+  function folkWorld() {
+    if (!townStart) return [];
+    return TOWNSFOLK.map(p => ({
+      id: p.id, name: p.name, role: p.role, icon: p.icon, color: p.color,
+      x: (townStart.startX + p.dx + 0.5) * TILE,
+      y: (townStart.startY + p.dy + 0.92) * TILE,
+    }));
+  }
+  function folkById(id) { return folkWorld().find(f => f.id === id) || null; }
+  function folkPerson(id) { return TOWNSFOLK.find(p => p.id === id) || null; }
+  function pickBank(lines, ctx) {
+    let chosen = lines[lines.length - 1];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let ok = !line.when;
+      if (line.when) { try { ok = !!line.when(ctx); } catch (e) { ok = false; } }
+      if (ok) { chosen = line; break; }
+    }
+    return chosen;
+  }
+  function localFolkLine(req) {
+    const person = folkPerson(req.npcId) || TOWNSFOLK[0];
+    const ctx = req.context || {};
+    const season = pickBank(person.seasons, ctx);
+    const tier = pickBank(person.tiers, ctx);
+    const quest = pickBank(person.quests, ctx);
+    const hollow = pickBank(person.hollows, ctx);
+    return {
+      provider: 'local',
+      game: 'hearthvale',
+      npcId: person.id,
+      name: person.name,
+      role: person.role,
+      icon: person.icon,
+      mood: season.mood || 'steady',
+      cue: { season: season.id, tier: tier.id, quest: quest.id, hollow: hollow.id },
+      line: [season.text(ctx), tier.text(ctx), quest.text(ctx), hollow.text(ctx)].join(' '),
+    };
+  }
+  function boothLineOk(result, npcId) {
+    return !!(result && typeof result.line === 'string' && result.line.trim() && (!result.npcId || result.npcId === npcId));
+  }
+  function townTalk(npcId) {
+    const person = folkPerson(npcId) || TOWNSFOLK[0];
+    const id = person.id;
+    const turn = folkTurns[id] || 0;
+    folkTurns[id] = turn + 1;
+    const req = { game: 'hearthvale', npcId: id, context: hearthContext(), turn: turn };
+    try { document.dispatchEvent(new CustomEvent('hearthvale-npc-talk', { detail: req })); } catch (e) {}
+    const ai = window.ArcadeAI;
+    let pending = null;
+    try {
+      if (ai && typeof ai.boothTalk === 'function') pending = Promise.resolve().then(() => ai.boothTalk(req));
+      else if (ai && typeof ai.createStubProvider === 'function') pending = Promise.resolve().then(() => ai.createStubProvider().talk(req));
+    } catch (e) { pending = null; }
+    const finish = (result) => {
+      if (!boothLineOk(result, id)) result = localFolkLine(req);
+      if (!result.npcId) result.npcId = id;
+      if (!result.name) result.name = person.name;
+      if (!result.role) result.role = person.role;
+      if (!result.icon) result.icon = person.icon;
+      try { document.dispatchEvent(new CustomEvent('hearthvale-npc-said', { detail: result })); } catch (e) {}
+      return result;
+    };
+    if (!pending) return Promise.resolve(finish(null));
+    return pending.then(finish).catch(() => finish(null));
+  }
+  function focusFolk(id) {
+    const f = folkById(id);
+    if (!f || !cam || !view || !view.w) return false;
+    const z = cam.z || 3;
+    cam.x = f.x - (view.w / z) / 2;
+    cam.y = f.y - (view.h / z) * 0.36;
+    clampCam();
+    return true;
+  }
+  function modalBlocksTown() {
+    return !!document.querySelector('#welcome.show, #trader.show, #event.show, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show, #chain-modal.open, #paused.held');
+  }
+  function shownRect(el) {
+    if (!el || el.hidden) return null;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return r;
+  }
+  function folkBlockers(includeSheet) {
+    const sels = ['.ea-back', '#arcade-ai-launch', '#arcade-ai-panel', '#menu-btn', '#touch-pause', '#speedctl', '#zoom-ctl', '#buildbar', '#buildtabs', '#goals', '#minimap', '#menu', '#panel', '#hud', '#resumeChip'];
+    const rects = [];
+    sels.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        const r = shownRect(el);
+        if (r) rects.push(r);
+      });
+    });
+    if (includeSheet) {
+      const talk = document.getElementById('vale-talk');
+      const r = shownRect(talk);
+      if (r) rects.push(r);
+    }
+    return rects;
+  }
+  function rectHits(a, rects, pad) {
+    const p = pad || 0;
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      if (a.left < r.right + p && a.right > r.left - p && a.top < r.bottom + p && a.bottom > r.top - p) return true;
+    }
+    return false;
+  }
+  function initFolkUi() {
+    if (document.getElementById('vale-folk-layer')) return;
+    const layer = document.createElement('div');
+    layer.id = 'vale-folk-layer';
+    TOWNSFOLK.forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'vale-folk';
+      btn.id = 'vale-folk-' + p.id;
+      btn.dataset.folk = p.id;
+      btn.hidden = true;
+      btn.setAttribute('aria-label', 'Talk to ' + p.name + ', ' + p.role);
+      btn.textContent = p.icon;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openFolkTalk(p.id);
+      });
+      layer.appendChild(btn);
+    });
+    document.body.appendChild(layer);
+    const sheet = document.createElement('div');
+    sheet.id = 'vale-talk';
+    sheet.hidden = true;
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-labelledby', 'vale-talk-name');
+    sheet.innerHTML = '<p class="vale-talk-kicker" id="vale-talk-kicker"></p><h2 id="vale-talk-name"></h2><p class="vale-talk-line" id="vale-talk-line"></p><div class="vale-talk-actions"><button type="button" id="vale-talk-again">Listen again</button><button type="button" id="vale-talk-close">Close</button></div>';
+    document.body.appendChild(sheet);
+    sheet.querySelector('#vale-talk-close').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); closeFolkTalk(); });
+    sheet.querySelector('#vale-talk-again').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeFolkId) openFolkTalk(activeFolkId);
+    });
+  }
+  function closeFolkTalk() {
+    talkSeq++;
+    activeFolkId = '';
+    const sheet = document.getElementById('vale-talk');
+    if (sheet) sheet.hidden = true;
+  }
+  function placeTalk() {
+    const sheet = document.getElementById('vale-talk');
+    if (!sheet || sheet.hidden) return;
+    const margin = 8;
+    const phone = window.innerWidth <= 640;
+    sheet.style.right = phone ? margin + 'px' : 'auto';
+    sheet.style.width = phone ? 'auto' : 'min(340px, calc(100vw - 16px))';
+    const blockers = folkBlockers(false);
+    const goals = document.getElementById('goals');
+    const tabs = document.getElementById('buildtabs');
+    const goalsR = goals ? goals.getBoundingClientRect() : { bottom: 120 };
+    const tabsR = tabs ? tabs.getBoundingClientRect() : { top: window.innerHeight - 120 };
+    let top = Math.max(goalsR.bottom, 64) + margin;
+    if (phone) {
+      const h = sheet.offsetHeight || 180;
+      top = Math.max(margin, tabsR.top - margin - h);
+    }
+    const lefts = phone ? [margin] : [margin, Math.max(margin, window.innerWidth - 340 - margin)];
+    let placed = false;
+    for (let pass = 0; pass < lefts.length && !placed; pass++) {
+      sheet.style.left = lefts[pass] + 'px';
+      for (let i = 0; i < 24; i++) {
+        sheet.style.top = top + 'px';
+        const box = sheet.getBoundingClientRect();
+        const low = box.bottom <= window.innerHeight - margin + 1;
+        const high = box.top >= margin - 1;
+        if (low && high && !rectHits(box, blockers, 2)) { placed = true; break; }
+        top += 8;
+        if (top > window.innerHeight - margin) break;
+      }
+    }
+    if (!placed) {
+      const h = sheet.offsetHeight || 180;
+      sheet.style.left = margin + 'px';
+      sheet.style.top = Math.max(margin, Math.min(window.innerHeight - h - margin, top)) + 'px';
+    }
+  }
+  function showFolkSheet(result) {
+    const sheet = document.getElementById('vale-talk');
+    if (!sheet || !result) return;
+    const ctx = hearthContext();
+    activeFolkId = result.npcId;
+    sheet.hidden = false;
+    sheet.dataset.npc = result.npcId || '';
+    sheet.dataset.provider = result.provider || 'local';
+    sheet.dataset.mood = result.mood || '';
+    sheet.dataset.season = ctx.season;
+    sheet.dataset.tier = ctx.tier;
+    sheet.dataset.quest = ctx.quest;
+    sheet.dataset.hollow = ctx.hollowState;
+    if (result.cue) {
+      sheet.dataset.cueSeason = result.cue.season || '';
+      sheet.dataset.cueTier = result.cue.tier || '';
+      sheet.dataset.cueQuest = result.cue.quest || '';
+      sheet.dataset.cueHollow = result.cue.hollow || '';
+    } else {
+      sheet.dataset.cueSeason = '';
+      sheet.dataset.cueTier = '';
+      sheet.dataset.cueQuest = '';
+      sheet.dataset.cueHollow = '';
+    }
+    const kicker = document.getElementById('vale-talk-kicker');
+    const name = document.getElementById('vale-talk-name');
+    const line = document.getElementById('vale-talk-line');
+    if (kicker) kicker.textContent = (result.role || 'Town') + ' · ' + ctx.season + ' · ' + ctx.tier + ' · hollow ' + ctx.hollowState;
+    if (name) name.textContent = (result.icon ? result.icon + ' ' : '') + (result.name || 'Neighbour');
+    if (line) line.textContent = result.line;
+    placeTalk();
+  }
+  function openFolkTalk(id) {
+    const seq = ++talkSeq;
+    townTalk(id).then(result => {
+      if (seq !== talkSeq) return;
+      showFolkSheet(result);
+      try { SFX('trader'); } catch (e) {}
+    }).catch(() => {});
+  }
+  function layoutFolkButtons() {
+    const layer = document.getElementById('vale-folk-layer');
+    if (!layer || !cam || !view) return;
+    const blocked = modalBlocksTown() || !!buildMode;
+    const rects = folkBlockers(true);
+    folkWorld().forEach(f => {
+      const btn = document.getElementById('vale-folk-' + f.id);
+      if (!btn) return;
+      if (blocked) { btn.hidden = true; return; }
+      const sx = (f.x - cam.x) * cam.z;
+      const sy = (f.y - cam.y) * cam.z;
+      if (sx < 30 || sy < 30 || sx > view.w - 30 || sy > view.h - 30) { btn.hidden = true; return; }
+      btn.hidden = false;
+      btn.style.left = sx + 'px';
+      btn.style.top = sy + 'px';
+      const box = btn.getBoundingClientRect();
+      if (rectHits(box, rects, 0)) btn.hidden = true;
+    });
+  }
+  function folkAt(wx, wy) {
+    let hit = null, best = 12;
+    folkWorld().forEach(f => {
+      const d = Math.hypot(f.x - wx, f.y - wy);
+      if (d < best) { best = d; hit = f; }
+    });
+    return hit;
+  }
+
   window.HearthvaleAI = {
     game: 'hearthvale',
     companions: () => COMPANIONS.map(c => ({ id: c.id, name: c.name, role: c.role, icon: c.icon })),
+    townsfolk: () => TOWNSFOLK.map(c => ({ id: c.id, name: c.name, role: c.role, icon: c.icon })),
     context: () => hearthContext(),
     pad: () => hollowPad ? { tx: hollowPad.tx, ty: hollowPad.ty, w: hollowPad.w, h: hollowPad.h } : null,
-    talk: (npcId) => companionLine(npcId),
+    talk: (npcId) => townTalk(npcId),
+    focus: (npcId) => focusFolk(npcId),
   };
 
   function runProduction() {
@@ -5512,6 +6034,7 @@
     // buildings + villagers
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
+    folkWorld().forEach(f => { const fty = f.y / TILE; if (fty >= y0 - 2 && fty <= y1 + 2) drawables.push({ y: fty, kind: 'folk', f }); });
     for (const cr of critters) { const cty = cr.y / TILE; if (critterActive(cr) && cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
     if (cart) drawables.push({ y: cart.y / TILE + 0.55, kind: 'cart' });
     drawables.sort((a, b) => a.y - b.y);
@@ -5519,6 +6042,7 @@
     for (const d of drawables) {
       if (d.kind === 'building') drawBuilding(d.b, sx, sy, z);
       else if (d.kind === 'villager') drawVillager(d.v, sx, sy, z);
+      else if (d.kind === 'folk') drawFolk(d.f, sx, sy, z);
       else if (d.kind === 'critter') drawCritter(d.cr, sx, sy, z);
       else if (d.kind === 'cart') drawCart(sx, sy, z);
       else { // sprite prop: bottom-aligned to its tile so it "stands" on the ground
@@ -5607,6 +6131,32 @@
     if (state.raining) drawWeather();
     drawMist();
     if (celebrateT > 0) drawCelebration();
+    layoutFolkButtons();
+  }
+  function drawFolk(f, sx, sy, z) {
+    const spr = villagerSprite(f.color, 0, null);
+    const W = spr.width, H = spr.height;
+    const px = sx + f.x * z, py = sy + f.y * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(px, py + 2 * z, 3.2 * z, 1.6 * z, 0, 0, 7); ctx.fill();
+    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    if (activeFolkId === f.id) {
+      ctx.strokeStyle = '#e3b341';
+      ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.strokeRect(Math.round(px - (W / 2) * z) - 1, Math.round(py - (H - 2) * z) - 1, W * z + 2, H * z + 2);
+    }
+    const label = f.icon + ' ' + f.name.split(' ').slice(-1)[0];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = Math.round(Math.max(8, 5 * z)) + 'px Outfit, Inter, sans-serif';
+    ctx.lineWidth = Math.max(2, z * 0.7);
+    ctx.strokeStyle = 'rgba(13,17,23,0.9)';
+    ctx.fillStyle = '#f6f1e6';
+    const ly = py - (H + 1) * z;
+    ctx.strokeText(label, px, ly);
+    ctx.fillText(label, px, ly);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
   // A festival: a warm glow, a ring of bobbing lanterns, and music notes
@@ -6511,6 +7061,8 @@
     // villagers as tiny pale dots — a glance at where everyone is
     mx.fillStyle = 'rgba(255,246,224,0.85)';
     state.villagers.forEach(v => mx.fillRect(Math.round(v.x / TILE), Math.round(v.y / TILE), 1, 1));
+    mx.fillStyle = '#f2c14e';
+    folkWorld().forEach(f => mx.fillRect(Math.round(f.x / TILE), Math.round(f.y / TILE), 1, 1));
     // the traveling merchant's wagon stands out in gold
     if (cart) { mx.fillStyle = '#f2c14e'; mx.fillRect(Math.round(cart.x / TILE) - 1, Math.round(cart.y / TILE), 2, 1); }
     if (hollowPad) {
@@ -7185,6 +7737,8 @@
       openTrader();
       return;
     }
+    const folkHit = folkAt(wx, wy);
+    if (folkHit) { openFolkTalk(folkHit.id); return; }
     // click a villager to inspect them (takes priority over the tile below)
     let hitV = null, best = 9;
     for (const v of state.villagers) {
@@ -7220,7 +7774,10 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') {
-      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show');
+      const talkEl = document.getElementById('vale-talk');
+      const talkWas = !!(talkEl && !talkEl.hidden);
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show') || talkWas;
+      if (talkWas) closeFolkTalk();
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
       document.getElementById('chronicle').classList.remove('show');
@@ -7724,6 +8281,7 @@
   }
 
   function init() {
+    initFolkUi();
     buildTileSprites();
     Object.keys(BUILDINGS).forEach(makeBuildingSprite);
     view = { w: window.innerWidth, h: window.innerHeight };
@@ -7907,7 +8465,7 @@
       }
     } catch (e) { /* a bad query must not stop the valley */ }
 
-    window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
+    window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); placeTalk(); });
     document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
 
     requestAnimationFrame(loop);
