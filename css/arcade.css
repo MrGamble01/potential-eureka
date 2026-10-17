@@ -4,7 +4,7 @@
    ============================================ */
 
 /* ---- NAV TWEAKS ---- */
-nav .logo-btn {
+nav.site-nav .logo-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -128,8 +128,8 @@ nav .logo-btn {
 
 .arcade-hero-kicker {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 3px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   color: var(--success);
   text-shadow: 0 0 12px rgba(63, 185, 80, 0.5);
   margin-bottom: 10px;
@@ -141,8 +141,8 @@ nav .logo-btn {
 .arcade-hero-title {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: clamp(26px, 4.6vw, 42px);
-  letter-spacing: 6px;
+  font-size: clamp(28px, 5vw, 44px);
+  letter-spacing: 0.04em;
   color: var(--text);
   text-shadow:
     0 0 24px rgba(108, 99, 255, 0.5),
@@ -150,13 +150,13 @@ nav .logo-btn {
 }
 
 .arcade-hero-sub {
-  margin: 6px auto 0;
-  max-width: 36em;
+  margin: 10px auto 0;
+  max-width: 34em;
   color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 1.5;
   font-family: var(--font-sans);
-  letter-spacing: 0;
+  letter-spacing: normal;
 }
 
 /* One primary path: the Age of War billboard. Snake and the catalogues
@@ -164,13 +164,14 @@ nav .logo-btn {
 .arcade-flagship {
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);
-  max-width: 640px;
-  height: 148px;
-  margin: 10px auto 0;
+  max-width: 720px;
+  height: auto;
+  min-height: 168px;
+  margin: 16px auto 0;
   overflow: hidden;
   text-align: left;
   text-decoration: none;
-  color: inherit;
+  color: var(--text);
   border: 1px solid rgba(210, 153, 34, 0.42);
   border-radius: var(--radius-lg);
   background:
@@ -183,6 +184,14 @@ nav .logo-btn {
     border-color var(--duration-fast);
 }
 
+a.arcade-flagship:link,
+a.arcade-flagship:visited,
+a.arcade-flagship:hover,
+a.arcade-flagship:active {
+  color: var(--text);
+  text-decoration: none;
+}
+
 .arcade-flagship:hover,
 .arcade-flagship:focus-visible {
   transform: translateY(-2px);
@@ -193,8 +202,9 @@ nav .logo-btn {
 
 .arcade-flagship-art {
   position: relative;
-  min-height: 0;
-  height: 100%;
+  min-height: 168px;
+  height: auto;
+  align-self: stretch;
   background: var(--color-black-deep);
   overflow: hidden;
 }
@@ -218,9 +228,9 @@ nav .logo-btn {
 
 .arcade-flagship-kicker {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #f0c552;
 }
@@ -229,15 +239,16 @@ nav .logo-btn {
   font-family: var(--font-mono);
   font-size: clamp(22px, 3.2vw, 30px);
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 0.04em;
   color: var(--text);
   line-height: 1.1;
 }
 
 .arcade-flagship-pitch {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: normal;
   color: var(--text-dim);
 }
 
@@ -245,13 +256,14 @@ nav .logo-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.02em;
   text-decoration: none;
   border-radius: 999px;
-  padding: 12px 22px;
+  padding: 0 20px;
   cursor: pointer;
   border: 1px solid transparent;
   transition: transform var(--duration-fast), box-shadow var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast);
@@ -261,10 +273,8 @@ nav .logo-btn {
   background: linear-gradient(135deg, #D29922, #f0c552);
   color: #1a1204;
   border-color: #f0c552;
-  box-shadow: 0 0 24px rgba(240, 197, 82, 0.35);
-  margin-top: 2px;
-  padding: 8px 16px;
-  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(240, 197, 82, 0.35);
+  margin-top: 4px;
 }
 
 .arcade-flagship:hover .hero-cta--flagship {
@@ -272,33 +282,55 @@ nav .logo-btn {
 }
 
 .arcade-hero-alt {
-  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-sans);
+  letter-spacing: normal;
 }
 
 .hero-alt-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
   font: inherit;
   font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  letter-spacing: normal;
+  text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a.hero-alt-link:link,
+a.hero-alt-link:visited,
+a.hero-alt-link:hover,
+a.hero-alt-link:active,
+button.hero-alt-link {
+  color: var(--text);
+  text-decoration: none;
 }
 
 .hero-alt-link:hover,
 .hero-alt-link:focus-visible {
   color: var(--text);
+  border-color: var(--primary-light);
+  background: var(--color-white-08);
   outline: none;
 }
 
 .hero-alt-dot {
-  margin: 0 6px;
-  color: var(--text-muted);
+  display: none;
 }
 
 /* Studio doors live in the site shell so HoF / games keep the same hierarchy. */
@@ -306,10 +338,11 @@ nav .logo-btn {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
-  gap: 2px 4px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-subtle);
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 .arcade-shell {
   position: sticky;
@@ -328,24 +361,38 @@ nav .logo-btn {
 }
 
 .arcade-secondary-nav .sec-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   background: transparent;
-  border: none;
-  color: var(--text-muted);
+  border: 1px solid transparent;
+  color: var(--text-dim);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 1px;
-  padding: 6px 10px;
-  border-radius: 6px;
+  letter-spacing: 0.02em;
+  padding: 0 14px;
+  border-radius: 999px;
   cursor: pointer;
   text-decoration: none;
-  transition: color var(--duration-fast), background var(--duration-fast);
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--duration-fast), background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.arcade-secondary-nav a.sec-link:link,
+.arcade-secondary-nav a.sec-link:visited,
+.arcade-secondary-nav a.sec-link:hover,
+.arcade-secondary-nav a.sec-link:active {
+  color: var(--text-dim);
+  text-decoration: none;
 }
 
 .arcade-secondary-nav .sec-link:hover,
 .arcade-secondary-nav .sec-link:focus-visible {
-  color: var(--text-dim);
-  background: var(--color-white-05);
+  color: var(--text);
+  background: var(--color-white-08);
+  border-color: var(--border);
   outline: none;
 }
 
@@ -372,27 +419,43 @@ nav .logo-btn {
 
 /* ---- SCAN + SECTION HEADS (Long vs Quick) ---- */
 .arcade-scan {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  /* Defeat any leftover header-nav chrome if a broad `nav` rule returns. */
+  position: static;
+  top: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  z-index: auto;
 }
 .arcade-scan[hidden] { display: none; }
 
 .arcade-scan-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 7px 12px;
-  border-radius: 999px;
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--color-white-05);
+  background: var(--bg-widget);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.02em;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: border-color var(--duration-fast), background var(--duration-fast);
 }
 
@@ -475,7 +538,7 @@ nav .logo-btn {
   font-family: var(--font-mono);
   font-size: 18px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text);
 }
@@ -963,29 +1026,28 @@ a.arcade-card {
     margin: 16px auto 12px;
   }
   .arcade-hero-title {
-    font-size: clamp(24px, 5vw, 40px);
-    letter-spacing: 4px;
+    font-size: clamp(26px, 5vw, 40px);
+    letter-spacing: 0.04em;
   }
   .arcade-flagship {
-    grid-template-columns: 148px minmax(0, 1fr);
-    max-width: 560px;
-    height: 112px;
-    margin-top: 8px;
+    grid-template-columns: minmax(132px, 42%) minmax(0, 1fr);
+    max-width: 720px;
+    height: auto;
+    min-height: 0;
+    margin-top: 14px;
+  }
+  .arcade-flagship-art {
+    min-height: 168px;
   }
   .arcade-flagship-copy {
-    padding: 8px 12px 10px;
-    gap: 3px;
+    padding: 16px 16px 18px;
+    gap: 8px;
   }
-  /* 112px is kicker + name + CTA. Pitch only fits the 148px laptop
-     billboard — leaving it on here clipped the gold button. */
   .arcade-flagship-pitch {
-    display: none;
+    display: block;
   }
-  .hero-cta {
-    padding: 10px 16px;
-    font-size: 12px;
-  }
-  /* Tablet (~900px): three columns so the six long games scan in two rows. */
+  /* Tablet (~900px): three columns so the six long games scan in two rows.
+     Card chrome itself lives in css/game-cards.css. */
   .arcade-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
@@ -1008,37 +1070,27 @@ a.arcade-card {
     -webkit-line-clamp: 1;
   }
   .arcade-section {
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     padding-left: 12px;
   }
   .arcade-section-title {
-    font-size: 15px;
-  }
-  .arcade-scan {
-    margin-left: 0;
+    font-size: 16px;
+    letter-spacing: 0.04em;
   }
   #daily-banner {
-    margin-bottom: 12px;
-    padding: 8px 12px;
+    margin-bottom: 14px;
   }
 }
 
-@media (max-height: 860px) {
-  .arcade-hero-sub,
-  .arcade-section-lede,
-  .daily-sub {
-    display: none;
-  }
-}
-
-/* Short tablet landscape (~900×700): collapse chrome so the grids start on-screen. */
+/* Short tablet landscape (~900×700): collapse chrome so the grids start on-screen.
+   Portrait tablets are taller than this, so they keep the full type and 44px targets. */
 @media (max-width: 1020px) and (max-height: 760px) {
   .arcade-hero {
     margin: 8px auto 8px;
   }
   .arcade-hero-title {
     font-size: 22px;
-    letter-spacing: 3px;
+    letter-spacing: 0.04em;
   }
   .arcade-hero-sub,
   .arcade-section-lede,
@@ -1048,6 +1100,10 @@ a.arcade-card {
   }
   .arcade-flagship {
     grid-template-columns: 132px minmax(0, 1fr);
+    max-width: 560px;
+    height: 128px;
+    min-height: 0;
+    margin-top: 8px;
   }
   .arcade-flagship-art {
     min-height: 0;
@@ -1060,8 +1116,31 @@ a.arcade-card {
   .arcade-flagship-name {
     font-size: 20px;
   }
+  .hero-cta,
+  .hero-cta--flagship {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
   .arcade-hero-alt {
     margin-top: 8px;
+    gap: 6px;
+  }
+  .hero-alt-link {
+    min-height: 32px;
+    padding: 0 10px;
+  }
+  .card-search {
+    min-height: 36px;
+    font-size: 14px;
+  }
+  .arcade-scan-link {
+    min-height: 36px;
+    padding: 4px 8px;
+  }
+  .daily-chip,
+  #primer-hint .primer-hint-open {
+    min-height: 32px;
   }
   .arcade-card-screen {
     aspect-ratio: 16 / 9;
@@ -1118,11 +1197,32 @@ a.arcade-card {
     margin: 14px auto 14px;
   }
   .arcade-hero-title {
-    letter-spacing: 3px;
+    letter-spacing: 0.04em;
+  }
+  .arcade-hero-sub {
+    font-size: 15px;
+  }
+  .arcade-flagship {
+    grid-template-columns: 108px minmax(0, 1fr);
+  }
+  .arcade-flagship-art {
+    min-height: 120px;
+  }
+  .arcade-flagship-copy {
+    padding: 12px 12px 14px;
+    gap: 6px;
   }
   .arcade-shell .sec-link {
-    padding: 5px 8px;
-    font-size: 10px;
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .arcade-scan-link {
+    gap: 4px;
+    padding: 6px 6px;
+    font-size: 12px;
+    min-width: 0;
+    overflow: hidden;
   }
   .arcade-grid {
     grid-template-columns: 1fr;
@@ -1163,51 +1263,109 @@ a.arcade-card {
    overlay here would also sit on top of every click the page wants. */
 #primer-hint {
   max-width: 1200px;
-  margin: 0 auto 10px;
-  padding: 10px 16px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
-  background: rgba(124, 196, 255, 0.06);
-  border: 1px solid rgba(124, 196, 255, 0.25);
-  border-radius: 10px;
-  font-size: 13px;
+  margin: 0 auto 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-widget);
+  border: 1px solid rgba(124, 196, 255, 0.35);
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: normal;
+  box-shadow: var(--widget-shadow);
 }
 #primer-hint[hidden] { display: none; }
-#primer-hint .primer-hint-text { color: var(--text-dim); }
-#primer-hint .primer-hint-open {
-  background: rgba(124, 196, 255, 0.14);
-  border: 1px solid rgba(124, 196, 255, 0.4);
-  color: var(--text); font: inherit; font-weight: 700;
-  padding: 5px 12px; border-radius: 7px; cursor: pointer;
+#primer-hint .primer-hint-text {
+  color: var(--text-dim);
+  flex: 1 1 220px;
+  letter-spacing: normal;
 }
-#primer-hint .primer-hint-open:hover { background: rgba(124, 196, 255, 0.24); }
+#primer-hint .primer-hint-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  background: rgba(124, 196, 255, 0.16);
+  border: 1px solid rgba(124, 196, 255, 0.5);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: normal;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#primer-hint .primer-hint-open:hover { background: rgba(124, 196, 255, 0.28); }
 #primer-hint .primer-hint-x {
-  margin-left: auto; background: none; border: none; cursor: pointer;
-  color: var(--text-dim); font-size: 17px; line-height: 1; padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
 }
 #primer-hint .primer-hint-x:hover { color: var(--text); }
 
 #daily-banner {
   max-width: 1200px;
-  margin: 0 auto 12px;
-  padding: 10px 16px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
-  background: rgba(247, 201, 72, 0.05);
-  border: 1px solid rgba(247, 201, 72, 0.2);
-  border-radius: 10px;
+  margin: 0 auto 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg-widget);
+  border: 1px solid rgba(247, 201, 72, 0.35);
+  border-radius: 16px;
+  box-shadow: var(--widget-shadow);
   scroll-margin-top: calc(var(--nav-height) + var(--shell-height) + 12px);
 }
 #daily-banner[hidden] { display: none; }
-.daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
+.daily-title {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: #F7C948;
+  white-space: normal;
+}
 #daily-date { color: var(--text-muted, #7D8590); font-weight: 600; margin-left: 4px; }
-.daily-sub { font-size: 12px; color: var(--text-muted, #7D8590); }
-#daily-games { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.daily-sub { font-size: 14px; line-height: 1.45; letter-spacing: normal; color: var(--text-muted, #7D8590); }
+#daily-games { display: flex; flex-wrap: wrap; gap: 8px; margin-left: 0; width: 100%; }
 .daily-chip {
-  background: rgba(247, 201, 72, 0.1);
-  border: 1px solid rgba(247, 201, 72, 0.35);
-  color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700;
-  border-radius: 16px; padding: 5px 14px; cursor: pointer;
+  background: rgba(247, 201, 72, 0.12);
+  border: 1px solid rgba(247, 201, 72, 0.45);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: normal;
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0 16px;
+  cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+a.daily-chip:link,
+a.daily-chip:visited,
+a.daily-chip:hover,
+a.daily-chip:active {
+  color: var(--text);
+  text-decoration: none;
 }
 .daily-chip:hover { background: rgba(247, 201, 72, 0.22); border-color: #F7C948; }
 .daily-best { color: #F7C948; font-weight: 800; }
@@ -1495,25 +1653,53 @@ a.arcade-card {
 .resume-label { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-dim, #7D8590); }
 .resume-chip {
   display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px;
   background: rgba(127,127,127,0.07); border: 1px solid rgba(127,127,127,0.25);
-  color: var(--text, #E6EDF3); font-family: inherit; font-size: 12px; font-weight: 700;
-  border-radius: 16px; padding: 5px 13px; cursor: pointer; text-decoration: none;
+  color: var(--text, #E6EDF3); font-family: inherit; font-size: 14px; font-weight: 700;
+  border-radius: 999px; padding: 0 16px; cursor: pointer; text-decoration: none;
   transition: all 0.15s;
 }
 .resume-chip:hover { border-color: var(--primary, #6C63FF); box-shadow: var(--glow-primary); }
 .resume-tag { font-size: 10px; color: var(--text-dim, #7D8590); font-weight: 600; }
 
 /* ── Card search (P4) ── */
-.card-search-wrap { max-width: 1200px; margin: 0 auto 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card-search-wrap {
+  max-width: 1200px;
+  margin: 0 auto 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "search count"
+    "scan scan";
+  gap: 10px 12px;
+  align-items: center;
+}
 .card-search {
-  flex: 1; max-width: 340px;
-  background: rgba(127,127,127,0.07); border: 1px solid rgba(127,127,127,0.25);
-  color: var(--text, #E6EDF3); font-family: inherit; font-size: 13px;
-  border-radius: 18px; padding: 8px 16px; outline: none; transition: border-color 0.15s;
+  grid-area: search;
+  width: 100%;
+  max-width: none;
+  min-height: 44px;
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  color: var(--text, #E6EDF3);
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: normal;
+  border-radius: 12px;
+  padding: 10px 16px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .card-search:focus { border-color: var(--primary, #6C63FF); box-shadow: var(--glow-primary); }
 .card-search::placeholder { color: var(--text-muted, #8b949e); }
-.card-search-count { font-size: 12px; color: var(--text-dim, #7D8590); font-weight: 700; }
+.card-search-count {
+  grid-area: count;
+  font-size: 13px;
+  color: var(--text-dim, #7D8590);
+  font-weight: 700;
+  letter-spacing: normal;
+}
+.card-search-wrap .arcade-scan { grid-area: scan; }
 
 .arcade-empty {
   max-width: 1200px;
@@ -1534,8 +1720,10 @@ a.arcade-card {
 .arcade-empty-clear {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 44px;
   gap: 8px;
-  padding: 7px 14px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--color-white-05);
@@ -1551,4 +1739,28 @@ a.arcade-card {
   background: var(--color-white-08);
   border-color: #8b83ff;
   outline: none;
+}
+
+/* These controls are declared after the main responsive block, so the
+   short-landscape compress has to be repeated here or min-height: 44px wins
+   and pushes the first Long card off a 700px-tall tablet. */
+@media (max-width: 1020px) and (max-height: 760px) {
+  .card-search {
+    min-height: 36px;
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+  .daily-chip,
+  #primer-hint .primer-hint-open,
+  #primer-hint .primer-hint-x,
+  .resume-chip,
+  .arcade-empty-clear {
+    min-height: 32px;
+  }
+  #daily-banner,
+  #primer-hint {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  #daily-games { gap: 6px; }
 }

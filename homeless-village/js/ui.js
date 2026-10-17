@@ -120,6 +120,15 @@ function buildActionUI(){
     dyb.addEventListener('mouseleave',hideTip);
     el.appendChild(dyb);
   }
+  // Night clinic verbs. They are not on the standing list: a fresh camp
+  // has no tarp, and the rail is already long enough.
+  if(G.structures.clinic){
+    appendClinicButton(dressAction());
+    if(G.june===2) appendClinicButton(juneRoundAction());
+    appendClinicButton(ledgerAction());
+  }
+  if(G.clinicAsk && G.structures.clinic) appendClinicButton(spareAction());
+  if(G.structures.gate && (G.stormsCleared||0)>=1) appendClinicButton(salvageAction());
   // A craft or hire can rebuild this list while other actions are running.
   Object.keys(activeJobs).forEach(function(id){
     var btn=document.getElementById('action-'+id);
@@ -128,6 +137,21 @@ function buildActionUI(){
   // Newly created action nodes need the current lock/range state.
   _scavGateOut=null;
   updateScavengeGate();
+  refreshClinicActions();
+  placeClinicDock();
+}
+
+function appendClinicButton(a){
+  var el=document.getElementById('action-list');
+  if(!el || document.getElementById('action-'+a.id)) return;
+  var btn=document.createElement('button');
+  btn.className='action-btn'; btn.id='action-'+a.id;
+  btn.setAttribute('data-tip', a.tooltip);
+  btn.innerHTML='<span class="btn-progress" id="progress-'+a.id+'" style="width:0%"></span><span id="'+a.id+'-label"></span>';
+  btn.onclick=function(){ doAction(a); };
+  btn.addEventListener('mouseenter',showTip);
+  btn.addEventListener('mouseleave',hideTip);
+  el.appendChild(btn);
 }
 
 function buildCraftUI(){
@@ -175,8 +199,233 @@ function buildWorkersUI(){
   });
   refreshWorkerHireButtons();
   buildPetitionsUI();  // HV-15: the notice board rides the same panel
+  buildClinicUI();
+  buildRioUI();
   buildRegularsUI();   // HV-7: the roster shares the Community panel
   buildFavorUI();      // HV-16: a friend's ask rides under the roster
+}
+
+function clinicRowName(){
+  if(G.june===2 && G.structures.clinic) return 'June, night shift';
+  if(G.june===2) return 'June, waiting';
+  if(G.june===1) return 'June, watching';
+  return 'Night clinic';
+}
+function clinicRowStatus(){
+  if(!G.structures.clinic) return 'tarp down';
+  var left=Math.max(0, CLINIC_JUNE_AT-(G.dressings||0));
+  if(G.june===1 && left>0) return Math.floor(G.care||0)+' · '+left+' to stay';
+  return Math.floor(G.care||0)+' care';
+}
+// The community list and the action rail are both shorter than their
+// contents. Scroll the new clinic row and its verbs into view the first
+// time they appear, and again when June stays or a neighbor asks —
+// later rebuilds leave a scroll position the player chose.
+var clinicRowRevealKey='';
+function clinicRevealKey(){
+  return (G.structures.clinic?1:0)+':'+(G.june||0)+':'+(G.clinicAsk?1:0);
+}
+function scrollChildInto(container, child, pad){
+  if(!container || !child) return;
+  var style=getComputedStyle(container);
+  var canY=(style.overflowY==='auto'||style.overflowY==='scroll') && container.scrollHeight>container.clientHeight+2;
+  var canX=(style.overflowX==='auto'||style.overflowX==='scroll') && container.scrollWidth>container.clientWidth+2;
+  if(!canY && !canX) return;
+  var cr=container.getBoundingClientRect();
+  var br=child.getBoundingClientRect();
+  if(canY){
+    var top=br.top-cr.top+container.scrollTop;
+    var bottom=top+child.offsetHeight;
+    if(bottom>container.scrollTop+container.clientHeight) container.scrollTop=bottom-container.clientHeight+pad;
+    if(top<container.scrollTop) container.scrollTop=Math.max(0, top-pad);
+  }
+  if(canX){
+    var left=br.left-cr.left+container.scrollLeft;
+    var right=left+child.offsetWidth;
+    if(right>container.scrollLeft+container.clientWidth) container.scrollLeft=right-container.clientWidth+pad;
+    if(left<container.scrollLeft) container.scrollLeft=Math.max(0, left-pad);
+  }
+}
+function revealClinicRow(){
+  var row=document.getElementById('clinic-row');
+  if(!row) return;
+  var panel=row.parentElement;
+  while(panel && panel!==document.body){
+    scrollChildInto(panel, row, 6);
+    var style=getComputedStyle(panel);
+    if((style.overflowY==='auto'||style.overflowY==='scroll') && panel.scrollHeight>panel.clientHeight+2) break;
+    panel=panel.parentElement;
+  }
+}
+function buildClinicUI(){
+  var el=document.getElementById('workers-list');
+  if(!el || (!G.structures.clinic && !(G.june>0))) return;
+  var row=document.createElement('div');
+  row.className='worker-row'+(G.june===2?' hired':'');
+  row.id='clinic-row';
+  row.innerHTML='<span class="w-icon">🏥</span><span class="w-name"></span><span class="w-status"></span>';
+  row.setAttribute('data-tip','Care falls every dawn the tarp stands. One gauze roll dresses a wound. Three dressings and June stays. Five dawns at '+CLINIC_STEADY_LINE+' care or better and the block trusts the clinic.');
+  row.addEventListener('mouseenter',showTip);
+  row.addEventListener('mouseleave',hideTip);
+  el.appendChild(row);
+  refreshClinicRow();
+  var key=clinicRevealKey();
+  if(key!==clinicRowRevealKey){
+    clinicRowRevealKey=key;
+    revealClinicRow();
+  }
+}
+function refreshClinicRow(){
+  var row=document.getElementById('clinic-row');
+  if(!row) return;
+  var name=row.querySelector('.w-name');
+  var status=row.querySelector('.w-status');
+  if(name) name.textContent=clinicRowName();
+  if(status) status.textContent=clinicRowStatus();
+  row.classList.toggle('hired', G.june===2);
+}
+function refreshClinicActions(){
+  var stock=G.bandages||0;
+  var dress=document.getElementById('action-dress');
+  if(dress){
+    var job=activeJobs.dress;
+    var cd=G.cooldowns.dress && Date.now()<G.cooldowns.dress;
+    var label=document.getElementById('dress-label');
+    var narrow=window.matchMedia('(max-width:700px)').matches;
+    var text=narrow ? '🩹 Dress'+(stock?' '+stock:'') : '🩹 Dress wound'+(stock?' · '+stock+'🩹':'');
+    if(label && label.textContent!==text) label.textContent=text;
+    dress.disabled=!!job||stock<1||!!cd;
+    dress.style.opacity=dress.disabled?'.5':'';
+    dress.classList.toggle('active-job',!!job);
+    dress.setAttribute('data-tip', (stock<1?'No gauze on the shelf — roll some at the clinic. ':'')+dressAction().tooltip);
+  }
+  var round=document.getElementById('action-juneround');
+  if(round){
+    var rjob=activeJobs.juneround;
+    var done=juneRoundDone();
+    var rlabel=document.getElementById('juneround-label');
+    var rtext=(window.matchMedia('(max-width:700px)').matches?'🩺 Round':'🩺 June\'s round')+(done?' ✓':'');
+    if(rlabel && rlabel.textContent!==rtext) rlabel.textContent=rtext;
+    round.disabled=!!rjob||done||stock<1;
+    round.style.opacity=round.disabled?'.5':'';
+    round.classList.toggle('active-job',!!rjob);
+    round.setAttribute('data-tip', (done?'She already walked the block today. ':stock<1?'The shelf is empty. ':'')+juneRoundAction().tooltip);
+  }
+  var spare=document.getElementById('action-spare');
+  if(spare){
+    var sjob=activeJobs.spare;
+    var slabel=document.getElementById('spare-label');
+    var stext=window.matchMedia('(max-width:700px)').matches
+      ? '🏥 Spare'+(stock?' '+stock:'')
+      : '🏥 Spare a roll'+(stock?' · '+stock+'🩹':'');
+    if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
+    spare.disabled=!!sjob||stock<1;
+    spare.style.opacity=spare.disabled?'.5':'';
+    spare.classList.toggle('active-job',!!sjob);
+    spare.setAttribute('data-tip', (stock<1?'They need one gauze roll, and the shelf is empty. ':'')+spareAction().tooltip);
+  }
+  var ledger=document.getElementById('action-ledger');
+  if(ledger){
+    var llabel=document.getElementById('ledger-label');
+    var ltext=ledgerLabel();
+    if(llabel && llabel.textContent!==ltext) llabel.textContent=ltext;
+    ledger.setAttribute('data-tip', ledgerAction().tooltip);
+  }
+  var salvage=document.getElementById('action-salvage');
+  if(salvage){
+    var done=salvageDone();
+    var sjob=activeJobs.salvage;
+    var slabel=document.getElementById('salvage-label');
+    var stext=(window.matchMedia('(max-width:700px)').matches?'🪵 Lot':'🪵 Salvage the lot')+(done?' ✓':'');
+    if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
+    salvage.disabled=!!sjob||done;
+    salvage.style.opacity=salvage.disabled?'.5':'';
+    salvage.classList.toggle('active-job',!!sjob);
+    salvage.setAttribute('data-tip', (done?'The dry piles are already in. Tomorrow. ':'')+salvageAction().tooltip);
+  }
+}
+function placeClinicDock(){
+  var dock=document.getElementById('clinic-dock');
+  var list=document.getElementById('action-list');
+  if(!dock || !list) return;
+  var mobile=window.matchMedia('(max-width:700px)').matches;
+  ['dress','juneround','spare','ledger','salvage'].forEach(function(id){
+    var btn=document.getElementById('action-'+id);
+    if(!btn) return;
+    var keep=(id==='juneround') ? (G.june===2 && !!G.structures.clinic)
+      : (id==='spare') ? !!(G.clinicAsk && G.structures.clinic)
+      : (id==='salvage') ? (!!G.structures.gate && (G.stormsCleared||0)>=1)
+      : !!G.structures.clinic;
+    if(!keep){ btn.remove(); return; }
+    var home=mobile ? dock : list;
+    if(btn.parentElement!==home) home.appendChild(btn);
+  });
+}
+var rioRowRevealKey='';
+function rioRevealKey(){
+  return (G.rio||0)+':'+(G.structures.gate?1:0)+':'+(G.stormDue?1:0);
+}
+function buildRioUI(){
+  var el=document.getElementById('workers-list');
+  if(!el || !(G.rio>0)) return;
+  var row=document.createElement('div');
+  row.className='worker-row'+(G.rio===2?' hired':'');
+  row.id='rio-row';
+  row.innerHTML='<span class="w-icon">🌧️</span><span class="w-name"></span><span class="w-status"></span>';
+  row.setAttribute('data-tip','Rio watches the river lot. Every fifth dawn she calls a storm night. Hold the line, or she spends what the pile can bear. Ride one out and the dry piles can be salvaged.');
+  row.addEventListener('mouseenter',showTip);
+  row.addEventListener('mouseleave',hideTip);
+  el.appendChild(row);
+  refreshRioRow();
+  var key=rioRevealKey();
+  if(key!==rioRowRevealKey){
+    rioRowRevealKey=key;
+    var panel=row.parentElement;
+    while(panel && panel!==document.body){
+      scrollChildInto(panel, row, 6);
+      var style=getComputedStyle(panel);
+      if((style.overflowY==='auto'||style.overflowY==='scroll') && panel.scrollHeight>panel.clientHeight+2) break;
+      panel=panel.parentElement;
+    }
+  }
+}
+function refreshRioRow(){
+  var row=document.getElementById('rio-row');
+  if(!row) return;
+  var name=row.querySelector('.w-name');
+  var status=row.querySelector('.w-status');
+  if(name) name.textContent=G.rio===2?'Rio, staying':'Rio, at the gate';
+  if(status) status.textContent=G.stormOn?'holding the line':G.stormDue?'storm coming':G.rio===2?'the lot is dry':'watching the water';
+  row.classList.toggle('hired', G.rio===2);
+}
+function stormShown(el, on){
+  if(!el) return;
+  el.hidden=!on;
+  el.classList.toggle('show', !!on);
+}
+function refreshStormHUD(){
+  var due=!!(G.structures.gate && G.stormDue && !G.stormOn);
+  stormShown(document.getElementById('storm-call'), due);
+  stormShown(document.getElementById('storm-banner'), !!G.stormOn);
+  stormShown(document.getElementById('storm-rain'), !!G.stormOn);
+  if(!G.stormOn) return;
+  var phase=STORM_PHASES[G.stormPhase]||STORM_PHASES[0];
+  var title=document.getElementById('storm-title');
+  var rio=document.getElementById('storm-rio');
+  var kicker=document.getElementById('storm-kicker');
+  var fill=document.getElementById('storm-fill');
+  if(kicker) kicker.textContent='STORM NIGHT · '+(G.stormStrikes||0)+' break'+((G.stormStrikes||0)===1?'':'s');
+  if(title && phase) title.textContent=phase.title;
+  if(rio && phase){
+    rio.textContent=phase.need
+      ? 'Need '+phase.cost+' '+phase.need+'. Rio steps in if you wait.'
+      : 'Rio already has the count if you freeze.';
+  }
+  if(fill){
+    var left=(!isFinite(G.stormDeadline))?0:Math.max(0, G.stormDeadline-Date.now());
+    fill.style.width=Math.max(0, Math.min(100, left/STORM_PHASE_MS*100))+'%';
+  }
+  refreshRioRow();
 }
 
 // Refresh in place so HUD ticks preserve button focus and click targets.
@@ -258,7 +507,9 @@ function buildRegularsUI(){
 
 function craftCostText(r){
   if(r.gives && r.gives.structure==='barrel' && G.structures.barrel) return (G.barrelWater||0)+'/'+BARREL_CAP+' stored';
-  return Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+  var cost=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+  if(r.id==='gauze') return cost+' · '+(G.bandages||0)+' shelf';
+  return cost;
 }
 
 function craftRefusal(r){
@@ -284,6 +535,31 @@ function craftTip(r){
   return (reason?reason+' ':'')+r.desc;
 }
 
+function paintVital(statId, value, low, critical){
+  var el=document.getElementById(statId);
+  if(!el) return;
+  var pill=el.closest('.stat-pill');
+  if(!pill) return;
+  pill.classList.toggle('vital-low', value<low && value>=critical);
+  pill.classList.toggle('vital-critical', value<critical);
+}
+function refreshClinicHUD(){
+  var pill=document.getElementById('bandage-pill');
+  if(!pill) return;
+  var show=!!G.structures.clinic || (G.bandages||0)>0 || (G.june||0)>0;
+  pill.hidden=!show;
+  var stock=document.getElementById('stat-bandages');
+  if(stock) stock.textContent=Math.floor(G.bandages||0);
+  var care=document.getElementById('stat-care');
+  if(care){
+    if(G.structures.clinic){
+      care.hidden=false;
+      care.textContent='care '+Math.floor(G.care||0);
+    } else care.hidden=true;
+  }
+  pill.classList.toggle('vital-low', !!G.structures.clinic && (G.care||0)<CLINIC_STEADY_LINE && (G.care||0)>0);
+  pill.classList.toggle('vital-critical', !!G.structures.clinic && (G.care||0)<=0);
+}
 function currentGoal(){ return G.goalIndex<GOALS.length ? GOALS[G.goalIndex] : null; }
 
 function checkGoals(){
@@ -302,8 +578,14 @@ function checkGoals(){
 
 function updateGoalHUD(){
   var g=currentGoal(), el=document.getElementById('goal-text');
-  if(!g){ el.textContent='All goals complete'; return; }
+  var pill=document.getElementById('goal-pill');
+  if(!g){
+    el.textContent='All goals complete';
+    if(pill) pill.title='Every aim on the ladder is done.';
+    return;
+  }
   el.textContent=g.desc+' ('+Math.min(g.value(),g.target)+'/'+g.target+')';
+  if(pill) pill.title='Completing this pays +'+g.reward+' goodwill.';
 }
 
 // Resource gains/spending do not rebuild the action list. Keep the cart's
@@ -337,8 +619,19 @@ function updateHUD(){
   document.getElementById('stat-goodwill').textContent=Math.floor(G.goodwill);
   document.getElementById('stat-health').textContent  =Math.floor(G.health);
   document.getElementById('stat-warmth').textContent  =Math.floor(G.warmth);
+  paintVital('stat-health', G.health, 40, 20);
+  paintVital('stat-warmth', G.warmth, 35, 20);
+  var healthPill=document.getElementById('health-pill');
+  if(healthPill){
+    healthPill.title=G.health<20?'Health is critical — rest, eat, or dress a wound at the clinic.'
+      :G.health<40?'Health is getting low.': 'Health. An empty pot or warmth under 20% takes it at dawn.';
+  }
+  refreshClinicHUD();
+  refreshClinicRow();
+  refreshClinicActions();
+  refreshStormHUD();
   document.getElementById('morale-val').textContent   =Math.floor(G.morale);
-  document.getElementById('pop-val').textContent      =G.population+(G.dog===2?(G.dogHungry?' 🐕💢':' 🐕'):'');
+  document.getElementById('pop-val').textContent      =G.population+(G.dog===2?(G.dogHungry?' 🐕💢':' 🐕'):'')+(G.june===2?' 🩺':'')+(G.rio===2?' 🌧️':'');
   document.getElementById('days-counter').textContent ='Days Survived: '+G.days;
   document.getElementById('season-badge').textContent =['SPRING','SUMMER','AUTUMN','WINTER'][G.season]
     + ' ' + weatherDef().icon
@@ -351,7 +644,7 @@ function updateHUD(){
     if(el){
       el.className='craft-item'+(canCraft(r)?'':' cant-afford');
       el.setAttribute('data-tip',craftTip(r));
-      if(r.gives && r.gives.structure==='barrel') el.querySelector('.ci-cost').textContent=craftCostText(r);
+      if((r.gives && r.gives.structure==='barrel') || r.id==='gauze') el.querySelector('.ci-cost').textContent=craftCostText(r);
     }
   });
   var nf=Math.max(0,Math.sin(G.timeOfDay*Math.PI*2-Math.PI*1.2));
@@ -440,12 +733,78 @@ function packUpCamp(){
 document.getElementById('pack-up-btn').addEventListener('click', packUpCamp);
 
 // Small "+N" gain feedback that drifts up over the scene.
-function floatText(msg){
+function floatText(msg, kind){
   var d=document.createElement('div');
-  d.className='float-text'; d.textContent=msg;
+  d.className='float-text'+(kind==='heal'?' float-heal':kind==='hurt'?' float-hurt':'');
+  d.textContent=msg;
   d.style.left=(42+Math.random()*16)+'%';
   document.getElementById('hud').appendChild(d);
   setTimeout(function(){ d.remove(); },1600);
+}
+var juiceTimer=null;
+function juice(kind){
+  var hud=document.getElementById('hud');
+  if(!hud) return;
+  var flash=kind==='hurt'?'flash-hurt':'flash-heal';
+  var pop=kind==='hurt'?'juice-down':'juice-up';
+  hud.classList.remove('flash-heal','flash-hurt');
+  void hud.offsetWidth;
+  hud.classList.add(flash);
+  var pill=document.getElementById('bandage-pill');
+  if(pill){
+    pill.classList.remove('juice-up','juice-down');
+    void pill.offsetWidth;
+    pill.classList.add(pop);
+  }
+  clearTimeout(juiceTimer);
+  juiceTimer=setTimeout(function(){
+    hud.classList.remove('flash-heal','flash-hurt');
+    if(pill) pill.classList.remove('juice-up','juice-down');
+  }, 700);
+}
+function renderLedger(){
+  var list=document.getElementById('ledger-list');
+  var challenge=document.getElementById('ledger-challenge');
+  var sign=document.getElementById('ledger-sign');
+  var claim=document.getElementById('ledger-claim');
+  if(!list) return;
+  var mark=ledgerMark();
+  var rows=loadLedger().slice().sort(function(a,b){ return b.dressings-a.dressings || b.days-a.days; });
+  list.innerHTML='';
+  rows.forEach(function(e){
+    var row=document.createElement('div');
+    var yours=G.ledgerId && e.id===G.ledgerId;
+    row.className='ledger-row'+(yours?' yours':'')+(e.dressings===mark.dressings && !yours?' mark':'');
+    row.innerHTML='<span class="ledger-name">'+(yours?'Your camp':e.name)+'</span>'+
+      '<span class="ledger-note">'+e.dressings+' dressed · '+e.days+'d</span>';
+    list.appendChild(row);
+  });
+  if(challenge){
+    challenge.textContent=G.ledgerClaimed
+      ? 'The block already paid this camp.'
+      : 'Beat '+mark.name+' · '+mark.dressings+' dressings. You have '+(G.dressings||0)+'.';
+  }
+  if(sign){
+    sign.disabled=!!G.ledgerSigned || (G.dressings||0)<1;
+    sign.textContent=G.ledgerSigned?'Signed':'Sign this camp';
+  }
+  if(claim){
+    claim.disabled=!!G.ledgerClaimed || (G.dressings||0)<=mark.dressings;
+    claim.textContent=G.ledgerClaimed?'Paid':'Claim +'+LEDGER_PAY+' goodwill';
+  }
+}
+function openLedger(){
+  var modal=document.getElementById('ledger-modal');
+  if(!modal) return;
+  renderLedger();
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+function closeLedger(){
+  var modal=document.getElementById('ledger-modal');
+  if(!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
 }
 
 // Win state (IDEA-HV-3): the arc's ending. Not a reset by default —
@@ -557,8 +916,9 @@ function openChain(){
 //   - Scavenge is proximity-gated (HV-2). Standing anywhere else the
 //     button just greys out; the explanation lives in a title tooltip,
 //     which is nothing at all on a touch screen.
-//   - The Workbench gates 13 of the 18 recipes. Miss it and most of the
-//     craft panel stays dark for no stated reason.
+//   - The Workbench gates most later recipes (the intro quotes the live
+//     count from RECIPES). Miss it and most of the craft panel stays
+//     dark for no stated reason.
 // Both are stated in the panel. The panel quotes real numbers (5 wood +
 // 4 scraps, 13 of 18, warmth below 20%), and quoted numbers rot: the
 // tests/headless/hvintro.js suite recomputes each one from RECIPES and
@@ -598,4 +958,21 @@ function closeIntro(){
   // First run only: a returning camp gets straight back to work. The
   // ? button in the top bar reopens it whenever they want it.
   if(!introSeen()) openIntro();
+})();
+(function(){
+  var close=document.getElementById('ledger-close');
+  var modal=document.getElementById('ledger-modal');
+  var sign=document.getElementById('ledger-sign');
+  var claim=document.getElementById('ledger-claim');
+  if(close) close.onclick=closeLedger;
+  if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeLedger(); });
+  if(sign) sign.onclick=function(){ if(signLedger()) renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); };
+  if(claim) claim.onclick=function(){ if(claimLedger()){ renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); if(typeof updateHUD==='function') updateHUD(); } };
+  var stormCall=document.getElementById('storm-call');
+  var stormHoldBtn=document.getElementById('storm-hold');
+  if(stormCall) stormCall.onclick=function(){ if(typeof stormStart==='function') stormStart(); };
+  if(stormHoldBtn) stormHoldBtn.onclick=function(){ if(typeof stormHold==='function') stormHold(); };
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && modal && modal.classList.contains('open')) closeLedger();
+  });
 })();

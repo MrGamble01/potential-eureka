@@ -39,7 +39,7 @@
     'hearthvale.found': 'max', 'hearthvale.build': 'max', 'hearthvale.pop': 'max', 'hearthvale.festival': 'max',
     'voxel.visit': 'max', 'voxel.harvest': 'max', 'voxel.level': 'max', 'voxel.build': 'max',
     'growop.visit': 'max', 'growop.sale': 'max', 'growop.earned': 'max', 'growop.hire': 'max',
-    'clinic.visit': 'max', 'clinic.dawn': 'max', 'clinic.rest': 'inc',
+    'clinic.visit': 'max', 'clinic.dawn': 'max', 'clinic.rest': 'max',
   };
 
   function stat(doc, key) { return doc && doc.stats && doc.stats[key] ? doc.stats[key] : 0; }
@@ -103,13 +103,13 @@
       desc: 'Hire someone.', test: function (d) { return stat(d, 'growop.hire') >= 1; } },
 
     { id: 'clinic-in', game: 'clinic', icon: '🩺', name: 'Clocked In', xp: 20,
-      desc: 'Show up under the bridge.', test: function (d) { return stat(d, 'clinic.visit') >= 1; } },
+      desc: 'Raise the Night Clinic.', test: function (d) { return stat(d, 'clinic.visit') >= 1; } },
     { id: 'clinic-dawn', game: 'clinic', icon: '🌄', name: 'Through the Night', xp: 30,
-      desc: 'See a dawn.', test: function (d) { return stat(d, 'clinic.dawn') >= 1; } },
+      desc: 'Keep the tarp through a dawn.', test: function (d) { return stat(d, 'clinic.dawn') >= 1; } },
     { id: 'clinic-three', game: 'clinic', icon: '🌙', name: 'Three Dawns', xp: 45,
-      desc: 'Last three nights.', test: function (d) { return stat(d, 'clinic.dawn') >= 3; } },
-    { id: 'clinic-rest', game: 'clinic', icon: '😴', name: 'Slept It Off', xp: 25,
-      desc: 'Rest once.', test: function (d) { return stat(d, 'clinic.rest') >= 1; } },
+      desc: 'Three steady dawns.', test: function (d) { return stat(d, 'clinic.dawn') >= 3; } },
+    { id: 'clinic-rest', game: 'clinic', icon: '🩹', name: 'First Dressing', xp: 25,
+      desc: 'Dress a wound.', test: function (d) { return stat(d, 'clinic.rest') >= 1; } },
 
     { id: 'cross-two', game: 'cross', icon: '🚶', name: 'Making the Rounds', xp: 40,
       desc: 'Play 2 different flagships.', test: function (d) { return gamesTouched(d) >= 2; } },

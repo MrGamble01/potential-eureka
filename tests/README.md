@@ -53,10 +53,16 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
 | Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
+| Hearthvale stillroom | `hvalestill` (hook-free: farm crop choice and food-net, craft refusals, neighbour deliveries, Known/Kin ranks, salve lock, fever anoint, live feverfew harvest, save round-trip, Escape; 1280px/768px; zero page errors) |
+| Hearthvale Valley Cup | `hvalecup` (hook-free: daily basket refusal, one entry at score 80, share-code round trip, pasted rival, bad slip, same-day lock, juice banner, 390px touch targets; zero page errors) |
+| Hearthvale Lantern Hollow | `hvalehollow` (hook-free: sealed briar, Known unlock, spring offering, companion counsel, booth talk hook, flee, phone targets; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
+| Grow Op strains and gear | `labstrain` (hook-free: strain quote matches grow/price/heat, broke and Act II refusals, live ETA, drip/fan/filter, $0 reload, event choice, 1280/768/390, zero page errors) |
+| Grow Op sound, alley, touch | `labjuice` (hook-free: sale/harvest/bust sounds are wired, today's alley is the UTC-date ghost, a friend code pins locally, mute sticks, the phone stick and Harvest button are hittable and the button walks a ripe plant to the trim table) |
+| Grow Op raid night | `labraid` (hook-free: Nia stays locked until a real harvest, her local call matches heat/stash/cash, Raid Night opens the Night Lot, a second night lays low, phone sheet can reach her at 390px) |
 | Age of War queue-full next-slot | `aowqueueeta` (hook-free: live rounded-up wait in refusal floaters and recruit titles, unchanged gold/queue, ticking front trainee, and cancel/recruit recovery at 1280px/768px) |
 | Age of War recruit row | `aowfield` (hook-free: unit cards fully on screen at 1280×800, 1280×900, 1280×720, 1366×768, 1440×900, 1920×1080, 768×700, 390×844, 375×667, 844×390 and 667×375; the field stays 1280:560; Stone Age hides Warcry/Mercs and keeps Duel clickable; Clubman queues for 25 gold; Age II puts Warcry back; 768 field stays ≥260px) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
@@ -81,12 +87,12 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
 | Grow Op | `growpure` (LAB-60: the ✨ premium ledger never outgrows the stash it lives in — the DEA raid seizes 30% of the shelf and the ledger comes down with it, and an over-cap save lands its ledger on the capped bag count, not the saved one) |
-| Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
+| Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's twelve upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
 | Homeless Village | 190 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
-| Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
+| Voxel Isle | 54 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
 **one-shot by design** and are not in this battery — their results are
@@ -299,6 +305,9 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvsickpan` (HV-273: Illness Spreading said everyone feels terrible, then Panhandle still paid a well-day take)
 - `hvfiverain` (HV-276: Found $5 said a crumpled bill on the sidewalk, then a rainy day still paid a dry-day five)
 - `hvfifthwait` (HV-282: Stand at the Fifth Panel ran a job when the four were still bare — the HV-208 waiting-on-the-four refuse moves ahead of the 2s job and the 30s lock; HV-227 keeps the two-dig bare-block gate)
+- `hvclinic` (Night Clinic: gauze, care, June's night shift, the neighbor's ask, sweep, steady dawns, vital pills, and a real dress click)
+- `hvledger` (Night ledger board, the block's challenge, clinic chime, phone walk pad, and the clinic dock)
+- `hvstorm` (Storm night on the river lot: the Storm Gate, Rio's local fallback, a lost night, a cleared night, salvage, and the phone banner)
 - `labintro` (LAB-62: Grow Op's crash course — the sixth flagship finally explains itself, and every number the panel quotes (heat per unit, the 95 raid line, the 100 bust line, the demand band, the stash cap) is recomputed from the source so the copy cannot rot)
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
 - `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))
@@ -321,6 +330,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `voxkiln` (North Fen biome, clay/moss/brick/sea glass, kiln seal and daily firing, line/floor strokes, undo, replace, eyedropper, build-bar controls)
 
 - `voxdare` (harbor dare roll, claim-once purse, pasted neighbor notes, kiln juice, phone camera pad and touch slop)
+- `voxstorm` (storm tide gate, one-time shore purse, Storm Shelf, harbor gull advice, phone and desktop controls)
 
 - `voxgestures` (cancelled touches and either pinch release order leave terrain intact; zoom, drag, and deliberate taps still work)
 

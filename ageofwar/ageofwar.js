@@ -83,6 +83,11 @@ const AgeOfWarGame = (() => {
     wall3: { era: 3, role: 'wall', name: 'Barricade',      icon: '🚧', cost: 950,  hp: 4600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#7a7a7a', xp: 120, gold: 130, silhouette: 'humanoid' },
     wall4: { era: 4, role: 'wall', name: 'Energy Barrier', icon: '🛡️', cost: 1800, hp: 7800, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#4cc9f0', xp: 240, gold: 260, silhouette: 'humanoid' },
     wall5: { era: 5, role: 'wall', name: 'Phase Wall',     icon: '🌀', cost: 3400, hp: 14000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#c86bff', xp: 480, gold: 520, silhouette: 'humanoid' },
+
+    // The Ridge company. era -1 keeps them off the recruit row; they
+    // march only after the Warden falls.
+    squire:   { era: -1, role: 'companion', name: 'Squire',       icon: '🗡️', sprite: '🤺', cost: 0, hp: 220, dmg: 22, range: 28,  atkSpd: 0.8, speed: 52, color: '#d6c4a1', xp: 0, gold: 0, silhouette: 'humanoid' },
+    ridgebow: { era: -1, role: 'companion', name: 'Ridge Archer', icon: '🏹', sprite: '🏹', cost: 0, hp: 96,  dmg: 26, range: 180, atkSpd: 1.1, speed: 44, color: '#c4a574', xp: 0, gold: 0, silhouette: 'humanoid' },
   };
 
   function unitsForEra(era) {
@@ -99,7 +104,7 @@ const AgeOfWarGame = (() => {
     // defeating the whole point of keying bosses by era. Filtering boss_*
     // out here keeps choices/the spawn panel to the real catalog only.
     return Object.entries(UNITS)
-      .filter(([k, u]) => u.era === era && !k.startsWith('boss_'))
+      .filter(([k, u]) => u.era === era && !k.startsWith('boss_') && u.role !== 'companion')
       .map(([k]) => k);
   }
 
@@ -482,6 +487,373 @@ const AgeOfWarGame = (() => {
     councilPending = null;
     const el = document.getElementById('aow-council');
     if (el) el.style.display = 'none';
+  }
+
+  // -- Field Orders (AOW-61) --
+  // Castle Age is where the war stops being "send Clubmen" and starts
+  // costing real gold: swords, crossbows, the first turret that matters.
+  // One order, chosen the moment you age up, leans the rest of the run.
+  const FIELD_ORDERS = [
+    { id: 'levy', icon: '🪙', name: 'Levy',
+      desc: 'Kills pay +18% gold. Recruits cost +10%. Fund the push into the Renaissance.' },
+    { id: 'shield', icon: '🛡️', name: 'Shield Drill',
+      desc: 'Your soldiers take 12% less damage. Kills pay 8% less gold. Hold the midfield.' },
+    { id: 'sapper', icon: '🏹', name: 'Sapper Corps',
+      desc: 'Turrets hit +18% harder and reload 8% faster. Reaching the Renaissance costs +15% XP.' },
+  ];
+  let fieldOrder = null;
+  let fieldOrderOpen = false;
+  let ridgeOpen = false;
+  let ridgeCleared = false;
+  let ridgeWarden = 108;
+  let ridgeCompany = 200;
+  let ridgeAcc = 0;
+  let companionGap = 12;
+  const RIDGE_WARDEN = 108;
+  const RIDGE_COMPANY = 200;
+  function orderGoldMult() {
+    return fieldOrder === 'levy' ? 1.18 : fieldOrder === 'shield' ? 0.92 : 1;
+  }
+  function recruitCost(def) {
+    if (!def) return 0;
+    return fieldOrder === 'levy' ? Math.round(def.cost * 1.1) : def.cost;
+  }
+  function orderMitigate(u, dmg) {
+    if (fieldOrder !== 'shield' || !u || u.side !== 'player' || u.role) return dmg;
+    return Math.max(1, Math.round(dmg * 0.88));
+  }
+  function nextAgeXp() {
+    const base = ERAS[playerEra].upXP;
+    if (fieldOrder === 'sapper' && playerEra === 1) return Math.round(base * 1.15);
+    return base;
+  }
+  function orderChip() {
+    let el = document.getElementById('aow-order-chip');
+    if (!el) {
+      const host = document.getElementById('aow-wave');
+      if (!host) return null;
+      el = document.createElement('span');
+      el.id = 'aow-order-chip';
+      el.className = 'aow-wave-sub';
+      el.style.cssText = 'display:none;text-transform:none;letter-spacing:0;color:#58A6FF;font-weight:800';
+      host.appendChild(el);
+    }
+    return el;
+  }
+  function refreshOrderChip() {
+    const el = orderChip();
+    if (!el) return;
+    const o = FIELD_ORDERS.find(x => x.id === fieldOrder);
+    if (!o) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = '';
+    el.textContent = o.icon + ' ' + o.name;
+    el.title = o.desc;
+  }
+  function closeFieldOrder() {
+    fieldOrderOpen = false;
+    const el = document.getElementById('aow-field-order');
+    if (el) el.classList.remove('aow-open');
+  }
+  function offerFieldOrder() {
+    if (fieldOrder || fieldOrderOpen || playerEra !== 1) return;
+    fieldOrderOpen = true;
+    let el = document.getElementById('aow-field-order');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aow-field-order';
+      el.setAttribute('role', 'dialog');
+      el.setAttribute('aria-label', 'Field order');
+      document.body.appendChild(el);
+    }
+    el.innerHTML = '<div class="aow-order-kicker">📜 Field order — Castle Age</div>' +
+      '<div class="aow-order-sub">One order for the rest of this war. The line keeps fighting while you choose. Keys 1–3, or tap.</div>' +
+      '<div class="aow-order-row">' +
+      FIELD_ORDERS.map((o, i) =>
+        '<button type="button" data-order="' + o.id + '">' +
+        '<div class="aow-order-ico">' + o.icon + '</div>' +
+        '<div class="aow-order-name">' + o.name + '</div>' +
+        '<div class="aow-order-desc">' + o.desc + '</div>' +
+        '<div class="aow-order-key">[' + (i + 1) + ']</div></button>').join('') +
+      '</div>';
+    el.classList.add('aow-open');
+    el.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); chooseFieldOrder(btn.dataset.order); });
+    });
+    SFX.order();
+  }
+  function chooseFieldOrder(id) {
+    if (!fieldOrderOpen || !FIELD_ORDERS.some(o => o.id === id)) return;
+    fieldOrder = id;
+    closeFieldOrder();
+    const o = FIELD_ORDERS.find(x => x.id === id);
+    goldFloaters.push({
+      text: o.icon + ' ' + o.name + ' — ' + o.desc,
+      x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#58A6FF', t: 2.4,
+    });
+    ageFlash = Math.max(ageFlash, 0.45);
+    for (let i = 0; i < 16; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+      const spd = 80 + Math.random() * 160;
+      particles.push({
+        x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 70,
+        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+        color: ['#58A6FF', '#fcd34d', '#E6EDF3'][i % 3],
+        size: 2 + Math.random() * 2, life: 0.8,
+      });
+    }
+    if (id === 'levy') SFX.levy();
+    else if (id === 'shield') SFX.shield();
+    else SFX.sapper();
+    if (hapticsOK && typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate(id === 'shield' ? [10, 30, 16] : 14); } catch {}
+    }
+    refreshOrderChip();
+    const chip = document.getElementById('aow-order-chip');
+    if (chip) { chip.classList.remove('aow-order-pop'); void chip.offsetWidth; chip.classList.add('aow-order-pop'); }
+    refreshRidgeOffer();
+    renderHud();
+    renderSpawnPanel();
+  }
+  // The Ridge: a side front that opens once a Castle Age order is standing.
+  // Two companions decide each beat. Beating the Warden sends them onto
+  // the main line for the rest of the war.
+  function ridgePlan() {
+    if (ridgeCompany * 2 < RIDGE_COMPANY) return 'brace';
+    return 'strike';
+  }
+  function ensureRidge() {
+    let el = document.getElementById('aow-ridge');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'aow-ridge';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'The Ridge');
+    el.innerHTML =
+      '<div class="aow-ridge-card">' +
+        '<div class="aow-ridge-kicker">New front</div>' +
+        '<div class="aow-ridge-title">⛰️ The Ridge</div>' +
+        '<div class="aow-ridge-sub">Past the castle road. The Squire and the Archer march with you. The Warden holds the gap.</div>' +
+        '<div class="aow-ridge-scene" aria-hidden="true"><span>🗡️</span><span>🏹</span><b>🪨</b></div>' +
+        '<div class="aow-ridge-bossname">Warden of the Ridge</div>' +
+        '<div class="aow-ridge-bar"><div id="aow-ridge-warden"></div></div>' +
+        '<div id="aow-ridge-warden-label"></div>' +
+        '<div class="aow-ridge-bossname">Your company</div>' +
+        '<div class="aow-ridge-bar aow-ridge-bar-company"><div id="aow-ridge-company"></div></div>' +
+        '<div id="aow-ridge-company-label"></div>' +
+        '<div id="aow-ridge-log"></div>' +
+        '<div class="aow-ridge-actions">' +
+          '<button type="button" id="aow-ridge-follow">Follow them</button>' +
+          '<button type="button" id="aow-ridge-hold">Hold the line</button>' +
+          '<button type="button" id="aow-ridge-leave">Back to the field</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+    el.querySelector('#aow-ridge-follow').addEventListener('click', e => { e.stopPropagation(); ridgeStep('follow'); });
+    el.querySelector('#aow-ridge-hold').addEventListener('click', e => { e.stopPropagation(); ridgeStep('brace'); });
+    el.querySelector('#aow-ridge-leave').addEventListener('click', e => { e.stopPropagation(); closeRidge(); });
+    return el;
+  }
+  function paintRidge() {
+    const warden = document.getElementById('aow-ridge-warden');
+    const company = document.getElementById('aow-ridge-company');
+    const wl = document.getElementById('aow-ridge-warden-label');
+    const cl = document.getElementById('aow-ridge-company-label');
+    const follow = document.getElementById('aow-ridge-follow');
+    if (warden) warden.style.width = Math.max(0, Math.round(ridgeWarden / RIDGE_WARDEN * 100)) + '%';
+    if (company) company.style.width = Math.max(0, Math.round(ridgeCompany / RIDGE_COMPANY * 100)) + '%';
+    if (wl) wl.textContent = 'Warden ' + Math.max(0, ridgeWarden) + ' / ' + RIDGE_WARDEN;
+    if (cl) cl.textContent = 'Company ' + Math.max(0, ridgeCompany) + ' / ' + RIDGE_COMPANY;
+    const plan = ridgePlan();
+    if (follow) follow.textContent = plan === 'brace'
+      ? 'Follow them — the Squire will brace'
+      : 'Follow them — Squire and Archer strike';
+  }
+  function openRidge() {
+    if (ridgeOpen || ridgeCleared || !fieldOrder || playerEra < 1 || fieldOrderOpen) return;
+    ridgeOpen = true;
+    ridgeWarden = RIDGE_WARDEN;
+    ridgeCompany = RIDGE_COMPANY;
+    ridgeAcc = 0;
+    ensureRidge();
+    document.getElementById('aow-ridge').classList.add('aow-open');
+    const log = document.getElementById('aow-ridge-log');
+    if (log) log.textContent = 'The Squire watches the Warden. The Archer nocks. They decide the beat.';
+    paintRidge();
+    SFX.order();
+    refreshRidgeOffer();
+  }
+  function closeRidge() {
+    ridgeOpen = false;
+    const el = document.getElementById('aow-ridge');
+    if (el) el.classList.remove('aow-open');
+    refreshRidgeOffer();
+  }
+  function ridgeStep(kind) {
+    if (!ridgeOpen || ridgeCleared) return;
+    if (kind === 'follow') kind = ridgePlan();
+    if (kind !== 'strike' && kind !== 'brace') return;
+    if (kind === 'strike') {
+      ridgeWarden = Math.max(0, ridgeWarden - 36);
+      ridgeCompany = Math.max(0, ridgeCompany - 22);
+    } else {
+      ridgeWarden = Math.max(0, ridgeWarden - 14);
+      ridgeCompany = Math.max(0, ridgeCompany - 8);
+    }
+    const log = document.getElementById('aow-ridge-log');
+    if (log) {
+      log.textContent = kind === 'brace'
+        ? 'The Squire braces. The Archer still looses. The Warden’s blow glances off.'
+        : 'The Squire closes. The Archer looses. The Warden answers.';
+    }
+    paintRidge();
+    SFX.ridge();
+    if (hapticsOK && typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate(kind === 'brace' ? 8 : 12); } catch {}
+    }
+    if (ridgeWarden <= 0) { claimRidge(); return; }
+    if (ridgeCompany <= 0) {
+      ridgeCompany = RIDGE_COMPANY;
+      ridgeWarden = RIDGE_WARDEN;
+      if (log) log.textContent = 'The company falls back to the treeline and forms up again.';
+      paintRidge();
+    }
+  }
+  function claimRidge() {
+    ridgeOpen = false;
+    ridgeCleared = true;
+    companionGap = 12;
+    const el = document.getElementById('aow-ridge');
+    if (el) el.classList.remove('aow-open');
+    spawnUnit('player', 'squire');
+    spawnUnit('player', 'ridgebow');
+    ageBannerText = '🗡️ The Squire and the Archer join the line';
+    ageBannerT = 2.8;
+    SFX.company();
+    refreshRidgeOffer();
+  }
+  function livingCompanion(key) {
+    return units.some(u => u.side === 'player' && u.key === key && u.hp > 0);
+  }
+  function musterCompanions() {
+    if (!livingCompanion('squire')) spawnUnit('player', 'squire');
+    if (!livingCompanion('ridgebow')) spawnUnit('player', 'ridgebow');
+  }
+  function tickCompanions(dt) {
+    if (!ridgeCleared || gameOver || ridgeOpen) return;
+    if (livingCompanion('squire') && livingCompanion('ridgebow')) { companionGap = 12; return; }
+    companionGap -= dt;
+    if (companionGap > 0) return;
+    musterCompanions();
+    companionGap = 12;
+  }
+  function tickRidge(dt) {
+    ridgeAcc += dt;
+    if (ridgeAcc < 2.4) return;
+    ridgeAcc = 0;
+    ridgeStep('follow');
+  }
+  function refreshRidgeOffer() {
+    let btn = document.getElementById('aow-ridge-btn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'aow-ridge-btn';
+      btn.type = 'button';
+      btn.textContent = '⛰️ The Ridge';
+      btn.title = 'A new front past the castle. Two companions march with you against the Warden of the Ridge.';
+      btn.addEventListener('click', e => { e.stopPropagation(); openRidge(); });
+      document.body.appendChild(btn);
+    }
+    const show = !!fieldOrder && playerEra >= 1 && !ridgeCleared && !ridgeOpen && !fieldOrderOpen;
+    btn.classList.toggle('aow-show', show);
+    let chip = document.getElementById('aow-squire-chip');
+    if (!chip) {
+      const host = document.getElementById('aow-wave');
+      if (host) {
+        chip = document.createElement('span');
+        chip.id = 'aow-squire-chip';
+        chip.className = 'aow-wave-sub';
+        host.appendChild(chip);
+      }
+    }
+    if (chip) {
+      chip.style.display = ridgeCleared ? '' : 'none';
+      chip.textContent = ridgeCleared ? '🗡️ Squire' : '';
+      chip.title = ridgeCleared ? 'The Ridge company is on the line: Squire and Archer. They march again if they fall.' : '';
+    }
+  }
+  // The hall: a ghost of the furthest war this browser has fought.
+  // No server. The next war races those wave times.
+  let waveMarks = [{ wave: 1, t: 0 }];
+  let neighbor = null;
+  let neighborWave = 1;
+  let neighborNoted = 1;
+  let tookTheLead = false;
+  function loadNeighbor() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('aow-neighbor') || 'null');
+      neighbor = (raw && Array.isArray(raw.marks) && raw.marks.length) ? raw : null;
+    } catch { neighbor = null; }
+    neighborWave = 1;
+    neighborNoted = 1;
+    tookTheLead = false;
+  }
+  function publishNeighbor() {
+    if (runStats.time < 12 || waveNum < 2 || waveMarks.length < 2) return;
+    if (neighbor && (neighbor.wave || 0) > waveNum) return;
+    try {
+      localStorage.setItem('aow-neighbor', JSON.stringify({
+        wave: waveNum,
+        marks: waveMarks.slice(-24).map(m => ({
+          wave: m.wave | 0,
+          t: Math.round(m.t * 10) / 10,
+        })),
+      }));
+    } catch {}
+  }
+  function noteWaveMark() {
+    if (waveMarks.some(m => m.wave === waveNum)) return;
+    waveMarks.push({ wave: waveNum, t: runStats.time });
+  }
+  function tickNeighbor() {
+    if (!neighbor || gameOver) return;
+    const t = runStats.time;
+    let g = 1;
+    for (const m of neighbor.marks) {
+      if (m && typeof m.t === 'number' && m.t <= t && m.wave > g) g = m.wave | 0;
+    }
+    neighborWave = g;
+    if (g > neighborNoted) {
+      neighborNoted = g;
+      if (waveNum < g) {
+        ageBannerText = '👻 The hall is on wave ' + g;
+        ageBannerT = 2.2;
+        SFX.hall();
+      }
+    } else if (!tookTheLead && waveNum > g && t > 5) {
+      tookTheLead = true;
+      ageBannerText = '👻 Ahead of the hall';
+      ageBannerT = 2.0;
+      SFX.lead();
+    }
+  }
+  function refreshNeighborChip() {
+    let el = document.getElementById('aow-neighbor-chip');
+    if (!el) {
+      const host = document.getElementById('aow-wave');
+      if (!host) return;
+      el = document.createElement('span');
+      el.id = 'aow-neighbor-chip';
+      el.className = 'aow-wave-sub';
+      el.style.display = 'none';
+      host.appendChild(el);
+    }
+    if (!neighbor) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = '';
+    const ahead = waveNum > neighborWave;
+    el.textContent = ahead ? '👻 Ahead' : ('👻 Hall W' + neighborWave);
+    el.title = ahead
+      ? 'Ahead of the furthest war saved in this browser.'
+      : 'The hall — a ghost of your best war in this browser — is on wave ' + neighborWave + '.';
   }
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
@@ -966,6 +1338,38 @@ const AgeOfWarGame = (() => {
         [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
           () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }), i * 70));
       },
+      order() {
+        [392, 523, 659].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.16, type: 'triangle', vol: 0.26 }), i * 70));
+      },
+      levy() {
+        [988, 1319, 1760].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.08, type: 'triangle', vol: 0.2 }), i * 40));
+      },
+      shield() {
+        tone({ freq: 180, slideTo: 90, dur: 0.22, type: 'sine', vol: 0.28 });
+        tone({ freq: 320, dur: 0.1, type: 'triangle', vol: 0.12 });
+      },
+      sapper() {
+        tone({ freq: 220, slideTo: 660, dur: 0.16, type: 'square', vol: 0.12 });
+        setTimeout(() => tone({ freq: 880, dur: 0.06, type: 'square', vol: 0.1 }), 90);
+      },
+      ridge() {
+        tone({ freq: 330, dur: 0.08, type: 'square', vol: 0.12 });
+        setTimeout(() => tone({ freq: 494, dur: 0.1, type: 'triangle', vol: 0.16 }), 70);
+      },
+      company() {
+        [440, 554, 659, 880].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.16, type: 'triangle', vol: 0.24 }), i * 70));
+      },
+      hall() {
+        tone({ freq: 196, dur: 0.16, type: 'sawtooth', vol: 0.14 });
+        setTimeout(() => tone({ freq: 247, dur: 0.18, type: 'sawtooth', vol: 0.12 }), 90);
+      },
+      lead() {
+        [523, 659, 784].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.12, type: 'triangle', vol: 0.22 }), i * 60));
+      },
       enemyAgeUp() {
         // Ominous minor rise — the enemy's tech drum, deliberately darker
         // than the player's bright ageUp arpeggio.
@@ -1133,6 +1537,7 @@ const AgeOfWarGame = (() => {
   }
 
   function reset() {
+    publishNeighbor();
     // Drop any boss_* entries the UNITS catalog picked up during a
     // previous run so the table returns to its clean, static baseline
     // instead of carrying boss rows across resets/playthroughs.
@@ -1228,6 +1633,15 @@ const AgeOfWarGame = (() => {
     bossKilledThisWave = false;
     councilBoons = {};            // AOW-10: boons are run-scoped
     closeCouncil();
+    fieldOrder = null;            // AOW-61: the order is this war's
+    fieldOrderOpen = false;
+    closeFieldOrder();
+    ridgeCleared = false;
+    ridgeOpen = false;
+    companionGap = 12;
+    closeRidge();
+    waveMarks = [{ wave: 1, t: 0 }];
+    loadNeighbor();
     killFeed = [];
     shakeT = 0; shakeMag = 0;
     setUserPaused(false);      // never carry a pause into a fresh run
@@ -1401,11 +1815,12 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: queueFullMessage(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
-    if (gold < def.cost) {
-      goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+    const cost = recruitCost(def);
+    if (gold < cost) {
+      goldFloaters.push({ text: `Need $${Math.ceil(cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
-    gold -= def.cost;
+    gold -= cost;
     const total = trainingTimeFor(def);
     if (drillBought) runStats.drilled = (runStats.drilled || 0) + 1;   // AOW-28
     trainingQueue.push({ key, total, remaining: total });
@@ -1420,7 +1835,7 @@ const AgeOfWarGame = (() => {
     const entry = trainingQueue[idx];
     if (!entry) return;
     const def = UNITS[entry.key];
-    if (def) gold += def.cost;
+    if (def) gold += recruitCost(def);
     trainingQueue.splice(idx, 1);
     renderHud();
     renderTrainingQueue();
@@ -1455,7 +1870,7 @@ const AgeOfWarGame = (() => {
       ageBannerT = 2.4;
       return;
     }
-    const need = ERAS[playerEra].upXP;
+    const need = nextAgeXp();
     if (xp < need) {
       ageBannerText = `Need ${need - xp} more XP for ${ERAS[playerEra + 1].name}`;
       ageBannerT = 2.4;
@@ -1517,6 +1932,7 @@ const AgeOfWarGame = (() => {
     renderSpawnPanel();
     renderTrainingQueue();
     renderTurretPanel();
+    if (playerEra === 1) offerFieldOrder();   // AOW-61
   }
 
   // Shared special-barrage spawner, used by BOTH the player's fireSpecial()
@@ -3387,6 +3803,17 @@ const AgeOfWarGame = (() => {
       if (userPaused) return;  // only P (above) is live while user-paused
       // AOW-10: while a War Council is open, 1/2 pick the boon instead of
       // training units.
+      if (ridgeOpen) {
+        if (e.key === '1') { ridgeStep('follow'); e.preventDefault(); }
+        else if (e.key === '2') { ridgeStep('brace'); e.preventDefault(); }
+        else if (e.key === 'Escape') { closeRidge(); e.preventDefault(); }
+        return;
+      }
+      if (fieldOrderOpen) {
+        const c = parseInt(e.key, 10);
+        if (c >= 1 && c <= FIELD_ORDERS.length) { chooseFieldOrder(FIELD_ORDERS[c - 1].id); e.preventDefault(); }
+        return;
+      }
       if (councilPending) {
         const c = parseInt(e.key, 10);
         if (c >= 1 && c <= councilPending.length) { chooseBoon(councilPending[c - 1].id); e.preventDefault(); }
@@ -3557,6 +3984,7 @@ const AgeOfWarGame = (() => {
       resolveIronWager();   // AOW-32: the herald settles at the wave's turn
       resolveBond();   // AOW-33: and the underwriter squares the ledger
       waveNum++;
+      noteWaveMark();
       recordWave(waveNum);   // AOW-36: the Chronicle sees every wave reached
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
@@ -3688,9 +4116,11 @@ const AgeOfWarGame = (() => {
 
   function update(dt) {
     if (!running) return;
+    if (ridgeOpen) { tickRidge(dt); return; }
     // Pause sim while a modal is open so the player isn't punished for
     // reading the tutorial / tweaking settings / browsing achievements.
     if (modalPaused || userPaused) return;
+    tickCompanions(dt);
 
     if (ageFlash > 0) ageFlash = Math.max(0, ageFlash - dt * 1.6);
 
@@ -3739,6 +4169,7 @@ const AgeOfWarGame = (() => {
     if (councilBoons.masons && !gameOver && playerBaseHp > 0)   // AOW-10
       playerBaseHp = Math.min(playerBaseMax, playerBaseHp + 3 * dt);
     runStats.time += dt;
+    tickNeighbor();
 
     // Overtime (AOW-7): after 6 minutes in classic mode, both bases take
     // escalating chip damage — whoever built the bigger HP lead (or ends
@@ -3878,7 +4309,7 @@ const AgeOfWarGame = (() => {
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              const dd = vetDmg(u);
+              const dd = orderMitigate(target, vetDmg(u));
               target.hp -= dd; target.hitFlash = 0.2;
               spawnDmgFloater(dd, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
               spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
@@ -3922,8 +4353,9 @@ const AgeOfWarGame = (() => {
       for (const u of foes) {
         if (u.hp <= 0) continue;
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
-          u.hp -= p.dmg; u.hitFlash = 0.2;
-          spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
+          const hit = p.side === 'enemy' ? orderMitigate(u, p.dmg) : p.dmg;
+          u.hp -= hit; u.hitFlash = 0.2;
+          spawnDmgFloater(hit, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
           spawnHitSparks(p.x, p.y, p.color);
           SFX.hit();
           p.life = 0;
@@ -4024,8 +4456,8 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult();
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult()));
+          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult() * orderGoldMult();
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult() * orderGoldMult()));
           bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
@@ -4228,11 +4660,13 @@ const AgeOfWarGame = (() => {
           side, x: turretX,
           y: GROUND_Y - 90,
           vx: (target.x > turretX ? 1 : -1) * 380,
-          dmg: t.dmg, life: 1.2, color: t.color || '#fcd34d',
+          dmg: side === 'player' && fieldOrder === 'sapper' ? Math.round(t.dmg * 1.18) : t.dmg,
+          life: 1.2, color: t.color || '#fcd34d',
           kind: tKind, vy: tArc.vy, grav: tArc.grav,
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
-        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() : 1);   // AOW-27: fletched bolts nock faster
+        const sapperReload = side === 'player' && fieldOrder === 'sapper' ? 0.92 : 1;
+        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() * sapperReload : 1);   // AOW-27 / AOW-61
         if (side === 'player' && fletcherBought) runStats.fletched = (runStats.fletched || 0) + 1;
       }
     }
@@ -8783,6 +9217,7 @@ const AgeOfWarGame = (() => {
   }
 
   function renderHud() {
+    refreshRidgeOffer();
     const era = ERAS[playerEra];
     const eEra = ERAS[enemyEra];
 
@@ -8797,11 +9232,12 @@ const AgeOfWarGame = (() => {
     const xpBar     = document.getElementById('aow-xp-bar');
     if (eraIconEl) eraIconEl.textContent = era.icon;
     if (eraNameEl) eraNameEl.textContent = era.name;
+    const ageNeed = playerEra >= ERAS.length - 1 ? era.upXP : nextAgeXp();
     if (eraSubEl)  eraSubEl.textContent  = playerEra >= ERAS.length - 1
       ? `${xp} XP · MAX`
-      : `${xp} / ${era.upXP} XP`;
+      : `${xp} / ${ageNeed} XP`;
     if (xpBar) {
-      const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / era.upXP) * 100);
+      const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / ageNeed) * 100);
       xpBar.style.width = pct + '%';
     }
 
@@ -8857,12 +9293,13 @@ const AgeOfWarGame = (() => {
       } else {
         if (ico) ico.textContent = '⬆️';
         if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
-        ageBtn.disabled = xp < era.upXP;
+        const ageNeedBtn = nextAgeXp();
+        ageBtn.disabled = xp < ageNeedBtn;
         const nextEra = ERAS[playerEra + 1].name;
         const hint = playerEra === 4 && !earnedAchievements.max_age
           ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
-          : xp < era.upXP
-            ? `Need ${era.upXP - xp} more XP for ${nextEra}`
+          : xp < ageNeedBtn
+            ? `Need ${ageNeedBtn - xp} more XP for ${nextEra}`
             : `Ready to age up to ${nextEra}`;
         ageBtn.title = hint;
         ageBtn.setAttribute('aria-label', hint);
@@ -9395,20 +9832,22 @@ const AgeOfWarGame = (() => {
           const btn = list.children[i];
           if (btn) {
             btn.title = recruitTitle(def, queueFull);
-            btn.classList.toggle('aow-not-afford', gold < def.cost);
+            btn.classList.toggle('aow-not-afford', gold < recruitCost(def));
             btn.classList.toggle('aow-queue-full', queueFull);
           }
           i++;
         }
       }
     }
+    refreshOrderChip();
+    refreshNeighborChip();
     updateCoach();
   }
 
   function updateTrainingLabel(slot, entry, isFront) {
     const def = UNITS[entry.key];
     const timing = isFront ? `${Math.ceil(Math.max(0, entry.remaining))}s left` : 'queued';
-    const label = `${def?.name || entry.key} — ${timing} · cancel refunds $${def?.cost}`;
+    const label = `${def?.name || entry.key} — ${timing} · cancel refunds $${def ? recruitCost(def) : 0}`;
     if (slot.title !== label) {
       slot.title = label;
       slot.setAttribute('aria-label', label);
@@ -9452,8 +9891,9 @@ const AgeOfWarGame = (() => {
   }
 
   function recruitTitle(def, queueFull) {
+    const price = recruitCost(def);
     const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
-      : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
+      : gold < price ? `Need $${Math.ceil(price - gold)} more. ` : '';
     return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
   }
 
@@ -9475,7 +9915,7 @@ const AgeOfWarGame = (() => {
           <span class="aow-spawn-key">${idx <= 9 ? idx : ''}</span>
           ${iconHtml}
           <span class="aow-spawn-name">${def.name}</span>
-          <span class="aow-spawn-cost">$${def.cost}</span>
+          <span class="aow-spawn-cost">$${recruitCost(def)}</span>
         `;
         const queueFull = trainingQueue.length >= TRAINING_MAX;
         btn.disabled = queueFull;
@@ -9767,6 +10207,9 @@ const AgeOfWarGame = (() => {
         pendingPerks: packPerkMap(pendingPerks),
         councilBoons: { ...councilBoons },
         councilPending: councilPending ? councilPending.map(b => b.id) : undefined,
+        fieldOrder: fieldOrder || undefined,
+        ridgeCleared: ridgeCleared || undefined,
+        neighborMarks: waveMarks.length > 1 ? waveMarks.slice(-24) : undefined,
         strongholdsRazed, chestGold,
         units: packUnits(units),
         trainingQueue: packQueue(trainingQueue),
@@ -9845,11 +10288,22 @@ const AgeOfWarGame = (() => {
     if (snap.councilBoons && typeof snap.councilBoons === 'object' && !Array.isArray(snap.councilBoons)) {
       councilBoons = { ...snap.councilBoons };
     }
+    fieldOrder = (snap.fieldOrder === 'levy' || snap.fieldOrder === 'shield' || snap.fieldOrder === 'sapper') ? snap.fieldOrder : null;
+    fieldOrderOpen = false;
+    closeFieldOrder();
+    ridgeCleared = !!snap.ridgeCleared;
+    ridgeOpen = false;
+    closeRidge();
+    if (Array.isArray(snap.neighborMarks)) {
+      waveMarks = snap.neighborMarks.filter(m => m && m.wave > 0 && typeof m.t === 'number').slice(0, 24);
+      if (!waveMarks.length) waveMarks = [{ wave: 1, t: 0 }];
+    }
     strongholdsRazed = sessionInt(snap.strongholdsRazed, 0, 0, 999);
     chestGold = sessionInt(snap.chestGold, 0, 0, 1e12);
     projectiles = [];
     coinDrops = [];
     units = unpackUnits(snap.units);
+    if (ridgeCleared) musterCompanions();
     trainingQueue = unpackQueue(snap.trainingQueue);
     ironBet = snap.ironBet && typeof snap.ironBet === 'object'
       ? { stake: sessionInt(snap.ironBet.stake, IRON_STAKE, 1, 1e6), hpAtBet: sessionInt(snap.ironBet.hpAtBet, playerBaseHp, 1, 1e7) }
@@ -9924,6 +10378,7 @@ const AgeOfWarGame = (() => {
     if (snap.loan && typeof snap.loan === 'object') bits.push('the lender is still collecting');
     if (sessionInt(snap.chestGold, 0, 0, 1e12) > 0) bits.push('the war chest is still locked');
     if (Array.isArray(snap.councilPending) && snap.councilPending.length) bits.push('the council is still sitting');
+    if (snap.fieldOrder === 'levy' || snap.fieldOrder === 'shield' || snap.fieldOrder === 'sapper') bits.push('the field order still stands');
     const fieldLine = bits.length
       ? `${bits.join(' · ')}. One tap continues.`
       : 'The war is held — one tap continues.';
@@ -9992,6 +10447,7 @@ const AgeOfWarGame = (() => {
   }
 
   function showOverlay(won) {
+    publishNeighbor();
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     clearSession();

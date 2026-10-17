@@ -74,6 +74,303 @@ function refreshStructures(){
   if(!G.structures.soup_kitchen&&soupKitchenMesh){ scene.remove(soupKitchenMesh); soupKitchenMesh=null; }
   if(G.structures.garden&&!gardenMesh)          buildGarden(-7,4);
   if(!G.structures.garden&&gardenMesh){         scene.remove(gardenMesh); gardenMesh=null; }
+  if(G.structures.clinic&&!clinicMesh)          buildClinic(6.4,-1.6);
+  if(!G.structures.clinic&&clinicMesh){         scene.remove(clinicMesh); clinicMesh=null; }
+  refreshJune();
+  refreshLot();
+  refreshRio();
+}
+
+// ── Night clinic ──
+var clinicMesh=null;
+function buildClinic(x,z){
+  if(clinicMesh){ scene.remove(clinicMesh); clinicMesh=null; }
+  var grp=new THREE.Group();
+  var tarp=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,1.6), new THREE.MeshLambertMaterial({color:0xd8d4cc}));
+  tarp.position.y=1.35; grp.add(tarp);
+  [[-1,-.7],[1,-.7],[-1,.7],[1,.7]].forEach(function(p){
+    var pole=new THREE.Mesh(new THREE.BoxGeometry(.06,1.35,.06), MAT.metal);
+    pole.position.set(p[0],.67,p[1]); grp.add(pole);
+  });
+  var cot=new THREE.Mesh(new THREE.BoxGeometry(1.4,.12,.6), MAT.cardboard);
+  cot.position.set(0,.35,0); grp.add(cot);
+  var red=new THREE.MeshLambertMaterial({color:0xc43030});
+  var crossV=new THREE.Mesh(new THREE.BoxGeometry(.12,.46,.02), red);
+  crossV.position.set(0,1.28,.82); crossV.userData.clinicCross=true; grp.add(crossV);
+  var crossH=new THREE.Mesh(new THREE.BoxGeometry(.34,.12,.02), red);
+  crossH.position.set(0,1.28,.84); crossH.userData.clinicCross=true; grp.add(crossH);
+  var lamp=new THREE.PointLight(0xffe0c0, 0.55, 7);
+  lamp.position.set(0,1.05,0); lamp.userData.clinicLamp=true; grp.add(lamp);
+  grp.position.set(x,0,z); scene.add(grp); clinicMesh=grp;
+}
+var gauzeBits=[];
+function flutterGauze(){
+  if(!clinicMesh || typeof THREE==='undefined') return;
+  for(var i=0;i<6;i++){
+    var bit=new THREE.Mesh(
+      new THREE.PlaneGeometry(.24,.07),
+      new THREE.MeshBasicMaterial({color:0xf7f1e4, transparent:true, opacity:.95, side:THREE.DoubleSide})
+    );
+    bit.position.set(
+      clinicMesh.position.x+(Math.random()-.5)*.9,
+      1.25,
+      clinicMesh.position.z+(Math.random()-.5)*.6
+    );
+    bit.userData.flutter={t:0, vx:(Math.random()-.5)*.9, vy:.7+Math.random()*.9, vz:(Math.random()-.5)*.5};
+    scene.add(bit);
+    gauzeBits.push(bit);
+  }
+}
+function tickFlutter(dt){
+  var sec=(dt||16)/1000;
+  for(var i=gauzeBits.length-1;i>=0;i--){
+    var bit=gauzeBits[i], f=bit.userData.flutter;
+    if(!f) continue;
+    f.t+=sec;
+    bit.position.x+=f.vx*sec;
+    bit.position.y+=f.vy*sec;
+    bit.position.z+=f.vz*sec;
+    f.vy-=.55*sec;
+    bit.rotation.z+=sec*3;
+    if(bit.material) bit.material.opacity=Math.max(0, 1-f.t/1.25);
+    if(f.t>1.25){ scene.remove(bit); gauzeBits.splice(i,1); }
+  }
+}
+var juneMesh=null;
+function buildJuneMesh(){
+  var grp=new THREE.Group();
+  var coat=new THREE.MeshLambertMaterial({color:0xe8e4dc});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(.35,.6,.25), coat);
+  body.position.y=.7; grp.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28), new THREE.MeshLambertMaterial({color:0x8a6a50}));
+  head.position.y=1.18; grp.add(head);
+  var bag=new THREE.Mesh(new THREE.BoxGeometry(.22,.16,.12), new THREE.MeshLambertMaterial({color:0x2a4a38}));
+  bag.position.set(.22,.55,.12); grp.add(bag);
+  var cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.02), new THREE.MeshLambertMaterial({color:0xc43030}));
+  cross.position.set(0,.78,.14); grp.add(cross);
+  return grp;
+}
+function refreshJune(){
+  if((G.june||0)>0&&!juneMesh){ juneMesh=buildJuneMesh(); scene.add(juneMesh); }
+  if((G.june||0)===0&&juneMesh){ scene.remove(juneMesh); juneMesh=null; }
+  if(!juneMesh) return;
+  if(G.june===2&&G.structures.clinic){ juneMesh.position.set(5.2,0,-.4); juneMesh.rotation.y=1.1; }
+  else if(G.june===2){ juneMesh.position.set(7.4,0,3.2); juneMesh.rotation.y=Math.PI; }
+  else { juneMesh.position.set(8.4,0,3.6); juneMesh.rotation.y=-2.2; }
+}
+function clinicAtDawn(){
+  if(!G.structures.clinic) return;
+  if(G.clinicAsk && G.days-G.clinicAsk.day>=1){
+    G.clinicAsk=null;
+    G.care=Math.max(0,(G.care||0)-CLINIC_ASK_HIT);
+    G.clinicSteady=0;
+    log('\ud83c\udfe5 The clinic turned someone away overnight. Care slipped.');
+    if(typeof buildActionUI==='function') buildActionUI();
+  }
+  var drop=G.june===2?CLINIC_JUNE_DROP:CLINIC_DROP;
+  G.care=Math.max(0,(G.care||0)-drop);
+  if(G.june===2 && (G.bandages||0)>=1 && (G.care||0)<70){
+    G.bandages--;
+    G.care=Math.min(CLINIC_CARE_MAX,G.care+20);
+    G.health=Math.min(100,G.health+4);
+    G.juneRounds=(G.juneRounds||0)+1;
+    log('\ud83e\ude7a June walks the tarp before dawn — one gauze, four points of health, the night shift covered.');
+    floatText('+4\u2764\ufe0f');
+  } else if(G.june===2 && (G.care||0)<70){
+    log('\ud83e\ude7a June is here, but the shelf is empty. She cannot dress anyone.');
+  }
+  if((G.care||0)<=0){
+    G.health=Math.max(0,G.health-CLINIC_NEGLECT_HEALTH);
+    G.morale=Math.max(0,G.morale-4);
+    G.clinicSteady=0;
+    log('\ud83c\udfe5 Neglected clinic. People are worse for a night with no one on the tarp. -'+CLINIC_NEGLECT_HEALTH+' health.');
+    sfx('neglect');
+    if(typeof juice==='function') juice('hurt');
+  } else if((G.care||0)>=CLINIC_STEADY_LINE){
+    G.clinicSteady=(G.clinicSteady||0)+1;
+    if(G.clinicSteady===5) log('\ud83c\udfe5 Five steady dawns. The clinic is a place people trust.');
+  } else {
+    G.clinicSteady=0;
+  }
+  maybeJuneStays();
+  try {
+    if (window.EurekaProgress) EurekaProgress.emit('clinic', 'dawn', Math.max(1, G.clinicSteady || 0));
+  } catch (e) {}
+  if(!G.clinicAsk && (G.june||0)>=1 && G.days%4===0){
+    G.clinicAsk={day:G.days};
+    log('\ud83c\udfe5 Someone is waiting at the clinic tarp. One gauze roll would send them off walking.');
+    sfx('knock');
+    if(typeof buildActionUI==='function') buildActionUI();
+  }
+}
+
+// ── River lot and storm night ──
+// The lot only exists once the gate is up. A camp without it never
+// spends a random number here, and never hears the offer.
+var lotMesh=null;
+function buildLot(x,z){
+  if(lotMesh){ scene.remove(lotMesh); lotMesh=null; }
+  var grp=new THREE.Group();
+  var pad=new THREE.Mesh(new THREE.BoxGeometry(3.4,.05,2.6), new THREE.MeshLambertMaterial({color:0x3d5160}));
+  pad.position.y=.03; grp.add(pad);
+  var water=new THREE.Mesh(new THREE.BoxGeometry(3.6,.04,.55), new THREE.MeshLambertMaterial({color:0x1a4068}));
+  water.position.set(0,.04,-1.15); grp.add(water);
+  var postMat=new THREE.MeshLambertMaterial({color:0x6a5030});
+  [-1.15,1.15].forEach(function(px){
+    var post=new THREE.Mesh(new THREE.BoxGeometry(.12,1.55,.12), postMat);
+    post.position.set(px,.78,.95); grp.add(post);
+  });
+  var rope=new THREE.Mesh(new THREE.BoxGeometry(2.3,.05,.05), new THREE.MeshLambertMaterial({color:0xd4b060}));
+  rope.position.set(0,1.12,.95); grp.add(rope);
+  var tarp=new THREE.Mesh(new THREE.BoxGeometry(1.15,.08,.72), new THREE.MeshLambertMaterial({color:0x243848}));
+  tarp.position.set(-.85,.18,-.25); tarp.rotation.y=.25; grp.add(tarp);
+  var barrel=new THREE.Mesh(new THREE.CylinderGeometry(.28,.32,.55,8), MAT.metal);
+  barrel.position.set(.75,.3,-.15); grp.add(barrel);
+  var flame=new THREE.Mesh(new THREE.ConeGeometry(.12,.28,6), new THREE.MeshLambertMaterial({color:0xe07020}));
+  flame.position.set(.75,.7,-.15); grp.add(flame);
+  grp.position.set(x,0,z); scene.add(grp); lotMesh=grp;
+}
+function refreshLot(){
+  if(G.structures.gate&&!lotMesh) buildLot(-5.2,.6);
+  if(!G.structures.gate&&lotMesh){ scene.remove(lotMesh); lotMesh=null; }
+}
+var rioMesh=null;
+function buildRioMesh(){
+  var grp=new THREE.Group();
+  var coat=new THREE.MeshLambertMaterial({color:0x1a3a6a});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(.34,.62,.24), coat);
+  body.position.y=.72; grp.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.26,.26,.26), new THREE.MeshLambertMaterial({color:0x6a4a38}));
+  head.position.y=1.18; grp.add(head);
+  var hood=new THREE.Mesh(new THREE.BoxGeometry(.34,.18,.32), new THREE.MeshLambertMaterial({color:0x142848}));
+  hood.position.y=1.3; grp.add(hood);
+  return grp;
+}
+function rioTarget(){
+  if(G.stormOn){
+    var id=STORM_PHASES[G.stormPhase]&&STORM_PHASES[G.stormPhase].id;
+    if(id==='tarp') return {x:-6.05, z:.35, ry:.5};
+    if(id==='fire') return {x:-4.45, z:.45, ry:-1.1};
+    return {x:-5.2, z:1.35, ry:Math.PI};
+  }
+  if((G.rio||0)===2) return {x:-4.9, z:1.55, ry:.5};
+  return {x:-5.2, z:1.7, ry:.2};
+}
+function refreshRio(){
+  if((G.rio||0)>=1&&!rioMesh){ rioMesh=buildRioMesh(); scene.add(rioMesh); }
+  if((G.rio||0)<1&&rioMesh){ scene.remove(rioMesh); rioMesh=null; }
+  if(!rioMesh||G.stormOn) return;
+  var t=rioTarget();
+  rioMesh.position.set(t.x,0,t.z);
+  rioMesh.rotation.y=t.ry;
+}
+function stormAtDawn(){
+  if(!G.structures.gate) return;
+  if(G.days>0&&G.days%5===0&&!G.stormOn&&!G.stormDue){
+    G.stormDue=true;
+    log('\ud83c\udf27\ufe0f The river lot is going under. Rio is at the gate \u2014 call the storm night before the wind does.');
+    if(typeof buildActionUI==='function') buildActionUI();
+    if(typeof refreshStormHUD==='function') refreshStormHUD();
+  }
+}
+var stormHoldReadyAt=0;
+function stormStart(){
+  if(!G.structures.gate||!G.stormDue||G.stormOn) return false;
+  G.stormOn=true;
+  G.stormPhase=0;
+  G.stormStrikes=0;
+  G.stormDeadline=Date.now()+STORM_PHASE_MS;
+  stormHoldReadyAt=Date.now()+700;
+  log('\ud83c\udf27\ufe0f Storm night. '+STORM_PHASES[0].title+'.');
+  sfx('storm');
+  refreshRio();
+  if(typeof refreshStormHUD==='function') refreshStormHUD();
+  return true;
+}
+function stormHold(){
+  if(Date.now()<stormHoldReadyAt) return false;
+  if(!G.stormOn) return false;
+  var phase=STORM_PHASES[G.stormPhase];
+  if(!phase) return false;
+  if(phase.need&&(G[phase.need]||0)<phase.cost){
+    log('\ud83c\udf27\ufe0f Not enough '+phase.need+' \u2014 Rio is still watching the line.');
+    sfx('error');
+    return false;
+  }
+  stormResolve('you');
+  return true;
+}
+function stormResolve(who){
+  if(!G.stormOn) return;
+  var phase=STORM_PHASES[G.stormPhase];
+  if(!phase){ stormFinish(); return; }
+  var held;
+  if(who==='you'){
+    held=true;
+    if(phase.need) G[phase.need]-=phase.cost;
+    log('\ud83c\udf27\ufe0f '+phase.player);
+    if(typeof juice==='function') juice('heal');
+    sfx('clinic');
+  } else {
+    var choice=rioChoose(phase);
+    held=!!(choice&&choice.ok);
+    if(held){
+      if(phase.need) G[phase.need]-=phase.cost;
+      log('\ud83c\udf27\ufe0f '+phase.rio);
+      if(typeof juice==='function') juice('heal');
+      sfx('clinic');
+    } else {
+      G.stormStrikes=(G.stormStrikes||0)+1;
+      G.warmth=Math.max(0,(G.warmth||0)-STORM_FAIL_WARMTH);
+      G.health=Math.max(0,(G.health||0)-STORM_FAIL_HEALTH);
+      log('\ud83c\udf27\ufe0f The line gives. -'+STORM_FAIL_WARMTH+' warmth, -'+STORM_FAIL_HEALTH+' health.');
+      sfx('neglect');
+      if(typeof juice==='function') juice('hurt');
+    }
+  }
+  G.stormPhase++;
+  stormHoldReadyAt=Date.now()+700;
+  if(G.stormPhase>=STORM_PHASES.length||(G.stormStrikes||0)>=2) stormFinish();
+  else {
+    G.stormDeadline=Date.now()+STORM_PHASE_MS;
+    log('\ud83c\udf27\ufe0f Next: '+STORM_PHASES[G.stormPhase].title+'.');
+    refreshRio();
+  }
+  if(typeof refreshStormHUD==='function') refreshStormHUD();
+  if(typeof updateHUD==='function') updateHUD();
+  saveGame();
+}
+function stormFinish(){
+  var won=(G.stormStrikes||0)<2;
+  G.stormOn=false;
+  G.stormDeadline=0;
+  if(won){
+    G.stormDue=false;
+    G.stormsCleared=(G.stormsCleared||0)+1;
+    if((G.rio||0)<2){
+      G.rio=2;
+      log('\ud83c\udf27\ufe0f Rio stays. The lot is hers as much as the camp\u2019s now.');
+    }
+    log('\ud83c\udf27\ufe0f The storm passes. The gate held.');
+    sfx('goal');
+    if(typeof juice==='function') juice('heal');
+  } else {
+    log('\ud83c\udf27\ufe0f Two breaks in the line. The night is lost \u2014 call it again when the pile can bear it.');
+    sfx('neglect');
+  }
+  refreshRio();
+  if(typeof buildActionUI==='function') buildActionUI();
+  if(typeof buildWorkersUI==='function') buildWorkersUI();
+  if(typeof refreshStormHUD==='function') refreshStormHUD();
+  if(typeof updateHUD==='function') updateHUD();
+  saveGame();
+}
+function stormExpireIfDue(){
+  if(!G.stormOn) return;
+  if(typeof G.stormDeadline!=='number'||!isFinite(G.stormDeadline)) return;
+  if(Date.now()<G.stormDeadline) return;
+  G.stormDeadline=Infinity;
+  stormResolve('rio');
 }
 
 // ── Day / New Day ──
@@ -187,7 +484,6 @@ function snapAtDawn(){
 
 function onNewDay(){
   G.days++;
-  try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'dawn', G.days); } catch (e) {}
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
@@ -400,6 +696,8 @@ function onNewDay(){
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
+  clinicAtDawn();
+  stormAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -668,6 +966,14 @@ var EVENTS_BAD=[
      // HV-176: the weather band sat in camp among the supplies.
      // Theft taking the radio is HV-248 — a different verb.
      if(G.structures.radio){ G.structures.radio=false; log('They took the radio.'); }
+    // The night clinic is a tarp and a cot, the same class of shelter
+    // as the tent. Bandages in a pocket are not this card.
+    if(G.structures.clinic){
+      G.structures.clinic=false;
+      G.clinicAsk=null;
+      log('\ud83c\udfe5 The night clinic was pulled down.');
+      if(typeof buildActionUI==='function') buildActionUI();
+    }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
@@ -1056,11 +1362,20 @@ function sfx(kind){
     hire:    [392,523,659],
     goal:    [523,659,784,1047],
     gameover:[330,262,196,131],
+    // Clinic voices. Soft sine for a dressing, a warmer chord when the
+    // tarp goes up, a falling tone when care hits the floor, two knocks
+    // when a neighbor is waiting.
+    dress:   [784,988,1175],
+    clinic:  [349,440,523],
+    neglect: [220,174,131],
+    knock:   [196,262],
+    storm:   [110,146,98],
   }[kind]||[440];
-  var spacing=kind==='gameover'?.22:.08, t=audioCtx.currentTime;
+  var spacing=kind==='gameover'?.22:kind==='neglect'?.16:kind==='storm'?.2:kind==='dress'?.11:.08, t=audioCtx.currentTime;
+  var sine=kind==='gameover'||kind==='dress'||kind==='clinic'||kind==='neglect'||kind==='storm';
   notes.forEach(function(f,i){
     var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type=kind==='gameover'?'sine':'triangle'; o.frequency.value=f;
+    o.type=sine?'sine':'triangle'; o.frequency.value=f;
     var start=t+i*spacing;
     g.gain.setValueAtTime(0,start);
     g.gain.linearRampToValueAtTime(.09*campScale(false),start+.015);
@@ -1072,3 +1387,6 @@ function sfx(kind){
 
 document.addEventListener('click',initAudio,{once:true});
 document.addEventListener('keydown',initAudio,{once:true});
+// A thumb on the walk pad is a gesture too. iOS will not start audio
+// from a click that never arrives.
+document.addEventListener('pointerdown',initAudio,{once:true});

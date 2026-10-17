@@ -30,6 +30,39 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// Thumb pad. Same keys as WASD, so a finger hold walks and a release
+// stops. Pointer capture keeps the direction if the thumb slides off
+// the button. Hidden on a wide screen; the keys are still there.
+(function(){
+  var pad=document.getElementById('walk-pad');
+  if(!pad) return;
+  function buttonOf(e){
+    var node=e.target;
+    while(node && node!==pad){
+      if(node.getAttribute && node.getAttribute('data-dir')) return node;
+      node=node.parentElement;
+    }
+    return null;
+  }
+  pad.addEventListener('pointerdown', function(e){
+    var btn=buttonOf(e);
+    if(!btn) return;
+    e.preventDefault();
+    try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    keysDown[btn.getAttribute('data-dir')]=true;
+    walkTarget=null;
+    btn.classList.add('held');
+  });
+  function release(e){
+    var btn=buttonOf(e);
+    if(!btn) return;
+    keysDown[btn.getAttribute('data-dir')]=false;
+    btn.classList.remove('held');
+  }
+  pad.addEventListener('pointerup', release);
+  pad.addEventListener('pointercancel', release);
+})();
+
 // HV-271: save when the player leaves. The 30s autosave below is the
 // only write the grind actions (Scavenge, Forage, Panhandle, Rest,
 // Trade) and hireWorker ever get, so closing the tab — or a phone
@@ -229,6 +262,32 @@ function frame(ts){
   camera.position.x=20+Math.sin(camSwayT)*.15;
   camera.position.z=20+Math.cos(camSwayT*.7)*.12;
   camera.lookAt(0,0,0);
+  if(typeof tickFlutter==='function') tickFlutter(dt);
+  if(typeof stormExpireIfDue==='function') stormExpireIfDue();
+  if(typeof rioMesh!=='undefined' && rioMesh){
+    rioMesh.position.y=Math.abs(Math.sin(ts*.0025))*.04;
+    if(G.stormOn && typeof rioTarget==='function'){
+      var rioTo=rioTarget();
+      var rioStep=Math.min(1, dt*.004);
+      rioMesh.position.x+=(rioTo.x-rioMesh.position.x)*rioStep;
+      rioMesh.position.z+=(rioTo.z-rioMesh.position.z)*rioStep;
+      rioMesh.rotation.y=rioTo.ry;
+    }
+  }
+  if(clinicMesh){
+    var low=(G.care||0)<CLINIC_STEADY_LINE && !!G.structures.clinic;
+    var beat=low?Math.sin(ts*.008):Math.sin(ts*.002);
+    clinicMesh.traverse(function(obj){
+      if(obj.userData && obj.userData.clinicCross){
+        var s=low ? 1+Math.abs(beat)*.45 : 1+beat*.05;
+        obj.scale.set(s,s,1);
+      }
+      if(obj.userData && obj.userData.clinicLamp){
+        obj.intensity=low ? .35+Math.abs(beat)*1.6 : .4+Math.abs(beat)*.2;
+        obj.color.setHex(low ? 0xff6040 : 0xffe0c0);
+      }
+    });
+  }
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
   var fireSeconds = Math.max(0,Math.ceil(((G.fireOutUntil||0)-Date.now())/1000));
@@ -247,6 +306,9 @@ function frame(ts){
 
   // NPC wander + bob (the player figure is driven by movePlayer() below,
   // not this random-target AI — see the "Player input" block above).
+  if(typeof juneMesh!=='undefined' && juneMesh){
+    juneMesh.position.y=Math.abs(Math.sin(ts*.002))*.04;
+  }
   figures.forEach(function(f){
     f.userData.bobPhase+=dt*.003;
     f.position.y=Math.abs(Math.sin(f.userData.bobPhase))*.06;
@@ -316,4 +378,10 @@ function frame(ts){
 }
 
 requestAnimationFrame(gameLoop);
-try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'visit', 1); } catch (e) {}
+try {
+  if (window.EurekaProgress && G.structures && G.structures.clinic) {
+    EurekaProgress.emit('clinic', 'visit', 1);
+    if (G.clinicSteady) EurekaProgress.emit('clinic', 'dawn', G.clinicSteady);
+    if (G.dressings) EurekaProgress.emit('clinic', 'rest', G.dressings);
+  }
+} catch (e) {}
