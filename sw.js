@@ -94,6 +94,7 @@ const SHELL = [
   '/js/lightcycles.js',
   '/js/maze.js',
   '/js/memorymatrix.js',
+  '/js/moments.js',
   '/js/minesweeper.js',
   '/js/notes.js',
   '/js/orgchart.js',

@@ -377,6 +377,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
+  <button id="momentsBtn" type="button" title="Photo mode (P)">📷</button>
   <div id="vox-audio"></div>
   <button id="helpBtn" title="Help (H)">?</button>
   <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
@@ -502,7 +503,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings, and for a little while afterward <b>all goods sell for +35%</b> &mdash; a great time to cash in your stockpile</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
-    <li>Keys <b>1&ndash;5</b> tools &middot; <b>B</b> build shape &middot; <b>Z</b> undo &middot; <b>R</b> copy &middot; <b>[ ]</b> material &middot; <b>K</b> fire the kiln &middot; <b>Q / E</b> turn &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
+    <li>Keys <b>1&ndash;5</b> tools &middot; <b>B</b> build shape &middot; <b>Z</b> undo &middot; <b>R</b> copy &middot; <b>[ ]</b> material &middot; <b>K</b> fire the kiln &middot; <b>Q / E</b> turn &middot; <b>M</b> mute &middot; <b>P</b> photo &amp; replay &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
 </div></div>
 
@@ -510,6 +511,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
+<script src="/js/moments.js"></script>
 <script>
 'use strict';
 /* ============================== utils ============================== */
@@ -4812,6 +4814,7 @@ function townFestival(s){
   raiseFestivalLanterns(cx,cy,cz);
   festBonusT=48;   // goods sell for a premium for a little while during the celebration
   setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙 · goods sell +35%)'),500);
+  try { if (window.EurekaMoments) EurekaMoments.mark(s.name + ' Festival'); } catch (e) {}
   state.achFlags.festival=true;
 }
 let festBonusT=0;
@@ -5757,6 +5760,9 @@ function actOnPlant(p){
       // soil stays tilled for replanting
     }
     questCheck();
+    if(gold||state.harvests%10===0){
+      try { if (window.EurekaMoments) EurekaMoments.mark(gold?'Golden harvest':'Harvest ×'+state.harvests); } catch (e) {}
+    }
     if(typeof checkAch==='function')checkAch();
     return;
   }
@@ -6155,7 +6161,6 @@ function bindInput(){
     else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
-    else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
     else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
       const shore=document.getElementById('chain-modal');if(shore)shore.classList.remove('open');
       document.body.classList.remove('photo');closePanels();}
@@ -7805,10 +7810,18 @@ function boot(){
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   addEventListener('beforeunload',save);
   let last=performance.now();
+  let momentHold=false;
   function frame(now){
     requestAnimationFrame(frame);
     let dt=(now-last)/1000;last=now;
     if(dt>0.1)dt=0.1;
+    if(momentHold){
+      const cdt=dt>0?dt:0.016;
+      if(fp.on)updateFP(cdt); else updateCamera(cdt);
+      renderer.render(scene,camera);
+      if(window.EurekaMoments)EurekaMoments.afterFrame();
+      return;
+    }
     perf+=dt;
     const dn=updateDay(dt);
     MUSIC.tick(dt,dn);
@@ -7868,7 +7881,39 @@ function boot(){
     saveTimer+=dt;
     if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
     renderer.render(scene,camera);
+    if(window.EurekaMoments)EurekaMoments.afterFrame();
   }
+  try {
+    if (window.EurekaMoments) EurekaMoments.attach({
+      game: 'voxel',
+      canvas: function () { return renderer.domElement; },
+      pause: function () { momentHold = true; },
+      resume: function () { momentHold = false; },
+      hideClass: 'photo',
+      onOpen: function () { if (fp.on) toggleFP(false); },
+      blocked: function () { return overlayOpen(); },
+      camera: {
+        modes: ['orbit', 'free'],
+        orbit: function (dx, dy) {
+          cam.tyaw += dx * 0.008;
+          cam.tpitch = clamp(cam.tpitch + dy * 0.005, 0.12, 1.35);
+          cam.yaw = cam.tyaw;
+          cam.pitch = cam.tpitch;
+        },
+        pan: function (dx, dy) {
+          const yaw = cam.yaw, s = 0.04;
+          const rx = -Math.sin(yaw), rz = Math.cos(yaw);
+          const fx = -Math.cos(yaw), fz = -Math.sin(yaw);
+          cam.cx += (-rx * dx + fx * dy) * s;
+          cam.cz += (-rz * dx + fz * dy) * s;
+        },
+        zoom: function (scale) {
+          cam.tdist = clamp(cam.tdist / scale, 16, 90);
+          cam.dist = cam.tdist;
+        },
+      },
+    });
+  } catch (e) {}
   requestAnimationFrame(frame);
 }
 boot();
