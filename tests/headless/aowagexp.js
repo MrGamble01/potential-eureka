@@ -18,7 +18,7 @@ const ok = (condition, name) => {
       { name: 'short', xp: 60, playerEra: 0 },
       { name: 'ready', xp: 100, playerEra: 0 },
       { name: 'locked', xp: 25000, playerEra: 4 },
-      { name: 'max', xp: 100, playerEra: 5 },
+      { name: 'max', xp: 100, playerEra: 6 },
     ]) {
       const context = await browser.newContext({ viewport: { width, height: 900 } });
       const page = await context.newPage();
