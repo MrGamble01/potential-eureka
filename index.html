@@ -36,16 +36,18 @@
   <!-- ?v= busts vercel.json's year-long immutable cache on /css/*.
        The service worker matches these ignoring the query, so sw.js
        SW_VERSION has to move in the same change or installed PWAs
-       keep the previous sheet. game-cards.css stays after arcade.css. -->
-  <link rel="stylesheet" href="css/base.css?v=20261017hub">
-  <link rel="stylesheet" href="css/effects.css?v=20261017hub">
-  <link rel="stylesheet" href="css/arcade.css?v=20261017hub">
-  <link rel="stylesheet" href="css/game-cards.css?v=20261017hub">
-  <link rel="stylesheet" href="css/dashboard.css?v=20261017hub">
-  <link rel="stylesheet" href="css/games.css?v=20261017hub">
-  <link rel="stylesheet" href="css/productivity.css?v=20261017hub">
-  <link rel="stylesheet" href="css/personal.css?v=20261017hub">
-  <link rel="stylesheet" href="css/orgchart.css?v=20261017hub">
+       keep the previous sheet. game-cards.css stays after arcade.css.
+       hub-pages.css is last so the studio subpage rules win the cascade. -->
+  <link rel="stylesheet" href="css/base.css?v=20261017pages">
+  <link rel="stylesheet" href="css/effects.css?v=20261017pages">
+  <link rel="stylesheet" href="css/arcade.css?v=20261017pages">
+  <link rel="stylesheet" href="css/game-cards.css?v=20261017pages">
+  <link rel="stylesheet" href="css/dashboard.css?v=20261017pages">
+  <link rel="stylesheet" href="css/games.css?v=20261017pages">
+  <link rel="stylesheet" href="css/productivity.css?v=20261017pages">
+  <link rel="stylesheet" href="css/personal.css?v=20261017pages">
+  <link rel="stylesheet" href="css/orgchart.css?v=20261017pages">
+  <link rel="stylesheet" href="css/hub-pages.css?v=20261017pages">
 </head>
 <body>
 
@@ -59,6 +61,7 @@
   <canvas id="matrix-canvas" style="display:none"></canvas>
 
   <!-- NAVIGATION -->
+  <header class="hub-chrome">
   <nav class="site-nav">
     <button class="logo logo-btn glitch" data-text=">_ EUREKA GAMES" data-view="arcade">&gt;_ EUREKA GAMES</button>
     <div class="nav-spacer"></div>
@@ -85,6 +88,7 @@
     <a href="#maze" data-view="maze">Maze Runner</a>
     <a href="#life" data-view="life">Game of Life</a>
   </div>
+  </header>
 
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
@@ -143,7 +147,7 @@
       <button class="primer-hint-open" id="primer-hint-open">How it works &rarr;</button>
       <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
     </div>
-    <div id="daily-banner" role="region" aria-label="Today's challenge">
+    <div id="daily-banner" class="hub-challenge" role="region" aria-label="Today's challenge">
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
       <span class="daily-sub">Same seed for everyone — set today's mark:</span>
       <span id="daily-games"></span>
@@ -1095,8 +1099,9 @@
     <div class="hof-wrap">
       <div class="hof-scanlines"></div>
       <button class="game-back-btn" data-view="arcade">&larr; Games</button>
-      <div class="hof-title">&#9733; HALL OF FAME &#9733;</div>
-      <div class="hof-sub">YOUR PERSONAL BESTS</div>
+      <p class="hub-kicker">Scoreboard</p>
+      <h1 class="hof-title">Hall of Fame</h1>
+      <p class="hof-sub">Your personal bests</p>
       <div id="hof-rivals" class="hof-rivals">
         <div class="hof-rivals-row">
           <button id="hof-share" class="hof-share">⚔ Share my scores</button>
@@ -1317,6 +1322,20 @@
     </div>
   </section>
 
+  <footer class="hub-footer">
+    <p class="hub-kicker">Eureka Games</p>
+    <p class="hub-footer-tag">Twenty-one browser games. Scores, saves and trophies stay in this browser.</p>
+    <nav class="hub-footer-nav" aria-label="Footer">
+      <a href="#arcade" data-view="arcade">Games</a>
+      <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
+      <a href="ageofwar/">Age of War</a>
+      <a href="agentic-os.html">Studio</a>
+      <button type="button" data-hub-open="patch-notes-btn">Patch Notes</button>
+      <button type="button" data-hub-open="primer-btn">How it works</button>
+      <button type="button" data-hub-open="challenge-jump-btn">Challenge</button>
+    </nav>
+  </footer>
+
   <!-- GOOGLE TASKS SETTINGS MODAL -->
   <!-- Keyboard shortcuts cheat-sheet (P7) — press ? anywhere on the hub -->
   <div id="shortcuts-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
@@ -1346,41 +1365,43 @@
        GAME. All of it was documented in the README, which players do not
        read. This says it on the page, once, and then gets out of the way. -->
   <div id="primer-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="How Eureka Games works">
-    <div class="modal-content" style="max-width:600px">
-      <h3 style="margin-bottom:4px">&#10024; How this place works</h3>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">
+    <div class="modal-content hub-sheet" style="max-width:600px">
+      <p class="hub-kicker">Start here</p>
+      <h3 class="hub-sheet-title">&#10024; How this place works</h3>
+      <p class="hub-sheet-lede">
         Twenty-one games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
-      </div>
-      <div style="display:grid;gap:11px;font-size:13px;line-height:1.55">
-        <div><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
-          The <b>flagships</b> (Age of War, Startup Tycoon, Grow Op, Homeless Village, Voxel Isle, Hearthvale) are their own
+      </p>
+      <div class="hub-sheet-body">
+        <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
+          The <b>flagships</b> (<a class="hub-text-link" href="ageofwar/">Age of War</a>, Startup Tycoon, Grow Op, Homeless Village, Voxel Isle, Hearthvale) are their own
           pages and run for hours; each opens with a crash course, and a <b>?</b> button reopens it.</div>
-        <div><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
+        <div class="hub-point"><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
           everybody who plays it. It is the one honest way to compare a score with someone else.</div>
-        <div><strong>&#127942; The Hall of Fame</strong> keeps your best in every game, and hands out
+        <div class="hub-point"><strong>&#127942; <a class="hub-text-link" href="#halloffame" data-view="halloffame">The Hall of Fame</a></strong> keeps your best in every game, and hands out
           <b>trophies</b> for milestones. Each trophy mints <b>&#129689; coins</b>, which buy accent palettes in the shop.</div>
-        <div><strong>&#128101; Rivals, without a server.</strong> Share a code from the Hall of Fame and a friend's bests
+        <div class="hub-point"><strong>&#128101; Rivals, without a server.</strong> Share a code from the Hall of Fame and a friend's bests
           sit next to yours, lit up wherever they are ahead. Nothing is uploaded &mdash; the code <em>is</em> the data.</div>
-        <div><strong>&#128190; It is all yours, locally.</strong> Saves, scores and trophies live in this browser and never
+        <div class="hub-point"><strong>&#128190; It is all yours, locally.</strong> Saves, scores and trophies live in this browser and never
           leave it. <b>&#11015; Backup</b> in the Hall of Fame writes the lot to a file; <b>&#11014; Restore</b> puts it back
           on another machine.</div>
-        <div><strong>&#128246; It works offline.</strong> Install it and the whole arcade &mdash; flagships included &mdash;
+        <div class="hub-point"><strong>&#128246; It works offline.</strong> Install it and the whole arcade &mdash; flagships included &mdash;
           keeps playing with no connection at all.</div>
-        <div><strong>&#127912; Make it yours.</strong> A &#127912; theme cycler and the coin shop's accents re-skin the site;
+        <div class="hub-point"><strong>&#127912; Make it yours.</strong> A &#127912; theme cycler and the coin shop's accents re-skin the site;
           press <b>?</b> for every keyboard shortcut, and gamepads work throughout.</div>
       </div>
-      <div class="modal-actions" style="margin-top:18px">
+      <div class="modal-actions">
         <button class="primary" id="primer-go">Pick a game &rarr;</button>
       </div>
     </div>
   </div>
 
   <div id="patch-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Patch notes">
-    <div class="modal-content" style="max-width:640px">
-      <h3 style="margin-bottom:4px">&#128240; Patch notes</h3>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">What the studio shipped lately — every update is live for everyone, saves always migrate.</div>
-      <div id="patch-list" style="max-height:56vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px"></div>
-      <div class="modal-actions" style="margin-top:16px">
+    <div class="modal-content hub-sheet" style="max-width:640px">
+      <p class="hub-kicker">Studio log</p>
+      <h3 class="hub-sheet-title">&#128240; Patch notes</h3>
+      <p class="hub-sheet-lede">What the studio shipped lately — every update is live for everyone, saves always migrate.</p>
+      <div id="patch-list" class="hub-patch-list"></div>
+      <div class="modal-actions">
         <button class="primary" onclick="Utils.closeModal('patch-modal')">Close</button>
       </div>
     </div>
@@ -2327,6 +2348,13 @@
     if (primerGo) primerGo.addEventListener('click', closePrimer);
     document.getElementById('primer-modal').addEventListener('click', e => {
       if (e.target.id === 'primer-modal') closePrimer();
+      if (e.target.closest('a[href]')) closePrimer();
+    });
+    document.querySelectorAll('[data-hub-open]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.hubOpen);
+        if (target) target.click();
+      });
     });
     document.addEventListener('keydown', e => {
       const pm = document.getElementById('primer-modal');
@@ -2729,10 +2757,10 @@
     function renderPatchNotes() {
       const list = document.getElementById('patch-list');
       list.innerHTML = PATCH_NOTES.map(r =>
-        `<div style="border-left:3px solid var(--accent,#3FB950);padding-left:12px">
-          <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px">${r.date}</div>
-          <div style="font-weight:800;font-size:14px;margin:2px 0 6px">${r.title}</div>
-          <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.55;color:var(--text,inherit)">
+        `<div class="hub-patch">
+          <p class="hub-kicker">${r.date}</p>
+          <h4 class="hub-patch-title">${r.title}</h4>
+          <ul class="hub-patch-items">
             ${r.items.map(i => `<li>${i}</li>`).join('')}
           </ul>
         </div>`).join('');
