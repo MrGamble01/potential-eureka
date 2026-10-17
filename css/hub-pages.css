@@ -1240,10 +1240,28 @@
   border-color: rgba(188, 140, 255, 0.4);
 }
 
+#view-arcade .arcade-scan-link:hover,
+#view-arcade .arcade-scan-link:focus-visible {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--text);
+}
+
+#view-arcade .arcade-scan-link:focus-visible {
+  outline: 2px solid #8b83ff;
+  outline-offset: 2px;
+}
+
+/* The selected fill is the theme's text color. --bg is not a token,
+   so a color: var(--bg) label inherited that same color and vanished.
+   Pair the fill with the page ink, which daylight flips the other way. */
 #view-arcade .arcade-scan:not(:has([aria-current])) .arcade-scan-link--all,
-#view-arcade .arcade-scan-link[aria-current="true"] {
+#view-arcade .arcade-scan:not(:has([aria-current])) .arcade-scan-link--all:hover,
+#view-arcade .arcade-scan:not(:has([aria-current])) .arcade-scan-link--all:focus-visible,
+#view-arcade .arcade-scan-link[aria-current="true"],
+#view-arcade .arcade-scan-link[aria-current="true"]:hover,
+#view-arcade .arcade-scan-link[aria-current="true"]:focus-visible {
   background: var(--text);
-  color: var(--bg);
+  color: var(--color-black-base);
 }
 
 #view-arcade .arcade-card {
