@@ -59,7 +59,7 @@
   #achOv .help-cta-row,#almanacOv .help-cta-row{margin-top:14px}
   #achOv .help-cta-row button,#almanacOv .help-cta-row button{margin-top:0}
   #chain-head .ea-back{padding:5px 10px 5px 8px;font-size:10px;min-height:28px}
-  #quests{top:58px;right:10px;width:230px;font-size:13px}
+  #quests{top:var(--vox-quests-top, 58px);right:10px;width:230px;font-size:13px}
   #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
   #quests .q-text{color:var(--ink)}
   #quests .q-prog{color:var(--dim);font-size:12px;margin-top:3px}
@@ -70,6 +70,8 @@
   #juiceFlash.on.hot{animation:juiceHot 1.15s ease-out}
   #juiceFlash.on.gold{animation:juiceGold .55s ease-out}
   #juiceFlash.on.green{animation:juiceGreen .4s ease-out}
+  #juiceFlash.on.tide{animation:juiceTide 1.1s ease-out}
+  @keyframes juiceTide{0%{opacity:.92;background:radial-gradient(circle at 50% 42%,rgba(90,150,220,.82),transparent 52%)}100%{opacity:0}}
   @keyframes juiceHot{0%{opacity:1;background:radial-gradient(circle at 50% 58%,rgba(255,90,16,.9),transparent 46%)}35%{opacity:.72}100%{opacity:0}}
   @keyframes juiceGold{0%{opacity:.75;background:radial-gradient(circle at 50% 40%,rgba(255,209,102,.5),transparent 55%)}100%{opacity:0}}
   @keyframes juiceGreen{0%{opacity:.55;background:radial-gradient(circle at 50% 70%,rgba(127,211,112,.4),transparent 52%)}100%{opacity:0}}
@@ -116,9 +118,20 @@
   /* The quest card already carries the kiln line. On a kept isle the extra
      topbar chip shoved New isle across the town button. Hide it wherever
      that card is on screen; phones and short landscape hide the card. */
+  #gullChip{cursor:pointer;color:#9fd4ff;font-weight:700}
+  #gullChip[hidden]{display:none}
+  #gullChip.live{animation:slotBoop 1s ease infinite}
+  #qGull{color:#9fd4ff;font-size:12px;margin-top:3px;cursor:pointer}
+  #qGull:empty{display:none}
+  #gullPanel.open{display:block;max-width:min(94vw,400px)}
+  #gullPanel .gull-line{grid-column:1/-1;font-size:14px;line-height:1.45;margin:4px 0}
+  #gullPanel .gull-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+  #gullPanel .gull-actions button{background:#2a323c;color:var(--ink);border:1px solid rgba(255,255,255,.14);
+    border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;cursor:pointer;min-height:40px}
   @media (min-width:641px) and (min-height:481px){
     #kilnChip{display:none!important}
     #dareChip{display:none!important}
+    #gullChip{display:none!important}
   }
   #qKiln{color:#ffb089;font-size:12px;margin-top:3px;cursor:pointer}
   #qKiln:empty{display:none}
@@ -298,6 +311,7 @@
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
   <div class="chip" id="dareChip" hidden title="Today's harbor dare. Same challenge for every garden, swapped by a note — no server.">📮 <span id="dareTxt">Dare</span></div>
   <div class="chip" id="kilnChip" hidden title="The fen kiln. Seal every cracked course with brick, then fire it once each day.">🔥 <span id="kilnTxt">Kiln</span></div>
+  <div class="chip" id="gullChip" hidden title="The harbor gull. A local guide for solo play. It never leaves this garden.">🐦 <span id="gullTxt">Gull</span></div>
   <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
     <button type="button" id="resumeNewIsle" hidden>New isle</button>
   </div>
@@ -322,6 +336,7 @@
   <div class="q-prog" id="qProg"></div>
   <div id="qKiln"></div>
   <div id="qDare"></div>
+  <div id="qGull"></div>
 </div>
 <div class="hud" id="hotbar">
   <div class="slot" data-tool="hoe"><span class="key">1</span>⚒️<small>TILL</small></div>
@@ -343,6 +358,7 @@
 <div class="panel" id="animalPanel"></div>
 <div class="panel" id="townPanel"></div>
 <div class="panel" id="darePanel"></div>
+<div class="panel" id="gullPanel"></div>
 <div id="camPad" aria-label="Camera">
   <button type="button" id="camLeft" title="Turn left">⟲</button>
   <button type="button" id="camIn" title="Closer">+</button>
@@ -383,6 +399,7 @@
     <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove. <b>B</b> cycles Single, Line and Floor (two taps lay a wall or an 8&times;8 pad). <b>Z</b> undoes, <b>R</b> copies the block you are looking at, <b>Shift</b> replaces, <b>[ ]</b> cycles materials</li>
     <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b>. Clay, moss, brick and sea glass join the build kit on the way</li>
     <li>The <b>🌿 North Fen</b> (level 11, or the fourth land expansion) is a moss-and-clay islet with a cracked <b>brick kiln</b>. Seal every gap, then <b>fire it once each day</b> &mdash; the purse starts at 27 🪙 and grows by 3 a firing, up to 54. Firing kicks the camera and throws sparks</li>
+    <li>At <b>level 7</b> the <b>🐦 harbor gull</b> reads the garden and names one next step. It stays on this device. Ask it to <b>call a storm tide</b>, then set <b>stone or sea glass</b> on the five glowing shore stakes before the water climbs. Hold the shore and the <b>Storm Shelf</b> rises. That shelf cannot be bought</li>
     <li>The <b>📮 harbor dare</b> is the same challenge in every garden each real-world day. Beat the morning ferry, claim the purse, and <b>post a note</b> another isle can paste &mdash; the board stays on this device</li>
     <li>On a phone, <b>⟲ ⟳ + −</b> orbits and zooms. A short finger-slip still uses the tool; a longer drag orbits</li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
@@ -486,6 +503,8 @@ const SFX={ctx:null,
       seal:()=>{[392,523,659,784].forEach((f,i)=>this.tone(f,0.18,'triangle',0.08,0,i*0.08));this.crackle(0.35,0.04);},
       kiln:()=>{this.crackle(0.7,0.09);this.tone(98,0.45,'sine',0.08,70);this.tone(196,0.3,'triangle',0.06,0,0.08);this.tone(392,0.22,'triangle',0.05,0,0.18);},
       dare:()=>{[523,659,784,1047,784].forEach((f,i)=>this.tone(f,0.12,'triangle',0.08,0,i*0.07));},
+      gull:()=>{this.tone(1480,0.06,'sine',0.05,1760);this.tone(1880,0.08,'sine',0.04,1400,0.07);},
+      storm:()=>{this.tone(90,0.55,'sine',0.09,48);this.tone(140,0.3,'triangle',0.05,0,0.08);this.crackle(0.45,0.05);},
     };
     if(P[n])P[n]();
   },
@@ -597,7 +616,7 @@ const DECOR={
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Clay · Lanterns',
   4:'Pumpkin seeds · Moss · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Bricks · Sprinklers',
-  6:'Moonpetal seeds · Sea glass · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
+  6:'Moonpetal seeds · Sea glass · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds · the harbor gull can call a storm tide',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
   10:'A master gardener of the skies 🌈',11:'The North Fen rises — moss, clay, and a cracked kiln',
   12:'Nothing left to prove — everything left to grow 🌟'};
@@ -606,6 +625,7 @@ const ISLETS=[
   {id:1,x:-25,z:-17,r:8,lvl:6,seedOff:202,name:'West Islet'},
   {id:2,x:3,z:-29,r:6,lvl:8,seedOff:303,name:'South Islet'},
   {id:3,x:4,z:31,r:7,lvl:11,seedOff:404,name:'North Fen',biome:'fen'},
+  {id:4,x:-32,z:22,r:6,seedOff:505,name:'Storm Shelf',biome:'storm'},
 ];
 
 /* ============================== state ============================== */
@@ -1000,6 +1020,328 @@ function buildDarePanel(){
   p.appendChild(board);
 }
 function openDare(){buildDarePanel();openPanel('darePanel');}
+/* The storm tide is a shore the town cannot sell. The harbor gull is a
+   local guide: it reads this garden and names one next step. Nothing
+   is sent off the device. The shelf rises only after the stakes hold. */
+const STORM_LEVEL=7,STORM_PAY=64,STORM_XP=25,STORM_NEED=5,STORM_WARN=3.2,STORM_SECS=42;
+const STORM_HOLD=[3,12];
+const _stormSky=new THREE.Color(0x1c2838);
+let stormStakes=[],stormBeacons=null,stormShake=0,stormVisual=0,stormFinishing=false;
+function stormShelf(){return ISLETS.find(it=>it.biome==='storm')||null;}
+function stormRaised(){const it=stormShelf();return !!(it&&W.islets.includes(it.id));}
+function stormOpen(){return state.level>=STORM_LEVEL;}
+function stormEnsure(){
+  if(!state.storm||typeof state.storm!=='object')state.storm={bested:false,paid:false,phase:'idle',held:0};
+  return state.storm;
+}
+function stormPhase(){return stormEnsure().phase||'idle';}
+function stormRunning(){const p=stormPhase();return p==='warn'||p==='surge';}
+function genStormShelf(it){
+  const cx=it.x,cz=it.z,r=it.r,s=W.seed+(it.seedOff|0);
+  for(let x=cx-r;x<=cx+r;x++)for(let z=cz-r;z<=cz+r;z++){
+    const dx=(x-cx)/r,dz=(z-cz)/r,d=Math.sqrt(dx*dx+dz*dz);
+    const edge=1-d+(fbm(x*0.31,z*0.31,s^0x51A)-0.5)*0.18;
+    if(edge<=0.06)continue;
+    const e=clamp(edge,0,1);
+    const n=fbm(x*0.2,z*0.2,s^0xB07);
+    const h=2+Math.round((0.35+n*0.65)*Math.pow(e,0.5)*2);
+    const depth=3+Math.round(e*2);
+    for(let y=h-depth;y<=h;y++){
+      let id;
+      if(y===h){
+        if(e<0.34)id=4;
+        else if(n>0.62)id=1;
+        else id=3;
+      } else if(y>h-2)id=3;
+      else id=2;
+      W.blocks.set(k3(x,y,z),id);
+    }
+  }
+  [[0,0],[-2,2],[2,-1]].forEach(([dx,dz])=>{
+    const x=cx+dx,z=cz+dz,y=surfaceY(x,z);
+    if(y===null)return;
+    setB(x,y+1,z,12,true);
+    setB(x,y+2,z,12,true);
+  });
+  carveStormPool(cx-2,cz-2,2.2,s);
+}
+function carveStormPool(pcx,pcz,pr,s){
+  if(!W.pondCells)W.pondCells=[];
+  const h0=surfaceY(pcx,pcz);if(h0===null)return;
+  const waterY=h0-1,floorY=waterY-1;
+  for(let x=Math.floor(pcx-pr-1);x<=Math.ceil(pcx+pr+1);x++)
+  for(let z=Math.floor(pcz-pr-1);z<=Math.ceil(pcz+pr+1);z++){
+    const nd=Math.hypot(x-pcx,z-pcz)+(fbm(x*0.45,z*0.45,s^0x19)-0.5)*0.8;
+    if(nd>pr)continue;
+    if(surfaceY(x,z)===null)continue;
+    for(let y=floorY+1;y<=h0+4;y++)W.blocks.delete(k3(x,y,z));
+    W.blocks.set(k3(x,floorY,z),3);
+    if(nd>pr-0.7)W.blocks.set(k3(x,waterY,z),4);
+    else W.pondCells.push([x,z,waterY+0.86]);
+  }
+}
+function stormFindStakes(){
+  const spots=[];
+  const used=new Set();
+  const take=(x,z)=>{
+    if(spots.length>=STORM_NEED)return false;
+    if(Math.hypot(x,z)<5||Math.hypot(x,z)>15.5)return false;
+    const y=surfaceY(x,z);
+    if(y===null||y<1)return false;
+    let edge=false;
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){if(surfaceY(x+dx,z+dz)===null)edge=true;}
+    if(!edge)return false;
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))return false;
+    if(spots.some(c=>Math.abs(c[0]-x)+Math.abs(c[2]-z)<3))return false;
+    const key=x+','+(y+1)+','+z;
+    if(used.has(key))return false;
+    used.add(key);
+    spots.push([x,y+1,z]);
+    return true;
+  };
+  for(let i=0;i<STORM_NEED;i++){
+    const ang=0.2+i*(1.15/(STORM_NEED-1));
+    for(let r=7;r<=16;r++){if(take(Math.round(Math.cos(ang)*r),Math.round(Math.sin(ang)*r)))break;}
+  }
+  if(spots.length<STORM_NEED){
+    for(let x=-15;x<=15&&spots.length<STORM_NEED;x++)
+      for(let z=-15;z<=15&&spots.length<STORM_NEED;z++)take(x,z);
+  }
+  return spots;
+}
+function stormHeld(){
+  let n=0;
+  for(const c of stormStakes){if(STORM_HOLD.includes(getB(c[0],c[1],c[2])))n++;}
+  return n;
+}
+function stormClearBeacons(){
+  if(!stormBeacons)return;
+  scene.remove(stormBeacons);
+  stormBeacons.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    if(o.material)o.material.dispose();
+  });
+  stormBeacons=null;
+}
+function stormShowBeacons(){
+  stormClearBeacons();
+  const g=new THREE.Group();
+  stormStakes.forEach((c,i)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.72,0.22),
+      new THREE.MeshLambertMaterial({color:0xffd166,emissive:0xffc14a,emissiveIntensity:0.85}));
+    m.position.set(c[0]+0.5,c[1]+1.35,c[2]+0.5);
+    m.raycast=function(){};
+    m.userData.i=i;
+    g.add(m);
+  });
+  stormBeacons=g;
+  scene.add(g);
+}
+function stormAimAt(x,y,z,dist){
+  cam.cx=x;cam.cz=z;cam.cy=y;
+  cam.tdist=dist;
+  cam.tpitch=0.58;
+}
+function stormAimStakes(){
+  if(!stormStakes.length)return;
+  let x=0,y=0,z=0;
+  stormStakes.forEach(c=>{x+=c[0];y+=c[1];z+=c[2];});
+  const n=stormStakes.length;
+  stormAimAt(x/n,y/n+1,z/n,24);
+}
+function stormAimShelf(){
+  const it=stormShelf();if(!it)return;
+  const y=surfaceY(it.x,it.z);
+  stormAimAt(it.x,(y===null?4:y)+3,it.z,28);
+  cam.tyaw=Math.atan2(it.z,it.x)+0.7;
+}
+function stormHudLine(){
+  stormEnsure();
+  if(!stormOpen()&&!stormRaised())return '';
+  if(stormPhase()==='warn')return 'Tide coming';
+  if(stormPhase()==='surge')return 'Hold '+stormHeld()+'/'+STORM_NEED;
+  if(!stormRaised())return 'Call the tide';
+  return 'Shelf held';
+}
+function refreshStormHud(){
+  const line=stormHudLine();
+  const chip=$('gullChip'),txt=$('gullTxt'),q=$('qGull');
+  if(chip){chip.hidden=!line;chip.classList.toggle('live',stormRunning());if(txt)txt.textContent=line||'Gull';}
+  if(q)q.textContent=line?'🐦 '+line:'';
+}
+function gullAdvice(){
+  stormEnsure();
+  if(!stormOpen())return {text:'I am only watching the harbor. Call me again at garden level '+STORM_LEVEL+'.',act:'locked'};
+  if(stormRunning()){
+    const next=stormStakes.find(c=>!STORM_HOLD.includes(getB(c[0],c[1],c[2])));
+    const n=stormHeld();
+    if(!next)return {text:'Every stake is held. Brace — the shelf is coming.',act:'stake'};
+    return {text:'Stake '+(n+1)+' of '+STORM_NEED+' glows at '+next[0]+', '+next[2]+'. Set stone or sea glass on it before the water climbs.',act:'stake'};
+  }
+  if(!stormRaised())return {text:'The Storm Shelf is still under the water. Call the tide, then hold five shore stakes with stone or sea glass.',act:'call'};
+  if(kilnOk()){
+    const p=kilnProgress();
+    if(p&&!p.sealed)return {text:'The fen kiln still has '+(p.total-p.filled)+' cracked courses. Brick seals them.',act:'kiln'};
+  }
+  if(typeof dareView==='function'){
+    const v=dareView();
+    if(v.ready)return {text:'Today\'s harbor dare is ready to claim.',act:'claim'};
+  }
+  let dry=0;
+  for(const p of W.plants.values()){
+    if(!PLANTS[p.type]||p.stage>=2)continue;
+    if(!W.wet.has(k3(p.x,p.y-1,p.z)))dry++;
+  }
+  if(dry)return {text:dry+' crop'+(dry===1?' is':'s are')+' thirsty. The watering can is faster than waiting on rain.',act:'tend'};
+  return {text:'The shelf is holding and the garden looks steady. Till, plant, or fire the kiln if it has cooled.',act:'steady'};
+}
+function buildGullPanel(){
+  const p=$('gullPanel');if(!p)return;
+  const a=gullAdvice();
+  p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';head.textContent='🐦 Harbor gull';p.appendChild(head);
+  const line=document.createElement('div');line.className='gull-line';line.textContent=a.text;p.appendChild(line);
+  const actions=document.createElement('div');actions.className='gull-actions';
+  if(stormOpen()&&!stormRunning()){
+    const call=document.createElement('button');call.type='button';call.id='gullCall';
+    call.textContent=(stormRaised()&&stormEnsure().paid)?'Call the tide again':'Call the tide';
+    call.addEventListener('click',()=>{if(startStormTide()&&$('gullPanel').classList.contains('open'))buildGullPanel();});
+    actions.appendChild(call);
+  }
+  const ask=document.createElement('button');ask.type='button';ask.textContent='Ask again';
+  ask.addEventListener('click',()=>{SFX.play('gull');buildGullPanel();});
+  actions.appendChild(ask);
+  p.appendChild(actions);
+  const note=document.createElement('div');note.className='gull-line';
+  note.textContent='The gull stays on this garden. Nothing is sent away.';
+  p.appendChild(note);
+}
+function openGull(){buildGullPanel();openPanel('gullPanel');}
+function onGullClick(){
+  if(!stormOpen()&&!stormRunning()){toast('The harbor gull waits until garden level '+STORM_LEVEL);SFX.play('error');return;}
+  openGull();
+}
+function stormFinish(won){
+  if(stormFinishing)return;
+  stormFinishing=true;
+  try{
+    const s=stormEnsure();
+    s.held=stormHeld();
+    s.phase='idle';
+    s.t=0;
+    stormClearBeacons();
+    stormStakes=[];
+    if(won){
+      s.bested=true;
+      if(!s.paid){
+        s.paid=true;
+        grantCoins(STORM_PAY);
+        grantXP(STORM_XP);
+        banner('🌊 The tide breaks','The Storm Shelf rises. +'+STORM_PAY+' 🪙');
+      } else banner('🌊 The tide breaks','The shelf already holds the water.');
+      SFX.play('storm');
+      feel('tide');
+      const it=stormShelf();
+      if(it&&!W.islets.includes(it.id))unlockIslet(it);
+      stormAimShelf();
+      if(typeof checkAch==='function')checkAch();
+    } else {
+      toast('🐦 The tide took the shore. Ask the gull and try again.');
+      SFX.play('error');
+      cam.cx=0;cam.cz=0;cam.cy=(surfaceY(0,0)||5)+1;cam.tdist=42;
+    }
+    refreshStormHud();
+    if($('gullPanel')&&$('gullPanel').classList.contains('open'))buildGullPanel();
+  } finally {stormFinishing=false;}
+}
+function stormNotePlace(x,y,z){
+  if(!stormRunning())return;
+  if(!stormStakes.some(c=>c[0]===x&&c[1]===y&&c[2]===z))return;
+  if(!STORM_HOLD.includes(getB(x,y,z)))return;
+  const n=stormHeld();
+  stormEnsure().held=n;
+  toast('🐦 Stake held '+n+'/'+STORM_NEED);
+  SFX.play('gull');
+  refreshStormHud();
+  if(n>=STORM_NEED)stormFinish(true);
+}
+function startStormTide(){
+  const s=stormEnsure();
+  if(!stormOpen()){toast('The harbor gull waits until garden level '+STORM_LEVEL);SFX.play('error');return false;}
+  if(stormRunning()){toast('The tide is already on the shore');return false;}
+  const spots=stormFindStakes();
+  if(spots.length<STORM_NEED){toast('The shore has no room for the stakes');SFX.play('error');return false;}
+  stormStakes=spots;
+  s.phase='warn';
+  s.t=STORM_WARN;
+  s.held=stormHeld();
+  stormShowBeacons();
+  stormAimStakes();
+  banner('🐦 The harbor gull calls the tide','Set stone or sea glass on the five glowing stakes.');
+  SFX.play('gull');
+  feel('tide');
+  refreshStormHud();
+  if(s.held>=STORM_NEED)stormFinish(true);
+  return true;
+}
+function updateStorm(dt){
+  const s=state.storm;
+  if(s&&s.phase==='warn'){
+    s.t-=dt;
+    if(s.t<=0){
+      s.phase='surge';
+      s.t=STORM_SECS;
+      stormShake=0.4;
+      banner('🌊 The storm tide climbs','Hold the glowing stakes with stone or sea glass.');
+      SFX.play('storm');
+      feel('tide');
+      if(stormHeld()>=STORM_NEED)stormFinish(true);
+    }
+  } else if(s&&s.phase==='surge'){
+    s.t-=dt;
+    stormShake-=dt;
+    if(stormShake<=0){stormShake=1.7;juiceKick(0.55);}
+    const n=stormHeld();
+    if(n!==s.held){s.held=n;refreshStormHud();}
+    if(n>=STORM_NEED)stormFinish(true);
+    else if(s.t<=0)stormFinish(false);
+  }
+  const phase=s&&s.phase;
+  const goal=phase==='surge'?1:phase==='warn'?0.35:0;
+  stormVisual+=(goal-stormVisual)*Math.min(1,dt*(goal?1.6:0.8));
+  if(stormVisual>0.04&&typeof rain!=='undefined'&&rain){
+    _sky.lerp(_stormSky,stormVisual*0.75);
+    renderer.setClearColor(_sky);
+    scene.fog.color.copy(_sky);
+    scene.fog.near=26;
+    scene.fog.far=120;
+    if(sunLight)sunLight.intensity*=(1-stormVisual*0.55);
+    if(waterMesh)waterMesh.material.color.setHex(0x16384c);
+    rain.visible=true;
+    rainMat.opacity=Math.max(rainMat.opacity,0.28+stormVisual*0.55);
+    rainMat.color.setHex(0x9bb4c8);
+    rainMat.size=0.4;
+    const pos=rain.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*42;
+      if(y<-8){y=32+Math.random()*6;pos.setX(i,(Math.random()-0.5)*90);pos.setZ(i,(Math.random()-0.5)*90);}
+      pos.setY(i,y);
+    }
+    pos.needsUpdate=true;
+  } else if(waterMesh&&stormVisual<0.02){
+    const winter=seasonOf(state.day).key==='winter';
+    waterMesh.material.color.setHex(winter?0xcfe8f2:0x2fb6c8);
+  }
+  if(stormBeacons){
+    stormBeacons.children.forEach((m,i)=>{
+      const c=stormStakes[i];
+      if(!c){m.visible=false;return;}
+      const held=STORM_HOLD.includes(getB(c[0],c[1],c[2]));
+      m.visible=!held;
+      m.position.y=c[1]+1.35+Math.sin(perf*3+i)*0.14;
+    });
+  }
+}
 function surfaceY(x,z){for(let y=20;y>=-24;y--){if(getB(x,y,z)!==0)return y;}return null;}
 function topSolidBelow(x,y,z){for(let yy=y;yy>=-24;yy--){if(getB(x,yy,z)!==0)return yy;}return null;}
 
@@ -1236,7 +1578,9 @@ function buildWater(){
   scene.add(waterMesh);
 }
 function updateWater(){
-  if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+  if(!waterMesh)return;
+  const lift=(typeof stormVisual==='number'?stormVisual:0);
+  waterMesh.position.y=Math.sin(perf*(1.1+lift*2.2))*0.045+lift*0.95;
 }
 // Fishing: tap the pond to cast; after a beat you reel in a catch worth coins
 // (and, with a Market/Tavern, a 'fish' good for the stockpile). Frozen in winter.
@@ -3761,11 +4105,15 @@ function buyBuilding(key){
   setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
   checkTownRank();
 }
-function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id));}
+function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id)&&it.biome!=='storm');}
 function landCost(){return 300+W.islets.length*250;}
 function buyLand(){
   const it=nextIslet();
-  if(!it){toast('🏝️ Every islet already floats in the sky');return;}
+  if(!it){
+    const shelf=ISLETS.find(s=>s.biome==='storm'&&!W.islets.includes(s.id));
+    if(shelf){toast('🏝️ The last shore is still under the tide — the harbor gull can call it');return;}
+    toast('🏝️ Every islet already floats in the sky');return;
+  }
   const cost=landCost();
   if(!spendCoins(cost))return;
   unlockIslet(it);
@@ -3780,6 +4128,12 @@ function buildTownPanel(){
     dare.innerHTML='<div class="ico">📮</div><div class="nm">Harbor dare</div><div class="pr">'+(v.paid?'Kept':Math.min(v.cur,v.goal)+'/'+v.goal)+'</div>';
     dare.addEventListener('click',()=>openDare());
     p.appendChild(dare);
+  }
+  if(typeof onGullClick==='function'){
+    const g=document.createElement('div');g.className='p-item';
+    g.innerHTML='<div class="ico">🐦</div><div class="nm">Harbor gull</div><div class="pr">'+(stormHudLine()||('LV '+STORM_LEVEL))+'</div>';
+    g.addEventListener('click',()=>onGullClick());
+    p.appendChild(g);
   }
   if(kilnOk()){
     const kp=kilnProgress();
@@ -4285,17 +4639,17 @@ function juiceKick(mag){
 }
 function updateJuice(dt){if(juice.t>0)juice.t=Math.max(0,juice.t-dt);}
 function feel(kind){
-  const mag={till:0.08,plant:0.1,water:0.06,harvest:0.28,place:0.08,stroke:0.22,seal:0.7,kiln:1.35,dare:0.55}[kind]||0.08;
+  const mag={till:0.08,plant:0.1,water:0.06,harvest:0.28,place:0.08,stroke:0.22,seal:0.7,kiln:1.35,dare:0.55,tide:1.2}[kind]||0.08;
   juiceKick(mag);
   const slot=document.querySelector('.slot.sel');
   if(slot){slot.classList.remove('boop');void slot.offsetWidth;slot.classList.add('boop');}
   const flash=$('juiceFlash');
-  if(flash&&(kind==='kiln'||kind==='seal'||kind==='dare'||kind==='harvest')){
+  if(flash&&(kind==='kiln'||kind==='seal'||kind==='dare'||kind==='harvest'||kind==='tide')){
     flash.className='';
     void flash.offsetWidth;
-    flash.className='on '+(kind==='kiln'?'hot':kind==='harvest'?'green':'gold');
+    flash.className='on '+(kind==='kiln'?'hot':kind==='tide'?'tide':kind==='harvest'?'green':'gold');
   }
-  if(!state.muted&&navigator.vibrate){try{navigator.vibrate(kind==='kiln'?36:kind==='harvest'?16:8);}catch(e){}}
+  if(!state.muted&&navigator.vibrate){try{navigator.vibrate(kind==='kiln'||kind==='tide'?36:kind==='harvest'?16:8);}catch(e){}}
 }
 function camNudge(yaw,dist){
   if(yaw)cam.tyaw+=yaw;
@@ -5080,6 +5434,7 @@ function unlockIslet(it,fromLoad){
   if(!it||W.islets.includes(it.id))return;
   W.islets.push(it.id);
   if(it.biome==='fen')genFen(it);
+  else if(it.biome==='storm')genStormShelf(it);
   else genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
   if(it.biome==='fen')placeKiln(it);
@@ -5087,6 +5442,7 @@ function unlockIslet(it,fromLoad){
   if(!fromLoad){
     SFX.play('islet');
     if(it.biome==='fen')setTimeout(()=>banner('🌿 The North Fen has risen!','Moss, clay, and a cracked brick kiln. Seal it, then fire it once each day.'),1200);
+    else if(it.biome==='storm')setTimeout(()=>banner('🪨 The Storm Shelf has risen!','Stone, sand, and sea-glass spires. The tide uncovered it.'),1200);
     else setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
     for(let i=0;i<24;i++)setTimeout(()=>{
       burst(it.x+(Math.random()-0.5)*it.r*2,surfaceY(it.x,it.z)+2||6,it.z+(Math.random()-0.5)*it.r*2,0xffffff,4,{up:2,g:3});
@@ -5166,6 +5522,7 @@ function refreshQuestHud(){
   }
   refreshKilnHud();
   refreshDareHud();
+  if(typeof refreshStormHud==='function')refreshStormHud();
 }
 
 /* ============================== actions ============================== */
@@ -5390,6 +5747,7 @@ function placeSelected(x,y,z,quiet){
     },'placement');
   } else {
     setB(x,y,z,sel);
+    if(typeof stormNotePlace==='function')stormNotePlace(x,y,z);
     if(!quiet)flushChunks();
     state.decor++;
     if(sel===11)state.bricksLaid=(state.bricksLaid||0)+1;
@@ -5712,6 +6070,7 @@ function bindInput(){
         eyedropBlock(src?raycastAt(src.x,src.y):null);return;
       }
       if(k==='k'&&!e.repeat){onKilnClick();return;}
+      if(k==='g'&&!e.repeat&&!(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))){onGullClick();return;}
       if(e.key==='['){cycleBuild(-1);return;}
       if(e.key===']'){cycleBuild(1);return;}
     }
@@ -5844,12 +6203,25 @@ function initHud(){
   if(dareChip)dareChip.addEventListener('click',()=>{SFX.play('click');openDare();});
   const qDare=$('qDare');
   if(qDare)qDare.addEventListener('click',()=>{SFX.play('click');openDare();});
+  const gullChip=$('gullChip');
+  if(gullChip)gullChip.addEventListener('click',()=>{SFX.play('click');onGullClick();});
+  const qGull=$('qGull');
+  if(qGull)qGull.addEventListener('click',()=>{SFX.play('click');onGullClick();});
   const nudge=(yaw,dist)=>()=>{camNudge(yaw,dist);SFX.play('click');};
   const camLeft=$('camLeft');if(camLeft)camLeft.addEventListener('click',nudge(-Math.PI/5,0));
   const camRight=$('camRight');if(camRight)camRight.addEventListener('click',nudge(Math.PI/5,0));
   const camIn=$('camIn');if(camIn)camIn.addEventListener('click',nudge(0,-6));
   const camOut=$('camOut');if(camOut)camOut.addEventListener('click',nudge(0,6));
   refreshDareHud();
+  if(typeof ResizeObserver==='function'&&!voxHudWatch){
+    voxHudWatch=true;
+    const ro=new ResizeObserver(()=>{placePhoneBack();});
+    const topbar=document.getElementById('topbar');
+    const back=document.getElementById('back');
+    if(topbar)ro.observe(topbar);
+    if(back)ro.observe(back);
+  }
+  placePhoneBack();
   document.querySelectorAll('#buildBar [data-mode]').forEach(b=>{
     b.addEventListener('click',()=>setBuildMode(b.dataset.mode));
   });
@@ -6006,19 +6378,44 @@ function save(){
 function savePresent(){
   try{return !!localStorage.getItem(SAVE_KEY);}catch(e){return false;}
 }
+let voxHudWatch=false;
+function placeQuestCard(){
+  const q=document.getElementById('quests');
+  const back=document.getElementById('back');
+  if(!q||!back)return;
+  if(innerWidth>1024&&innerHeight>480){
+    const next=Math.round(back.getBoundingClientRect().bottom+8)+'px';
+    if(document.documentElement.style.getPropertyValue('--vox-quests-top')!==next)
+      document.documentElement.style.setProperty('--vox-quests-top', next);
+  } else if(document.documentElement.style.getPropertyValue('--vox-quests-top')){
+    document.documentElement.style.removeProperty('--vox-quests-top');
+  }
+}
 function placePhoneBack(){
   const chip=document.getElementById('resumeChip');
   const back=document.getElementById('back');
+  const topbar=document.getElementById('topbar');
   if(!back)return;
-  if(chip&&!chip.hidden&&innerWidth<=640){
-    const b=chip.getBoundingClientRect();
-    document.documentElement.style.setProperty('--vox-back-top', Math.round(b.bottom+8)+'px');
+  if(innerWidth<=640){
+    const bar=topbar?topbar.getBoundingClientRect():null;
+    const chipBox=chip&&!chip.hidden?chip.getBoundingClientRect():null;
+    const floor=Math.max(bar&&bar.height?bar.bottom:0, chipBox?chipBox.bottom:0);
+    if(floor>0){
+      const next=Math.round(floor+8)+'px';
+      if(document.documentElement.style.getPropertyValue('--vox-back-top')!==next)
+        document.documentElement.style.setProperty('--vox-back-top', next);
+    }
     // Keep banked goods below both New isle and the relocated nav rail.
-    document.documentElement.style.setProperty('--vox-goods-top', Math.ceil(Math.max(b.bottom,back.getBoundingClientRect().bottom)+8)+'px');
+    const goods=Math.ceil(Math.max(floor, back.getBoundingClientRect().bottom)+8)+'px';
+    if(document.documentElement.style.getPropertyValue('--vox-goods-top')!==goods)
+      document.documentElement.style.setProperty('--vox-goods-top', goods);
   } else {
-    document.documentElement.style.removeProperty('--vox-back-top');
-    document.documentElement.style.removeProperty('--vox-goods-top');
+    if(document.documentElement.style.getPropertyValue('--vox-back-top'))
+      document.documentElement.style.removeProperty('--vox-back-top');
+    if(document.documentElement.style.getPropertyValue('--vox-goods-top'))
+      document.documentElement.style.removeProperty('--vox-goods-top');
   }
+  placeQuestCard();
 }
 function paintResume(loaded,rejected){
   const chip=document.getElementById('resumeChip');
@@ -6070,6 +6467,8 @@ function load(){
   state.townRank=sInt(state.townRank,0,0,TOWN_RANKS.length-1);
   if(state.buildMode!=='line'&&state.buildMode!=='floor')state.buildMode='single';
   if(state.kiln&&!Array.isArray(state.kiln.cells))state.kiln=null;
+  if(!state.storm||typeof state.storm!=='object')state.storm={bested:false,paid:false,phase:'idle',held:0};
+  else state.storm={bested:!!state.storm.bested,paid:!!state.storm.paid,phase:'idle',held:state.storm.held|0};
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
@@ -6344,6 +6743,8 @@ const ACH=[
   ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1,()=>[W.islets.length,1]],
   ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=ISLETS.length,()=>[W.islets.length,ISLETS.length]],
   ['fen','Fen Charted','Raise the North Fen',()=>W.islets.includes(3),()=>[W.islets.includes(3)?1:0,1]],
+  ['tide','Tidewright','Hold the shore through a storm tide',()=>!!(state.storm&&state.storm.paid)],
+  ['shelf','Storm Shelf','Raise the shelf the tide uncovers',()=>stormRaised(),()=>[stormRaised()?1:0,1]],
   ['bricks20','Bricklayer','Lay 20 bricks',()=>(state.bricksLaid||0)>=20,()=>[state.bricksLaid||0,20]],
   ['kiln','Kilnwright','Seal the fen kiln with brick',()=>!!(state.kiln&&state.kiln.paid)],
   ['fires3','Kept the Fire','Fire the fen kiln on three days',()=>(state.kiln&&state.kiln.fires||0)>=3,()=>[(state.kiln&&state.kiln.fires||0),3]],
@@ -6726,6 +7127,7 @@ function boot(){
     const dn=updateDay(dt);
     MUSIC.tick(dt,dn);
     updateRain(dt);
+    updateStorm(dt);
     updateRainbow(dt);
     updatePlants(dt,dn);
     updateSprinklers(dt);
