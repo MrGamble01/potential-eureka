@@ -340,10 +340,17 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-218: a half story must not start the 2s job or the 30s lock.
+  // finishAction already refuses; doAction has to refuse first.
+  if(a.id==='reunion' && !hvReunionStands()){
+    log('🎂 The reunion needs the whole story — the chalk star’s holds and Marisol’s visits both. Not yet.');
+    sfx('error');
+    return;
+  }
   // HV-238: Throw the Reunion said once a session. finishAction
   // already logs people have places to be and no-ops. Clicking 🎂
   // after the party still started the 2s job and charged the 30s
-  // lock. A half story is HV-218.
+  // lock.
   if(a.id==='reunion' && hvReunionStands() && bridgeReunionHeld){
     log('\ud83c\udf82 The reunion already went off today — people have places to be.');
     sfx('error');

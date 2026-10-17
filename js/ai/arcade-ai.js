@@ -208,17 +208,16 @@
       ],
       npcs: [
         npc('wren', 'Elder Wren', 'Hearth', '🔥', [
-          { when: (c) => low(c.food, 4), mood: 'grave', text: (c) => 'The stores show ' + shown(c.food, 'no') + ' food. A valley that skips supper does not stay a valley.' },
-          { when: (c) => high(c.pop, 8), mood: 'proud', text: (c) => shown(c.pop, 'The') + ' souls on the green. Learn their names before the next roof.' },
-          { mood: 'soft', text: (c) => 'Day ' + shown(c.day, 'one') + '. The hearth is lit. That is the whole job until it is not.' },
+          { when: (c) => low(c.food, 7), mood: 'grave', text: (c) => 'The stores show ' + shown(c.food, '0') + ' food. I will not walk into the hollow hungry.' },
+          { mood: 'soft', text: (c) => 'Day ' + shown(c.day, '1') + '. The hearth is lit. I will stand with you.' },
         ]),
         npc('ada', 'Reeve Ada', 'Watch', '🪵', [
-          { when: (c) => low(c.wood, 6), mood: 'brisk', text: (c) => 'Wood is ' + shown(c.wood, 'short') + '. No new hall until the cutters catch up.' },
-          { mood: 'plain', text: () => 'I walked the palisade. It is a fence until someone stands on it.' },
+          { when: (c) => low(c.wood, 11), mood: 'brisk', text: (c) => 'Wood is ' + shown(c.wood, '0') + '. I will not face the warden with an empty yard.' },
+          { mood: 'plain', text: () => 'The watch is with you. Say the word.' },
         ]),
         npc('sable', 'Sable', 'Merchant', '🧳', [
-          { when: (c) => low(c.gold, 5), mood: 'wry', text: (c) => 'Coin is ' + shown(c.gold, 'a story') + '. I still have thread, if you have patience.' },
-          { mood: 'bright', text: (c) => 'Day ' + shown(c.day, 'one') + ' and the road is open. I buy what the valley can spare.' },
+          { when: (c) => low(c.gold, 19), mood: 'wry', text: (c) => 'Coin is ' + shown(c.gold, '0') + '. I still have thread, if you have patience.' },
+          { mood: 'bright', text: () => 'I will stand in the lantern light. The road can wait.' },
         ]),
       ],
       calls: {

@@ -32,13 +32,17 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   const modal = await page.evaluate(() => {
     const m = document.getElementById('patch-modal');
     const entries = Array.from(document.querySelectorAll('#patch-list > div'));
+    const dates = entries.map(e => (e.querySelector('.hub-kicker') || {}).textContent || '');
     return { open: m.style.display === 'flex', n: entries.length,
       firstTitle: entries[0] && entries[0].textContent,
+      dates,
       bullets: document.querySelectorAll('#patch-list li').length };
   });
   ok(modal.open, 'the modal opens');
   ok(modal.n >= 10, `${modal.n} release entries listed`);
-  ok(modal.firstTitle.includes('Fixes that had been waiting'), 'newest release leads');
+  ok(modal.firstTitle.includes('A deckhand on the isle'), 'newest release leads');
+  ok(modal.dates.length >= 2 && modal.dates.every((d, i) => i === 0 || modal.dates[i - 1] >= d),
+    `entries are newest first (${modal.dates[0]} then ${modal.dates[1]})`);
   ok(modal.bullets >= 20, `${modal.bullets} bullet items across the log`);
 
   // D. Esc closes; reopen; backdrop closes
