@@ -38,7 +38,8 @@
   #lvlChip .bar{height:6px;background:#141a22;border-radius:3px;margin-top:5px;overflow:hidden}
   #lvlChip .bar i{display:block;height:100%;background:linear-gradient(90deg,#5cae53,#a5e28a);border-radius:3px;transition:width .4s}
   #dayChip{color:var(--blue)}
-  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:52vw}
+  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;
+    align-items:flex-start;justify-content:flex-end;max-width:52vw}
   #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;line-height:1;
     background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px;
     min-width:38px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
@@ -63,6 +64,35 @@
   #quests .q-text{color:var(--ink)}
   #quests .q-prog{color:var(--dim);font-size:12px;margin-top:3px}
   #hotbar{bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+  .slot.boop{animation:slotBoop .2s ease}
+  @keyframes slotBoop{40%{filter:brightness(1.55)}100%{filter:brightness(1)}}
+  #juiceFlash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0}
+  #juiceFlash.on.hot{animation:juiceHot 1.15s ease-out}
+  #juiceFlash.on.gold{animation:juiceGold .55s ease-out}
+  #juiceFlash.on.green{animation:juiceGreen .4s ease-out}
+  @keyframes juiceHot{0%{opacity:1;background:radial-gradient(circle at 50% 58%,rgba(255,90,16,.9),transparent 46%)}35%{opacity:.72}100%{opacity:0}}
+  @keyframes juiceGold{0%{opacity:.75;background:radial-gradient(circle at 50% 40%,rgba(255,209,102,.5),transparent 55%)}100%{opacity:0}}
+  @keyframes juiceGreen{0%{opacity:.55;background:radial-gradient(circle at 50% 70%,rgba(127,211,112,.4),transparent 52%)}100%{opacity:0}}
+  #camPad{position:fixed;left:8px;bottom:88px;z-index:11;display:none;grid-template-columns:46px 46px;gap:6px}
+  #camPad button{min-width:46px;min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(18,24,32,.88);color:var(--ink);font-size:18px;font-weight:700;cursor:pointer}
+  #dareChip{cursor:pointer;color:#ffd166;font-weight:700}
+  #dareChip[hidden]{display:none}
+  #dareChip.ready{animation:slotBoop 1s ease infinite}
+  #qDare{color:#ffd166;font-size:12px;margin-top:3px;cursor:pointer}
+  #qDare:empty{display:none}
+  #darePanel.open{display:block;max-width:min(94vw,400px)}
+  #darePanel .dare-line{grid-column:1/-1;font-size:14px;line-height:1.45;margin:4px 0}
+  #darePanel .dare-bar{grid-column:1/-1;height:8px;border-radius:4px;background:#141a22;overflow:hidden}
+  #darePanel .dare-bar i{display:block;height:100%;background:linear-gradient(90deg,#e0a84a,#ffd166)}
+  #darePanel input{grid-column:1/-1;width:100%;background:#141a22;color:var(--ink);border:1px solid rgba(255,255,255,.14);
+    border-radius:8px;padding:8px 10px;font-size:13px}
+  #darePanel .dare-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+  #darePanel .dare-actions button,#darePanel .board button{background:#2a323c;color:var(--ink);border:1px solid rgba(255,255,255,.14);
+    border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;cursor:pointer;min-height:40px}
+  #darePanel .board{grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:13px}
+  #darePanel .board .who{display:flex;justify-content:space-between;gap:8px;background:var(--panel2);border-radius:8px;padding:6px 8px}
+  #darePanel .board .who b{color:var(--gold)}
   .slot{width:56px;height:56px;border-radius:14px;background:rgba(18,24,32,.85);border:2px solid rgba(255,255,255,.1);
     display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;
     font-size:22px;transition:transform .12s,border-color .12s}
@@ -71,7 +101,27 @@
   .slot .key{position:absolute;top:2px;left:6px;font-size:9px;color:var(--dim)}
   .panel{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:none;grid-template-columns:repeat(4,1fr);
     gap:6px;background:rgba(18,24,32,.94);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;z-index:12;
-    max-width:min(94vw,420px)}
+    max-width:min(94vw,440px);max-height:min(46vh,380px);overflow:auto}
+  #buildBar{bottom:78px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    justify-content:center;z-index:11;max-width:min(300px,92vw);padding:5px 8px}
+  #buildBar[hidden]{display:none!important}
+  body.panel-open #buildBar{display:none!important}
+  #buildHint{font-size:10px;color:var(--dim);letter-spacing:.01em}
+  .build-modes{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .build-modes button,#buildBar button{background:#2a323c;color:var(--ink);border:1px solid rgba(255,255,255,.14);
+    border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;cursor:pointer;min-height:28px}
+  .build-modes button.on,#buildBar button.on{border-color:var(--green);color:#b6f0a8}
+  #kilnChip{cursor:pointer;color:#ffb089;font-weight:700}
+  #kilnChip[hidden]{display:none}
+  /* The quest card already carries the kiln line. On a kept isle the extra
+     topbar chip shoved New isle across the town button. Hide it wherever
+     that card is on screen; phones and short landscape hide the card. */
+  @media (min-width:641px) and (min-height:481px){
+    #kilnChip{display:none!important}
+    #dareChip{display:none!important}
+  }
+  #qKiln{color:#ffb089;font-size:12px;margin-top:3px;cursor:pointer}
+  #qKiln:empty{display:none}
   .panel.open{display:grid}
   .p-item{width:100%;min-width:74px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
   .p-item:hover{border-color:rgba(255,255,255,.25)}
@@ -156,6 +206,7 @@
     .slot{width:52px;height:52px;font-size:20px;border-radius:12px}
     .slot small{font-size:8px}
     #quests{display:none}
+    #buildHint{display:none}
     #topbar{gap:6px}
     #coinChip{font-size:15px}
     #lvlChip{min-width:96px}
@@ -179,14 +230,21 @@
     #banner p{font-size:13px}
     #fpTool{font-size:110px;left:82%}
     #vox-tray{bottom:78px;max-height:calc(100vh - 106px)}
+    #camPad{display:grid;bottom:calc(78px + env(safe-area-inset-bottom))}
+    #hotbar{bottom:calc(10px + env(safe-area-inset-bottom))}
+    #buildBar{left:calc(50% + 40px);max-width:min(230px,68vw)}
+    #buildBar button{min-height:40px;padding:6px 10px;font-size:13px}
+    button,.slot,.p-item,a{touch-action:manipulation}
   }
   #goodsHud{position:fixed;top:58px;left:10px;z-index:10;display:none;gap:8px;align-items:center;
     background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
     border-radius:10px;padding:6px 11px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   body.photo #goodsHud{display:none!important}
   /* short landscape (phones on their side) */
+  @media (pointer:coarse){ #camPad{display:grid} }
   @media (max-height:480px){
     #quests{display:none}
+    #buildHint{display:none}
     .slot{width:46px;height:46px}
     #hotbar{bottom:8px}
     #vox-tray{bottom:62px;max-height:calc(100vh - 80px)}
@@ -238,6 +296,8 @@
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
+  <div class="chip" id="dareChip" hidden title="Today's harbor dare. Same challenge for every garden, swapped by a note — no server.">📮 <span id="dareTxt">Dare</span></div>
+  <div class="chip" id="kilnChip" hidden title="The fen kiln. Seal every cracked course with brick, then fire it once each day.">🔥 <span id="kilnTxt">Kiln</span></div>
   <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
     <button type="button" id="resumeNewIsle" hidden>New isle</button>
   </div>
@@ -260,6 +320,8 @@
   <div class="q-title">✦ GARDEN GOAL</div>
   <div class="q-text" id="qText"></div>
   <div class="q-prog" id="qProg"></div>
+  <div id="qKiln"></div>
+  <div id="qDare"></div>
 </div>
 <div class="hud" id="hotbar">
   <div class="slot" data-tool="hoe"><span class="key">1</span>⚒️<small>TILL</small></div>
@@ -268,10 +330,26 @@
   <div class="slot" data-tool="block"><span class="key">4</span><span id="blockIco">🧱</span><small>BUILD</small></div>
   <div class="slot" data-tool="pick"><span class="key">5</span>⛏️<small>DIG</small></div>
 </div>
+<div class="hud chip" id="buildBar" hidden>
+  <button type="button" data-mode="single">Single</button>
+  <button type="button" data-mode="line">Line</button>
+  <button type="button" data-mode="floor">Floor</button>
+  <button type="button" id="buildUndo">Undo</button>
+  <button type="button" id="buildCancel" hidden>Cancel</button>
+  <span id="buildHint">Z undo · R copy · Shift replace</span>
+</div>
 <div class="panel" id="seedPanel"></div>
 <div class="panel" id="blockPanel"></div>
 <div class="panel" id="animalPanel"></div>
 <div class="panel" id="townPanel"></div>
+<div class="panel" id="darePanel"></div>
+<div id="camPad" aria-label="Camera">
+  <button type="button" id="camLeft" title="Turn left">⟲</button>
+  <button type="button" id="camIn" title="Closer">+</button>
+  <button type="button" id="camRight" title="Turn right">⟳</button>
+  <button type="button" id="camOut" title="Farther">−</button>
+</div>
+<div id="juiceFlash"></div>
 <div id="toasts"></div>
 <div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
 <div id="achOv"><div class="card">
@@ -302,8 +380,11 @@
     <li><b>Drag</b> to orbit &middot; <b>scroll / pinch</b> to zoom &middot; <b>Q / E</b> rotate</li>
     <li><b>⚒️ Till</b> grass into soil, <b>🌱 plant</b> a seed, <b>💧 water</b> it (grows 2&times; faster)</li>
     <li><b>Tap a ripe plant</b> (it sparkles) to harvest it for coins &amp; XP</li>
-    <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove</li>
-    <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
+    <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove. <b>B</b> cycles Single, Line and Floor (two taps lay a wall or an 8&times;8 pad). <b>Z</b> undoes, <b>R</b> copies the block you are looking at, <b>Shift</b> replaces, <b>[ ]</b> cycles materials</li>
+    <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b>. Clay, moss, brick and sea glass join the build kit on the way</li>
+    <li>The <b>🌿 North Fen</b> (level 11, or the fourth land expansion) is a moss-and-clay islet with a cracked <b>brick kiln</b>. Seal every gap, then <b>fire it once each day</b> &mdash; the purse starts at 27 🪙 and grows by 3 a firing, up to 54. Firing kicks the camera and throws sparks</li>
+    <li>The <b>📮 harbor dare</b> is the same challenge in every garden each real-world day. Beat the morning ferry, claim the purse, and <b>post a note</b> another isle can paste &mdash; the board stays on this device</li>
+    <li>On a phone, <b>⟲ ⟳ + −</b> orbits and zooms. A short finger-slip still uses the tool; a longer drag orbits</li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
@@ -344,7 +425,7 @@
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings, and for a little while afterward <b>all goods sell for +35%</b> &mdash; a great time to cash in your stockpile</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
-    <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
+    <li>Keys <b>1&ndash;5</b> tools &middot; <b>B</b> build shape &middot; <b>Z</b> undo &middot; <b>R</b> copy &middot; <b>[ ]</b> material &middot; <b>K</b> fire the kiln &middot; <b>Q / E</b> turn &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
 </div></div>
 
@@ -400,6 +481,11 @@ const SFX={ctx:null,
       chirp:()=>{this.tone(2300,0.05,'sine',0.03,2700);this.tone(2600,0.06,'sine',0.025,2200,0.09);},
       ach:()=>{[659,784,1047].forEach((f,i)=>this.tone(f,0.14,'triangle',0.09,0,i*0.09));},
       season:()=>{this.tone(392,0.25,'sine',0.06,440);this.tone(523,0.3,'sine',0.05,494,0.2);},
+      clink:()=>{this.tone(880,0.04,'square',0.05,420);this.tone(1320,0.06,'triangle',0.04,0,0.03);},
+      ripple:()=>{[196,247,294,349,392].forEach((f,i)=>this.tone(f,0.05,'square',0.045,f*0.7,i*0.045));},
+      seal:()=>{[392,523,659,784].forEach((f,i)=>this.tone(f,0.18,'triangle',0.08,0,i*0.08));this.crackle(0.35,0.04);},
+      kiln:()=>{this.crackle(0.7,0.09);this.tone(98,0.45,'sine',0.08,70);this.tone(196,0.3,'triangle',0.06,0,0.08);this.tone(392,0.22,'triangle',0.05,0,0.18);},
+      dare:()=>{[523,659,784,1047,784].forEach((f,i)=>this.tone(f,0.12,'triangle',0.08,0,i*0.07));},
     };
     if(P[n])P[n]();
   },
@@ -432,6 +518,19 @@ const SFX={ctx:null,
     const {src,g}=this.rainNode;this.rainNode=null;
     g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+1.5);
     setTimeout(()=>{try{src.stop();}catch(e){}},1700);
+  },
+  crackle(dur,vol){
+    const scale=window.EurekaPersist?EurekaPersist.audio.sfx(state.muted):(state.muted?0:1);
+    if(scale<=0)return;this.ensure();if(!this.ctx)return;
+    const ctx=this.ctx,len=Math.max(1,Math.floor(ctx.sampleRate*dur));
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,0.6);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const bp=ctx.createBiquadFilter();bp.type='lowpass';bp.frequency.value=900;
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(Math.max(vol*scale,0.0002),ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+    src.connect(bp);bp.connect(g);g.connect(ctx.destination);src.start();
   }
 };
 
@@ -464,8 +563,12 @@ const BLOCKS={
   6:{name:'Wet soil', top:0x4a3420, side:0x64492e, bottom:0x6b4a30},       // tilled, wet
   7:{name:'Planks',ico:'🪵', top:0xc09362, side:0xb08454, bottom:0x94693c, cost:4, lvl:2},
   8:{name:'Path',  ico:'🪨', top:0xbcb49c, side:0xa8a08a, bottom:0x8f8874, cost:3, lvl:2},
+  9:{name:'Clay',  ico:'🏺', top:0xc47a55, side:0xb56a48, bottom:0x8d4e34, cost:3, lvl:3},
+  10:{name:'Moss',  ico:'🍀', top:0x3f8f4a, side:0x5f7a3a, bottom:0x4a5a30, cost:3, lvl:4},
+  11:{name:'Brick', ico:'🧱', top:0xb64a3a, side:0xa13e32, bottom:0x7a3028, cost:5, lvl:5},
+  12:{name:'Sea Glass',ico:'💠', top:0x7ec8c4, side:0x5aa8b0, bottom:0x3e7e88, cost:7, lvl:6},
 };
-const BUILDABLE=[2,1,4,3,7,8];
+const BUILDABLE=[2,1,4,3,7,8,9,10,11,12];
 const PLANTS={
   sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1, season:'summer'},
   carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2, season:'autumn'},
@@ -492,16 +595,17 @@ const DECOR={
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
-const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
-  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
-  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
+const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Clay · Lanterns',
+  4:'Pumpkin seeds · Moss · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Bricks · Sprinklers',
+  6:'Moonpetal seeds · Sea glass · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
-  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  10:'A master gardener of the skies 🌈',11:'The North Fen rises — moss, clay, and a cracked kiln',
   12:'Nothing left to prove — everything left to grow 🌟'};
 const ISLETS=[
   {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
   {id:1,x:-25,z:-17,r:8,lvl:6,seedOff:202,name:'West Islet'},
   {id:2,x:3,z:-29,r:6,lvl:8,seedOff:303,name:'South Islet'},
+  {id:3,x:4,z:31,r:7,lvl:11,seedOff:404,name:'North Fen',biome:'fen'},
 ];
 
 /* ============================== state ============================== */
@@ -583,6 +687,319 @@ function genBridge(islet){
     // simple side posts every 3 blocks
   });
 }
+// The North Fen is a low moss-and-clay islet, not another copy of the
+// home island. Hummocks stay grass so the foliage pass still dresses them;
+// the hollows are moss and the rim is clay. A still pool sits off to the
+// east, and placeKiln() raises the cracked brick ring after the bridge.
+function genFen(it){
+  const cx=it.x,cz=it.z,r=it.r,s=W.seed+(it.seedOff|0);
+  for(let x=cx-r;x<=cx+r;x++)for(let z=cz-r;z<=cz+r;z++){
+    const dx=(x-cx)/r,dz=(z-cz)/r,d=Math.sqrt(dx*dx+dz*dz);
+    const edge=1-d+(fbm(x*0.28,z*0.28,s^0xF3)-0.5)*0.22;
+    if(edge<=0.04)continue;
+    const e=clamp(edge,0,1);
+    const n=fbm(x*0.16,z*0.16,s^0xA11);
+    const h=2+Math.round(n*2*Math.pow(e,0.55));
+    const depth=3+Math.round(e*3);
+    for(let y=h-depth;y<=h;y++){
+      let id;
+      if(y===h){
+        if(e<0.28)id=9;
+        else if(n<0.46)id=10;
+        else id=1;
+      } else if(y>h-2)id=9;
+      else id=3;
+      W.blocks.set(k3(x,y,z),id);
+    }
+  }
+  carveFenPool(cx+4,cz-3,3.1,s);
+}
+function carveFenPool(pcx,pcz,pr,s){
+  if(!W.pondCells)W.pondCells=[];
+  const h0=surfaceY(pcx,pcz);if(h0===null)return;
+  const waterY=h0-1,floorY=waterY-1;
+  for(let x=Math.floor(pcx-pr-1);x<=Math.ceil(pcx+pr+1);x++)
+  for(let z=Math.floor(pcz-pr-1);z<=Math.ceil(pcz+pr+1);z++){
+    const nd=Math.hypot(x-pcx,z-pcz)+(fbm(x*0.4,z*0.4,s^0x51)-0.5)*1.2;
+    if(nd>pr)continue;
+    if(surfaceY(x,z)===null)continue;
+    for(let y=floorY+1;y<=h0+3;y++)W.blocks.delete(k3(x,y,z));
+    W.blocks.set(k3(x,floorY,z),9);
+    if(nd>pr-0.85)W.blocks.set(k3(x,waterY,z),9);
+    else W.pondCells.push([x,z,waterY+0.86]);
+  }
+}
+const KILN_SEAL_COINS=40,KILN_SEAL_XP=20;
+const KILN_PAY0=24,KILN_PAY_STEP=3,KILN_PAY_CAP=10;
+function kilnPay(fires){return KILN_PAY0+Math.min(Math.max(fires|0,0),KILN_PAY_CAP)*KILN_PAY_STEP;}
+function kilnOk(){return !!(state.kiln&&Array.isArray(state.kiln.cells)&&state.kiln.cells.length);}
+function kilnProgress(){
+  if(!kilnOk())return null;
+  let filled=0;
+  for(const c of state.kiln.cells){if(getB(c[0],c[1],c[2])===11)filled++;}
+  return {filled,total:state.kiln.cells.length,sealed:filled===state.kiln.cells.length};
+}
+function placeKiln(it){
+  const cx=it.x-2,cz=it.z+3;
+  let y=null;
+  for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+    const sy=surfaceY(cx+dx,cz+dz);
+    if(sy!==null)y=y===null?sy:Math.min(y,sy);
+  }
+  if(y===null)return;
+  for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+    const x=cx+dx,z=cz+dz;
+    for(let yy=y+1;yy<=y+4;yy++)W.blocks.delete(k3(x,yy,z));
+    const top=surfaceY(x,z);
+    if(top===null||top<y){if(!getB(x,y,z))W.blocks.set(k3(x,y,z),9);}
+    else if(top>y){for(let yy=y+1;yy<=top;yy++)W.blocks.delete(k3(x,yy,z));}
+    if(Math.abs(dx)<=1&&Math.abs(dz)<=1)W.blocks.set(k3(x,y,z),9);
+    else if(!getB(x,y,z))W.blocks.set(k3(x,y,z),9);
+  }
+  const ring=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+  const gapSet=new Set(['-1,0','1,0','0,-1']);
+  const cells=[],gaps=[];
+  for(const [dx,dz] of ring){
+    const x=cx+dx,z=cz+dz,yy=y+1;
+    cells.push([x,yy,z]);
+    if(gapSet.has(dx+','+dz))gaps.push([x,yy,z]);
+    else setB(x,yy,z,11,true);
+  }
+  const prev=state.kiln&&state.kiln.cx===cx?state.kiln:{};
+  state.kiln={cx,cz,y:y+1,cells,gaps,sealed:!!prev.sealed,paid:!!prev.paid,
+    fires:prev.fires|0,firedDay:prev.firedDay|0};
+}
+function syncKilnSeal(silent){
+  const p=kilnProgress();
+  if(!p||!state.kiln)return p;
+  if(p.sealed&&!state.kiln.paid){
+    state.kiln.paid=true;
+    if(!silent){
+      grantCoins(KILN_SEAL_COINS);
+      grantXP(KILN_SEAL_XP);
+      banner('🔥 The fen kiln is sealed','Fire it once each day — clay in, coin out.');
+      SFX.play('seal');
+      feel('seal');
+      kilnRoar();
+      if(typeof checkAch==='function')checkAch();
+    }
+  }
+  state.kiln.sealed=p.sealed;
+  refreshKilnHud();
+  return p;
+}
+function fireKiln(){
+  if(!kilnOk())return false;
+  const p=syncKilnSeal(true);
+  if(!p||!p.sealed){toast('The kiln is still cracked — lay brick in every gap');SFX.play('error');return false;}
+  if((state.kiln.firedDay||0)===state.day){toast('The kiln is still hot — it fires again at dawn');return false;}
+  state.kiln.fires=(state.kiln.fires||0)+1;
+  state.kiln.firedDay=state.day;
+  const pay=kilnPay(state.kiln.fires);
+  grantCoins(pay);
+  grantXP(8);
+  toast('🔥 The kiln fires — +'+pay+' 🪙');
+  SFX.play('kiln');
+  feel('kiln');
+  kilnRoar();
+  if(typeof checkAch==='function')checkAch();
+  questCheck();
+  refreshKilnHud();
+  if($('townPanel')&&$('townPanel').classList.contains('open'))buildTownPanel();
+  return true;
+}
+function onKilnClick(){
+  if(!kilnOk())return;
+  const p=kilnProgress();
+  if(!p||!p.sealed){
+    const left=p?p.total-p.filled:0;
+    toast('The kiln still has '+left+' cracked '+(left===1?'course':'courses')+' — lay brick');
+    SFX.play('error');return;
+  }
+  fireKiln();
+}
+function kilnHudLine(){
+  if(!kilnOk())return '';
+  const p=kilnProgress();
+  if(!p.sealed)return 'Kiln '+p.filled+'/'+p.total;
+  if((state.kiln.firedDay||0)===state.day)return 'Kiln cooling';
+  return 'Fire kiln · '+kilnPay((state.kiln.fires||0)+1)+' 🪙';
+}
+function refreshKilnHud(){
+  const line=kilnHudLine();
+  const chip=$('kilnChip'),txt=$('kilnTxt'),q=$('qKiln');
+  if(chip){chip.hidden=!line;if(txt)txt.textContent=line;}
+  if(q)q.textContent=line?'🔥 '+line:'';
+}
+/* The harbor dare is one challenge per real-world day, the same in every
+   garden. Scores travel as a note you paste; nothing leaves this device. */
+const DARE_KINDS=[
+  {id:'till', label:'Till', text:'Till {n} plots', metric:()=>state.tills|0, min:3, max:6, reward:8},
+  {id:'plant', label:'Plant', text:'Plant {n} seeds', metric:()=>state.planted|0, min:3, max:5, reward:10},
+  {id:'water', label:'Water', text:'Water {n} plots', metric:()=>state.waters|0, min:3, max:6, reward:8},
+  {id:'harvest', label:'Harvest', text:'Harvest {n} crops', metric:()=>state.harvests|0, min:2, max:5, reward:12},
+  {id:'build', label:'Build', text:'Place {n} blocks or decorations', metric:()=>state.decor|0, min:4, max:8, reward:10},
+];
+const DARE_BOARD_KEY='voxel-dare-board';
+const DARE_NAME_KEY='voxel-dare-name';
+function dareHash(str){let h=5381;const s=String(str||'');for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h;}
+function dareDayKey(date){
+  const d=date||new Date();
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+}
+function dareKind(id){return DARE_KINDS.find(k=>k.id===id)||null;}
+function dareRoll(key){
+  const h=dareHash(key);
+  const kind=DARE_KINDS[h%DARE_KINDS.length];
+  const goal=kind.min+((h>>>8)%(kind.max-kind.min+1));
+  return {key:String(key||''), id:kind.id, goal, ferry:goal+((h>>>16)%3)};
+}
+function dareEnsure(){
+  const key=dareDayKey();
+  const d=state.dare;
+  if(d&&d.key===key&&dareKind(d.id)&&(d.goal|0)>0)return d;
+  const roll=dareRoll(key);
+  state.dare={key, id:roll.id, goal:roll.goal, base:dareKind(roll.id).metric(), paid:false};
+  return state.dare;
+}
+function dareView(){
+  const d=dareEnsure();
+  const kind=dareKind(d.id);
+  const cur=Math.max(0, kind.metric()-(d.base|0));
+  const ferry=(d.goal|0)+((dareHash(d.key)>>>16)%3);
+  return {key:d.key, id:d.id, goal:d.goal|0, base:d.base|0, paid:!!d.paid, cur, label:kind.label,
+    text:kind.text.replace('{n}', d.goal), reward:kind.reward+(d.goal|0), ferry, ready:cur>=(d.goal|0)&&!d.paid};
+}
+function dareName(){
+  try{const n=(localStorage.getItem(DARE_NAME_KEY)||'This garden').replace(/[<>&"]/g,'').trim().slice(0,14);return n||'This garden';}
+  catch(e){return 'This garden';}
+}
+function dareSetName(n){
+  const clean=String(n||'').replace(/[<>&"]/g,'').trim().slice(0,14);
+  try{localStorage.setItem(DARE_NAME_KEY, clean||'This garden');}catch(e){}
+  return dareName();
+}
+function dareBoard(){
+  let raw;try{raw=JSON.parse(localStorage.getItem(DARE_BOARD_KEY)||'[]');}catch(e){return [];}
+  if(!Array.isArray(raw))return [];
+  return raw.filter(r=>r&&typeof r.n==='string'&&typeof r.d==='string'&&typeof r.k==='string'&&typeof r.s==='number'&&r.s>=0&&r.s<1e7).slice(0,24);
+}
+function dareSaveBoard(rows){try{localStorage.setItem(DARE_BOARD_KEY, JSON.stringify(rows.slice(0,24)));}catch(e){}}
+function dareUpsert(name, score, mine){
+  const v=dareView();
+  const rows=dareBoard().filter(r=>!(r.d===v.key&&r.k===v.id&&r.n===name));
+  rows.unshift({n:name, d:v.key, k:v.id, g:v.goal, s:score|0, mine:!!mine});
+  dareSaveBoard(rows);
+}
+function dareEncode(name, score){
+  const v=dareView();
+  const payload=JSON.stringify({v:1,d:v.key,k:v.id,g:v.goal,s:score|0,n:String(name||dareName()).slice(0,14)});
+  const b=btoa(unescape(encodeURIComponent(payload))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return b+'.'+dareHash(b).toString(36);
+}
+function dareDecode(code){
+  const m=/^([A-Za-z0-9_-]+)\.([a-z0-9]+)$/.exec(String(code||'').trim());
+  if(!m||dareHash(m[1]).toString(36)!==m[2])return null;
+  let obj;
+  try{obj=JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-m[1].length%4)%4)))));}catch(e){return null;}
+  if(!obj||obj.v!==1||typeof obj.d!=='string'||!dareKind(obj.k))return null;
+  if(typeof obj.s!=='number'||!isFinite(obj.s)||obj.s<0||obj.s>1e6)return null;
+  if((obj.g|0)<1||(obj.g|0)>99)return null;
+  return {d:obj.d, k:obj.k, g:obj.g|0, s:Math.floor(obj.s), n:String(obj.n||'Isle').replace(/[<>&"]/g,'').slice(0,14)||'Isle'};
+}
+function dareImport(code){
+  const note=dareDecode(code);
+  if(!note)return {ok:false, error:'That note is torn — nothing to read.'};
+  const v=dareView();
+  if(note.d!==v.key||note.k!==v.id||note.g!==v.goal)return {ok:false, error:'That note is for a different day.'};
+  const rows=dareBoard().filter(r=>!(r.d===note.d&&r.k===note.k&&r.n===note.n));
+  rows.unshift({n:note.n, d:note.d, k:note.k, g:note.g, s:note.s, mine:false});
+  dareSaveBoard(rows);
+  return {ok:true, note};
+}
+function dareClaim(){
+  const v=dareView();
+  if(v.paid){toast('Already claimed today');return false;}
+  if(v.cur<v.goal){toast(v.cur+'/'+v.goal+' — '+v.text);SFX.play('error');return false;}
+  state.dare.paid=true;
+  grantCoins(v.reward);
+  grantXP(12);
+  SFX.play('dare');
+  feel('dare');
+  banner('📮 Dare claimed','+'+v.reward+' 🪙 · the harbor has your mark');
+  dareUpsert(dareName(), v.cur, true);
+  refreshDareHud();
+  if($('darePanel')&&$('darePanel').classList.contains('open'))buildDarePanel();
+  return true;
+}
+function refreshDareHud(){
+  const v=dareView();
+  const chip=$('dareChip'), txt=$('dareTxt'), q=$('qDare');
+  const line=v.paid?'Kept':(v.cur>=v.goal?'Claim +'+v.reward+' 🪙':v.label+' '+Math.min(v.cur,v.goal)+'/'+v.goal);
+  if(chip){chip.hidden=false;chip.classList.toggle('ready', !!v.ready);if(txt)txt.textContent=line;}
+  if(q)q.textContent='📮 '+v.text+' · '+(v.paid?'claimed':Math.min(v.cur,v.goal)+'/'+v.goal+(v.cur>=v.goal?' · claim':''));
+}
+function buildDarePanel(){
+  const p=$('darePanel');if(!p)return;
+  const v=dareView();
+  p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';head.textContent='📮 Harbor dare · '+v.key;p.appendChild(head);
+  const line=document.createElement('div');line.className='dare-line';
+  line.textContent=v.text+' · '+Math.min(v.cur,v.goal)+'/'+v.goal+' · '+(v.paid?'claimed':(v.ready?'ready · +'+v.reward+' 🪙':'+'+v.reward+' 🪙 at the finish'));
+  p.appendChild(line);
+  const bar=document.createElement('div');bar.className='dare-bar';
+  const fill=document.createElement('i');fill.style.width=Math.round(Math.min(1,v.cur/Math.max(1,v.goal))*100)+'%';
+  bar.appendChild(fill);p.appendChild(bar);
+  const ferry=document.createElement('div');ferry.className='dare-line';
+  ferry.textContent='Morning ferry: '+v.ferry+'. '+(v.cur>=v.ferry?'You are ahead of the ferry.':'The ferry is still ahead.');
+  p.appendChild(ferry);
+  const name=document.createElement('input');name.maxLength=14;name.placeholder='Garden name';
+  name.value=dareName()==='This garden'?'':dareName();
+  name.addEventListener('change',()=>dareSetName(name.value));
+  p.appendChild(name);
+  const actions=document.createElement('div');actions.className='dare-actions';
+  const claim=document.createElement('button');claim.type='button';
+  claim.textContent=v.paid?'Claimed':(v.ready?'Claim +'+v.reward+' 🪙':'Keep going');
+  claim.addEventListener('click',()=>dareClaim());
+  const post=document.createElement('button');post.type='button';post.textContent='Post my score';
+  post.addEventListener('click',()=>{
+    dareSetName(name.value);
+    const score=dareView().cur;
+    dareUpsert(dareName(), score, true);
+    const code=dareEncode(dareName(), score);
+    toast('Note ready — paste it on another garden');
+    SFX.play('click');
+    buildDarePanel();
+    const box=p.querySelector('input[data-code]');
+    if(box)box.value=code;
+  });
+  actions.appendChild(claim);actions.appendChild(post);p.appendChild(actions);
+  const codeBox=document.createElement('input');codeBox.readOnly=true;codeBox.placeholder='Your note appears here';codeBox.dataset.code='1';
+  p.appendChild(codeBox);
+  const paste=document.createElement('input');paste.placeholder='Paste a neighbor note';paste.dataset.paste='1';
+  p.appendChild(paste);
+  const keep=document.createElement('div');keep.className='dare-actions';
+  const keepBtn=document.createElement('button');keepBtn.type='button';keepBtn.textContent='Keep note';
+  keepBtn.addEventListener('click',()=>{
+    const res=dareImport(paste.value);
+    if(!res.ok){toast(res.error);SFX.play('error');return;}
+    toast(res.note.n+' logged '+res.note.s);
+    SFX.play('click');
+    buildDarePanel();
+  });
+  keep.appendChild(keepBtn);p.appendChild(keep);
+  const board=document.createElement('div');board.className='board';
+  const rows=[{n:'Morning ferry', s:v.ferry, ghost:true}].concat(dareBoard().filter(r=>r.d===v.key&&r.k===v.id));
+  rows.sort((a,b)=>b.s-a.s);
+  rows.forEach(r=>{
+    const row=document.createElement('div');row.className='who';
+    const nm=document.createElement('span');nm.textContent=r.ghost?r.n:((r.mine?'★ ':'')+r.n);
+    const sc=document.createElement('b');sc.textContent=String(r.s);
+    row.appendChild(nm);row.appendChild(sc);board.appendChild(row);
+  });
+  p.appendChild(board);
+}
+function openDare(){buildDarePanel();openPanel('darePanel');}
 function surfaceY(x,z){for(let y=20;y>=-24;y--){if(getB(x,y,z)!==0)return y;}return null;}
 function topSolidBelow(x,y,z){for(let yy=y;yy>=-24;yy--){if(getB(x,yy,z)!==0)return yy;}return null;}
 
@@ -621,18 +1038,20 @@ function buildChunk(cx,cz){
   if(old){scene.remove(old);old.geometry.dispose();W.chunkMeshes.delete(key);}
   const pos=[],nor=[],col=[],idx=[];
   const x0=cx*CH,z0=cz*CH;
+  const grassTop=seasonOf(state.day).grass;
   for(let x=x0;x<x0+CH;x++)for(let z=z0;z<z0+CH;z++)for(let y=-24;y<=28;y++){
     const id=getB(x,y,z);if(!id)continue;
     const def=BLOCKS[id];
+    if(!def)continue;
     const jit=0.93+0.13*hash3(x,y,z,W.seed^0x5eed);
     for(const f of FACES){
       if(getB(x+f.n[0],y+f.n[1],z+f.n[2]))continue;
       let hex=f.which==='top'?def.top:f.which==='bottom'?def.bottom:def.side;
-      if(id===1&&f.which==='top')hex=seasonOf(state.day).grass;   // the isle wears the season
-      if(id===1&&f.which==='side'&&!getB(x,y+1,z)){
-        // grass side: blend a green rim in by mixing colors
-        hex=def.sideTint&&hash3(x,y,z,7)<2?def.side:def.side;
-      }
+      if(id===1&&f.which==='top')hex=grassTop;   // the isle wears the season
+      // Exposed grass sides take a green rim. hash3 is 0..1; the old
+      // `< 2` test was always true and both branches returned the dirt side,
+      // so the rim never drew.
+      if(id===1&&f.which==='side'&&def.sideTint&&!getB(x,y+1,z)&&hash3(x,y,z,7)<0.62)hex=def.sideTint;
       const c=colScale(hex,f.shade*jit);
       const vi=pos.length/3;
       for(const o of f.c){pos.push(x+o[0],y+o[1],z+o[2]);nor.push(f.n[0],f.n[1],f.n[2]);col.push(c[0],c[1],c[2]);}
@@ -652,8 +1071,10 @@ function buildChunk(cx,cz){
   W.chunkMeshes.set(key,m);
 }
 function flushChunks(){
+  if(!W.chunkDirty.size)return;
   for(const key of W.chunkDirty){const [cx,cz]=key.split(',').map(Number);buildChunk(cx,cz);}
   W.chunkDirty.clear();
+  invalidatePicks();
 }
 
 /* ============================== foliage ============================== */
@@ -666,7 +1087,9 @@ function flushChunks(){
 let tuftMesh=null, flowerMesh=null, foliageDirty=false, foliageT=0;
 const FOL_MAX_TUFTS=4200, FOL_MAX_FLOWERS=520;
 const _up=new THREE.Vector3(0,1,0);
+let tuftGeoShared=null, flowerGeoShared=null;
 function tuftGeometry(){
+  if(tuftGeoShared)return tuftGeoShared;
   const pos=[],col=[],nor=[],idx=[];
   const blade=(ang,h,w)=>{
     const c=Math.cos(ang),s=Math.sin(ang);
@@ -689,9 +1112,11 @@ function tuftGeometry(){
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
   g.setIndex(idx);
+  tuftGeoShared=g;
   return g;
 }
 function flowerGeometry(){
+  if(flowerGeoShared)return flowerGeoShared;
   // a small five-petal bloom (white verts; per-instance colour paints it)
   const pos=[],col=[],idx=[];
   for(let p=0;p<5;p++){
@@ -705,12 +1130,15 @@ function flowerGeometry(){
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   g.setIndex(idx);g.computeVertexNormals();
+  flowerGeoShared=g;
   return g;
 }
 const FLOWER_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e];
 function buildFoliage(){
-  if(tuftMesh){scene.remove(tuftMesh);tuftMesh.geometry.dispose();tuftMesh.material.dispose();tuftMesh=null;}
-  if(flowerMesh){scene.remove(flowerMesh);flowerMesh.geometry.dispose();flowerMesh.material.dispose();flowerMesh=null;}
+  // Geometry is shared across rebuilds. Disposing it here used to throw the
+  // next season's grass away and allocate it again on every edit.
+  if(tuftMesh){scene.remove(tuftMesh);tuftMesh.material.dispose();tuftMesh=null;}
+  if(flowerMesh){scene.remove(flowerMesh);flowerMesh.material.dispose();flowerMesh=null;}
   const season=seasonOf(state.day);
   const winter=season.key==='winter', autumn=season.key==='autumn';
   const base=new THREE.Color(season.grass).multiplyScalar(winter?1.1:0.86);
@@ -787,9 +1215,12 @@ function buildWater(){
   if(!W.pondCells||!W.pondCells.length)return;
   const winter=seasonOf(state.day).key==='winter';
   const y=W.waterY, pos=[],idx=[];
-  W.pondCells.forEach(([x,z])=>{
+  W.pondCells.forEach((cell)=>{
+    const x=cell[0],z=cell[1];
+    const yy=cell.length>2&&Number.isFinite(cell[2])?cell[2]:y;
+    if(!Number.isFinite(yy))return;
     const b=pos.length/3;
-    pos.push(x,y,z, x+1,y,z, x+1,y,z+1, x,y,z+1);
+    pos.push(x,yy,z, x+1,yy,z, x+1,yy,z+1, x,yy,z+1);
     idx.push(b,b+2,b+1, b,b+3,b+2);
   });
   const g=new THREE.BufferGeometry();
@@ -3343,6 +3774,23 @@ function buyLand(){
 function buildTownPanel(){
   const p=$('townPanel');if(!p)return;p.innerHTML='';
   const head=document.createElement('div');head.className='p-head';head.textContent='🏛️ '+townLabel();p.appendChild(head);
+  if(typeof dareView==='function'){
+    const v=dareView();
+    const dare=document.createElement('div');dare.className='p-item';
+    dare.innerHTML='<div class="ico">📮</div><div class="nm">Harbor dare</div><div class="pr">'+(v.paid?'Kept':Math.min(v.cur,v.goal)+'/'+v.goal)+'</div>';
+    dare.addEventListener('click',()=>openDare());
+    p.appendChild(dare);
+  }
+  if(kilnOk()){
+    const kp=kilnProgress();
+    const ready=kp.sealed&&(state.kiln.firedDay||0)!==state.day;
+    const d=document.createElement('div');
+    d.className='p-item';
+    d.innerHTML='<div class="ico">🔥</div><div class="nm">Fen Kiln</div><div class="pr">'
+      +(kp.sealed?(ready?'Fire · '+kilnPay((state.kiln.fires||0)+1)+' 🪙':'Cooling till dawn'):kp.filled+'/'+kp.total+' brick')+'</div>';
+    d.addEventListener('click',()=>{onKilnClick();if($('townPanel').classList.contains('open'))buildTownPanel();});
+    p.appendChild(d);
+  }
   const it=nextIslet();
   if(it){
     const cost=landCost();
@@ -3751,7 +4199,7 @@ function burst(x,y,z,hex,n,opts){
       vx:Math.cos(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
       vy:up*(0.5+Math.random()*0.9),
       vz:Math.sin(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
-      life:0.5+Math.random()*0.45,t:0,s:0.6+Math.random()*0.9,
+      life:0.5+Math.random()*0.45,t:0,s:(opts.big?3.2:1)*(0.6+Math.random()*0.9),
       col:new THREE.Color(hex).multiplyScalar(0.85+Math.random()*0.35),g:opts.g!==undefined?opts.g:7});
   }
 }
@@ -3767,6 +4215,12 @@ function puffSmoke(x,y,z){
 let smokeT=0;
 const SMOKERS=[['bakery',0.55,2.15,-0.4],['tavern',0.55,2.15,-0.4],['brewery',-0.55,1.95,-0.3]];
 function updateSmoke(dt){
+  if(kilnSmoke>0&&state.kiln){
+    kilnSmoke-=dt;
+    const k=state.kiln;
+    puffSmoke(k.cx+0.5,k.y+1.35,k.cz+0.5);
+    if(Math.random()<0.65)puffSmoke(k.cx+0.15,k.y+0.7,k.cz+0.2);
+  }
   smokeT-=dt;
   if(smokeT>0)return;
   smokeT=0.55;
@@ -3815,8 +4269,45 @@ function updateCamera(dt){
   const f=1-Math.pow(0.0001,dt);
   cam.yaw+=(cam.tyaw-cam.yaw)*f;cam.pitch+=(cam.tpitch-cam.pitch)*f;cam.dist+=(cam.tdist-cam.dist)*f;
   const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
-  camera.position.set(cam.cx+Math.cos(cam.yaw)*cp*cam.dist,cam.cy+sp*cam.dist,cam.cz+Math.sin(cam.yaw)*cp*cam.dist);
+  let ox=0,oy=0,oz=0;
+  if(juice.t>0){
+    const a=(juice.t/juice.dur)*juice.mag;
+    ox=(Math.random()-0.5)*a; oy=(Math.random()-0.5)*a*0.45; oz=(Math.random()-0.5)*a;
+  }
+  camera.position.set(cam.cx+ox+Math.cos(cam.yaw)*cp*cam.dist,cam.cy+oy+sp*cam.dist,cam.cz+oz+Math.sin(cam.yaw)*cp*cam.dist);
   camera.lookAt(cam.cx,cam.cy,cam.cz);
+}
+const juice={t:0,dur:0.48,mag:0};
+let kilnSmoke=0;
+function juiceKick(mag){
+  const m=mag||0.1;
+  if(m>=juice.mag*(juice.t/juice.dur||0)){juice.mag=m;juice.t=juice.dur;}
+}
+function updateJuice(dt){if(juice.t>0)juice.t=Math.max(0,juice.t-dt);}
+function feel(kind){
+  const mag={till:0.08,plant:0.1,water:0.06,harvest:0.28,place:0.08,stroke:0.22,seal:0.7,kiln:1.35,dare:0.55}[kind]||0.08;
+  juiceKick(mag);
+  const slot=document.querySelector('.slot.sel');
+  if(slot){slot.classList.remove('boop');void slot.offsetWidth;slot.classList.add('boop');}
+  const flash=$('juiceFlash');
+  if(flash&&(kind==='kiln'||kind==='seal'||kind==='dare'||kind==='harvest')){
+    flash.className='';
+    void flash.offsetWidth;
+    flash.className='on '+(kind==='kiln'?'hot':kind==='harvest'?'green':'gold');
+  }
+  if(!state.muted&&navigator.vibrate){try{navigator.vibrate(kind==='kiln'?36:kind==='harvest'?16:8);}catch(e){}}
+}
+function camNudge(yaw,dist){
+  if(yaw)cam.tyaw+=yaw;
+  if(dist)cam.tdist=clamp(cam.tdist+dist,16,90);
+}
+function kilnRoar(){
+  if(!state.kiln)return;
+  kilnSmoke=5;
+  const k=state.kiln;
+  for(let i=0;i<22;i++)setTimeout(()=>{
+    burst(k.cx+0.5+(Math.random()-0.5)*1.8,k.y+0.2,k.cz+0.5+(Math.random()-0.5)*1.8,i%3?0xff4a12:0xffe08a,8,{up:4.4,g:2.4,spread:1.8,big:true});
+  },i*40);
 }
 
 /* ============================== first-person ============================== */
@@ -3957,6 +4448,10 @@ function updateDay(dt){
       sellPreserves();   // VOX-22: the crowd buys out the shelf
       checkAch();
     } else toast('☀️ Day '+state.day+' begins — 📈 '+goodDef(demandGoodKey()).product+' is in demand today');
+    if(kilnOk()&&state.kiln.sealed){
+      refreshKilnHud();
+      toast('🔥 The fen kiln has cooled and will take another firing.');
+    }
     if(stockpiles())refreshGoodsHud();
   }
   const frac=state.time/CYCLE;
@@ -4006,6 +4501,7 @@ function addPlant(x,y,z,type,fromLoad,prog,stage,harvested){
   W.plants.set(k3(x,y,z),p);
   refreshPlantMesh(p);
   if(!fromLoad)popMesh(p.mesh);
+  invalidatePicks();
   return p;
 }
 function removePlant(p){
@@ -4013,6 +4509,7 @@ function removePlant(p){
   if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
   if(p.goldGlow){scene.remove(p.goldGlow);p.goldGlow.geometry.dispose();p.goldGlow.material.dispose();p.goldGlow=null;}
   W.plants.delete(k3(p.x,p.y,p.z));
+  invalidatePicks();
 }
 // A crop planted in its favoured season grows faster and sells for more —
 // rewarding seasonal planting on top of the global season growth curve.
@@ -4552,6 +5049,11 @@ function spendCoins(n){
   if(state.coins<n){toast('Not enough coins — harvest something! 🪙');SFX.play('error');return false;}
   state.coins-=n;el.coins.textContent=state.coins;return true;
 }
+function refundCoins(n){
+  n=n|0;if(n<=0)return;
+  state.coins+=n;
+  if(el.coins)el.coins.textContent=state.coins;
+}
 function grantXP(n){
   state.xp+=n;
   while(state.level<LVL_XP.length&&state.xp>=LVL_XP[state.level]){
@@ -4575,18 +5077,24 @@ function onLevelUp(){
   questCheck();
 }
 function unlockIslet(it,fromLoad){
-  if(W.islets.includes(it.id))return;
+  if(!it||W.islets.includes(it.id))return;
   W.islets.push(it.id);
-  genIsland(it.x,it.z,it.r,it.seedOff);
+  if(it.biome==='fen')genFen(it);
+  else genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
+  if(it.biome==='fen')placeKiln(it);
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   if(!fromLoad){
     SFX.play('islet');
-    setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
+    if(it.biome==='fen')setTimeout(()=>banner('🌿 The North Fen has risen!','Moss, clay, and a cracked brick kiln. Seal it, then fire it once each day.'),1200);
+    else setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
     for(let i=0;i<24;i++)setTimeout(()=>{
       burst(it.x+(Math.random()-0.5)*it.r*2,surfaceY(it.x,it.z)+2||6,it.z+(Math.random()-0.5)*it.r*2,0xffffff,4,{up:2,g:3});
     },i*80);
+  } else if(it.biome==='fen'){
+    setTimeout(()=>toast('🌿 The North Fen was waiting — a cracked kiln sits on the moss.'),800);
   }
+  refreshKilnHud();
 }
 
 /* ============================== quests ============================== */
@@ -4610,6 +5118,8 @@ const REQUESTS=[
   {key:'harvest',verb:'Harvest',noun:'crops',              metric:()=>state.harvests||0,step:()=>10+((Math.random()*12)|0), rate:4},
   {key:'plant',  verb:'Plant',  noun:'seeds',              metric:()=>state.planted||0, step:()=>8+((Math.random()*8)|0),  rate:4},
   {key:'earn',   verb:'Earn',   noun:'coins',              metric:()=>state.totalEarned||0,step:()=>300+((Math.random()*500)|0),rate:0.15},
+  {key:'bricks', verb:'Lay',    noun:'bricks',             metric:()=>state.bricksLaid||0,step:()=>4+((Math.random()*4)|0),rate:5,gate:()=>state.level>=5},
+  {key:'fires',  verb:'Fire',   noun:'kiln batches',       metric:()=>(state.kiln&&state.kiln.fires)||0,step:()=>1,rate:20,gate:()=>!!(state.kiln&&state.kiln.sealed)},
 ];
 function reqDef(k){return REQUESTS.find(r=>r.key===k);}
 function newRequest(){
@@ -4647,11 +5157,15 @@ function questCheck(){
 }
 function refreshQuestHud(){
   const q=QUESTS[state.questIdx];
-  if(q){el.qText.textContent=q.text;el.qProg.textContent=q.prog();return;}
-  if(!state.request){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';return;}
-  const rd=reqDef(state.request.key);
-  el.qText.textContent=state.request.text;
-  el.qProg.textContent=rd?Math.min(state.request.goal,rd.metric())+'/'+state.request.goal:'';
+  if(q){el.qText.textContent=q.text;el.qProg.textContent=q.prog();}
+  else if(!state.request){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';}
+  else {
+    const rd=reqDef(state.request.key);
+    el.qText.textContent=state.request.text;
+    el.qProg.textContent=rd?Math.min(state.request.goal,rd.metric())+'/'+state.request.goal:'';
+  }
+  refreshKilnHud();
+  refreshDareHud();
 }
 
 /* ============================== actions ============================== */
@@ -4704,7 +5218,7 @@ function doAction(hit){
   if(tool==='hoe'){
     if((id===1||id===2)&&!getB(x,y+1,z)){
       setB(x,y,z,5);flushChunks();
-      state.tills++;SFX.play('till');
+      state.tills++;SFX.play('till');feel('till');
       burst(x+0.5,y+1.05,z+0.5,0x8a6a42,8,{up:1.8,g:6});
       questCheck();
     } else if(id===5||id===6){toast('Already tilled — plant a seed! 🌱');}
@@ -4720,7 +5234,7 @@ function doAction(hit){
       if(state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
       if(!spendCoins(def.cost))return;
       addPlant(x,y+1,z,state.seedSel);
-      state.planted++;SFX.play('plant');
+      state.planted++;SFX.play('plant');feel('plant');
       burst(x+0.5,y+1.2,z+0.5,0x7fd370,6,{up:1.4,g:4});
       if(def.night&&!isNight())toast('🌙 Moonpetals only grow at night…');
       questCheck();
@@ -4735,19 +5249,35 @@ function doAction(hit){
       W.wet.delete(k3(x,y,z));
       flushChunks();
       SFX.play('dig');
-      burst(x+0.5,y+0.5,z+0.5,def.top,10,{up:2,g:7});
+      if(def)burst(x+0.5,y+0.5,z+0.5,def.top,10,{up:2,g:7});
+      syncKilnSeal(false);
     }
   }
   else if(tool==='block'){
+    if(shiftDown&&buildMode()==='single'){
+      const [ix,iy,iz]=cellFromHit(hit,true);
+      replaceBlock(ix,iy,iz);
+      return;
+    }
     const [px,py,pz]=cellFromHit(hit,false);
-    placeSelected(px,py,pz);
+    if(buildMode()==='single'){placeSelected(px,py,pz);return;}
+    if(!buildAnchor){
+      buildAnchor={x:px,y:py,z:pz};
+      refreshBuildBar();
+      toast(buildMode()==='line'?'Line anchored — tap the other end (X cancels)':'Floor anchored — tap the opposite corner (X cancels)');
+      return;
+    }
+    const cells=strokeCells(buildAnchor,{x:px,y:py,z:pz},buildMode());
+    buildAnchor=null;
+    commitStroke(cells);
+    refreshBuildBar();
   }
 }
 function waterSoil(x,y,z,id){
   if(id===5||id===6){
     if(id===5){setB(x,y,z,6);flushChunks();}
     W.wet.set(k3(x,y,z),95);
-    state.waters++;SFX.play('water');
+    state.waters++;SFX.play('water');feel('water');
     burst(x+0.5,y+1.15,z+0.5,0x6fc3ff,9,{up:1.2,g:5,spread:0.6});
     questCheck();
   } else if(id===1||id===2){toast('Till it first with the ⚒️ hoe');}
@@ -4783,6 +5313,7 @@ function actOnPlant(p){
     grantXP(def.xp);
     stockCrop(p.x+0.5,p.y+1.3,p.z+0.5,produceFromCrop(def));   // premium crops → more produce
     SFX.play('harvest');
+    feel('harvest');
     setTimeout(()=>SFX.play('coin'),140);
     burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
     if(def.multi){
@@ -4803,37 +5334,274 @@ function actOnPlant(p){
   const wet=W.wet.has(k3(p.x,p.y-1,p.z));
   toast(def.ico+' '+def.name+' — '+pct+'% grown'+(wet?' 💧2×':'')+(def.night&&!isNight()?' (waiting for night 🌙)':''));
 }
-function placeSelected(x,y,z){
-  if(Math.abs(x)>46||Math.abs(z)>46||y<-24||y>26){toast('Too far out into the sky…');return;}
-  if(getB(x,y,z)){toast('Something is in the way');SFX.play('error');return;}
-  if(W.plants.has(k3(x,y,z))){toast('Something is in the way');return;}
+function placeCost(){
   const sel=state.blockSel;
-  if(typeof sel==='string'){ // decor
+  if(typeof sel==='string')return (DECOR[sel]&&DECOR[sel].cost)||0;
+  return (BLOCKS[sel]&&BLOCKS[sel].cost)||0;
+}
+function explainPlace(x,y,z){
+  if(Math.abs(x)>46||Math.abs(z)>46||y<-24||y>26)return 'far';
+  if(getB(x,y,z))return 'busy';
+  if(W.plants.has(k3(x,y,z)))return 'plant';
+  const sel=state.blockSel;
+  if(typeof sel==='string'){
     const d=DECOR[sel];
-    if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
-    if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
-    if(!spendCoins(d.cost))return;
-    addPlant(x,y,z,sel,false,0,2);   // decorations have no growth stages
-    state.decor++;SFX.play('place');
-    burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
-    questCheck();
-  } else {
-    const def=BLOCKS[sel];
-    if(def.lvl&&state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
-    if(!spendCoins(def.cost))return;
-    setB(x,y,z,sel);flushChunks();
-    state.decor++;SFX.play('place');
-    burst(x+0.5,y+0.5,z+0.5,def.top,8,{up:1.6,g:5});
-    questCheck();
+    if(!d)return 'bad';
+    if(state.level<d.lvl)return 'lvl:'+d.lvl;
+    if(!getB(x,y-1,z))return 'ground';
+    if(state.coins<d.cost)return 'coins';
+    return '';
   }
+  const def=BLOCKS[sel];
+  if(!def||!def.cost||!BUILDABLE.includes(sel))return 'bad';
+  if(def.lvl&&state.level<def.lvl)return 'lvl:'+def.lvl;
+  if(state.coins<def.cost)return 'coins';
+  return '';
+}
+function rejectPlace(why){
+  if(why==='far'){toast('Too far out into the sky…');return;}
+  if(why==='ground'){toast('Decor needs ground under it');return;}
+  if(why&&String(why).indexOf('lvl:')===0){toast('Unlocks at level '+why.slice(4));SFX.play('error');return;}
+  toast('Something is in the way');
+  if(why==='busy')SFX.play('error');
+}
+function placeSelected(x,y,z,quiet){
+  const why=explainPlace(x,y,z);
+  if(why){
+    if(!quiet){
+      if(why==='coins')spendCoins(placeCost());
+      else rejectPlace(why);
+    }
+    return false;
+  }
+  const sel=state.blockSel;
+  const cost=placeCost();
+  if(!spendCoins(cost))return false;
+  if(typeof sel==='string'){
+    addPlant(x,y,z,sel,false,0,2);
+    state.decor++;
+    if(!quiet){SFX.play('place');feel('place');burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});}
+    if(!undoSuppress)pushUndo(()=>{
+      const p=W.plants.get(k3(x,y,z));
+      if(!p||p.type!==sel)return;
+      removePlant(p);
+      refundCoins(cost);
+      state.decor=Math.max(0,(state.decor||0)-1);
+    },'placement');
+  } else {
+    setB(x,y,z,sel);
+    if(!quiet)flushChunks();
+    state.decor++;
+    if(sel===11)state.bricksLaid=(state.bricksLaid||0)+1;
+    if(!quiet){SFX.play(sel===11?'clink':'place');feel('place');burst(x+0.5,y+0.5,z+0.5,BLOCKS[sel].top,8,{up:1.6,g:5});}
+    if(!undoSuppress)pushUndo(()=>{
+      if(getB(x,y,z)!==sel)return;
+      setB(x,y,z,0);
+      refundCoins(cost);
+      state.decor=Math.max(0,(state.decor||0)-1);
+      if(sel===11)state.bricksLaid=Math.max(0,(state.bricksLaid||0)-1);
+    },'placement');
+    syncKilnSeal(false);
+  }
+  questCheck();
+  refreshBuildBar();
+  return true;
+}
+const LINE_REACH=15, FLOOR_SPAN=7;
+function buildMode(){return state.buildMode==='line'||state.buildMode==='floor'?state.buildMode:'single';}
+function strokeCells(a,b,mode){
+  if(!a||!b)return [];
+  if(mode==='line'){
+    const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
+    const ax=Math.abs(dx),ay=Math.abs(dy),az=Math.abs(dz);
+    let n,sx=0,sy=0,sz=0;
+    if(ay>=ax&&ay>=az){n=ay;sy=Math.sign(dy)||0;}
+    else if(ax>=az){n=ax;sx=Math.sign(dx)||0;}
+    else {n=az;sz=Math.sign(dz)||0;}
+    n=Math.min(n,LINE_REACH);
+    const out=[];
+    for(let i=0;i<=n;i++)out.push([a.x+sx*i,a.y+sy*i,a.z+sz*i]);
+    return out;
+  }
+  let x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x);
+  let z0=Math.min(a.z,b.z),z1=Math.max(a.z,b.z);
+  if(x1-x0>FLOOR_SPAN)x1=x0+FLOOR_SPAN;
+  if(z1-z0>FLOOR_SPAN)z1=z0+FLOOR_SPAN;
+  const out=[];
+  for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++)out.push([x,a.y,z]);
+  return out;
+}
+function commitStroke(cells){
+  if(!cells||!cells.length){toast('Nothing to lay');return 0;}
+  groupUndo={fns:[],n:0};
+  let placed=0,skipped=0,broke='';
+  try{
+    for(const [x,y,z] of cells){
+      const why=explainPlace(x,y,z);
+      if(why==='coins'){broke='coins';break;}
+      if(why){skipped++;continue;}
+      if(placeSelected(x,y,z,true))placed++;
+      else skipped++;
+    }
+  } finally {
+    const fns=groupUndo?groupUndo.fns.slice():[];
+    const n=groupUndo?groupUndo.n:0;
+    groupUndo=null;
+    if(fns.length)pushUndo(()=>{for(let i=fns.length-1;i>=0;i--)fns[i]();},n===1?'placement':n+' blocks');
+  }
+  flushChunks();
+  if(placed){SFX.play(placed>1?'ripple':'place');feel('stroke');}
+  if(broke==='coins'&&!placed)spendCoins(placeCost());
+  else if(broke==='coins')toast('Laid '+placed+' '+(placed===1?'block':'blocks')+' — not enough coins for the rest');
+  else if(!placed)toast('Nothing there could take a block');
+  else toast('Laid '+placed+' '+(placed===1?'block':'blocks')+(skipped?' · '+skipped+' skipped':''));
+  refreshBuildBar();
+  return placed;
+}
+function replaceBlock(x,y,z){
+  const id=getB(x,y,z);
+  const sel=state.blockSel;
+  if(typeof sel==='string'){toast('Shift-replace swaps blocks — pick a block, not decor');return false;}
+  const nxt=BLOCKS[sel];
+  if(!nxt||!nxt.cost){toast('Pick a block to replace with');return false;}
+  if(!BUILDABLE.includes(id)){toast(id?'Dig crops and soil with the pick':'Nothing there to replace');SFX.play('error');return false;}
+  if(id===sel){toast('Already '+BLOCKS[id].name);return false;}
+  if(nxt.lvl&&state.level<nxt.lvl){toast('Unlocks at level '+nxt.lvl);SFX.play('error');return false;}
+  const oldCost=BLOCKS[id].cost||0,newCost=nxt.cost;
+  if(state.coins+oldCost<newCost){toast('Not enough coins — harvest something! 🪙');SFX.play('error');return false;}
+  setB(x,y,z,0);
+  if(oldCost)refundCoins(oldCost);
+  undoSuppress=true;
+  const ok=placeSelected(x,y,z,true);
+  undoSuppress=false;
+  if(!ok){
+    if(oldCost){state.coins=Math.max(0,state.coins-oldCost);if(el.coins)el.coins.textContent=state.coins;}
+    setB(x,y,z,id);flushChunks();
+    toast('Could not replace that block');
+    return false;
+  }
+  state.decor=Math.max(0,(state.decor||0)-1);
+  if(id===11&&sel!==11)state.bricksLaid=Math.max(0,(state.bricksLaid||0)-1);
+  flushChunks();
+  SFX.play('place');
+  pushUndo(()=>{
+    if(getB(x,y,z)!==sel)return;
+    setB(x,y,z,id);
+    state.coins=Math.max(0,state.coins+(newCost-oldCost));
+    if(el.coins)el.coins.textContent=state.coins;
+    if(sel===11&&id!==11)state.bricksLaid=Math.max(0,(state.bricksLaid||0)-1);
+    if(id===11&&sel!==11)state.bricksLaid=(state.bricksLaid||0)+1;
+  },'replace');
+  syncKilnSeal(false);
+  questCheck();
+  refreshBuildBar();
+  return true;
+}
+function pushUndo(fn,label){
+  if(undoSuppress||typeof fn!=='function')return;
+  if(groupUndo){groupUndo.fns.push(fn);groupUndo.n++;return;}
+  buildUndo.push({fn,label:label||'build'});
+  if(buildUndo.length>24)buildUndo.shift();
+  refreshBuildBar();
+}
+function undoBuild(){
+  const u=buildUndo.pop();
+  if(!u){toast('Nothing to undo');SFX.play('error');return false;}
+  u.fn();
+  flushChunks();
+  syncKilnSeal(true);
+  refreshQuestHud();
+  toast('Undid '+(u.label||'the last build'));
+  return true;
+}
+function cancelBuildAnchor(){
+  if(!buildAnchor)return false;
+  buildAnchor=null;
+  refreshBuildBar();
+  toast('Build anchor cleared');
+  return true;
+}
+function setBuildMode(mode,silent){
+  const next=mode==='line'||mode==='floor'?mode:'single';
+  const same=next===buildMode()&&!buildAnchor;
+  state.buildMode=next;
+  buildAnchor=null;
+  refreshBuildBar();
+  if(same)return;
+  const panel=$('blockPanel');
+  if(panel&&panel.classList.contains('open'))buildBlockPanel();
+  if(!silent)toast(state.buildMode==='line'?'Line: tap two ends — a wall, a path, a post':state.buildMode==='floor'?'Floor: tap two corners — one layer, up to 8×8':'Single block');
+}
+function cycleBuild(dir){
+  const items=BUILDABLE.filter(id=>!BLOCKS[id].lvl||state.level>=BLOCKS[id].lvl)
+    .concat(Object.keys(DECOR).filter(k=>state.level>=DECOR[k].lvl));
+  if(!items.length)return;
+  let i=items.indexOf(state.blockSel);
+  i=i<0?0:(i+(dir||1)+items.length)%items.length;
+  state.blockSel=items[i];
+  const ico=typeof items[i]==='string'?DECOR[items[i]].ico:BLOCKS[items[i]].ico;
+  if(el.blockIco)el.blockIco.textContent=ico;
+  selectTool('block');
+  const panel=$('blockPanel');
+  if(panel&&panel.classList.contains('open'))buildBlockPanel();
+  refreshBuildBar();
+}
+function eyedropBlock(hit){
+  if(!hit){toast('Look at a block to copy it');return false;}
+  const ud=hit.object.userData||{};
+  if(ud.plantKey){
+    const p=W.plants.get(ud.plantKey);
+    if(p&&DECOR[p.type]){
+      if(state.level<DECOR[p.type].lvl){toast('Unlocks at level '+DECOR[p.type].lvl);SFX.play('error');return false;}
+      state.blockSel=p.type;
+      if(el.blockIco)el.blockIco.textContent=DECOR[p.type].ico;
+      selectTool('block');
+      toast('Copied '+DECOR[p.type].name);
+      return true;
+    }
+    toast('Crops are picked from the seed tray');
+    return false;
+  }
+  const [x,y,z]=cellFromHit(hit,true);
+  const id=getB(x,y,z);
+  if(!BUILDABLE.includes(id)){toast(id?'That block isn\u2019t in the build kit':'Look at a block to copy it');return false;}
+  const def=BLOCKS[id];
+  if(def.lvl&&state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return false;}
+  state.blockSel=id;
+  if(el.blockIco)el.blockIco.textContent=def.ico;
+  selectTool('block');
+  const panel=$('blockPanel');
+  if(panel&&panel.classList.contains('open'))buildBlockPanel();
+  toast('Copied '+def.name);
+  return true;
+}
+function refreshBuildBar(){
+  const bar=$('buildBar');if(!bar)return;
+  const on=state.tool==='block';
+  bar.hidden=!on;
+  const mode=buildMode();
+  bar.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
+  const cancel=$('buildCancel');
+  if(cancel)cancel.hidden=!buildAnchor;
+  const hint=$('buildHint');
+  if(hint)hint.textContent=buildAnchor
+    ?(mode==='line'?'Line anchored · tap the far cell · X cancels':'Floor anchored · tap the far corner · X cancels')
+    :'Z undo · R copy · Shift replace · [ ] cycle';
+  const panel=$('blockPanel');
+  if(panel)panel.querySelectorAll('.build-modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
 }
 
 /* ============================== input ============================== */
 const ray=new THREE.Raycaster();
 const ptr=new THREE.Vector2();
-let pointerDown=false,dragDist=0,lastPX=0,lastPY=0,pinchD=0,twoFinger=false;
+let pointerDown=false,dragDist=0,lastPX=0,lastPY=0,pinchD=0,twoFinger=false,pointerSlop=6;
 let hoverHit=null;
+let buildAnchor=null,buildUndo=[],groupUndo=null,undoSuppress=false,shiftDown=false;
+let pickCache=null,pickUses=99;
+function invalidatePicks(){pickCache=null;pickUses=99;}
 function getPickables(){
+  if(pickCache&&pickUses<12){pickUses++;return pickCache;}
+  pickUses=0;
   const arr=[];
   for(const m of W.chunkMeshes.values())arr.push(m);
   for(const p of W.plants.values())if(p.mesh)arr.push(p.mesh);
@@ -4849,7 +5617,15 @@ function getPickables(){
   if(flotsam&&flotsam.mesh)flotsam.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(shard&&shard.mesh)shard.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(catGift&&catGift.mesh)arr.push(catGift.mesh);
+  pickCache=arr;
   return arr;
+}
+function overlayOpen(){
+  const help=el.helpOv&&el.helpOv.classList.contains('open');
+  const ach=$('achOv')&&$('achOv').classList.contains('open');
+  const alm=$('almanacOv')&&$('almanacOv').classList.contains('open');
+  const shore=$('chain-modal')&&$('chain-modal').classList.contains('open');
+  return !!(help||ach||alm||shore);
 }
 function raycastAt(clientX,clientY){
   ptr.x=(clientX/innerWidth)*2-1;ptr.y=-(clientY/innerHeight)*2+1;
@@ -4862,6 +5638,12 @@ function bindInput(){
   const pointers=new Map();
   cv.addEventListener('pointerdown',e=>{
     SFX.ensure();
+    if(e.button===1){
+      e.preventDefault();
+      const hit=fp.on?raycastAt(innerWidth/2,innerHeight/2):raycastAt(e.clientX,e.clientY);
+      eyedropBlock(hit);
+      return;
+    }
     if(fp.on){const hit=raycastAt(innerWidth/2,innerHeight/2);if(hit)doAction(hit);return;}
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pointers.size>=2){
@@ -4870,6 +5652,7 @@ function bindInput(){
       pinchD=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
     }
     pointerDown=true;dragDist=0;lastPX=e.clientX;lastPY=e.clientY;
+    pointerSlop=e.pointerType==='touch'?14:6;
   });
   cv.addEventListener('pointermove',e=>{
     if(fp.on){
@@ -4888,7 +5671,7 @@ function bindInput(){
     if(pointerDown){
       const dx=e.clientX-lastPX,dy=e.clientY-lastPY;
       dragDist+=Math.abs(dx)+Math.abs(dy);
-      if(dragDist>6){
+      if(dragDist>pointerSlop){
         cam.tyaw+=dx*0.0075;
         cam.tpitch=clamp(cam.tpitch+dy*0.005,0.12,1.35);
       }
@@ -4901,7 +5684,7 @@ function bindInput(){
     if(!pointers.delete(e.pointerId))return;
     // A pinch owns the whole gesture, including the last finger's release.
     // Cancellation is cleanup only; it must never harvest, dig or spend.
-    const tap=e.type==='pointerup'&&pointerDown&&pointers.size===0&&dragDist<=6&&!twoFinger;
+    const tap=e.type==='pointerup'&&pointerDown&&pointers.size===0&&dragDist<=pointerSlop&&!twoFinger;
     pointerDown=false;
     if(pointers.size<2)pinchD=0;
     if(pointers.size===0)twoFinger=false;
@@ -4915,10 +5698,23 @@ function bindInput(){
   cv.addEventListener('wheel',e=>{e.preventDefault();
     cam.tdist=clamp(cam.tdist+Math.sign(e.deltaY)*3.2,16,90);},{passive:false});
   addEventListener('keydown',e=>{
+    if(e.key==='Shift'){shiftDown=true;return;}
     const k=e.key.toLowerCase();
     if(fp.on&&(k==='w'||k==='a'||k==='s'||k==='d')){fpKeys[k]=true;e.preventDefault();return;}
     if(k==='f'){toggleFP();return;}
     if(fp.on&&!e.repeat&&k==='escape'){toggleFP(false);return;}
+    if(!overlayOpen()){
+      if(k==='b'&&!e.repeat){setBuildMode(buildMode()==='single'?'line':buildMode()==='line'?'floor':'single');return;}
+      if(k==='z'&&!e.repeat){e.preventDefault();undoBuild();return;}
+      if(k==='x'&&!e.repeat){if(buildAnchor){cancelBuildAnchor();return;}}
+      if(k==='r'&&!e.repeat){
+        const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
+        eyedropBlock(src?raycastAt(src.x,src.y):null);return;
+      }
+      if(k==='k'&&!e.repeat){onKilnClick();return;}
+      if(e.key==='['){cycleBuild(-1);return;}
+      if(e.key===']'){cycleBuild(1);return;}
+    }
     if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
     else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
@@ -4934,7 +5730,11 @@ function bindInput(){
     else if((e.key==='+'||e.key==='=')&&!fp.on)cam.tdist=clamp(cam.tdist-4,16,90);
     else if(e.key==='-'&&!fp.on)cam.tdist=clamp(cam.tdist+4,16,90);
   });
-  addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='w'||k==='a'||k==='s'||k==='d')fpKeys[k]=false;});
+  addEventListener('keyup',e=>{
+    if(e.key==='Shift')shiftDown=false;
+    const k=e.key.toLowerCase();if(k==='w'||k==='a'||k==='s'||k==='d')fpKeys[k]=false;
+  });
+  addEventListener('blur',()=>{shiftDown=false;});
   document.addEventListener('pointerlockchange',()=>{
     // Esc releasing the pointer lock should drop us back to orbit.
     if(!document.pointerLockElement&&fp.on)toggleFP(false);
@@ -4981,7 +5781,10 @@ function updateHover(){
     ghostCube.position.set(x+0.5,y+0.5,z+0.5);
     ghostCube.visible=true;highlightBox.visible=false;
     const sel=state.blockSel;
-    ghostCube.material.color.setHex(typeof sel==='string'?0xffe9b8:BLOCKS[sel].top);
+    let hex=typeof sel==='string'?0xffe9b8:(BLOCKS[sel]&&BLOCKS[sel].top)||0xffffff;
+    if(getB(x,y,z)||W.plants.has(k3(x,y,z)))hex=0xff5c7a;
+    else if(buildAnchor)hex=0xffd166;
+    ghostCube.material.color.setHex(hex);
   } else {
     const [x,y,z]=cellFromHit(hit,true);
     highlightBox.position.set(x+0.5,y+0.5,z+0.5);
@@ -5033,6 +5836,27 @@ function initHud(){
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   $('almanacBtn').addEventListener('click',()=>{renderAlmanac();$('almanacOv').classList.add('open');SFX.play('click');});
   $('almClose').addEventListener('click',()=>{$('almanacOv').classList.remove('open');SFX.play('click');});
+  const kilnChip=$('kilnChip');
+  if(kilnChip)kilnChip.addEventListener('click',()=>{SFX.play('click');onKilnClick();});
+  const qKiln=$('qKiln');
+  if(qKiln)qKiln.addEventListener('click',()=>{SFX.play('click');onKilnClick();});
+  const dareChip=$('dareChip');
+  if(dareChip)dareChip.addEventListener('click',()=>{SFX.play('click');openDare();});
+  const qDare=$('qDare');
+  if(qDare)qDare.addEventListener('click',()=>{SFX.play('click');openDare();});
+  const nudge=(yaw,dist)=>()=>{camNudge(yaw,dist);SFX.play('click');};
+  const camLeft=$('camLeft');if(camLeft)camLeft.addEventListener('click',nudge(-Math.PI/5,0));
+  const camRight=$('camRight');if(camRight)camRight.addEventListener('click',nudge(Math.PI/5,0));
+  const camIn=$('camIn');if(camIn)camIn.addEventListener('click',nudge(0,-6));
+  const camOut=$('camOut');if(camOut)camOut.addEventListener('click',nudge(0,6));
+  refreshDareHud();
+  document.querySelectorAll('#buildBar [data-mode]').forEach(b=>{
+    b.addEventListener('click',()=>setBuildMode(b.dataset.mode));
+  });
+  const buildUndoBtn=$('buildUndo');
+  if(buildUndoBtn)buildUndoBtn.addEventListener('click',()=>undoBuild());
+  const buildCancelBtn=$('buildCancel');
+  if(buildCancelBtn)buildCancelBtn.addEventListener('click',()=>cancelBuildAnchor());
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
     state.musicOff=!state.musicOff;
@@ -5071,9 +5895,10 @@ function selectTool(t,fromClick){
   else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
   else closePanels();
   refreshFpTool();
+  refreshBuildBar();
 }
-function openPanel(id){closePanels();$(id).classList.add('open');document.body.classList.add('panel-open');}
-function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));document.body.classList.remove('panel-open');}
+function openPanel(id){closePanels();$(id).classList.add('open');document.body.classList.add('panel-open');refreshBuildBar();}
+function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));document.body.classList.remove('panel-open');refreshBuildBar();}
 function buildSeedPanel(){
   const p=$('seedPanel');p.innerHTML='';
   for(const [key,def] of Object.entries(PLANTS)){
@@ -5095,6 +5920,20 @@ function buildSeedPanel(){
 }
 function buildBlockPanel(){
   const p=$('blockPanel');p.innerHTML='';
+  const modes=document.createElement('div');
+  modes.className='p-head build-modes';
+  [['single','Single'],['line','Line'],['floor','Floor']].forEach(([m,label])=>{
+    const b=document.createElement('button');
+    b.type='button';b.dataset.mode=m;b.textContent=label;
+    if(buildMode()===m)b.classList.add('on');
+    b.addEventListener('click',ev=>{ev.stopPropagation();setBuildMode(m);});
+    modes.appendChild(b);
+  });
+  const undoBtn=document.createElement('button');
+  undoBtn.type='button';undoBtn.textContent='Undo';
+  undoBtn.addEventListener('click',ev=>{ev.stopPropagation();undoBuild();});
+  modes.appendChild(undoBtn);
+  p.appendChild(modes);
   for(const id of BUILDABLE){
     const def=BLOCKS[id];
     const locked=def.lvl&&state.level<def.lvl;
@@ -5229,13 +6068,19 @@ function load(){
   state.level=sInt(state.level,1,1,999);
   state.questIdx=sInt(state.questIdx,0,0,QUESTS.length);
   state.townRank=sInt(state.townRank,0,0,TOWN_RANKS.length-1);
+  if(state.buildMode!=='line'&&state.buildMode!=='floor')state.buildMode='single';
+  if(state.kiln&&!Array.isArray(state.kiln.cells))state.kiln=null;
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
+  // A fen added after this save was already past its level never gets a
+  // level-up event. Grant it quietly; buying land still raises it early.
+  ISLETS.forEach(it=>{if(it.biome==='fen'&&state.level>=it.lvl)unlockIslet(it,true);});
   (data.edits||[]).forEach(([k,id])=>{
     W.edits.set(k,id);
     if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
   });
+  syncKilnSeal(true);
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
   (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,PLANTS[p.type]?p.stage:2,p.harvested)); // heal legacy decorations
   (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
@@ -5497,7 +6342,11 @@ const ACH=[
   ['tree','Arborist','Pick fruit from a star tree',()=>!!state.achFlags.tree],
   ['night','Night Owl','Harvest under the stars',()=>!!state.achFlags.night],
   ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1,()=>[W.islets.length,1]],
-  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3,()=>[W.islets.length,3]],
+  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=ISLETS.length,()=>[W.islets.length,ISLETS.length]],
+  ['fen','Fen Charted','Raise the North Fen',()=>W.islets.includes(3),()=>[W.islets.includes(3)?1:0,1]],
+  ['bricks20','Bricklayer','Lay 20 bricks',()=>(state.bricksLaid||0)>=20,()=>[state.bricksLaid||0,20]],
+  ['kiln','Kilnwright','Seal the fen kiln with brick',()=>!!(state.kiln&&state.kiln.paid)],
+  ['fires3','Kept the Fire','Fire the fen kiln on three days',()=>(state.kiln&&state.kiln.fires||0)>=3,()=>[(state.kiln&&state.kiln.fires||0),3]],
   ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10,()=>[state.decor,10]],
   ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1,()=>[W.animals.length,1]],
   ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8,()=>[W.animals.length,8]],
@@ -5655,6 +6504,10 @@ function renderAlmanac(consult=true){
     ['⭐',(state.level||1),'Garden level'],
     ['🏆',achDone+'/'+ACH.length,'Achievements'],
   ];
+  if(kilnOk()){
+    const kp=kilnProgress();
+    stats.push(['🔥',kp&&kp.sealed?((state.kiln.fires||0)+' fires'):(kp?kp.filled+'/'+kp.total:'—'),'Fen kiln']);
+  }
   let html='<div class="alm-grid">';
   for(const [ico,v,l] of stats)html+='<div class="alm-stat"><div class="v">'+ico+' '+v+'</div><div class="l">'+l+'</div></div>';
   html+='</div>';
@@ -5918,6 +6771,7 @@ function boot(){
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
+    updateJuice(dt);
     if(fp.on)updateFP(dt); else updateCamera(dt);
     updateHover();
     updateAlmanac(dt);
