@@ -237,6 +237,77 @@ canvas{display:block;touch-action:none;}
 .upg-btn.locked:not(:disabled){opacity:0.78;border-color:rgba(255,255,255,0.06);}
 #heat-rate{font-size:9px;font-weight:700;color:#aa6644;letter-spacing:0.2px;
   margin-top:3px;text-align:right;line-height:1.35;}
+#cash-hud.pop{animation:cashHud 0.38s ease;}
+@keyframes cashHud{
+  0%{transform:scale(1);}
+  35%{transform:scale(1.14);box-shadow:0 0 18px rgba(34,221,85,0.55);}
+  100%{transform:scale(1);}
+}
+#juice-flash{position:fixed;inset:0;pointer-events:none;z-index:35;opacity:0;}
+#juice-flash.good{background:radial-gradient(circle at 50% 42%, rgba(34,221,85,0.22), transparent 58%);}
+#juice-flash.heat{background:radial-gradient(circle at 50% 42%, rgba(239,68,68,0.28), transparent 58%);}
+#juice-flash.on{animation:juiceFlash 0.48s ease;}
+@keyframes juiceFlash{0%{opacity:1;}100%{opacity:0;}}
+#sfx-btn{
+  position:fixed;bottom:14px;left:102px;z-index:72;
+  width:44px;height:36px;padding:0;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:16px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#sfx-btn[aria-pressed="true"]{color:#886655;border-color:rgba(255,255,255,0.15);}
+#alley-hud{position:fixed;top:54px;left:268px;z-index:25;max-width:210px;}
+#alley-btn{
+  display:block;text-align:left;cursor:pointer;font-family:inherit;
+  background:rgba(4,10,4,0.92);border:1px solid rgba(255,209,102,0.4);
+  color:#ffd166;border-radius:6px;padding:6px 10px;min-width:148px;
+}
+#alley-btn .kicker{display:block;font-size:8px;font-weight:800;letter-spacing:1.4px;color:#aa8844;}
+#alley-line{font-size:12px;font-weight:800;}
+#alley-sheet{
+  display:none;position:fixed;top:108px;left:268px;z-index:85;width:280px;
+  background:rgba(4,10,4,0.97);border:1px solid rgba(255,209,102,0.45);
+  border-radius:8px;padding:12px;color:#e8dcc0;box-shadow:0 10px 30px rgba(0,0,0,0.55);
+}
+#alley-sheet.open{display:block;}
+#alley-sheet h3{margin:0 0 6px;font-size:12px;letter-spacing:1px;color:#ffd166;}
+#alley-sheet p{margin:0 0 8px;font-size:11px;line-height:1.45;color:#c8b48a;}
+#alley-list{font-size:11px;line-height:1.55;margin-bottom:8px;}
+#alley-list .ahead{color:#ffd166;}
+#alley-list .done{color:#88cc88;}
+#alley-sheet input{
+  width:100%;box-sizing:border-box;margin-top:4px;background:#081008;color:#efe6ff;
+  border:1px solid rgba(255,209,102,0.3);border-radius:4px;padding:6px 8px;font-family:inherit;font-size:11px;
+}
+#alley-sheet .row{display:flex;gap:6px;margin-top:6px;}
+#alley-sheet button{
+  font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;
+  background:rgba(255,209,102,0.1);border:1px solid rgba(255,209,102,0.4);color:#ffd166;
+  border-radius:5px;padding:6px 8px;
+}
+#touch-dock{
+  display:none;position:fixed;left:10px;bottom:58px;z-index:45;
+  align-items:flex-end;gap:8px;touch-action:none;user-select:none;
+}
+#stick{
+  width:92px;height:92px;border-radius:50%;position:relative;
+  background:rgba(4,10,4,0.72);border:1px solid rgba(0,180,60,0.45);
+  box-shadow:inset 0 0 12px rgba(0,0,0,0.45);touch-action:none;
+}
+#stick-knob{
+  width:36px;height:36px;border-radius:50%;position:absolute;left:28px;top:28px;
+  background:rgba(34,221,85,0.85);box-shadow:0 0 10px rgba(34,221,85,0.45);
+}
+#next-step{
+  min-width:108px;min-height:52px;padding:10px 14px;
+  background:rgba(0,140,40,0.92);border:1px solid rgba(120,255,160,0.7);
+  color:#041404;font-family:inherit;font-size:15px;font-weight:900;
+  border-radius:12px;cursor:pointer;letter-spacing:0.3px;
+}
+#next-step.hot{animation:nextPulse 1.1s ease-in-out infinite;}
+@keyframes nextPulse{0%,100%{box-shadow:0 0 0 rgba(34,221,85,0);}50%{box-shadow:0 0 16px rgba(34,221,85,0.7);}}
+@media (max-width:700px), (pointer: coarse){
+  #touch-dock{display:flex;}
+}
 #strain-panel{border-color:rgba(180,140,255,0.28);}
 .strain-note{font-size:10px;color:#8d78b0;line-height:1.4;margin:-2px 0 6px;}
 .strain-quote{
@@ -754,6 +825,11 @@ canvas{display:block;touch-action:none;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
   #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
+  #act-badge{max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #alley-hud{top:58px;left:8px;}
+  #alley-sheet{top:auto;bottom:168px;left:8px;width:min(280px, calc(100vw - 16px));}
+  #sfx-btn{left:96px;bottom:14px;}
+  #heat-hud,#goal-hud{min-width:0;max-width:46vw;}
 }
 </style>
 </head>
@@ -812,6 +888,27 @@ canvas{display:block;touch-action:none;}
   <div class="goal-label">🎯 Next Goal</div>
   <div id="goal-text">—</div>
   <div id="goal-prog"></div>
+</div>
+<div id="juice-flash"></div>
+<button id="sfx-btn" type="button" aria-pressed="false" aria-label="Sound on" title="Sound">🔊</button>
+<div id="alley-hud">
+  <button id="alley-btn" type="button" title="Today's alley. The same neighbors for everyone, plus any friend code you paste.">
+    <span class="kicker">THE ALLEY</span>
+    <span id="alley-line">…</span>
+  </button>
+</div>
+<div id="alley-sheet" role="dialog" aria-label="The alley">
+  <h3>THE ALLEY</h3>
+  <p>Same three neighbors for everyone today. Pass their lifetime take. A friend's code pins them on your board — it stays on this device.</p>
+  <div id="alley-list"></div>
+  <label>Your code<input id="alley-mine" readonly></label>
+  <div class="row"><button type="button" id="alley-copy">Copy</button></div>
+  <label>Friend's code<input id="alley-paste" autocomplete="off" spellcheck="false" placeholder="Paste a code"></label>
+  <div class="row"><button type="button" id="alley-add">Pin them</button><button type="button" id="alley-close">Close</button></div>
+</div>
+<div id="touch-dock">
+  <div id="stick" role="slider" aria-label="Walk" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"><div id="stick-knob"></div></div>
+  <button id="next-step" type="button">Wait</button>
 </div>
 <div id="activity-feed">
   <div class="feed-title">⚡ Dispatch</div>
@@ -900,6 +997,8 @@ canvas{display:block;touch-action:none;}
     <div id="intro-body">
       <div class="intro-row">&bull; <b>The loop is grow → harvest → sell.</b> Plants ripen on their own. Walk up to a ripe one, carry it to the trim table, stash the bags, and sell to the buyers who come to you. Cash buys rooms, gear and people.</div>
       <div class="intro-row">&bull; <b>The strain board is the cut in the tent.</b> Garage Kush is free and even. The other cuts trade speed, price and heat, and the line on that board is what the next bag pays.</div>
+      <div class="intro-row">&bull; <b>The alley is today's neighbors.</b> The same three marks for everyone, and any friend code you paste stays on this device. Pass their lifetime take.</div>
+      <div class="intro-row">&bull; <b>On a phone, use the stick and the big button.</b> The button runs the next step — harvest, trim, stash, sell — so you never have to tap a tiny pot.</div>
       <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
       <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
       <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
@@ -941,6 +1040,7 @@ let state = {
   strain: 'kush',
   strainsOwned: ['kush'],
   taxLeft: 0,
+  alleyCleared: [],
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -1164,6 +1264,11 @@ function addCash(n) {
   state.cash += n;
   state.totalEarned += n;
   refreshHud();
+  if (n > 0) {
+    const hud = document.getElementById('cash-hud');
+    if (hud) { hud.classList.remove('pop'); void hud.offsetWidth; hud.classList.add('pop'); }
+    syncAlley(true);
+  }
 }
 
 // ── stepToward (shared NPC walker) ──
@@ -2354,11 +2459,16 @@ function triggerEvent(forced) {
   }
   document.getElementById('event-modal').classList.add('open');
   addFeed(`⚠️ ${ev.title}`);
+  sfx('event');
+  addShake(0.18);
 }
 
 function triggerRaid() {
   if (raidActive) return;
   raidActive = true;
+  sfx('heat');
+  addShake(0.7);
+  juiceFlash('heat');
   raidTimer = 15;
   document.getElementById('raid-overlay').classList.add('active');
   document.getElementById('status-bar').textContent = '🚔 DEA RAID — STAY LOW';
@@ -3395,6 +3505,7 @@ function addHeat(amount) {
   // every heat GAIN lands a quarter lighter (stacks with the crunch tax).
   if (amount > 0 && ownedRoomSet.has('front')) amount *= 0.75;
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
+  if (amount >= 8 && state.heat < 100) { sfx('heat'); addShake(0.22); juiceFlash('heat'); }
   if (state.heat >= 100) triggerBust();
   refreshHud();
 }
@@ -3479,6 +3590,9 @@ function skipTown() {
 function triggerBust() {
   if (state.bagPacked) { skipTown(); return; }   // LAB-21: you weren't home
   busted = true;
+  sfx('bust');
+  addShake(1);
+  juiceFlash('heat');
   // Make the loss stick: stop the sim/autosave and wipe the save so a reload
   // can't resume the busted run.
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
@@ -4529,6 +4643,9 @@ function unlockStrain(id, quiet) {
   selectStrain(s.id);
   if (!quiet) {
     showToast(s.icon + ' ' + s.name + ' is in the tent \u2014 ' + strainBlurb(s), 'good');
+    sfx('buy');
+    addShake(0.2);
+    juiceFlash('good');
     addFeed(s.icon + ' Cut switched to ' + s.name);
   }
   checkGrowAchievements();
@@ -4619,6 +4736,8 @@ function buyUpgrade(id) {
     addFeed('⚗️ Chemistry unlocked');
   }
   showToast(`${u.icon} ${u.name} upgraded!`,'good');
+  sfx('buy');
+  addShake(0.14);
   addFeed(`🔧 ${u.name} Lv${state.upgrades[id]}`);
   saveGame();
   refreshHud();
@@ -4795,6 +4914,7 @@ function saveGame() {
     strain: activeStrain().id,
     strainsOwned: state.strainsOwned || ['kush'],
     taxLeft: Math.max(0, Math.min(TAX_HANDS, Math.floor(state.taxLeft || 0))),
+    alleyCleared: state.alleyCleared || [],
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
     bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
@@ -4829,6 +4949,7 @@ function loadGame() {
       state.strainsOwned = cuts.owned;
     }
     state.taxLeft = Math.max(0, Math.min(TAX_HANDS, Math.floor(Number(sv.taxLeft) || 0)));
+    state.alleyCleared = Array.isArray(sv.alleyCleared) ? sv.alleyCleared.filter(x => typeof x === 'string').slice(0, 40) : [];
     state.trimmers=sv.trimmers||0;
     state.lookouts=sv.lookouts||0;
     state.runners=sv.runners||0;
@@ -5179,6 +5300,13 @@ function updateGrowPlots(dt) {
     p.progress = Math.min(1, p.progress + speed*dt);
     if (p.progress>=1 && !p.ready) {
       p.ready=true;
+      sfx('ready');
+    }
+    if (p.plantG) {
+      if (p.ready) {
+        const s = 1 + Math.sin(now() * 5 + p.x) * 0.08;
+        p.plantG.scale.set(s, s, s);
+      } else if (p.plantG.scale.x !== 1) p.plantG.scale.set(1, 1, 1);
     }
     updateGrowPlotLabel(p, growPlots.indexOf(p));
     if (p.stage !== Math.floor(p.progress*3)+1 || p.tint !== activeStrain().color) updatePlantMesh(p);
@@ -5205,6 +5333,8 @@ function updateTrimStation(dt) {
     let bags = 1 + upgLv('yield1');
     if (motherRooted()) { bags += 1; state.motherBags = (state.motherBags || 0) + 1; refreshMotherBtn(); }   // LAB-26: her cutting in every batch
     trimBags += bags; bumpBatches();
+    sfx('trim');
+    addShake(0.12);
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
   // Trimmer NPC movement is handled once per frame in updateTrimmerNPCs().
@@ -5246,10 +5376,10 @@ function updatePlayer(dt) {
   const spd = playerSpeed();
   // WASD movement override
   let moved=false;
-  if(keys['KeyW']||keys['ArrowUp'])    {player.position.z-=spd*dt;moved=true;}
-  if(keys['KeyS']||keys['ArrowDown'])  {player.position.z+=spd*dt;moved=true;}
-  if(keys['KeyA']||keys['ArrowLeft'])  {player.position.x-=spd*dt;moved=true;}
-  if(keys['KeyD']||keys['ArrowRight']) {player.position.x+=spd*dt;moved=true;}
+  if(keys['KeyW']||keys['ArrowUp']||stickVec.z<-0.25)    {player.position.z-=spd*dt;moved=true;}
+  if(keys['KeyS']||keys['ArrowDown']||stickVec.z>0.25)  {player.position.z+=spd*dt;moved=true;}
+  if(keys['KeyA']||keys['ArrowLeft']||stickVec.x<-0.25) {player.position.x-=spd*dt;moved=true;}
+  if(keys['KeyD']||keys['ArrowRight']||stickVec.x>0.25) {player.position.x+=spd*dt;moved=true;}
   if(moved) { pState='idle'; pTarget=null; }
 
   // Walk-to target (click)
@@ -5333,6 +5463,9 @@ function harvestPlot(p) {
   player.userData.carryMesh.visible=true;
   setStatus('Harvest done! Take it to the Trim Station.');
   addFeed('🌿 Harvested a plant');
+  sfx('harvest');
+  addShake(0.16);
+  juiceFlash('good');
 }
 
 function depositAtTrim() {
@@ -5340,6 +5473,7 @@ function depositAtTrim() {
   pCarrying=null;
   player.userData.carryMesh.visible=false;
   setStatus('Trimming in progress...');
+  sfx('trim');
 }
 
 function depositAtStash() {
@@ -5350,6 +5484,8 @@ function depositAtStash() {
     stashCount+=added;
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     addFeed(`📦 Stashed ${added} bags`);
+    sfx('stash');
+    addShake(0.1);
     if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
@@ -5452,6 +5588,9 @@ function sellToDealer(d, idx) {
     cashPop(sw.x,sw.y,price);
     addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
     showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list' + (whaleTax.skim > 0 ? ' (skimmed $' + fmtCash(whaleTax.skim) + ')' : '') + '.', 'good');
+    sfx('sale', price);
+    addShake(0.45);
+    juiceFlash('good');
     d.state='leaving';
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     saveGame();
@@ -5486,6 +5625,9 @@ function sellToDealer(d, idx) {
   if(state.heat<85) heatPop(s.x,s.y+20);
   addFeed(`💰 Sold ${qty} bag${qty === 1 ? '' : 's'}${pureUsed>0?` (${pureUsed}✨ pure)`:''}${streetTax.skim>0?` · skimmed $${fmtCash(streetTax.skim)}`:''} → +$${fmtCash(price)}`);
   showToast(saleToast(qty, price, streetTax.skim),'good');
+  sfx('sale', price);
+  addShake(0.3);
+  juiceFlash('good');
   d.state='leaving';
   setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   saveGame();
@@ -5723,6 +5865,368 @@ window.addEventListener('beforeunload', saveGame);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
 window.addEventListener('pagehide', () => saveGame());
 
+// ── Sound, juice, the alley, phone walk ──
+// Tones are synthesized. The speaker button is this corner's mute; the
+// arcade mute (EurekaPersist) still wins when the hub has set one.
+let sfxCtx = null;
+let sfxMuted = false;
+let music = null;
+let shake = 0;
+let stickVec = { x: 0, z: 0 };
+try { sfxMuted = localStorage.getItem('growop-muted') === '1'; } catch (e) {}
+try {
+  if (window.EurekaPersist && EurekaPersist.settings.get().touched) sfxMuted = !!EurekaPersist.settings.get().muted;
+} catch (e) {}
+
+function sfxScale() {
+  try {
+    if (window.EurekaPersist && EurekaPersist.audio && typeof EurekaPersist.audio.sfx === 'function') {
+      return EurekaPersist.audio.sfx(sfxMuted);
+    }
+  } catch (e) {}
+  return sfxMuted ? 0 : 1;
+}
+function sfxAc() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!sfxCtx) { try { sfxCtx = new AC(); } catch (e) { return null; } }
+  if (sfxCtx.state === 'suspended') sfxCtx.resume().catch(() => {});
+  return sfxCtx;
+}
+function sfxTone(freq, dur, opt) {
+  const c = sfxAc();
+  const scale = sfxScale();
+  if (!c || scale <= 0) return;
+  const o = opt || {};
+  const t0 = c.currentTime + (o.delay || 0);
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(Math.max(1, freq), t0);
+  if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.slide), t0 + dur);
+  const level = (o.gain == null ? 0.08 : o.gain) * scale;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(level, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(c.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.03);
+}
+function sfx(name, amount) {
+  try {
+    if (name === 'harvest') { sfxTone(520, 0.07, { type: 'triangle', slide: 860 }); sfxTone(880, 0.09, { delay: 0.05, gain: 0.05 }); }
+    else if (name === 'trim') sfxTone(210, 0.05, { type: 'square', slide: 90, gain: 0.05 });
+    else if (name === 'stash') sfxTone(180, 0.09, { type: 'triangle', slide: 110, gain: 0.07 });
+    else if (name === 'sale') {
+      const f = 620 + Math.min(380, (amount || 25) * 0.4);
+      sfxTone(f, 0.08, { type: 'square', gain: 0.06 });
+      sfxTone(f * 1.25, 0.1, { type: 'square', delay: 0.07, gain: 0.05 });
+      sfxTone(f * 1.5, 0.14, { type: 'triangle', delay: 0.14, gain: 0.04 });
+    } else if (name === 'heat') sfxTone(150, 0.16, { type: 'sawtooth', slide: 60, gain: 0.05 });
+    else if (name === 'bust') { [240, 160, 90].forEach((f, i) => sfxTone(f, 0.28, { type: 'sawtooth', delay: i * 0.16, gain: 0.07, slide: f * 0.7 })); }
+    else if (name === 'buy') { [523, 659, 784].forEach((f, i) => sfxTone(f, 0.09, { type: 'triangle', delay: i * 0.06, gain: 0.06 })); }
+    else if (name === 'event') sfxTone(440, 0.12, { type: 'square', slide: 220, gain: 0.05 });
+    else if (name === 'ready') sfxTone(760, 0.08, { type: 'sine', gain: 0.04 });
+    else if (name === 'clear') { [523, 659, 784, 1046].forEach((f, i) => sfxTone(f, 0.1, { type: 'triangle', delay: i * 0.05, gain: 0.05 })); }
+    else if (name === 'ui') sfxTone(880, 0.03, { type: 'square', gain: 0.03 });
+  } catch (e) {}
+}
+function stopMusic() {
+  if (!music) return;
+  try { music.osc.stop(); music.lfo.stop(); } catch (e) {}
+  music = null;
+}
+function startMusic() {
+  if (music || sfxScale() <= 0) return;
+  const c = sfxAc();
+  if (!c) return;
+  try {
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    const lfo = c.createOscillator();
+    const lg = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 55;
+    g.gain.value = 0.018 * sfxScale();
+    lfo.frequency.value = 0.12;
+    lg.gain.value = 6;
+    lfo.connect(lg).connect(osc.frequency);
+    osc.connect(g).connect(c.destination);
+    osc.start();
+    lfo.start();
+    music = { osc, g, lfo };
+  } catch (e) { music = null; }
+}
+function addShake(n) { shake = Math.min(1.2, shake + n); }
+function applyShake() {
+  applyCamera();
+  if (stickVec.x || stickVec.z) {
+    /* camera stays put; the stick moves the player in updatePlayer */
+  }
+  if (shake > 0.02) {
+    camera.position.x += Math.sin(performance.now() * 0.09) * shake * 0.4;
+    camera.position.y += Math.cos(performance.now() * 0.13) * shake * 0.18;
+    shake *= 0.9;
+  }
+}
+function juiceFlash(kind) {
+  const el = document.getElementById('juice-flash');
+  if (!el) return;
+  el.className = kind === 'heat' ? 'heat' : 'good';
+  void el.offsetWidth;
+  el.classList.add('on');
+}
+function paintSfxBtn() {
+  const b = document.getElementById('sfx-btn');
+  if (!b) return;
+  const off = sfxScale() <= 0;
+  b.textContent = off ? '🔇' : '🔊';
+  b.setAttribute('aria-pressed', off ? 'true' : 'false');
+  b.setAttribute('aria-label', off ? 'Sound off' : 'Sound on');
+  b.title = off ? 'Sound off' : 'Sound on';
+}
+function setSfxMuted(m) {
+  sfxMuted = !!m;
+  try { localStorage.setItem('growop-muted', sfxMuted ? '1' : '0'); } catch (e) {}
+  try {
+    if (window.EurekaPersist) EurekaPersist.settings.update({ muted: sfxMuted, touched: true });
+  } catch (e) {}
+  if (sfxScale() <= 0) stopMusic();
+  else startMusic();
+  paintSfxBtn();
+}
+
+// The alley: three neighbors generated from the UTC date, so every device
+// sees the same marks today, plus friend codes kept in localStorage.
+const ALLEY_FRIENDS_KEY = 'growop-alley';
+const ALLEY_NAMES = ['Rae', 'Moss', 'Junie', 'Polo', 'Nia', 'Vic', 'Sol', 'Kit', 'Remy', 'Ash'];
+function alleyDayNumber(date) {
+  const d = date || new Date();
+  const start = Date.UTC(d.getUTCFullYear(), 0, 0);
+  const day = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
+  return d.getUTCFullYear() * 1000 + day;
+}
+function alleyRand(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function todaysGhosts(date) {
+  const rnd = alleyRand(alleyDayNumber(date));
+  const pool = ALLEY_NAMES.slice();
+  const ghosts = [];
+  let bar = 100;
+  for (let i = 0; i < 3; i++) {
+    const name = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
+    bar += 60 + Math.floor(rnd() * 180);
+    ghosts.push({ name, earned: bar });
+  }
+  return ghosts;
+}
+function alleyChecksum(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+function alleyCodeFor(name, earned) {
+  const clean = String(name || 'You').replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 12) || 'You';
+  const body = clean + ':' + Math.max(0, Math.floor(earned));
+  const b = btoa(body).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return b + '.' + alleyChecksum(b);
+}
+function alleyReadCode(code) {
+  const m = /^([A-Za-z0-9_-]+)\.([a-z0-9]+)$/.exec(String(code || '').trim());
+  if (!m || alleyChecksum(m[1]) !== m[2]) return null;
+  let body = '';
+  try {
+    const pad = m[1] + '='.repeat((4 - m[1].length % 4) % 4);
+    body = atob(pad.replace(/-/g, '+').replace(/_/g, '/'));
+  } catch (e) { return null; }
+  const cut = body.lastIndexOf(':');
+  if (cut <= 0) return null;
+  const name = body.slice(0, cut).replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 12);
+  const earned = Number(body.slice(cut + 1));
+  if (!name || !Number.isFinite(earned) || earned < 0 || earned > 1e9) return null;
+  return { name, earned: Math.floor(earned) };
+}
+function alleyFriends() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ALLEY_FRIENDS_KEY) || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(f => f && typeof f.name === 'string' && Number.isFinite(f.earned)).slice(0, 8);
+  } catch (e) { return []; }
+}
+function saveAlleyFriends(list) {
+  try { localStorage.setItem(ALLEY_FRIENDS_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) {}
+}
+function alleyMarks() {
+  const marks = todaysGhosts().map(g => ({ key: 'day:' + g.name + ':' + g.earned, name: g.name, earned: g.earned, kind: 'today' }));
+  for (const f of alleyFriends()) marks.push({ key: 'friend:' + f.name + ':' + f.earned, name: f.name, earned: f.earned, kind: 'friend' });
+  return marks;
+}
+function paintAlley() {
+  const line = document.getElementById('alley-line');
+  const list = document.getElementById('alley-list');
+  const mine = document.getElementById('alley-mine');
+  if (!line) return;
+  const marks = alleyMarks().slice().sort((a, b) => a.earned - b.earned);
+  const next = marks.find(m => state.totalEarned < m.earned);
+  line.textContent = next ? (next.name + ' · $' + fmtCash(next.earned)) : 'You run the alley';
+  if (list) {
+    list.innerHTML = marks.map(m => {
+      const done = state.totalEarned >= m.earned;
+      const who = m.kind === 'friend' ? m.name + ' (friend)' : m.name;
+      return '<div class="' + (done ? 'done' : 'ahead') + '">' + (done ? '✓ ' : '→ ') + who + ' · $' + fmtCash(m.earned) + '</div>';
+    }).join('');
+  }
+  if (mine) {
+    let nick = 'You';
+    try { nick = (localStorage.getItem('rival-name') || 'You'); } catch (e) {}
+    const code = alleyCodeFor(nick, state.totalEarned);
+    if (mine.value !== code) mine.value = code;
+  }
+}
+function syncAlley(toast) {
+  if (!Array.isArray(state.alleyCleared)) state.alleyCleared = [];
+  for (const m of alleyMarks()) {
+    if (state.totalEarned < m.earned) continue;
+    if (state.alleyCleared.includes(m.key)) continue;
+    state.alleyCleared.push(m.key);
+    if (toast) {
+      showToast('🏁 Passed ' + m.name + ' — $' + fmtCash(m.earned) + ' on the alley.', 'good');
+      addFeed('🏁 Passed ' + m.name);
+      sfx('clear');
+      addShake(0.35);
+      juiceFlash('good');
+    }
+  }
+  paintAlley();
+}
+function pinAlleyFriend(code) {
+  const parsed = alleyReadCode(code);
+  if (!parsed) { showToast('That code does not read.', 'bust'); sfx('ui'); return false; }
+  const list = alleyFriends().filter(f => f.name !== parsed.name);
+  list.unshift(parsed);
+  saveAlleyFriends(list);
+  showToast('📌 ' + parsed.name + ' is on your alley — $' + fmtCash(parsed.earned) + '.', 'good');
+  sfx('buy');
+  syncAlley(true);
+  return true;
+}
+
+function walkToward(x, z) {
+  pTarget = { x, z };
+  pState = 'walkTo';
+  sfx('ui');
+}
+function nextStep() {
+  if (busted || activeEvent) return;
+  if (pCarrying === 'bud' && trimStation) return walkToward(trimStation.x, trimStation.z + 0.9);
+  if (pCarrying === 'bag' && stashNode) return walkToward(stashNode.x, stashNode.z + 1.2);
+  if (!pCarrying && trimBags > 0 && trimStation) return walkToward(trimStation.x, trimStation.z + 0.6);
+  if (!pCarrying && chemProduct > 0 && chemStation) return walkToward(chemStation.x, chemStation.z + 0.8);
+  const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+  if (!pCarrying && stashCount > 0 && dealer) return walkToward(dealer.group.position.x, dealer.group.position.z + 0.4);
+  let best = null;
+  let bestD = 1e9;
+  for (const p of growPlots) {
+    if (!p.ready || pCarrying) continue;
+    const d = (player.position.x - p.x) ** 2 + (player.position.z - p.z) ** 2;
+    if (d < bestD) { best = p; bestD = d; }
+  }
+  if (best) return walkToward(best.x, best.z + 1.05);
+  setStatus('Nothing to run yet — the plants are still growing.');
+  sfx('ui');
+}
+function refreshNextStep() {
+  const b = document.getElementById('next-step');
+  if (!b) return;
+  let label = 'Wait';
+  if (pCarrying === 'bud') label = 'Trim';
+  else if (pCarrying === 'bag') label = 'Stash';
+  else if (trimBags > 0) label = 'Grab bags';
+  else if (!pCarrying && stashCount > 0 && dealers.some(d => d.state === 'waiting' && !d.paid)) label = 'Sell';
+  else if (growPlots.some(p => p.ready)) label = 'Harvest';
+  if (b.textContent !== label) b.textContent = label;
+  b.classList.toggle('hot', label === 'Harvest' || label === 'Sell' || label === 'Trim' || label === 'Grab bags' || label === 'Stash');
+}
+function bindStick() {
+  const stick = document.getElementById('stick');
+  const knob = document.getElementById('stick-knob');
+  if (!stick || !knob) return;
+  const max = 28;
+  function setFrom(clientX, clientY) {
+    const r = stick.getBoundingClientRect();
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    const cl = Math.max(-1, Math.min(1, dx / max));
+    const ct = Math.max(-1, Math.min(1, dy / max));
+    knob.style.transform = 'translate(' + (cl * max) + 'px,' + (ct * max) + 'px)';
+    stickVec.x = cl;
+    stickVec.z = ct;
+    stick.setAttribute('aria-valuenow', String(Math.round(cl * 10) / 10));
+  }
+  function end() { stickVec.x = 0; stickVec.z = 0; knob.style.transform = ''; stick.setAttribute('aria-valuenow', '0'); }
+  stick.addEventListener('pointerdown', e => {
+    stick.setPointerCapture(e.pointerId);
+    setFrom(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  stick.addEventListener('pointermove', e => {
+    if (!stick.hasPointerCapture(e.pointerId)) return;
+    setFrom(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+}
+function bindJuiceUi() {
+  paintSfxBtn();
+  paintAlley();
+  bindStick();
+  const sfxBtn = document.getElementById('sfx-btn');
+  if (sfxBtn) sfxBtn.addEventListener('click', () => { setSfxMuted(!sfxMuted); sfx('ui'); });
+  const alleyBtn = document.getElementById('alley-btn');
+  const sheet = document.getElementById('alley-sheet');
+  if (alleyBtn && sheet) alleyBtn.addEventListener('click', () => { paintAlley(); sheet.classList.toggle('open'); sfx('ui'); });
+  const close = document.getElementById('alley-close');
+  if (close && sheet) close.addEventListener('click', () => sheet.classList.remove('open'));
+  const copy = document.getElementById('alley-copy');
+  if (copy) copy.addEventListener('click', async () => {
+    const value = document.getElementById('alley-mine').value;
+    try { await navigator.clipboard.writeText(value); showToast('Code copied.', 'good'); }
+    catch (e) {
+      const input = document.getElementById('alley-mine');
+      input.focus(); input.select();
+      showToast('Select the code and copy it.', '');
+    }
+    sfx('ui');
+  });
+  const add = document.getElementById('alley-add');
+  if (add) add.addEventListener('click', () => {
+    const input = document.getElementById('alley-paste');
+    if (pinAlleyFriend(input.value)) input.value = '';
+  });
+  const step = document.getElementById('next-step');
+  if (step) step.addEventListener('click', nextStep);
+  document.addEventListener('pointerdown', () => { if (sfxScale() > 0) startMusic(); }, { once: false });
+  try {
+    if (window.EurekaPersist && EurekaPersist.settings.subscribe) {
+      EurekaPersist.settings.subscribe(() => {
+        try { if (EurekaPersist.settings.get().touched) sfxMuted = !!EurekaPersist.settings.get().muted; } catch (e) {}
+        if (sfxScale() <= 0) stopMusic();
+        paintSfxBtn();
+      });
+    }
+  } catch (e) {}
+}
+bindJuiceUi();
+syncAlley(false);
+
 // ── Start ──
 requestAnimationFrame(animate);
 
@@ -5789,6 +6293,8 @@ function animate(now_ms) {
   if(autoSaveTimer>8){autoSaveTimer=0;saveGame();}
 
   updateLabels();
+  refreshNextStep();
+  applyShake();
   renderer.render(scene,camera);
 }
 
