@@ -195,7 +195,8 @@
     }
     #panel #p-festival, #panel #p-still { flex: 1 0 100%; }
     #panel button.crop { flex: 1 0 30%; }
-    #panel button.crop.on { border-color: var(--gold); color: var(--gold); }
+    #panel button.crop.on { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 1px rgba(242,193,78,0.45); }
+    #panel button.crop:active { transform: scale(0.97); }
     #panel button:hover { border-color: rgba(242,193,78,0.6); }
     #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
 
@@ -209,6 +210,32 @@
     }
     @keyframes toastin { from { transform: translateX(-16px); opacity: 0; } }
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
+    #juice {
+      position: fixed; left: 50%; top: 22%; z-index: 720; pointer-events: none;
+      display: flex; align-items: center; gap: 10px; max-width: min(420px, calc(100% - 24px));
+      background: rgba(28, 22, 14, 0.92); border: 1px solid var(--gold); border-radius: 16px;
+      padding: 10px 16px; font-weight: 800; font-size: 16px; color: #f2e3c8;
+      transform: translateX(-50%);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    #juice[hidden] { display: none; }
+    #juice .j-emoji { font-size: 28px; line-height: 1; }
+    #juice.pop { animation: juicepop 2.1s ease forwards; }
+    #juice-motes { position: fixed; inset: 0; z-index: 710; pointer-events: none; overflow: hidden; }
+    #juice-motes span {
+      position: absolute; font-size: 22px; margin-left: -11px; margin-top: -11px;
+      animation: motefloat 1.2s ease-out forwards;
+    }
+    @keyframes motefloat {
+      to { transform: translate(var(--dx), var(--dy)) scale(0.55); opacity: 0; }
+    }
+    @keyframes juicepop {
+      0% { transform: translateX(-50%) scale(0.72); opacity: 0; }
+      12% { transform: translateX(-50%) scale(1.06); opacity: 1; }
+      20% { transform: translateX(-50%) scale(1); opacity: 1; }
+      72% { opacity: 1; }
+      100% { transform: translateX(-50%) translateY(-16px) scale(0.98); opacity: 0; }
+    }
 
     /* ---- Trader modal ---- */
     #trader, #event, #welcome, #achv, #chronicle, #decrees, #stillroom {
@@ -231,8 +258,30 @@
       border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
     }
     .still-recipe { width: 100%; text-align: left; margin-top: 6px; }
-    .still-recipe:hover, .still-row button:hover, #still-anoint:hover { border-color: var(--gold); }
-    #still-anoint { width: 100%; margin-top: 8px; }
+    .still-recipe:hover, .still-row button:hover, #still-anoint:hover,
+    #cup-enter:hover, #cup-add:hover { border-color: var(--gold); }
+    .still-recipe:active, .still-row button:active, #still-anoint:active,
+    #cup-enter:active, #cup-add:active { transform: scale(0.97); }
+    #still-anoint, #cup-enter { width: 100%; margin-top: 8px; }
+    #cup-need { font-size: 13px; line-height: 1.45; }
+    #cup-day { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+    #cup-enter, #cup-add {
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
+    }
+    .cup-lab { display: block; margin-top: 10px; font-size: 11px; color: var(--ink-dim); }
+    #cup-code, #cup-paste {
+      width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      font-family: var(--mono); font-size: 13px;
+    }
+    .cup-addrow { display: flex; gap: 8px; align-items: flex-end; }
+    .cup-addrow #cup-paste { flex: 1 1 auto; min-width: 0; }
+    #cup-add { flex: 0 0 auto; min-width: 72px; margin-top: 4px; }
+    #cup-board { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+    .cup-row, .cup-empty { padding: 6px 8px; border-radius: 7px; background: rgba(255,255,255,0.05); font-size: 13px; }
+    .cup-row { display: flex; justify-content: space-between; gap: 8px; }
+    .cup-empty { color: var(--ink-dim); font-size: 12px; }
     #still-anoint-wrap[hidden] { display: none; }
     /* The board is long. The copy scrolls; Back to the lane and Games stay put. */
     #stillroom .trader-card { display: flex; flex-direction: column; overflow: hidden; }
@@ -458,10 +507,23 @@
       .btab { white-space: nowrap; padding: 6px 10px; font-size: 12px; }
       #panel {
         top: auto; bottom: 150px; right: 8px; left: 8px; width: auto;
-        max-height: 32vh; overflow-y: auto;
+        max-height: 46vh; overflow-y: auto;
       }
       #hint { display: none; }
       #paused { left: 8px; right: 8px; top: 50%; transform: translateY(-50%); min-width: 0; }
+      #menu-btn, #touch-pause, #zoom-ctl button { width: 44px; height: 44px; }
+      #touch-pause { right: calc(64px + env(safe-area-inset-right, 0px)); }
+      #stillroom .trader-card {
+        box-sizing: border-box; width: calc(100% - 16px); max-height: calc(100dvh - 12px);
+        border-radius: 14px; padding: 12px;
+      }
+      .still-recipe, .still-row button, #still-anoint, #cup-enter, #cup-add, #panel button {
+        min-height: 44px; touch-action: manipulation;
+      }
+      .still-row { flex-wrap: wrap; }
+      .still-row button { flex: 1 0 100%; }
+      #townname-input, #cup-paste, #cup-code { font-size: 16px !important; }
+      #juice { top: 14%; }
     }
   </style>
 <style>
@@ -582,6 +644,8 @@
   <canvas id="minimap" width="56" height="42" title="Click to jump there"></canvas>
 
   <div id="toasts"></div>
+  <div id="juice" hidden></div>
+  <div id="juice-motes"></div>
 
   <div id="trader">
     <div class="trader-card">
@@ -652,6 +716,18 @@
         <div id="still-anoint-wrap" hidden></div>
         <div class="still-h">Neighbours</div>
         <div id="still-neighbours"></div>
+        <div class="still-h">Valley Cup</div>
+        <div id="cup-need" data-tea="0" data-linen="0" data-pie="0"></div>
+        <div id="cup-day"></div>
+        <button type="button" id="cup-enter">Enter today&rsquo;s cup</button>
+        <label class="cup-lab" for="cup-code">Your slip</label>
+        <input id="cup-code" readonly aria-label="Your Valley Cup slip">
+        <label class="cup-lab" for="cup-paste">A neighbour&rsquo;s slip</label>
+        <div class="cup-addrow">
+          <input id="cup-paste" maxlength="80" autocomplete="off" placeholder="HV1." aria-label="Paste a Valley Cup slip">
+          <button type="button" id="cup-add">Add</button>
+        </div>
+        <div id="cup-board"></div>
       </div>
       <div class="sheet-ctas">
         <button class="closebtn" id="still-close" type="button">Back to the lane</button>
@@ -673,6 +749,7 @@
         &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
         &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
+        &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -795,6 +872,13 @@
       case 'goal':    tone(523, 0.10, 'triangle', 0.12); tone(659, 0.10, 'triangle', 0.12, 0.10); tone(784, 0.20, 'triangle', 0.12, 0.20); break;
       case 'error':   tone(150, 0.16, 'sawtooth', 0.08); break;
       case 'trader':  tone(440, 0.10, 'sine', 0.10); tone(330, 0.16, 'sine', 0.09, 0.09); break;
+      case 'steep':   tone(523, 0.08, 'sine', 0.10); tone(784, 0.16, 'sine', 0.08, 0.07); break;
+      case 'weave':   tone(220, 0.06, 'triangle', 0.09); tone(330, 0.10, 'triangle', 0.08, 0.05); tone(440, 0.14, 'triangle', 0.07, 0.12); break;
+      case 'bake':    tone(196, 0.08, 'triangle', 0.10); tone(294, 0.14, 'triangle', 0.09, 0.08); break;
+      case 'salve':   tone(392, 0.10, 'sine', 0.09); tone(523, 0.16, 'sine', 0.08, 0.08); tone(659, 0.20, 'sine', 0.06, 0.18); break;
+      case 'plant':   tone(262, 0.07, 'triangle', 0.09); tone(392, 0.14, 'triangle', 0.08, 0.06); break;
+      case 'deliver': tone(440, 0.07, 'square', 0.08); tone(554, 0.09, 'square', 0.08, 0.06); tone(659, 0.16, 'triangle', 0.09, 0.14); break;
+      case 'rank':    tone(523, 0.08, 'triangle', 0.11); tone(659, 0.09, 'triangle', 0.11, 0.08); tone(784, 0.12, 'triangle', 0.11, 0.16); tone(1046, 0.24, 'triangle', 0.10, 0.28); break;
     }
   }
 
@@ -1926,6 +2010,8 @@
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
+  let juiceMotes = [];     // craft sparkles over the stillroom, real-time
+  let juiceTimer = 0;
   // ambient life (cosmetic, non-persistent) — all move on continuous curves, never blink
   let birds = [], butters = [], fireflies = [], leaves = [], critters = [];
   let waterlife = [], waterSpots = [];   // ducks drifting on the river + fish-jump spots
@@ -2001,6 +2087,7 @@
       posts: { mara: 0, tomas: 0, nessa: 0 },
       asksFilled: {},
       ward: 0,
+      cup: null,
     };
   }
   const ACHIEVEMENTS = [
@@ -2088,6 +2175,7 @@
     { id: 'firstkettle', emoji: '🍵', name: 'First Kettle', desc: 'Craft something at the Stillroom bench.', done: () => (state.crafted || 0) >= 1 },
     { id: 'goodneighbour', emoji: '🤝', name: 'Good Neighbour', desc: 'Deliver three requests for the valley neighbours.', done: () => (state.deliveries || 0) >= 3, prog: () => [state.deliveries || 0, 3] },
     { id: 'valleykin', emoji: '🌿', name: 'Kin of the Valley', desc: 'Earn 10 goodwill with the neighbours.', done: () => (state.kinship || 0) >= 10, prog: () => [state.kinship || 0, 10] },
+    { id: 'cupday', emoji: '🏆', name: 'Cup Day', desc: 'Enter the Valley Cup.', done: () => !!(state.cup && state.cup.day) },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3044,7 +3132,142 @@
       { id: 'known', text: 'Be Known (3 goodwill)', done: (state.kinship || 0) >= 3 },
       { id: 'trusted', text: 'Be Trusted (6 goodwill)', done: (state.kinship || 0) >= 6 },
       { id: 'kin', text: 'Be counted Kin (10 goodwill)', done: (state.kinship || 0) >= 10 },
+      { id: 'cup', text: 'Enter the Valley Cup', done: !!(state.cup && state.cup.day) },
     ];
+  }
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function juice(emoji, line) {
+    const el = document.getElementById('juice');
+    if (!el) return;
+    el.innerHTML = '<span class="j-emoji">' + emoji + '</span><span class="j-line">' + escHtml(line) + '</span>';
+    el.hidden = false;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    juiceTimer = 2.1;
+  }
+  function stillroomWorld() {
+    if (!state || !state.buildings) return null;
+    const b = state.buildings.find(x => x.type === 'stillroom' && x.done !== false);
+    if (!b) return null;
+    const def = BUILDINGS.stillroom;
+    return { x: (b.tx + def.w / 2) * TILE, y: (b.ty + 0.2) * TILE };
+  }
+  function spawnJuiceMotes(emoji) {
+    const w = stillroomWorld();
+    if (!w) return;
+    for (let i = 0; i < 8; i++) {
+      juiceMotes.push({
+        x: w.x + (rrand(i * 17 + (state.crafted || 0) * 3) - 0.5) * 22,
+        y: w.y,
+        vy: -16 - rrand(i * 9 + 2) * 18,
+        vx: (rrand(i * 13 + 4) - 0.5) * 26,
+        life: 1.25,
+        max: 1.25,
+        emoji: emoji,
+      });
+    }
+    if (juiceMotes.length > 48) juiceMotes.splice(0, juiceMotes.length - 48);
+    const layer = document.getElementById('juice-motes');
+    if (!layer) return;
+    const sheet = document.querySelector('#stillroom.show .trader-card');
+    const origin = sheet || document.getElementById('game');
+    if (!origin) return;
+    const rect = origin.getBoundingClientRect();
+    const x = rect.left + rect.width * (sheet ? 0.5 : 0.5);
+    const y = rect.top + rect.height * (sheet ? 0.42 : 0.45);
+    while (layer.childElementCount > 24) layer.firstChild.remove();
+    for (let i = 0; i < 10; i++) {
+      const span = document.createElement('span');
+      span.textContent = emoji;
+      span.style.left = Math.round(x + (rrand(i * 19 + 1) - 0.5) * 80) + 'px';
+      span.style.top = Math.round(y) + 'px';
+      span.style.setProperty('--dx', Math.round((rrand(i * 23 + 5) - 0.5) * 220) + 'px');
+      span.style.setProperty('--dy', Math.round(-70 - rrand(i * 11 + 3) * 160) + 'px');
+      layer.appendChild(span);
+      setTimeout(() => { if (span.parentNode) span.remove(); }, 1300);
+    }
+  }
+  function updateJuiceMotes(dt) {
+    for (const m of juiceMotes) {
+      m.life -= dt;
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+      m.vy += 20 * dt;
+    }
+    if (juiceMotes.length) juiceMotes = juiceMotes.filter(m => m.life > 0);
+    if (juiceTimer > 0) {
+      juiceTimer -= dt;
+      if (juiceTimer <= 0) {
+        const el = document.getElementById('juice');
+        if (el) el.hidden = true;
+      }
+    }
+  }
+  const CUP_KEY = 'hvale-cup-rivals';
+  const CUP_BASKETS = [
+    { tea: 1, linen: 1 },
+    { pie: 1, tea: 1 },
+    { linen: 1, pie: 1 },
+  ];
+  function cupDayKey(d) {
+    const dt = d || new Date();
+    const y = dt.getUTCFullYear();
+    const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(dt.getUTCDate()).padStart(2, '0');
+    return '' + y + m + day;
+  }
+  function cupBasket() { return CUP_BASKETS[Number(cupDayKey()) % 3]; }
+  function cupScore() { return 80 + (state.kinship || 0) * 12 + (state.deliveries || 0) * 3; }
+  function cupEncodeName(name) {
+    const clean = String(name || 'Vale').trim().slice(0, 16) || 'Vale';
+    return btoa(unescape(encodeURIComponent(clean))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+  function cupDecodeName(b64) {
+    try {
+      const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+      const raw = atob(String(b64).replace(/-/g, '+').replace(/_/g, '/') + pad);
+      const name = decodeURIComponent(escape(raw)).trim().slice(0, 16);
+      return name;
+    } catch (e) { return ''; }
+  }
+  function cupCodeFor(name, day, score) {
+    return 'HV1.' + cupEncodeName(name) + '.' + day + '.' + score;
+  }
+  function parseCupCode(code) {
+    const m = String(code || '').trim().match(/^HV1\.([A-Za-z0-9_-]+)\.(\d{8})\.(\d{1,5})$/);
+    if (!m) return null;
+    const name = cupDecodeName(m[1]);
+    if (!name) return null;
+    const score = parseInt(m[3], 10);
+    if (!Number.isFinite(score)) return null;
+    return { name: name, day: m[2], score: score };
+  }
+  function readCup(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const day = String(raw.day || '');
+    if (!/^\d{8}$/.test(day)) return null;
+    const score = Math.floor(Number(raw.score) || 0);
+    return { day: day, score: Math.max(0, Math.min(99999, score)) };
+  }
+  function readCupBoard() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CUP_KEY) || '[]');
+      if (!Array.isArray(raw)) return [];
+      return raw.map(r => {
+        if (!r || typeof r.name !== 'string' || !/^\d{8}$/.test(String(r.day))) return null;
+        const score = Math.floor(Number(r.score));
+        if (!Number.isFinite(score)) return null;
+        const name = String(r.name).trim().slice(0, 16);
+        if (!name) return null;
+        return { name: name, day: String(r.day), score: Math.max(0, Math.min(99999, score)) };
+      }).filter(Boolean).slice(0, 12);
+    } catch (e) { return []; }
+  }
+  function writeCupBoard(rows) {
+    try { localStorage.setItem(CUP_KEY, JSON.stringify(rows.slice(0, 12))); } catch (e) {}
   }
   function ensureStillroomState() {
     if (!state.stores) state.stores = blankStores();
@@ -3089,6 +3312,34 @@
       return '<div class="still-row"><div class="who"><b>' + n.emoji + ' ' + n.name + '</b><span id="still-ask-' + n.id + '">' + note + '</span></div>'
         + '<button type="button" id="still-deliver-' + n.id + '" data-deliver="' + n.id + '">Deliver</button></div>';
     }).join('');
+    renderCup();
+  }
+  function renderCup() {
+    const needEl = document.getElementById('cup-need');
+    if (!needEl) return;
+    const day = cupDayKey();
+    const need = cupBasket();
+    needEl.dataset.tea = String(need.tea || 0);
+    needEl.dataset.linen = String(need.linen || 0);
+    needEl.dataset.pie = String(need.pie || 0);
+    const entered = !!(state.cup && state.cup.day === day);
+    const bits = Object.keys(need).map(k => need[k] + ' ' + STORE_GLYPH[k] + ' ' + STORE_NAME[k]);
+    needEl.textContent = entered
+      ? 'Today\u2019s basket is spent. You stand at ' + state.cup.score + '.'
+      : 'Today\u2019s basket: ' + bits.join(' and ') + '.';
+    const dayEl = document.getElementById('cup-day');
+    if (dayEl) dayEl.textContent = day;
+    const code = document.getElementById('cup-code');
+    if (code) code.value = entered ? cupCodeFor(state.townName || 'Hearthvale', day, state.cup.score) : '';
+    const rows = [];
+    if (entered) rows.push({ name: (state.townName || 'Hearthvale').slice(0, 16), score: state.cup.score, you: true });
+    readCupBoard().forEach(r => { if (r.day === day) rows.push(r); });
+    rows.sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name)));
+    const board = document.getElementById('cup-board');
+    if (!board) return;
+    board.innerHTML = rows.length
+      ? rows.map(r => '<div class="cup-row" data-name="' + escHtml(r.name) + '" data-score="' + r.score + '"><b>' + escHtml(r.name) + (r.you ? ' (you)' : '') + '</b><span>' + r.score + '</span></div>').join('')
+      : '<div class="cup-empty">No slips for today yet.</div>';
   }
   function openStillroom() {
     if (!stillroomBuilt()) { toast('Raise a Stillroom first.'); SFX('error'); return; }
@@ -3115,7 +3366,10 @@
     for (const k in recipe.out) giveStock(k, recipe.out[k]);
     const first = (state.crafted || 0) === 0;
     state.crafted = (state.crafted || 0) + 1;
-    SFX('coin');
+    const craftSfx = recipe.id === 'tea' ? 'steep' : recipe.id === 'linen' ? 'weave' : recipe.id === 'pie' ? 'bake' : recipe.id === 'salve' ? 'salve' : 'coin';
+    SFX(craftSfx);
+    juice(recipe.emoji, recipe.name + ' is ready');
+    spawnJuiceMotes(recipe.emoji);
     toast(recipe.emoji + ' ' + recipe.name + ' is ready on the bench.');
     if (first) chron(recipe.emoji, 'The Stillroom bench turns out its first ' + recipe.name.toLowerCase());
     afterStillroomAct();
@@ -3146,13 +3400,19 @@
     if ((state.kinship || 0) >= 6) state.happy = Math.min(100, state.happy + 2);
     if (cur.index === postIndex(npcId) && postIndex(npcId) < n.asks.length - 1) state.posts[npcId] = postIndex(npcId) + 1;
     const after = rankAt(state.kinship || 0);
-    SFX('goal');
     toast(n.emoji + ' ' + n.name.split(' ')[0] + ' takes it. The valley remembers.');
     chron(n.emoji, n.name + ' collected ' + cur.ask.say.replace(/\.$/, '').toLowerCase());
     if (after.name !== before.name) {
+      SFX('rank');
+      celebrateT = CELEBRATE_DUR;
+      juice('🤝', 'The valley calls you ' + after.name);
       toast('🤝 The valley calls you ' + after.name + '. ' + after.perk);
       chron('🤝', 'The neighbours name the town ' + after.name);
+    } else {
+      SFX('deliver');
+      juice(n.emoji, n.name.split(' ')[0] + ' takes it');
     }
+    spawnJuiceMotes(n.emoji);
     afterStillroomAct();
   }
   function anointTown() {
@@ -3163,7 +3423,9 @@
     state.feverUntil = -1;
     state.feversWeathered = (state.feversWeathered || 0) + 1;
     state.happy = Math.min(100, state.happy + 4);
-    SFX('goal');
+    SFX('salve');
+    juice('🧴', 'The fever breaks');
+    spawnJuiceMotes('🧴');
     toast('🧴 The salve goes door to door. The fever breaks. +4 cheer.');
     chron('🧴', 'A stillroom salve broke the fever before it could settle');
     afterStillroomAct();
@@ -3175,9 +3437,50 @@
     if (next === 'grain') delete b.crop; else b.crop = next;
     const label = next === 'feverfew' ? '🌿 Feverfew' : next === 'flax' ? '🧵 Flax' : '🌾 Grain';
     toast(label + ' goes in on the ' + BUILDINGS.farm.name.toLowerCase() + '.');
-    SFX('place');
+    SFX('plant');
+    juice(next === 'feverfew' ? '🌿' : next === 'flax' ? '🧵' : '🌾', label + ' is in the ground');
     updateHUD(); checkGoals(); save();
     if (selected === b) showPanel(b);
+  }
+  function enterValleyCup() {
+    ensureStillroomState();
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const day = cupDayKey();
+    if (state.cup && state.cup.day === day) {
+      toast('The cup already has your name today.');
+      SFX('error');
+      return;
+    }
+    const need = cupBasket();
+    const gaps = gapsFor(need);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    const score = cupScore();
+    for (const k in need) takeStock(k, need[k]);
+    state.cup = { day: day, score: score };
+    SFX('rank');
+    celebrateT = CELEBRATE_DUR;
+    juice('🏆', 'Valley Cup · ' + score);
+    spawnJuiceMotes('🏆');
+    toast('🏆 ' + (state.townName || 'Hearthvale') + ' enters the Valley Cup at ' + score + '.');
+    chron('🏆', 'The town entered the Valley Cup at ' + score);
+    afterStillroomAct();
+  }
+  function addCupRival() {
+    const field = document.getElementById('cup-paste');
+    const parsed = parseCupCode(field ? field.value : '');
+    if (!parsed) { toast('That code isn\u2019t a Valley Cup slip.'); SFX('error'); return; }
+    const today = cupDayKey();
+    const board = readCupBoard().filter(r => !(r.name === parsed.name && r.day === parsed.day));
+    board.unshift(parsed);
+    writeCupBoard(board);
+    if (field) field.value = '';
+    if (parsed.day !== today) toast(parsed.name + ' slipped in from another day. The board shows today.');
+    else {
+      toast(parsed.name + ' is on today\u2019s board.');
+      SFX('deliver');
+      juice('🍵', parsed.name + ' · ' + parsed.score);
+    }
+    if (stillroomOpen()) renderStillroom();
   }
 
   function runProduction() {
@@ -4832,6 +5135,7 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
+    drawJuiceMotes(sx, sy, z);
     // a rainbow lingers in the sky after the rain clears
     if (rainbowT > 0) drawRainbow();
     // cloud shadows drift over the whole scene; flying life renders above them
@@ -4915,6 +5219,20 @@
     ctx.restore();
     ctx.globalAlpha = 1;
   }
+  function drawJuiceMotes(sx, sy, z) {
+    if (!juiceMotes.length) return;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = Math.round(9 * z) + 'px sans-serif';
+    for (const m of juiceMotes) {
+      const px = sx + m.x * z, py = sy + m.y * z;
+      if (px < -24 || px > view.w + 24 || py < -24 || py > view.h + 24) continue;
+      ctx.globalAlpha = Math.max(0, m.life / m.max);
+      ctx.fillText(m.emoji, px, py);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   // A gentle dawn mist that drifts low over the valley and lifts as the sun
   // climbs. Screen-space soft bands on continuous sines — thin enough to keep
   // the town readable, and it never blinks.
@@ -4989,6 +5307,35 @@
     return SITE_SPR[key];
   }
 
+  function drawCropPlot(b, sx, sy, z) {
+    const crop = farmCrop(b);
+    if (crop === 'grain') return;
+    const def = BUILDINGS[b.type];
+    const fever = crop === 'feverfew';
+    const stem = fever ? '#3f8a4c' : '#c9a24a';
+    const tip = fever ? '#c9e87a' : '#f2e2a0';
+    const sway = Math.sin(ambientTime * 2.2 + b.id * 0.7) * 1.6 * z;
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.6) / n;
+      const x = sx + (b.tx * TILE + u * def.w * TILE) * z + sway * (i % 2 ? 1 : -0.5);
+      const y = sy + ((b.ty + def.h - 0.35) * TILE) * z;
+      ctx.strokeStyle = stem;
+      ctx.lineWidth = Math.max(1, z * 0.8);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + sway, y - 7 * z, x + sway * 0.35, y - 12 * z);
+      ctx.stroke();
+      ctx.fillStyle = tip;
+      if (fever) {
+        ctx.beginPath();
+        ctx.arc(x + sway * 0.35, y - 13 * z, 1.7 * z, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x + sway * 0.35 - 1.2 * z, y - 14 * z, 2.4 * z, 3.2 * z);
+      }
+    }
+  }
   function drawBuilding(b, sx, sy, z) {
     const def = BUILDINGS[b.type];
     if (b.done === false) {   // construction site + progress bar
@@ -5008,6 +5355,7 @@
     ctx.ellipse(sx + (b.tx * TILE + def.w * TILE / 2) * z, sy + (b.ty + def.h) * TILE * z - 2 * z, def.w * TILE * 0.5 * z, 3 * z, 0, 0, 7);
     ctx.fill();
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
+    if (b.type === 'farm') drawCropPlot(b, sx, sy, z);
     // drifting hearth-smoke from chimneys
     if (B_ART[b.type] && B_ART[b.type].chimney) drawSmoke(b, sx, sy, z);
     // (warm night lighting — braziers, windows — is drawn post-tint in drawNightLights)
@@ -5160,6 +5508,7 @@
     ambientTime += rdt;
     if (rainbowT > 0) rainbowT = Math.max(0, rainbowT - rdt);
     if (celebrateT > 0) celebrateT = Math.max(0, celebrateT - rdt);
+    updateJuiceMotes(rdt);
     updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
@@ -6474,6 +6823,7 @@
         posts: state.posts || { mara: 0, tomas: 0, nessa: 0 },
         asksFilled: state.asksFilled || {},
         ward: state.ward || 0,
+        cup: state.cup && state.cup.day ? { day: String(state.cup.day), score: state.cup.score | 0 } : null,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
       if (typeof EurekaPersist !== 'undefined') {
@@ -6613,6 +6963,7 @@
       state.ward = clampStore(s.ward);
       state.posts = readPosts(s.posts);
       state.asksFilled = readAsks(s.asksFilled);
+      state.cup = readCup(s.cup);
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -6822,7 +7173,13 @@
       if (recipe) { craftRecipe(recipe.dataset.recipe); return; }
       const npc = e.target.closest('[data-deliver]');
       if (npc) { deliverAsk(npc.dataset.deliver); return; }
-      if (e.target.closest('#still-anoint')) anointTown();
+      if (e.target.closest('#still-anoint')) { anointTown(); return; }
+      if (e.target.closest('#cup-enter')) { enterValleyCup(); return; }
+      if (e.target.closest('#cup-add')) addCupRival();
+    });
+    const cupPaste = document.getElementById('cup-paste');
+    if (cupPaste) cupPaste.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addCupRival(); }
     });
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
     document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };
