@@ -254,6 +254,15 @@
         npc('moss', 'Captain Moss', 'Harbor', '⚓', [
           { mood: 'salty', text: () => 'Build on the high grass. The cove takes anything you leave on the sand.' },
         ]),
+        npc('deckhand', 'Deckhand', 'Mate', '🧭', [
+          { when: (c) => c.moment === 'follow', mood: 'easy', text: () => 'On your heel, and I will keep the pace.' },
+          { when: (c) => c.moment === 'gather' || c.moment === 'gatherWork', mood: 'busy', text: () => 'Nearby only. I have what is close.' },
+          { when: (c) => c.moment === 'build' || c.moment === 'buildStart', mood: 'steady', text: () => 'I will lay this short run.' },
+          { when: (c) => c.moment === 'crow' || c.moment === 'shoo', mood: 'sharp', text: () => 'Off the crop. I will see that bird off.' },
+          { when: (c) => c.moment === 'edge', mood: 'firm', text: () => 'That step is sky. Stay a block in.' },
+          { when: (c) => low(c.coins, 8), mood: 'plain', text: (c) => 'The purse is ' + shown(c.coins, 'thin') + '. Harvest before the next wall.' },
+          { mood: 'easy', text: (c) => 'Day ' + shown(c.day, 'one') + '. I walk with you.' },
+        ]),
       ],
       calls: {
         state: 'From the shore: {detail}.',

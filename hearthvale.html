@@ -803,8 +803,11 @@
     </div>
   </div>
 
+<link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
 <script src="/js/progression.js"></script>
+<script src="/js/feel.js"></script>
+<script src="/js/flag-daily.js"></script>
 <script>
 "use strict";
 (function () {
@@ -2663,6 +2666,7 @@
     assignJobs();
     if (b.type === 'farm' || state.buildings.length <= 3) rebuildCritters();
     SFX('upgrade');
+    feelPunch('upgrade', view.w / 2, view.h * 0.38, def.emoji, '#f2c14e');
     // the Town Hall is the crowning achievement — mark it with real fanfare
     if (b.type === 'townhall') {
       celebrateT = CELEBRATE_DUR + 3;
@@ -5379,7 +5383,11 @@
         if (n > 0) { state.res.gold -= n * p.buy; state.res[k] += n; state.trades = (state.trades || 0) + 1; SFX('coin'); }
       } else {
         const n = Math.min(q, Math.floor(state.res[k]));
-        if (n > 0) { state.res[k] -= n; state.res.gold += n * p.sell; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+        if (n > 0) {
+          state.res[k] -= n; state.res.gold += n * p.sell; state.trades = (state.trades || 0) + 1; SFX('coin');
+          const r = btn.getBoundingClientRect();
+          feelPunch('coin', r.left + r.width / 2, r.top, '+' + (n * p.sell), '#f2c14e');
+        }
       }
       renderTrader(); updateHUD(); save();
     }));
@@ -6978,6 +6986,18 @@
     document.getElementById('panel').classList.add('show');
   }
 
+  function feelPunch(kind, x, y, text, color) {
+    const F = window.EurekaFeel;
+    if (!F) return;
+    F.punch(kind, {
+      x: typeof x === 'number' ? x : (view.w / 2),
+      y: typeof y === 'number' ? y : (view.h * 0.4),
+      text: text || '',
+      color: color || '#7DCE7A',
+      target: canvas,
+    });
+  }
+
   let toastId = 0;
   function toast(msg) {
     const wrap = document.getElementById('toasts');
@@ -7086,6 +7106,7 @@
       if (!canAfford(buildMode)) { toast("Can't afford that yet."); SFX('error'); return; }
       if (!canPlaceAt(buildMode, t.tx, t.ty)) { toast("Can't build there."); SFX('error'); return; }
       const b = placeBuilding(buildMode, t.tx, t.ty);
+      if (b) feelPunch('build', px, py, BUILDINGS[buildMode].emoji, '#7DCE7A');
       refreshBarState();
       if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
       return;

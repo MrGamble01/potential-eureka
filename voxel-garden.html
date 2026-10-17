@@ -300,6 +300,49 @@
 }
 #vox-tray > *{ pointer-events:auto;flex:0 0 auto; }
 </style>
+<style>
+/* The deckhand. Orders live in a thumb-sized dock that stays off the
+   hotbar, the camera pad, and the chip tray. The speech bubble is one
+   element, moved by transform, so a phone does not rebuild the DOM. */
+#mateDock{
+  position:fixed;z-index:12;left:10px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:6px;align-items:stretch;width:92px;
+}
+#mateName{
+  background:rgba(18,24,32,.9);color:var(--green);border:1px solid rgba(127,211,112,.45);
+  border-radius:12px;padding:6px 8px;font-size:12px;font-weight:800;letter-spacing:.02em;
+  cursor:pointer;min-height:44px;touch-action:manipulation;
+}
+#mateDock button[data-order]{
+  min-width:76px;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(18,24,32,.9);color:var(--ink);font-size:13px;font-weight:700;
+  cursor:pointer;touch-action:manipulation;padding:6px 8px;
+}
+#mateDock button[data-order].on{border-color:var(--green);color:#b6f0a8;background:rgba(30,48,34,.96)}
+#mateBubble{
+  position:fixed;left:0;top:0;z-index:16;pointer-events:none;max-width:min(240px,72vw);
+  background:rgba(18,24,32,.94);border:1px solid rgba(127,211,112,.55);color:var(--ink);
+  border-radius:14px;padding:7px 12px 8px;font-size:14px;line-height:1.35;
+  box-shadow:0 8px 20px rgba(0,0,0,.45);transform:translate(-50%,-118%);
+}
+#mateBubble[hidden]{display:none!important}
+#mateBubble b{display:block;color:var(--green);font-size:11px;letter-spacing:.04em;margin-bottom:2px}
+body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
+@media (max-width:640px){
+  #mateDock{
+    left:auto;right:8px;top:auto;bottom:calc(200px + env(safe-area-inset-bottom));
+    transform:none;width:88px;
+  }
+}
+@media (max-height:480px){
+  #mateDock{
+    left:auto;right:8px;top:50%;bottom:auto;transform:translateY(-50%);
+    display:grid;grid-template-columns:1fr 1fr;width:156px;
+  }
+  #mateName{display:none}
+  #mateDock button[data-order]{min-width:0;min-height:40px;padding:4px 6px;font-size:12px}
+}
+</style>
 </head>
 <body>
 <div id="vignette"></div>
@@ -365,6 +408,14 @@
   <button type="button" id="camRight" title="Turn right">⟳</button>
   <button type="button" id="camOut" title="Farther">−</button>
 </div>
+<div class="hud" id="mateDock" aria-label="Deckhand orders">
+  <button type="button" id="mateName" title="Double-tap to let the isle booth color a line">🧭</button>
+  <button type="button" id="mateFollow" data-order="follow">Follow</button>
+  <button type="button" id="mateGather" data-order="gather">Gather</button>
+  <button type="button" id="mateBuild" data-order="build">Build</button>
+  <button type="button" id="mateWait" data-order="wait">Wait</button>
+</div>
+<div id="mateBubble" hidden><b id="mateBubbleWho"></b><span id="mateBubbleText"></span></div>
 <div id="juiceFlash"></div>
 <div id="toasts"></div>
 <div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
@@ -430,6 +481,7 @@
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛🧀 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
     <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello. Greet the cat five times and it starts bringing you <b>little gifts</b></li>
+    <li><b>🧭 Deckhand</b> &mdash; with you from the first morning. <b>Follow</b>, <b>Gather</b>, <b>Build</b>, and <b>Wait</b> sit at the side, thumb-sized. Gather hauls ripe crops, dropped goods, and crates nearby, and shoos crows. Build finishes an open line or floor, or lays a short run where you last stood. They call out cliffs, crows, rain, and a thin purse, in a speech bubble. No account and no network. Double-tap their name and the isle booth may recolor a line; the rule line shows first, and a missing booth leaves it</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
@@ -5536,6 +5588,8 @@ function cellFromHit(hit,into){
 }
 function doAction(hit){
   const ud=hit.object.userData;
+  if(ud.mate)return mateGreet();
+  mateNoteHit(hit);
   // plant hit?
   if(ud.plantKey){
     const p=W.plants.get(ud.plantKey);
@@ -5609,6 +5663,7 @@ function doAction(hit){
       W.wet.delete(k3(x,y,z));
       flushChunks();
       SFX.play('dig');
+      mateNotice('dig');
       if(def)burst(x+0.5,y+0.5,z+0.5,def.top,10,{up:2,g:7});
       syncKilnSeal(false);
     }
@@ -5625,6 +5680,7 @@ function doAction(hit){
       buildAnchor={x:px,y:py,z:pz};
       refreshBuildBar();
       toast(buildMode()==='line'?'Line anchored — tap the other end (X cancels)':'Floor anchored — tap the opposite corner (X cancels)');
+      mateNotice('anchor');
       return;
     }
     const cells=strokeCells(buildAnchor,{x:px,y:py,z:pz},buildMode());
@@ -5979,6 +6035,7 @@ function getPickables(){
   if(flotsam&&flotsam.mesh)flotsam.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(shard&&shard.mesh)shard.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(catGift&&catGift.mesh)arr.push(catGift.mesh);
+  if(isleMate&&isleMate.mesh)arr.push(isleMate.mesh);
   pickCache=arr;
   return arr;
 }
@@ -6134,7 +6191,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog||hit.object.userData.duck){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog||hit.object.userData.duck||hit.object.userData.mate){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -6167,7 +6224,7 @@ function initHud(){
     s.addEventListener('click',()=>selectTool(s.dataset.tool,true));
   });
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
-  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');careerVisit();});
+  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;mateIntro();save();SFX.play('click');careerVisit();});
   function careerVisit(){ try { if (window.EurekaProgress) EurekaProgress.emit('voxel', 'visit', 1); } catch (e) {} }
   if (state.helpSeen) careerVisit();
   try {
@@ -6479,6 +6536,7 @@ function load(){
   state.questIdx=sInt(state.questIdx,0,0,QUESTS.length);
   state.townRank=sInt(state.townRank,0,0,TOWN_RANKS.length-1);
   if(state.buildMode!=='line'&&state.buildMode!=='floor')state.buildMode='single';
+  if(state.mateOrder!=='gather'&&state.mateOrder!=='wait')state.mateOrder='follow';
   if(state.kiln&&!Array.isArray(state.kiln.cells))state.kiln=null;
   if(!state.storm||typeof state.storm!=='object')state.storm={bested:false,paid:false,phase:'idle',held:0};
   else state.storm={bested:!!state.storm.bested,paid:!!state.storm.paid,phase:'idle',held:state.storm.held|0};
@@ -7049,6 +7107,583 @@ function updateAmbient(dt,dn){
   }
 }
 
+/* ============================== the deckhand ============================== */
+// A solo companion. Follows the last place you worked (and your eyes, in
+// first person), speaks from a state machine, and takes four orders:
+// follow, gather, build here, wait. No account and no network.
+// If localStorage voxel-mate-booth is "1", a line may be recolored by the
+// flagship isle booth (ArcadeAI's offline stub — the same voice as the
+// booth panel). The rule line shows first. No fetch, no key.
+let isleMate=null;
+const playerAnchor={x:1.5,z:1.2};
+const MATE_NAMES=['Brine','Lark','Cove','Pebble','Nell','Kite','Sedge','Hali','Marlow','Salt'];
+const MATE_LINES={
+  hello:["Right here.","Say the word.","I'm with you."],
+  follow:["On your heels.","Lead on.","I'll keep up."],
+  wait:["I'll hold here.","Staying put.","Wave when you want me."],
+  gather:["I'll take what's close.","Nearby only.","On the gather."],
+  build:["Show me open ground.","I'll lay a short run.","Leave a line open and I'll finish it."],
+  harvest:["That's a good one.","In the basket.","Ripe and gone."],
+  till:["Soil's open.","Good ground.","Ready for seed."],
+  water:["They'll drink that.","Twice as quick now."],
+  plant:["In it goes.","Give it time."],
+  place:["That'll hold.","Nice and square."],
+  dig:["Making room.","Clear."],
+  anchor:["That line's open. Build here and I'll finish it.","Say build and I'll close it."],
+  shoo:["Off with you.","Crow's gone."],
+  buildStart:["I'll finish this stretch.","Laying them in."],
+  buildDone:["That's the run.","Your call on the next one."],
+  buildBroke:["Purse is empty.","Can't buy another."],
+  buildNone:["Nowhere to set a block.","The ground's full here."],
+  gatherDone:["That's everything close.","Nothing else in reach."],
+  gatherWork:["Got it.","In hand."],
+  crow:["Crow in the crop. Gather, and I'll run it off."],
+  edge:["Mind the edge. Sky under that step.","That's a drop. Stay a block in."],
+  rain:["Rain on the isle. The crops like it."],
+  winter:["Winter's here. Everything grows slow."],
+  coins:["Purse is thin. Harvest before you build."],
+  suggestRipe:["Something's ripe nearby. Gather?"],
+  suggestDrop:["A good on the grass. Gather?"],
+  suggestCrate:["A crate in the water. Gather?"],
+  flotsam:["Crate's open."],
+  statusFollow:["On your heels."],
+  statusGather:["Looking for what's close."],
+  statusBuild:["Point me at open ground."],
+  statusWait:["Holding here."],
+};
+function mateName(){return MATE_NAMES[Math.abs((Math.floor(W.seed)||0)+17)%MATE_NAMES.length];}
+function mateLine(kind){
+  const list=MATE_LINES[kind]||MATE_LINES.hello;
+  return list[(Math.random()*list.length)|0];
+}
+function mateCubes(){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(-0.11,0.05,0.02,0.16,0.12,0.22,0x241c16); a(0.11,0.05,0.02,0.16,0.12,0.22,0x241c16);
+  a(-0.11,0.28,0,0.15,0.34,0.16,0x1c3d4a); a(0.11,0.28,0,0.15,0.34,0.16,0x1c3d4a);
+  a(0,0.64,0,0.42,0.46,0.26,0x1f6f5b);
+  a(0,0.78,0.12,0.3,0.1,0.08,0xf2c14e);
+  a(-0.28,0.62,0,0.12,0.4,0.14,0x1f6f5b); a(0.28,0.62,0,0.12,0.4,0.14,0x1f6f5b);
+  a(-0.28,0.4,0,0.13,0.1,0.14,0xe8bd94); a(0.28,0.4,0.08,0.13,0.1,0.14,0xe8bd94);
+  a(0.34,0.52,0.1,0.1,0.16,0.1,0xffe08a);
+  a(0,1.0,0,0.28,0.28,0.28,0xe8bd94);
+  a(0,1.16,0,0.34,0.12,0.34,0x143d38);
+  a(0,1.26,0,0.24,0.12,0.24,0x143d38);
+  a(-0.22,0.5,-0.08,0.16,0.22,0.1,0x6b4423);
+  return c;
+}
+function mateBoothOn(){
+  try{return localStorage.getItem('voxel-mate-booth')==='1';}catch(e){return false;}
+}
+let mateBoothBusy=false;
+function matePolish(kind, rule){
+  if(mateBoothBusy||!mateBoothOn())return;
+  const AI=window.ArcadeAI;
+  if(!AI||typeof AI.createStubProvider!=='function')return;
+  mateBoothBusy=true;
+  const req={
+    game:'voxel', npcId:'deckhand',
+    turn:isleMate?(isleMate.turns=(isleMate.turns||0)+1):0,
+    context:{
+      day:(typeof state!=='undefined'&&state.day)||'',
+      coins:(typeof state!=='undefined'&&state.coins)||0,
+      moment:kind||'',
+      rule:rule||'',
+      goal:($('qText')&&$('qText').textContent)||'',
+    },
+  };
+  let settled=false;
+  const finish=()=>{ if(!settled){settled=true;mateBoothBusy=false;} };
+  const timer=setTimeout(finish, 1400);
+  AI.createStubProvider().talk(req).then(res=>{
+    const line=res&&res.line?String(res.line).replace(/\s+/g,' ').trim().slice(0,90):'';
+    if(!line)return;
+    setTimeout(()=>{
+      if(isleMate&&isleMate.bubbleKind===kind&&isleMate.bubbleT>0){
+        isleMate.bubbleText=line;
+        const el=$('mateBubbleText'); if(el)el.textContent=line;
+      }
+    }, 320);
+  }).catch(()=>{}).finally(()=>{clearTimeout(timer);finish();});
+}
+function mateToggleBooth(){
+  const on=!mateBoothOn();
+  try{localStorage.setItem('voxel-mate-booth', on?'1':'0');}catch(e){}
+  toast(on?'🧭 Booth voice on — the isle booth may recolor a line. The rule line shows first.':'🧭 Booth voice off — the deckhand speaks for themselves.');
+}
+let mateNameTaps=0, mateNameTimer=0;
+function mateOnName(){
+  mateNameTaps++;
+  clearTimeout(mateNameTimer);
+  mateNameTimer=setTimeout(()=>{
+    if(mateNameTaps>=2)mateToggleBooth();
+    else if(isleMate)toast('🧭 '+isleMate.name+' — follow, gather, build here, or wait.');
+    mateNameTaps=0;
+  },320);
+}
+function matePaint(){
+  const m=isleMate; if(!m)return;
+  const name=$('mateName');
+  if(name)name.textContent='🧭 '+m.name;
+  document.querySelectorAll('#mateDock [data-order]').forEach(b=>{
+    const on=b.dataset.order===m.order;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on?'true':'false');
+  });
+}
+function mateSay(text, kind, force){
+  const m=isleMate; if(!m||!text)return;
+  if(!force && m.bubbleT>0.45){m.next={text:text,kind:kind};return;}
+  m.bubbleText=text; m.bubbleKind=kind||''; m.bubbleT=4.4;
+  const el=$('mateBubbleText'); if(el)el.textContent=text;
+  const who=$('mateBubbleWho'); if(who)who.textContent=m.name;
+  const box=$('mateBubble'); if(box)box.hidden=false;
+  if(mateBoothOn())matePolish(kind||'chat', text);
+}
+function mateCool(kind, sec){
+  const m=isleMate; if(!m)return false;
+  const now=perf||0;
+  if(m.cd[kind]&&now-m.cd[kind]<sec)return false;
+  m.cd[kind]=now;
+  return true;
+}
+function mateReact(kind){
+  if(!isleMate||isleMate.suppress)return;
+  if(!mateCool(kind, 2.4))return;
+  mateSay(mateLine(kind), kind, true);
+}
+function mateNotice(kind){mateReact(kind);}
+function mateIntro(){
+  if(!isleMate||state.mateMet)return;
+  state.mateMet=true;
+  mateSay("Name's "+isleMate.name+". Follow, gather, build here, or wait.", 'hello', true);
+  toast('🧭 '+isleMate.name+' came up with the isle — the side buttons give orders.');
+}
+function mateSetOrder(order, silent){
+  const m=isleMate; if(!m)return;
+  if(order!=='follow'&&order!=='gather'&&order!=='build'&&order!=='wait')order='follow';
+  m.order=order;
+  state.mateOrder=order==='build'?'follow':order;
+  m.path=null; m.goalx=null; m.goalz=null;
+  m.job=null; m.toldEmpty=false; m.queue=null; m.qi=0; m.stuck=0; m.chase=null;
+  m.planBuild=order==='build';
+  matePaint();
+  if(!silent)mateSay(mateLine(order), order, true);
+}
+function mateGreet(){
+  const m=isleMate; if(!m)return;
+  const key=m.order==='gather'?'statusGather':m.order==='build'?'statusBuild':m.order==='wait'?'statusWait':'statusFollow';
+  mateSay(mateLine(key), 'hello', true);
+  const gy=(surfaceY(Math.round(m.x),Math.round(m.z))||4)+1;
+  floatText(m.x, gy+1.3, m.z, '🧭', '#9be7a0');
+  SFX.tone(540,0.08,'sine',0.04,720);
+}
+function mateNoteHit(hit){
+  if(!hit||!hit.point||!isleMate)return;
+  const x=hit.point.x, z=hit.point.z;
+  if(surfaceY(Math.round(x),Math.round(z))==null)return;
+  playerAnchor.x=x; playerAnchor.z=z;
+}
+function positionMate(){
+  const m=isleMate; if(!m)return;
+  const gy=surfaceY(Math.round(m.x),Math.round(m.z));
+  const y=(gy==null?4:gy)+1;
+  if(m.dispY==null)m.dispY=y; else m.dispY+=(y-m.dispY)*0.35;
+  const bob=Math.abs(Math.sin(m.step))*0.06;
+  m.mesh.position.set(m.x, m.dispY+bob, m.z);
+  m.mesh.rotation.y=m.face;
+  m.mesh.rotation.z=Math.sin(m.step)*0.05;
+}
+function mateGo(tx,tz){
+  const m=isleMate; if(!m)return;
+  tx=Math.round(tx); tz=Math.round(tz);
+  if(m.goalx===tx&&m.goalz===tz&&m.path)return;
+  m.goalx=tx; m.goalz=tz;
+  const p=findPath(Math.round(m.x),Math.round(m.z),tx,tz);
+  if(!p){m.path=null;return;}
+  m.path=p; m.pathI=0;
+}
+function mateWalk(dt,speed){
+  const m=isleMate;
+  if(!m||!m.path||m.pathI>=m.path.length)return false;
+  const wp=m.path[m.pathI];
+  const dx=(wp[0]+0.5)-m.x, dz=(wp[1]+0.5)-m.z, d=Math.hypot(dx,dz);
+  const atFinal=m.pathI>=m.path.length-1;
+  if(d<(atFinal?0.42:0.2)){
+    if(atFinal){m.path=null;return true;}
+    m.pathI++;
+    return false;
+  }
+  const sp=Math.min(1,speed*dt/Math.max(d,0.001));
+  m.x+=dx*sp; m.z+=dz*sp; m.face=Math.atan2(dx,dz); m.step+=dt*9;
+  return false;
+}
+function mateNudge(tx,tz,dt,speed){
+  const m=isleMate; if(!m)return false;
+  const dx=(tx+0.5)-m.x, dz=(tz+0.5)-m.z, d=Math.hypot(dx,dz);
+  if(d<0.4)return true;
+  const step=Math.min(d, speed*dt);
+  const nx=m.x+dx/d*step, nz=m.z+dz/d*step;
+  const h0=surfaceY(Math.round(m.x),Math.round(m.z));
+  const h1=surfaceY(Math.round(nx),Math.round(nz));
+  if(h1!=null&&h0!=null&&Math.abs(h1-h0)<=1){
+    m.x=nx; m.z=nz; m.face=Math.atan2(dx,dz); m.step+=dt*9;
+  }
+  return Math.hypot((tx+0.5)-m.x,(tz+0.5)-m.z)<0.45;
+}
+function mateFollowCell(){
+  const px=Math.round(playerAnchor.x), pz=Math.round(playerAnchor.z);
+  const dirs=[[1,1],[-1,1],[1,-1],[-1,-1],[2,0],[-2,0],[0,2],[0,-2],[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dx,dz] of dirs){
+    const x=px+dx, z=pz+dz;
+    if(surfaceY(x,z)!=null)return [x,z];
+  }
+  if(surfaceY(px,pz)!=null)return [px,pz];
+  return null;
+}
+function mateAdvanceFollow(dt){
+  const m=isleMate;
+  const dx=playerAnchor.x-m.x, dz=playerAnchor.z-m.z, dist=Math.hypot(dx,dz);
+  if(dist>0.2)m.face=Math.atan2(dx,dz);
+  if(dist<1.7){m.path=null;m.goalx=null;m.step+=dt*2;positionMate();return;}
+  m.retarget=(m.retarget||0)-dt;
+  if(!m.path||m.retarget<=0){
+    const goal=mateFollowCell();
+    if(goal)mateGo(goal[0],goal[1]);
+    m.retarget=0.4;
+  }
+  if(!mateWalk(dt, fp.on?3.5:2.6)&&!m.path){
+    const goal=mateFollowCell();
+    if(goal)mateNudge(goal[0],goal[1],dt,2.4);
+  }
+  positionMate();
+}
+function mateShore(x,z){
+  const cx=Math.round(x), cz=Math.round(z);
+  let best=null, bd=1e9;
+  for(let dx=-3;dx<=3;dx++)for(let dz=-3;dz<=3;dz++){
+    if(surfaceY(cx+dx,cz+dz)==null)continue;
+    const d=Math.hypot(dx,dz);
+    if(d<bd){bd=d;best=[cx+dx,cz+dz,d];}
+  }
+  if(!best||best[2]>3.1)return null;
+  return best;
+}
+function mateScan(){
+  const m=isleMate; if(!m)return null;
+  const jobs=[];
+  const consider=(x,z,job,extra)=>{
+    const dMate=Math.hypot(x-m.x,z-m.z);
+    const dPlayer=Math.hypot(x-playerAnchor.x,z-playerAnchor.z);
+    if(dPlayer>12&&dMate>8)return;
+    jobs.push(Object.assign({job:job,x:x,z:z,d:dMate}, extra||{}));
+  };
+  if(crow&&crow.state==='sit'&&crow.p)consider(crow.p.x+0.5,crow.p.z+0.5,'shoo');
+  for(const p of W.plants.values()){
+    if(PLANTS[p.type]&&p.stage>=2)consider(p.x+0.5,p.z+0.5,'harvest',{plant:p});
+  }
+  for(const dr of W.drops)consider(dr.x,dr.z,'collect',{drop:dr});
+  if(flotsam&&flotsam.mesh){
+    const fp0=flotsam.mesh.position;
+    const spot=mateShore(fp0.x,fp0.z);
+    if(spot)consider(spot[0]+0.5,spot[1]+0.5,'flotsam');
+  }
+  jobs.sort((a,b)=>a.d-b.d);
+  return jobs[0]||null;
+}
+function mateAct(fn){
+  const m=isleMate; if(!m)return;
+  m.suppress=true;
+  try{fn();}finally{m.suppress=false;m.watch=null;}
+}
+function mateAdvanceGather(dt){
+  const m=isleMate;
+  if(!m.job){
+    const job=mateScan();
+    if(!job){
+      if(!m.toldEmpty){m.toldEmpty=true;mateSay(mateLine('gatherDone'),'gatherDone',true);}
+      mateAdvanceFollow(dt);
+      return;
+    }
+    m.toldEmpty=false;
+    m.job=job;
+    m.path=null; m.goalx=null; m.goalz=null;
+  }
+  const job=m.job;
+  const tx=Math.round(job.x), tz=Math.round(job.z);
+  const gap=Math.hypot(job.x-m.x,job.z-m.z);
+  if(gap>1.15){
+    if(m.chase==null||gap<m.chase-0.05){m.chase=gap;m.stuck=0;}
+    else m.stuck=(m.stuck||0)+dt;
+    if((m.stuck||0)>2){m.job=null;m.stuck=0;m.chase=null;m.path=null;m.goalx=null;positionMate();return;}
+    if(m.goalx!==tx||m.goalz!==tz)mateGo(tx,tz);
+    mateWalk(dt,2.7);
+    if(Math.hypot(job.x-m.x,job.z-m.z)>1.15){
+      if(!m.path)mateNudge(tx,tz,dt,2.4);
+      positionMate();
+      if(Math.hypot(job.x-m.x,job.z-m.z)>1.2)return;
+    }
+  }
+  m.chase=null; m.stuck=0;
+  mateAct(()=>{
+    if(job.job==='harvest'&&job.plant&&W.plants.get(k3(job.plant.x,job.plant.y,job.plant.z))===job.plant&&job.plant.stage>=2)actOnPlant(job.plant);
+    else if(job.job==='collect'&&job.drop&&W.drops.includes(job.drop))collectDrop(job.drop);
+    else if(job.job==='shoo'&&crow&&crow.state==='sit')shooCrow(true);
+    else if(job.job==='flotsam'&&flotsam)openFlotsam();
+  });
+  mateSay(job.job==='shoo'?mateLine('shoo'):job.job==='flotsam'?mateLine('flotsam'):mateLine('gatherWork'), job.job, true);
+  m.job=null; m.busy=0.32; m.path=null; m.goalx=null;
+  positionMate();
+}
+function mateAnchorCells(){
+  if(!buildAnchor)return null;
+  const a=buildAnchor, mode=buildMode();
+  const px=Math.round(playerAnchor.x), pz=Math.round(playerAnchor.z);
+  let far;
+  if(mode==='line'){
+    let dx=Math.sign(px-a.x), dz=Math.sign(pz-a.z);
+    if(Math.abs(px-a.x)<Math.abs(pz-a.z))dx=0; else dz=0;
+    if(!dx&&!dz)dx=1;
+    far={x:a.x+dx*4,y:a.y,z:a.z+dz*4};
+  } else {
+    far={x:a.x+(px>=a.x?2:-2), y:a.y, z:a.z+(pz>=a.z?2:-2)};
+  }
+  return strokeCells(a, far, mode==='floor'?'floor':'line').filter(([x,y,z])=>!explainPlace(x,y,z));
+}
+function mateExtendRun(){
+  const sel=state.blockSel;
+  if(typeof sel==='string')return null;
+  const px=Math.round(playerAnchor.x), pz=Math.round(playerAnchor.z);
+  const py=surfaceY(px,pz);
+  if(py==null)return null;
+  const dirs=[[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]];
+  for(let r=0;r<=6;r++){
+    for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){
+      if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;
+      for(let dy=-2;dy<=3;dy++){
+        const x=px+dx, y=py+dy, z=pz+dz;
+        if(getB(x,y,z)!==sel)continue;
+        for(const [sx,sy,sz] of dirs){
+          if(getB(x+sx,y+sy,z+sz)!==sel)continue;
+          if(getB(x-sx,y-sy,z-sz))continue;
+          if(explainPlace(x-sx,y-sy,z-sz))continue;
+          const cells=[];
+          for(let i=1;i<=4;i++){
+            const cx=x-sx*i, cy=y-sy*i, cz=z-sz*i;
+            if(explainPlace(cx,cy,cz))break;
+            cells.push([cx,cy,cz]);
+          }
+          if(cells.length)return cells;
+        }
+      }
+    }
+  }
+  return null;
+}
+function matePadCells(){
+  const x=Math.round(playerAnchor.x), z=Math.round(playerAnchor.z);
+  const y0=surfaceY(x,z);
+  if(y0==null)return [];
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  let best=[];
+  for(const [dx,dz] of dirs){
+    const cells=[];
+    for(let i=1;i<=3;i++){
+      const cx=x+dx*i, cy=y0+1, cz=z+dz*i;
+      if(explainPlace(cx,cy,cz))break;
+      cells.push([cx,cy,cz]);
+    }
+    if(cells.length>best.length)best=cells;
+  }
+  return best;
+}
+function matePlanBuild(){
+  const fromAnchor=mateAnchorCells();
+  if(fromAnchor&&fromAnchor.length)return fromAnchor.slice(0,8);
+  const ext=mateExtendRun();
+  if(ext&&ext.length)return ext.slice(0,6);
+  return matePadCells().slice(0,3);
+}
+function mateAdvanceBuild(dt){
+  const m=isleMate;
+  if(m.planBuild){
+    m.planBuild=false;
+    const cells=matePlanBuild()||[];
+    if(buildAnchor){buildAnchor=null;refreshBuildBar();}
+    if(!cells.length){
+      mateSay(mateLine('buildNone'),'buildNone',true);
+      mateSetOrder('follow', true);
+      positionMate();
+      return;
+    }
+    m.queue=cells; m.qi=0; m.stuck=0; m.chase=null;
+    mateSay(mateLine('buildStart'),'buildStart',true);
+  }
+  if(!m.queue||m.qi>=m.queue.length){
+    if(m.queue){mateSay(mateLine('buildDone'),'buildDone',true); mateSetOrder('follow', true);}
+    positionMate();
+    return;
+  }
+  const cell=m.queue[m.qi];
+  const x=cell[0], y=cell[1], z=cell[2];
+  const dist=Math.hypot((x+0.5)-m.x,(z+0.5)-m.z);
+  if(dist>1.25){
+    if(m.chase==null||dist<m.chase-0.05){m.chase=dist;m.stuck=0;}
+    else m.stuck=(m.stuck||0)+dt;
+    if(m.goalx!==x||m.goalz!==z)mateGo(x,z);
+    mateWalk(dt,2.8);
+    if(Math.hypot((x+0.5)-m.x,(z+0.5)-m.z)>1.25){
+      if(!m.path)mateNudge(x,z,dt,2.6);
+      positionMate();
+      if((m.stuck||0)>1.5){m.qi++;m.stuck=0;m.chase=null;m.path=null;m.goalx=null;}
+      return;
+    }
+  }
+  m.chase=null; m.stuck=0;
+  const why=explainPlace(x,y,z);
+  if(why==='coins'||(why&&String(why).indexOf('lvl:')===0)){
+    mateSay(why==='coins'?mateLine('buildBroke'):'That block is still locked.','buildBroke',true);
+    m.queue=null;
+    mateSetOrder('follow', true);
+    positionMate();
+    return;
+  }
+  if(why){m.qi++;positionMate();return;}
+  let ok=false;
+  mateAct(()=>{ok=!!placeSelected(x,y,z,true);});
+  if(ok){
+    flushChunks();
+    if(m.qi===0)feel('place');
+    SFX.play('place');
+    burst(x+0.5,y+0.5,z+0.5,0xc8a060,6,{up:1.4,g:4});
+    m.qi++;
+    m.busy=0.22;
+    m.face=Math.atan2((x+0.5)-m.x,(z+0.5)-m.z);
+  } else m.qi++;
+  positionMate();
+}
+function mateCliff(){
+  const x=Math.round(playerAnchor.x), z=Math.round(playerAnchor.z);
+  const h=surfaceY(x,z);
+  if(h==null)return true;
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nh=surfaceY(x+dx,z+dz);
+    if(nh==null||h-nh>=3)return true;
+  }
+  return false;
+}
+function mateWatch(){
+  const m=isleMate; if(!m)return;
+  const now={h:state.harvests|0,t:state.tills|0,w:state.waters|0,p:state.planted|0,d:state.decor|0,c:state.crowsShooed|0};
+  if(!m.watch){m.watch=now;return;}
+  if(!m.suppress){
+    if(now.h>m.watch.h)mateReact('harvest');
+    else if(now.t>m.watch.t)mateReact('till');
+    else if(now.w>m.watch.w)mateReact('water');
+    else if(now.p>m.watch.p)mateReact('plant');
+    else if(now.d>m.watch.d)mateReact('place');
+    else if(now.c>m.watch.c)mateReact('shoo');
+  }
+  m.watch=now;
+}
+function mateHazards(dt){
+  const m=isleMate; if(!m)return;
+  const season=seasonOf(state.day).key;
+  if(season!==m.season){
+    m.season=season;
+    if(season==='winter')mateSay(mateLine('winter'),'winter',true);
+  }
+  if(rainActive&&!m.rain){m.rain=true;mateSay(mateLine('rain'),'rain',true);}
+  else if(!rainActive)m.rain=false;
+  if(crow&&crow.state==='sit'){
+    if(m.crowId!==crow){
+      m.crowId=crow;
+      if(m.order!=='gather')mateSay(mateLine('crow'),'crow',true);
+    }
+  } else m.crowId=null;
+  if(state.coins<8&&state.tool==='block'){
+    if(!m.poor){m.poor=true;mateSay(mateLine('coins'),'coins',true);}
+  } else if(state.coins>=12)m.poor=false;
+  if(mateCliff()&&mateCool('edge',18))mateSay(mateLine('edge'),'edge',true);
+  m.suggestT-=dt;
+  if(m.suggestT>0||m.order==='gather'||m.order==='build'||m.bubbleT>1.2)return;
+  if(buildAnchor&&m.bubbleKind!=='anchor'){m.suggestT=16;mateSay(mateLine('anchor'),'anchor',false);return;}
+  let ripe=false, drop=false;
+  for(const p of W.plants.values()){
+    if(PLANTS[p.type]&&p.stage>=2&&Math.hypot(p.x+0.5-playerAnchor.x,p.z+0.5-playerAnchor.z)<12){ripe=true;break;}
+  }
+  if(!ripe)for(const d of W.drops){
+    if(Math.hypot(d.x-playerAnchor.x,d.z-playerAnchor.z)<12){drop=true;break;}
+  }
+  if(ripe){m.suggestT=18;mateSay(mateLine('suggestRipe'),'suggest',false);}
+  else if(drop){m.suggestT=18;mateSay(mateLine('suggestDrop'),'suggest',false);}
+  else if(flotsam){m.suggestT=18;mateSay(mateLine('suggestCrate'),'suggest',false);}
+  else m.suggestT=6;
+}
+function updateMate(dt){
+  const m=isleMate; if(!m)return;
+  if(fp.on){playerAnchor.x=fp.x;playerAnchor.z=fp.z;}
+  if(m.bubbleT>0)m.bubbleT-=dt;
+  if(m.busy>0)m.busy-=dt;
+  mateWatch();
+  mateHazards(dt);
+  if(m.bubbleT<=0&&m.next){const n=m.next;m.next=null;mateSay(n.text,n.kind,true);}
+  if(m.order==='wait'){
+    m.path=null;
+    m.step+=dt*2;
+    const dx=playerAnchor.x-m.x, dz=playerAnchor.z-m.z;
+    if(Math.hypot(dx,dz)>0.2)m.face=Math.atan2(dx,dz);
+    positionMate();
+    return;
+  }
+  if(m.busy>0){positionMate();return;}
+  if(m.order==='build'){mateAdvanceBuild(dt);return;}
+  if(m.order==='gather'){mateAdvanceGather(dt);return;}
+  mateAdvanceFollow(dt);
+}
+function projectMateBubble(){
+  const box=$('mateBubble'), m=isleMate;
+  if(!box||!m)return;
+  if(m.bubbleT<=0){box.hidden=true;return;}
+  const y=(m.dispY==null?m.mesh.position.y:m.dispY)+2.05;
+  _v3.set(m.x,y,m.z).project(camera);
+  if(_v3.z<-1||_v3.z>1){box.hidden=true;return;}
+  const sx=(_v3.x*0.5+0.5)*innerWidth, sy=(-_v3.y*0.5+0.5)*innerHeight;
+  box.hidden=false;
+  box.style.transform='translate('+Math.round(sx)+'px,'+Math.round(sy)+'px) translate(-50%,-118%)';
+}
+function spawnMate(){
+  if(isleMate||typeof scene==='undefined')return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(mateCubes()),plantMat);
+  mesh.castShadow=true;
+  mesh.userData.mate=true;
+  scene.add(mesh);
+  let order=state.mateOrder;
+  if(order!=='gather'&&order!=='wait')order='follow';
+  state.mateOrder=order;
+  isleMate={
+    mesh:mesh, name:mateName(), x:2.4, z:1.2, face:0.4, step:0, dispY:null,
+    order:order, path:null, pathI:0, goalx:null, goalz:null, retarget:0,
+    job:null, queue:null, qi:0, planBuild:false, busy:0, stuck:0, chase:null,
+    bubbleT:0, bubbleText:'', bubbleKind:'', next:null,
+    cd:{}, watch:null, suppress:false, toldEmpty:false, suggestT:8,
+    season:seasonOf(state.day).key, rain:!!rainActive, crowId:null, poor:false,
+  };
+  playerAnchor.x=1.5; playerAnchor.z=1.2;
+  positionMate();
+  matePaint();
+  invalidatePicks();
+  const nameBtn=$('mateName');
+  if(nameBtn&&!nameBtn.dataset.bound){
+    nameBtn.dataset.bound='1';
+    nameBtn.addEventListener('click', mateOnName);
+    document.querySelectorAll('#mateDock [data-order]').forEach(b=>{
+      b.addEventListener('click', ()=>mateSetOrder(b.dataset.order));
+    });
+  }
+  if(state.helpSeen)setTimeout(mateIntro, 900);
+}
+
+
 /* ============================== boot & main loop ============================== */
 let perf=0,saveTimer=0;
 function boot(){
@@ -7103,6 +7738,7 @@ function boot(){
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
+  spawnMate();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
   addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
@@ -7188,6 +7824,8 @@ function boot(){
     updateShootingStars(dt,dn);
     updateJuice(dt);
     if(fp.on)updateFP(dt); else updateCamera(dt);
+    updateMate(dt);
+    projectMateBubble();
     updateHover();
     updateAlmanac(dt);
     saveTimer+=dt;
