@@ -396,17 +396,32 @@ button.hero-alt-link {
   outline: none;
 }
 
-/* Level chip. One line, same height as the other shell links,
-   so the phone fold under the nav does not move. */
+/* Level chip. Sits with the header icon buttons so the studio
+   link row keeps the height the phone boards were measured against. */
 .career-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--color-white-08);
   color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-decoration: none;
 }
 .career-chip-face { font-size: 14px; line-height: 1; }
 .career-chip-text { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.career-chip.active { color: var(--primary-light); border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
 
 .arcade-blink {
   animation: arcadeBlink 1.1s steps(1) infinite;
