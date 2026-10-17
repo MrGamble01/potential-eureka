@@ -656,6 +656,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <button id="m-moments" type="button">📷 Photo &amp; replays</button>
     <div id="hv-audio"></div>
     <button id="m-decrees">Town Decrees</button>
     <button id="m-chronicle">Town Chronicle</button>
@@ -904,6 +905,7 @@
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
+<script src="/js/moments.js"></script>
 <script src="/js/hearthvale-expedition.js"></script>
 <script src="/js/climax.js"></script>
 <script>
@@ -1841,6 +1843,7 @@
     chron('🎪', 'The town throws its ' + ordinal(state.festivalsHeld) + ' festival');
     updateHUD(); checkAchievements(); save();
     careerEmit('festival', state.festivalsHeld);
+    try { if (window.EurekaMoments) EurekaMoments.mark('Festival'); } catch (e) {}
   }
 
   // ── The Stonemason & the Monument (HVALE-16) ───────────────
@@ -2168,6 +2171,7 @@
   let ambientTime = 0;     // seconds of real time, drives smooth ambient motion
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
+  let momentHold = false;
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   // Difficulty presets chosen at the start — a relaxed build vs. a lean frontier.
@@ -8492,6 +8496,30 @@
       }
     } catch (e) { /* a bad query must not stop the valley */ }
 
+    try {
+      if (window.EurekaMoments) EurekaMoments.attach({
+        game: 'hearthvale',
+        canvas: function () { return document.getElementById('game'); },
+        pause: function () { momentHold = true; },
+        resume: function () { momentHold = false; },
+        hud: '#hud,#minimap,#goals,#speedctl,#buildtabs,#buildbar,#menu,#menu-btn,#touch-pause,#zoom-ctl,#hint,#toasts,#resumeChip,.ea-back--float',
+        blocked: function () {
+          return !!document.querySelector('#welcome.show, #trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show, #vale-talk:not([hidden]), #hvx-root:not([hidden]), #climax-root');
+        },
+        camera: {
+          modes: ['free'],
+          pan: function (dx, dy) {
+            cam.x -= dx / cam.z;
+            cam.y -= dy / cam.z;
+            clampCam();
+          },
+          zoom: function (scale) {
+            zoomAt(view.w / 2, view.h / 2, cam.z * scale);
+          },
+        },
+      });
+    } catch (e) {}
+
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); placeTalk(); });
     document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
 
@@ -8545,6 +8573,12 @@
     let dt = (ts - lastT) / 1000; lastT = ts;
     if (dt > 0.1) dt = 0.1; // clamp big gaps (tab switches)
 
+    if (momentHold) {
+      draw();
+      if (window.EurekaMoments) EurekaMoments.afterFrame();
+      return;
+    }
+
     // sim
     stepSim(dt);
     // ambient life runs on real time, so it keeps gently moving even when paused
@@ -8553,6 +8587,7 @@
     soundtrackMood(dt);
     // render
     draw();
+    if (window.EurekaMoments) EurekaMoments.afterFrame();
     // hud light refresh
     hudTick += dt;
     if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); assignBuilders(); checkTierUp(); hudTick = 0; }
