@@ -62,6 +62,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
         })),
         islets: ISLETS.length,
         risen: W.islets.includes(3),
+        shelfDown: !W.islets.includes(4),
         gaps: state.kiln.gaps.length,
         standing: standing.length,
         standingBrick: standing.every(c => getB(c[0], c[1], c[2]) === 11),
@@ -74,8 +75,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
     });
     assert.deepEqual(world.blocks.map(b => b.buildable), [true, true, true, true]);
     assert.ok(world.blocks.every(b => b.cost > 0 && b.name));
-    assert.equal(world.islets, 4);
+    assert.equal(world.islets, 5);
     assert.equal(world.risen, true);
+    assert.equal(world.shelfDown, true);
     assert.equal(world.gaps, 3);
     assert.equal(world.standing, 5);
     assert.equal(world.standingBrick, true);
@@ -87,7 +89,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
     assert.equal(world.pay2, 30);
     assert.equal(world.payCap, 54);
     assert.equal(world.seal, 40);
-    assert.equal(world.arch[1], 4);
+    assert.equal(world.arch[1], 5);
     console.log('PASS fen biome, four blocks, cracked kiln, firing math');
 
     const sealed = await page.evaluate(() => {

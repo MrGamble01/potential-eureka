@@ -86,7 +86,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
 | Homeless Village | 190 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
-| Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
+| Voxel Isle | 54 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
 **one-shot by design** and are not in this battery — their results are
@@ -321,6 +321,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `voxkiln` (North Fen biome, clay/moss/brick/sea glass, kiln seal and daily firing, line/floor strokes, undo, replace, eyedropper, build-bar controls)
 
 - `voxdare` (harbor dare roll, claim-once purse, pasted neighbor notes, kiln juice, phone camera pad and touch slop)
+- `voxstorm` (storm tide gate, one-time shore purse, Storm Shelf, harbor gull advice, phone and desktop controls)
 
 - `voxgestures` (cancelled touches and either pinch release order leave terrain intact; zoom, drag, and deliberate taps still work)
 
