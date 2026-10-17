@@ -335,6 +335,45 @@ html.hud .aow-action-hero {
   color: var(--hud-text);
 }
 
+/* Eclipse. The age badge and Corona share the amber of that sky.
+   The cue is set on the age-up; a resumed war is recognized by Corona's label. */
+html.hud #aow-era-name[data-age-cue="eclipse"],
+html.hud .aow-shell:has(#aow-special-btn[aria-label^="Corona"]) #aow-era-name {
+  color: var(--hud-gold-bright);
+}
+
+html.hud .aow-era-pill:has(#aow-era-name[data-age-cue="eclipse"]),
+html.hud .aow-shell:has(#aow-special-btn[aria-label^="Corona"]) .aow-era-pill {
+  border-color: color-mix(in srgb, #ffb45a 70%, var(--hud-border));
+  background: color-mix(in srgb, #ffb45a 16%, var(--hud-card));
+}
+
+html.hud #aow-special-btn[aria-label^="Corona"] {
+  background: color-mix(in srgb, #ffb45a 22%, var(--hud-card));
+  border-color: color-mix(in srgb, #ffb45a 70%, var(--hud-border));
+  color: var(--hud-gold-bright);
+}
+
+/* Skirmisher and shielded tank, every age. Color only, so the
+   compact phone row keeps the height the battlefield already budgeted. */
+html.hud .aow-spawn-btn[title*="Fast skirmisher"] {
+  border-color: color-mix(in srgb, #ffb45a 55%, var(--hud-border));
+  background: color-mix(in srgb, #ffb45a 12%, var(--hud-card));
+}
+
+html.hud .aow-spawn-btn[title*="Shielded tank"] {
+  border-color: color-mix(in srgb, var(--hud-primary-light) 55%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-primary) 14%, var(--hud-card));
+}
+
+html.hud .aow-setting-action {
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
 html.hud .aow-stage {
   border-radius: var(--hud-radius-card);
 }
@@ -403,7 +442,8 @@ html.hud .aow-coach-kicker {
   html.hud .aow-endless-btn,
   html.hud .aow-diff button,
   html.hud .aow-tab,
-  html.hud .aow-action {
+  html.hud .aow-action,
+  html.hud .aow-setting-action {
     box-sizing: border-box;
     min-height: var(--hud-tap);
   }
@@ -417,7 +457,8 @@ html.hud .aow-coach-kicker {
   html.hud .ea-back,
   html.hud .aow-settings-btn,
   html.hud .aow-tab,
-  html.hud .aow-action {
+  html.hud .aow-action,
+  html.hud .aow-setting-action {
     box-sizing: border-box;
     min-height: var(--hud-tap);
   }
@@ -434,6 +475,7 @@ html.hud .aow-coach-kicker {
   html.hud .aow-action,
   html.hud .aow-tab,
   html.hud .aow-settings-btn,
+  html.hud .aow-setting-action,
   html.hud .ea-back {
     min-height: 0;
   }

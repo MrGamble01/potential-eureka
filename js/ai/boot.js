@@ -371,7 +371,7 @@
     const width = Math.ceil(launch.offsetWidth || 92);
     const height = Math.ceil(launch.offsetHeight || 34);
     const blockers = [];
-    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, .aow-topbar, #aow-topbar').forEach((el) => {
+    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, .aow-topbar, #aow-topbar, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
       if (root.contains(el) || panel.contains(el) || ticker.contains(el)) return;
       const cs = getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
