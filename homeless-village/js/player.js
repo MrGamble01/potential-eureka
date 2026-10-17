@@ -1118,6 +1118,7 @@ function finishAction(a){
       G.health=Math.min(100,G.health+CLINIC_DRESS_HEALTH);
       G.morale=Math.min(100,G.morale+2);
       G.dressings=(G.dressings||0)+1;
+      try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'rest', G.dressings); } catch (e) {}
       log('🩹 Wound dressed. +'+CLINIC_DRESS_HEALTH+' health, care '+Math.floor(G.care)+'.');
       floatText('+'+CLINIC_DRESS_HEALTH+'❤️', 'heal');
       if(typeof juice==='function') juice('heal');

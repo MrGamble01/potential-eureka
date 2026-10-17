@@ -448,6 +448,7 @@
 
 <script src="vendor/three-r128.min.js"></script>
 <script src="/js/persist.js"></script>
+<script src="/js/progression.js"></script>
 <script>
 'use strict';
 /* ============================== utils ============================== */
@@ -4095,6 +4096,7 @@ function buyBuilding(key){
   if(!spendCoins(def.cost))return;
   const spot=findBuildSpot();
   state.buildings[key]={x:spot.x,z:spot.z};
+  try { if (window.EurekaProgress) EurekaProgress.emit('voxel', 'build', Object.keys(state.buildings).length); } catch (e) {}
   placeBuildingMesh(key);
   SFX.play('islet');
   banner(def.ico+' '+def.name+' raised!',def.desc);
@@ -5424,6 +5426,7 @@ function refreshXpHud(){
   else{el.xpBar.style.width='100%';el.xpTxt.textContent='MAX';}
 }
 function onLevelUp(){
+  try { if (window.EurekaProgress) EurekaProgress.emit('voxel', 'level', state.level); } catch (e) {}
   SFX.play('level');
   banner('🌿 Garden Level '+state.level+'!',UNLOCKS[state.level]||'Keep growing!');
   buildSeedPanel();buildBlockPanel();
@@ -5655,6 +5658,7 @@ function actOnPlant(p){
   if(p.stage>=2){
     // harvest!
     state.harvests++;
+    try { if (window.EurekaProgress) EurekaProgress.emit('voxel', 'harvest', state.harvests); } catch (e) {}
     if(p.type==='moonpetal')state.achFlags.moon=true;
     if(p.type==='startree')state.achFlags.tree=true;
     if(isNight())state.achFlags.night=true;
@@ -6163,7 +6167,16 @@ function initHud(){
     s.addEventListener('click',()=>selectTool(s.dataset.tool,true));
   });
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
-  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');});
+  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');careerVisit();});
+  function careerVisit(){ try { if (window.EurekaProgress) EurekaProgress.emit('voxel', 'visit', 1); } catch (e) {} }
+  if (state.helpSeen) careerVisit();
+  try {
+    if (window.EurekaProgress) {
+      if (state.harvests) EurekaProgress.emit('voxel', 'harvest', state.harvests);
+      if (state.level > 1) EurekaProgress.emit('voxel', 'level', state.level);
+      if (state.buildings && Object.keys(state.buildings).length) EurekaProgress.emit('voxel', 'build', Object.keys(state.buildings).length);
+    }
+  } catch (e) {}
   function dropKeptIsle(){
     if(!confirm('Start a new isle? The kept garden is dropped. The Stone Lantern still stands.')) return;
     droppingIsle=true;

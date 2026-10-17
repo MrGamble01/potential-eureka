@@ -96,6 +96,7 @@ const SHELL = [
   '/js/personal-auth.js',
   '/js/personal-content.js',
   '/js/persist.js',
+  '/js/progression.js',
   '/js/personal.js',
   '/js/pomodoro.js',
   '/js/pong.js',

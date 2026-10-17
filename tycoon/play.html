@@ -1973,6 +1973,7 @@
   </div>
 </div>
 <script src="/js/persist.js"></script>
+<script src="/js/progression.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2052,6 +2053,14 @@ const VARIANT = (() => {
   } catch {}
   return VARIANTS.default;
 })();
+
+// Hub career. One event name; the shared layer decides the trophy.
+function careerEmit(event, value) {
+  try {
+    if (!window.EurekaProgress) return;
+    EurekaProgress.emit(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon', event, value);
+  } catch (e) { /* a trophy cannot stop the office */ }
+}
 
 // Beagle Sim's yard, pack audio, and beagle meshes live in beagle-pack.js.
 // Startup Tycoon never imports it. If the file fails to load, the reskin
@@ -4621,6 +4630,7 @@ function spawnIdeaWorker(opts = {}) {
     // from their new desk — fresh hires arrive a little seasoned.
     xp: ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp() + wallXp(),
   });
+  careerEmit('hire');
   return true;
 }
 // ── The Alumni Network (TYC-17) ──────────────────────────────
@@ -4772,7 +4782,7 @@ function updateIdeaWorkers(dt) {
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
       } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
-        totalFeaturesShipped++;
+        totalFeaturesShipped++; careerEmit('ship');
         grantShipXP(w);
         maybeShipBug(w);
         checkProductVersion();
@@ -4786,7 +4796,7 @@ function updateIdeaWorkers(dt) {
         if (w.targetVP && vps.includes(w.targetVP)) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
-          totalFeaturesShipped++;
+          totalFeaturesShipped++; careerEmit('ship');
           grantShipXP(w);
           maybeShipBug(w);
           checkProductVersion();
@@ -4890,7 +4900,7 @@ function updatePlayerProximityWork(dt) {
     setPaperStackProgress(p.paperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; careerEmit('ship');
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -4927,7 +4937,7 @@ function updateCeoDeskWork(dt) {
     setPaperStackProgress(ceoPaperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; careerEmit('ship');
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -13215,6 +13225,7 @@ function rollAnalyst() {
 }
 
 function doIPO() {
+  careerEmit('ipo');
   founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
@@ -14279,13 +14290,14 @@ addEventListener('pagehide', () => saveGame());
   // allTimeCash to 400, so a cash-threshold check here could never
   // pass (which is exactly the bug that kept this modal from showing).
   const isFresh = _isFreshStart && ideaWorkers.length === 0 && trophiesWon === 0;
-  if (seen || !isFresh) return;
+  if (seen || !isFresh) { careerEmit('visit'); return; }
   const modal = document.getElementById('welcome-modal');
   const btn   = document.getElementById('welcome-start-btn');
   modal.classList.add('open');
   const close = () => {
     modal.classList.remove('open');
     try { localStorage.setItem(LS.welcome, '1'); } catch {}
+    careerEmit('visit');
     SFX.click();
     // On mobile, the hire buttons live behind a hamburger. Auto-open
     // the sidebar so the player sees them immediately.

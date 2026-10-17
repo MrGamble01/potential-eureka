@@ -378,3 +378,10 @@ function frame(ts){
 }
 
 requestAnimationFrame(gameLoop);
+try {
+  if (window.EurekaProgress && G.structures && G.structures.clinic) {
+    EurekaProgress.emit('clinic', 'visit', 1);
+    if (G.clinicSteady) EurekaProgress.emit('clinic', 'dawn', G.clinicSteady);
+    if (G.dressings) EurekaProgress.emit('clinic', 'rest', G.dressings);
+  }
+} catch (e) {}

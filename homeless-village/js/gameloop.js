@@ -193,6 +193,9 @@ function clinicAtDawn(){
     G.clinicSteady=0;
   }
   maybeJuneStays();
+  try {
+    if (window.EurekaProgress) EurekaProgress.emit('clinic', 'dawn', Math.max(1, G.clinicSteady || 0));
+  } catch (e) {}
   if(!G.clinicAsk && (G.june||0)>=1 && G.days%4===0){
     G.clinicAsk={day:G.days};
     log('\ud83c\udfe5 Someone is waiting at the clinic tarp. One gauze roll would send them off walking.');

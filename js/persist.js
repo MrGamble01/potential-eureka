@@ -342,6 +342,74 @@
       return true;
     }
 
+    // The career (name, level, trophies) lives on the same progress
+    // document as the continue index. Games still own their saves.
+    // A read never writes. A bad blob cannot throw the boot path.
+    function cleanName(value) {
+      return String(value || '').replace(/[\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+    }
+
+    function cleanId(value) {
+      return typeof value === 'string' && /^[a-z0-9-]{1,24}$/.test(value) ? value : '';
+    }
+
+    function cleanCountMap(raw, keyOk, limit, cap) {
+      const out = {};
+      const max = Number.isFinite(cap) ? cap : 1e9;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+      const keys = Object.keys(raw).slice(0, limit);
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        if (!keyOk.test(k)) continue;
+        const n = Number(raw[k]);
+        if (!Number.isFinite(n) || n <= 0) continue;
+        out[k] = Math.min(max, Math.floor(n));
+      }
+      return out;
+    }
+
+    function cleanCareer(raw) {
+      const empty = { name: '', avatar: '', title: '', theme: '', xp: 0, unlocked: {}, stats: {} };
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return empty;
+      const xp = Number(raw.xp);
+      return {
+        name: cleanName(raw.name),
+        avatar: cleanId(raw.avatar),
+        title: cleanId(raw.title),
+        theme: cleanId(raw.theme),
+        xp: Number.isFinite(xp) ? Math.min(1e7, Math.max(0, Math.floor(xp))) : 0,
+        // Unlock times are epoch milliseconds. Counts stay small.
+        unlocked: cleanCountMap(raw.unlocked, /^[a-z0-9-]{1,32}$/, 80, 1e13),
+        stats: cleanCountMap(raw.stats, /^[a-z][a-z0-9.-]{0,40}$/, 80, 1e9),
+      };
+    }
+
+    function career() {
+      const state = progressState();
+      const raw = state._previous && state._previous.career;
+      return cleanCareer(raw);
+    }
+
+    function saveCareer(next) {
+      const cleaned = cleanCareer(next);
+      const state = progressState();
+      const previous = state._previous && typeof state._previous === 'object' && !Array.isArray(state._previous)
+        ? state._previous
+        : null;
+      const keepVersion = !!state._keepVersion;
+      const games = state.games || {};
+      const payload = mergeWrite(previous, {
+        v: keepVersion ? (Number(state.v) || SCHEMA) : SCHEMA,
+        games: games,
+        career: cleaned,
+      }, keepVersion);
+      payload.games = games;
+      payload.career = cleaned;
+      if (!writeRaw(storage, PROGRESS_KEY, payload)) return career();
+      progressCache = { v: payload.v, games: games, _previous: payload, _keepVersion: keepVersion };
+      return career();
+    }
+
     function note(id, summary) {
       if (!GAME_ID.test(String(id || ''))) return false;
       const games = Object.assign({}, progressState().games);
@@ -495,7 +563,7 @@
     return {
       settings: { get: settings, update: update, subscribe: subscribe },
       audio: { sfx: audioSfx, music: audioMusic, apply: apply },
-      progress: { note: note, has: has, get: getProgress, clear: clear },
+      progress: { note: note, has: has, get: getProgress, clear: clear, career: career, saveCareer: saveCareer },
       mount: mount,
     };
   }

@@ -939,6 +939,7 @@ var CLINIC_NEGLECT_HEALTH = 6;
 var CLINIC_ASK_HIT = 12;
 var CLINIC_REBUILD_CARE = 45;
 function openClinic(){
+  try { if (window.EurekaProgress) EurekaProgress.emit('clinic', 'visit', 1); } catch (e) {}
   var returning=(G.june||0)>=1;
   if(!returning){
     G.june=1;

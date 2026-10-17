@@ -1046,11 +1046,16 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 </script>
 
 <script src="/js/persist.js"></script>
+<script src="/js/progression.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
 <script type="module">
 import * as THREE from 'three';
+
+function careerEmit(event, value) {
+  try { if (window.EurekaProgress) EurekaProgress.emit('growop', event, value); } catch (e) {}
+}
 
 // ── Save key (separate from startup game) ──
 const LS_KEY = 'drug-lab-v1';
@@ -3685,6 +3690,8 @@ function refreshHwmChip() {
   b.title = 'The High-Water Mark: $' + fmtCash(Math.floor(h.sale)) + ' in one hand — the biggest sale this corner has ever seen, kept across every bust. Smashed on ' + h.beats + ' session' + (h.beats === 1 ? '' : 's') + '. Beat the mark that stood when you sat down and heat cools ' + HWM_RELIEF + ', once a session.' + (gplaqueStands() ? ' A gold record hangs over the stash \u2014 the legend sells with every new mark: +$' + GPLAQUE_CASH + '.' : '');
 }
 function recordSale(amount) {
+  careerEmit('sale', state.totalSold || 0);
+  careerEmit('earned', state.totalEarned);
   const h = loadHwm();
   if (hwmMark === null) hwmMark = h.sale;
   if (amount > h.sale) saveHwm({ sale: amount, beats: h.beats });
@@ -5055,6 +5062,7 @@ document.getElementById('hire-trimmer-btn').onclick = () => {
   const refusal = hireRefusal('Trimmer', cost, state.trimmers||0, 3);
   if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.trimmers++;
+  careerEmit('hire', (state.trimmers||0)+(state.lookouts||0)+(state.runners||0)+(state.cooks||0));
   const g = buildTrimmerNPC();
   g.position.set(trimStation.x+(Math.random()-0.5)*1.5, 0, trimStation.z+(Math.random()-0.5)*1.5);
   scene.add(g);
@@ -5068,6 +5076,7 @@ document.getElementById('hire-lookout-btn').onclick = () => {
   const refusal = hireRefusal('Lookout', cost, state.lookouts||0, 2);
   if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.lookouts++;
+  careerEmit('hire', (state.trimmers||0)+(state.lookouts||0)+(state.runners||0)+(state.cooks||0));
   const g = buildLookoutNPC();
   g.position.set(6+(Math.random()-0.5)*3, 0, 7+(Math.random()-0.5)*3);
   scene.add(g);
@@ -5081,6 +5090,7 @@ document.getElementById('hire-runner-btn').onclick = () => {
   const refusal = hireRefusal('Runner', cost, state.runners||0, 3);
   if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.runners=(state.runners||0)+1;
+  careerEmit('hire', (state.trimmers||0)+(state.lookouts||0)+(state.runners||0)+(state.cooks||0));
   spawnRunnerNPC();
   showToast('🏃 Runner hired — hauls product & closes deals.','good');
   addFeed('👤 Runner joined crew');
@@ -5091,6 +5101,7 @@ document.getElementById('hire-cook-btn').onclick = () => {
   const refusal = hireRefusal('Cook', cost, state.cooks||0, 3);
   if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.cooks=(state.cooks||0)+1;
+  careerEmit('hire', (state.trimmers||0)+(state.lookouts||0)+(state.runners||0)+(state.cooks||0));
   showToast('🧪 Cook hired.','good');
   addFeed('👤 Cook on deck');
   refreshHud(); saveGame();
@@ -5458,6 +5469,13 @@ function loadGame() {
 
 const hadSave = !!localStorage.getItem(LS_KEY);
 loadGame();
+if (hadSave) {
+  careerEmit('visit', 1);
+  if (state.totalSold) careerEmit('sale', state.totalSold);
+  if (state.totalEarned) careerEmit('earned', state.totalEarned);
+  const crew = (state.trimmers||0)+(state.lookouts||0)+(state.runners||0)+(state.cooks||0);
+  if (crew) careerEmit('hire', crew);
+}
 if (hadSave && loadLegacy().points > 0) {
   setTimeout(function(){ setStatus(`🪪 Legacy: +${Math.min(6,loadLegacy().points)*4}% street prices carried over`, 6); }, 2500);
 }
@@ -5474,6 +5492,7 @@ if (!hadSave) {
   dm.classList.add('open');
   const pick = d => {
     state.difficulty = d;
+    careerEmit('visit', 1);
     state.cash = DIFFS[d].startCash;
     // LAB-29: the floor safe made it through the last fall.
     const vv = loadVault();

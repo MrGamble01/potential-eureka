@@ -94,7 +94,7 @@ const PAGES = [
 const VIEWS = [
   'arcade', 'snake', 'tetris', 'breakout', 'asteroids', 'game2048',
   'minesweeper', 'connect4', 'word5', 'lightcycles', 'memorymatrix', 'pong', 'stacker', 'vectordefense', 'wordcascade', 'crateescape', 'maze', 'life', 'hof',
-  'productivity', 'orgchart',
+  'productivity', 'orgchart', 'trophy',
 ];
 
 function attach(page, bucket) {
