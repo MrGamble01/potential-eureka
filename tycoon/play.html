@@ -820,6 +820,21 @@
     }
     #goal-rival-label { font-size: 9px; color: #7D8590; margin-top: 2px; letter-spacing: 0.5px; }
     #goal-rival-label strong { color: #ff8a82; }
+    #goal-hall-label { display: none; font-size: 9px; color: #c4b5fd; margin-top: 2px; letter-spacing: 0.4px; }
+    #goal-hall-label strong { color: #ddd6fe; }
+    #goal-hall-label.lead { color: #86efac; animation: hallPop .45s ease; }
+    @keyframes hallPop { 45% { transform: scale(1.06); } }
+    @media (max-width: 900px) {
+      #partner-modal.open { align-items: flex-end; padding: 10px; }
+      #partner-modal .win-panel {
+        width: 100%; max-height: min(82dvh, 640px); overflow: auto;
+        margin: 0 0 env(safe-area-inset-bottom, 0px);
+      }
+      #partner-yes, #partner-no { min-height: 48px; font-size: 15px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #goal-hall-label.lead { animation: none; }
+    }
     #goal-hud.complete {
       border-color: rgba(252,211,77,0.7);
       box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
@@ -1550,6 +1565,7 @@
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
+  <div id="goal-hall-label" title="The office across the hall — a ghost of your best season, saved in this browser. No server.">🚪 Hall</div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
 <div id="achievements-modal" role="dialog" aria-modal="true" aria-label="Achievements">
@@ -2392,6 +2408,17 @@ const SFX = (() => {
     event() {
       tone({ freq: 392, slideTo: 784, dur: 0.2, type: 'sawtooth', vol: 0.1 });
       setTimeout(() => tone({ freq: 988, dur: 0.14, type: 'triangle', vol: 0.16 }), 80);
+    },
+    yes() {
+      [523, 659, 880].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.1, type: 'triangle', vol: 0.22 }), i * 50));
+    },
+    no() {
+      tone({ freq: 440, slideTo: 330, dur: 0.14, type: 'sine', vol: 0.16 });
+    },
+    hall() {
+      [392, 494, 587].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.14, type: 'triangle', vol: 0.2 }), i * 70));
     },
   };
 })();
@@ -6336,6 +6363,7 @@ function updateGoalHud(cumulative) {
   }
   if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
+    publishHall();
     trophiesWon++;
     if (hedge) {
       hedge = null;
@@ -10318,6 +10346,10 @@ function choosePartner(which) {
   if (beat < 1 || beat > 3) return;
   const modal = partnerModalEl();
   if (modal) modal.classList.remove('open');
+  if (which === 'yes') SFX.yes(); else SFX.no();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(which === 'yes' ? 16 : 8); } catch {}
+  }
   if (beat === 1) {
     if (which === 'yes') {
       partnerTiger = true;
@@ -10366,6 +10398,83 @@ function choosePartner(which) {
   refreshPartnerChip();
   refreshHud();
   saveGame();
+}
+// The hall: samples of this season's revenue, raced next time against
+// the best curve saved in this browser. Local only.
+let seasonT = 0;
+let hallSampleT = 0;
+let hallSamples = [0];
+let hallGhost = null;
+let hallLead = null;
+const HALL_STEP = 15;
+function loadHallGhost() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('tycoon-hall') || 'null');
+    hallGhost = (raw && Array.isArray(raw.samples) && raw.samples.length) ? raw : null;
+  } catch { hallGhost = null; }
+  hallLead = null;
+}
+function hallGhostValue() {
+  if (!hallGhost) return 0;
+  const step = hallGhost.step > 0 ? hallGhost.step : HALL_STEP;
+  const i = Math.min(hallGhost.samples.length - 1, Math.max(0, Math.floor(seasonT / step)));
+  return Math.max(0, hallGhost.samples[i] | 0);
+}
+function publishHall() {
+  if (hallSamples.length < 3) return;
+  const mine = hallSamples[hallSamples.length - 1] || 0;
+  let prevBest = 0;
+  try {
+    const prev = JSON.parse(localStorage.getItem('tycoon-hall') || 'null');
+    if (prev && Array.isArray(prev.samples) && prev.samples.length) prevBest = prev.samples[prev.samples.length - 1] || 0;
+  } catch {}
+  if (prevBest > mine) return;
+  try {
+    localStorage.setItem('tycoon-hall', JSON.stringify({ step: HALL_STEP, samples: hallSamples.slice(-48) }));
+  } catch {}
+}
+function resetHallRun() {
+  seasonT = 0;
+  hallSampleT = 0;
+  hallSamples = [0];
+  hallLead = null;
+}
+function updateHall(dt) {
+  seasonT += dt;
+  hallSampleT += dt;
+  if (hallSampleT >= HALL_STEP && hallSamples.length < 48) {
+    hallSampleT = 0;
+    hallSamples.push(Math.round(seasonRecurringRevenue || 0));
+  }
+  const el = document.getElementById('goal-hall-label');
+  if (!el) return;
+  if (!hallGhost) { el.style.display = 'none'; return; }
+  const ghost = hallGhostValue();
+  const mine = seasonRecurringRevenue || 0;
+  const goal = Math.max(1, currentGoalTarget());
+  const pct = Math.min(100, Math.floor(ghost / goal * 100));
+  const lead = mine >= ghost;
+  el.style.display = 'block';
+  el.classList.toggle('lead', lead);
+  el.textContent = '';
+  el.append('🚪 Hall ');
+  const strong = document.createElement('strong');
+  strong.textContent = pct + '%';
+  el.append(strong);
+  el.append(lead ? ' · you lead' : ' · behind');
+  if (hallLead === null) hallLead = lead;
+  else if (lead !== hallLead && seasonT > 1) {
+    hallLead = lead;
+    if (lead) {
+      showToast('🚪 Ahead of the office across the hall.', 'good', 'standard');
+      addFeedEntry('🚪 Ahead of the hall');
+      SFX.hall();
+    } else {
+      showToast('🚪 The hall pulled ahead.', '', 'standard');
+      addFeedEntry('🚪 The hall pulled ahead');
+      SFX.no();
+    }
+  }
 }
 function updatePartner(dt) {
   if (partnerSlowT > 0) {
@@ -12706,6 +12815,7 @@ function frameBody(now) {
   updateRushHour(dt);
   updateEvents(dt);
   updatePartner(dt);
+  updateHall(dt);
   updatePingPong(dt);
   updatePet(dt);
   updateBugs(dt);
@@ -12947,7 +13057,10 @@ function doIPO() {
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
   eventDealMult = 1; eventIdeaMult = 1; corpDealMult = 1; burstIdeaMult = 1; burstGen++;
+  publishHall();
   resetPartnerChain();
+  resetHallRun();
+  loadHallGhost();
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
@@ -13186,6 +13299,18 @@ const SAVE_SCHEMA = [
         setTimeout(() => openPartnerModal(partnerBeat), 400);
       }
       refreshPartnerChip();
+    },
+  },
+  {
+    key: 'hallRun', // this season's curve; the ghost itself lives in tycoon-hall
+    write: p => { p.hallRun = { t: seasonT, sampleT: hallSampleT, samples: hallSamples.slice(-48) }; },
+    read: p => {
+      const h = p.hallRun;
+      if (!h || typeof h !== 'object') return;
+      seasonT = Math.max(0, Number(h.t) || 0);
+      hallSampleT = Math.max(0, Number(h.sampleT) || 0);
+      hallSamples = Array.isArray(h.samples) ? h.samples.map(n => Math.max(0, n | 0)).slice(-48) : [0];
+      if (!hallSamples.length) hallSamples = [0];
     },
   },
   {
@@ -13923,6 +14048,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
+loadHallGhost();
 initRival(false);   // TYC-3: name the rival (kept from the save when mid-season)
 // Fresh-start players get $400 (enough to hire engineer #1 with
 // change toward #2, so the loop catches fire fast). Returning players
