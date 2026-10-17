@@ -345,6 +345,19 @@ const TARGETS = [
       await page.waitForFunction(() => !document.getElementById('welcome').classList.contains('show'));
       const gold = (await page.locator('#r-gold').innerText()).replace(/[^0-9]/g, '');
       if (!gold) throw new Error('Hearthvale gold did not render after Begin building');
+      if (await page.locator('#stillroom').count() !== 1) throw new Error('Hearthvale stillroom board is missing');
+      await page.locator('#buildtabs button', { hasText: 'Industry' }).click();
+      const still = page.locator('#buildbar .btn[data-type="stillroom"]');
+      await still.waitFor({ timeout: 8000 });
+      if (!(await still.evaluate(el => el.classList.contains('locked')))) {
+        throw new Error('Stillroom should stay locked until the town grows');
+      }
+      await page.locator('#buildtabs button', { hasText: 'Town' }).click();
+      for (const type of ['watchtower', 'beacon']) {
+        if (await page.locator(`#buildbar .btn[data-type="${type}"]`).count() !== 1) {
+          throw new Error(`Hearthvale ${type} is missing from the build bar`);
+        }
+      }
     },
   },
   {

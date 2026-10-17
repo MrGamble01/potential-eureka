@@ -53,6 +53,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
 | Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
+| Hearthvale stillroom | `hvalestill` (hook-free: farm crop choice and food-net, craft refusals, neighbour deliveries, Known/Kin ranks, salve lock, fever anoint, live feverfew harvest, save round-trip, Escape; 1280px/768px; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |

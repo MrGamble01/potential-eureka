@@ -193,7 +193,9 @@
       background: var(--panel-2); color: var(--ink); font-family: var(--font);
       font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
     }
-    #panel #p-festival { flex: 1 0 100%; }
+    #panel #p-festival, #panel #p-still { flex: 1 0 100%; }
+    #panel button.crop { flex: 1 0 30%; }
+    #panel button.crop.on { border-color: var(--gold); color: var(--gold); }
     #panel button:hover { border-color: rgba(242,193,78,0.6); }
     #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
 
@@ -209,12 +211,33 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome, #achv, #chronicle, #decrees {
+    #trader, #event, #welcome, #achv, #chronicle, #decrees, #stillroom {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show, #stillroom.show { display: flex; }
+    #still-path { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; }
+    .still-step { font-size: 12.5px; padding: 4px 8px; border-radius: 7px; background: rgba(255,255,255,0.04); color: var(--ink-dim); }
+    .still-step.done { color: #b7d7a8; }
+    .still-h { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--gold); margin: 12px 0 2px; }
+    #still-stores { font-family: var(--mono); font-size: 12px; line-height: 1.5; margin-bottom: 4px; }
+    .still-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .still-row .who { flex: 1; min-width: 0; }
+    .still-row .who b { display: block; font-size: 13.5px; }
+    .still-row .who span { display: block; font-size: 12px; color: var(--ink-dim); line-height: 1.35; }
+    .still-row button, .still-recipe, #still-anoint {
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
+    }
+    .still-recipe { width: 100%; text-align: left; margin-top: 6px; }
+    .still-recipe:hover, .still-row button:hover, #still-anoint:hover { border-color: var(--gold); }
+    #still-anoint { width: 100%; margin-top: 8px; }
+    #still-anoint-wrap[hidden] { display: none; }
+    /* The board is long. The copy scrolls; Back to the lane and Games stay put. */
+    #stillroom .trader-card { display: flex; flex-direction: column; overflow: hidden; }
+    #stillroom .still-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+    #stillroom .sheet-ctas { flex: 0 0 auto; }
     #decree-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
     .decree-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; }
     .decree-row .demoji { font-size: 20px; }
@@ -617,6 +640,26 @@
     </div>
   </div>
 
+  <div id="stillroom">
+    <div class="trader-card">
+      <div class="still-body">
+        <h2><span>&#127861;</span><span>The Stillroom</span></h2>
+        <div class="flavor" id="still-flavor">&mdash;</div>
+        <div id="still-path"></div>
+        <div id="still-stores"></div>
+        <div class="still-h">Bench</div>
+        <div id="still-recipes"></div>
+        <div id="still-anoint-wrap" hidden></div>
+        <div class="still-h">Neighbours</div>
+        <div id="still-neighbours"></div>
+      </div>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="still-close" type="button">Back to the lane</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
+    </div>
+  </div>
+
   <div id="welcome">
     <div class="trader-card">
       <div class="welcome-body">
@@ -629,6 +672,7 @@
         &bull; Place workshops beside their <b>supplier</b> (bakery by a windmill&hellip;) for a &#9889; bonus.<br>
         &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
+        &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -997,6 +1041,9 @@
     school:    { roof: 'blue',   wall: 'stone',  chimney: true },
     apiary:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
     furrier:   { roof: 'red',    wall: 'timber', chimney: true,  open: true },
+    stillroom: { roof: 'thatch', wall: 'timber', chimney: true,  open: true },
+    watchtower:{ roof: 'slate',  wall: 'stone',  chimney: false },
+    beacon:    { roof: 'slate',  wall: 'stone',  chimney: false },
     townhall:  { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
   };
   const B_ROOF = {
@@ -1304,6 +1351,12 @@
       P(sx0, floor - 6, 6, 6, C.wood); P(sx0, floor - 6, 6, 1, C.fenceHi); P(sx0 + 1, floor - 4, 4, 2, '#8fbcd0'); P(sx0 + 2, floor - 3, 1, 1, '#e8e8ee');
       P(sx0 + 3, floor - 11, 1, 6, '#8a5a2b');   // rod
     }
+    else if (type === 'stillroom') {            // kettle, jar, and a bundle of feverfew
+      P(sx0, floor - 8, 6, 8, '#3e2a1c'); P(sx0, floor - 8, 6, 1, '#5a4030');
+      P(sx0 + 1, floor - 6, 4, 3, '#6b8f71'); P(sx0 + 2, floor - 9, 2, 3, '#d5e6dc');
+      P(oX + 2, floor - 6, 3, 5, '#d7c4a3'); P(oX + 2, floor - 6, 3, 1, '#efe4cf');
+      P(oX + 6, floor - 5, 3, 4, '#7dcea0'); P(oX + 7, floor - 8, 1, 3, '#3f8a4c');
+    }
     // worker on the left (implies the shop is staffed)
     const wk = oX + 2;
     P(wk, floor - 5, 4, 3, '#5f83c8'); P(wk, floor - 2, 1, 2, '#3a2f22'); P(wk + 2, floor - 2, 1, 2, '#3a2f22');
@@ -1319,6 +1372,7 @@
     lumber:     { name: 'Woodcutter',  emoji: '🪓', w: 2, h: 2, cost: { wood: 6, gold: 8 },    prod: { wood: 5 }, worker: true, roof: C.roofBlue, roofDk: C.roofBlueDk, wantsNear: 'tree', desc: 'Fells nearby trees for lumber. Better beside a forest.' },
     quarry:     { name: 'Quarry',      emoji: '⛏️', w: 2, h: 2, tier: 1, cost: { wood: 18 },           prod: { stone: 4 }, worker: true, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, wantsNear: 'rock', desc: 'Cuts stone from the earth. Best beside rocks.' },
     bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, likes: { types: ['windmill'], bonus: 0.5, label: 'a Windmill' }, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Bakes far more with flour from a nearby windmill.' },
+    stillroom:  { name: 'Stillroom',   emoji: '🍵', w: 2, h: 2, tier: 2, cost: { wood: 18, stone: 8 }, unique: true, happy: 2, charm: 2, chimney: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A bench for willow tea, linen, harvest pies and fever salve. Mara, Tomas and Nessa pin what the valley needs on the board inside.' },
     carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, likes: { types: ['lumber'], bonus: 0.5, label: 'a Woodcutter' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods. Works faster with a woodcutter next door.' },
     mason:      { name: 'Stonemason',  emoji: '🗿', w: 2, h: 2, tier: 2, cost: { wood: 12, stone: 20 }, prod: { gold: 7 }, cons: { stone: 2 }, worker: true, chimney: true, likes: { types: ['quarry'], bonus: 0.5, label: 'a Quarry' }, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Dresses quarry stone into coin — and every worked cycle carves at the town Monument, a lasting joy raised in four stages.' },
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
@@ -1352,7 +1406,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'icehouse', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'stillroom', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'icehouse', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1736,13 +1790,21 @@
     const tended = physicBuilt();
     state.feverUntil = state.day + (tended ? 1 : FEVER_DAYS);
     state.happy = Math.max(0, state.happy - (tended ? 4 : 8));
+    let warded = false;
+    if ((state.ward || 0) > 0 && state.feverUntil > state.day + 1) {
+      state.ward -= 1;
+      state.feverUntil -= 1;
+      warded = true;
+    }
+    const sickDays = state.feverUntil - state.day;
     if (tended) {
       toast('🤒 A fever moves through town — but the herbalist goes door to door. One hard day. −4 cheer.');
       chron('🌿', 'A fever came with the cold rain — the physic garden broke it in a day');
     } else {
       toast('🤒 A FEVER moves through town — the workshops slow until it breaks. −8 cheer.');
-      chron('🤒', 'A fever came with the cold rain — three slow days');
+      chron('🤒', 'A fever came with the cold rain — ' + sickDays + ' slow day' + (sickDays === 1 ? '' : 's'));
     }
+    if (warded) toast('🧴 A salve Mara left on the shelf shortens the sick days by one.');
     save();
   }
 
@@ -1931,6 +1993,14 @@
       elderId: null,       // HVALE-12: who speaks for the town
       elderTrade: null,    // …and which trade stands taller for it
       beaconWarns: 0,      // HVALE-13: nights the watchfire called it early
+      // Stillroom: crops, crafted goods, and the neighbours' goodwill.
+      stores: { herbs: 0, fibre: 0, tea: 0, salve: 0, linen: 0, pie: 0 },
+      kinship: 0,
+      deliveries: 0,
+      crafted: 0,
+      posts: { mara: 0, tomas: 0, nessa: 0 },
+      asksFilled: {},
+      ward: 0,
     };
   }
   const ACHIEVEMENTS = [
@@ -2015,6 +2085,9 @@
     { id: 'newcomers_panel', emoji: '\u{270D}\u{FE0F}', name: 'The Newcomer\u2019s Panel', desc: 'Let a newcomer paint their panel on three sessions.', done: () => loadMark().panels >= 3 },
     { id: 'long_gallery', emoji: '\u{1F3DB}\u{FE0F}', name: 'The Long Gallery', desc: 'Sit in the Long Gallery on three sessions.', done: () => loadGall().sits >= 3 },
     { id: 'fresh_plaster', emoji: '\u{1F9F1}', name: 'The Fresh Plaster', desc: 'Prime the bare end of the Long Gallery.', done: () => plasterUp() },
+    { id: 'firstkettle', emoji: '🍵', name: 'First Kettle', desc: 'Craft something at the Stillroom bench.', done: () => (state.crafted || 0) >= 1 },
+    { id: 'goodneighbour', emoji: '🤝', name: 'Good Neighbour', desc: 'Deliver three requests for the valley neighbours.', done: () => (state.deliveries || 0) >= 3, prog: () => [state.deliveries || 0, 3] },
+    { id: 'valleykin', emoji: '🌿', name: 'Kin of the Valley', desc: 'Earn 10 goodwill with the neighbours.', done: () => (state.kinship || 0) >= 10, prog: () => [state.kinship || 0, 10] },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2175,6 +2248,8 @@
     { text: 'Raise a Town Hall, the city’s pride', prog: () => [countType('townhall'), 1], done: () => countType('townhall') >= 1, reward: { gold: 300 } },
     { text: 'Stand the night watch — repel a wolf raid', prog: () => [state.raidsRepelled || 0, 1], done: () => (state.raidsRepelled || 0) >= 1, reward: { gold: 150 } },
     { text: 'Train a ⭐ Journeyman worker', prog: () => [Math.min(12, Math.max(0, ...state.villagers.map(v => v.xp || 0))), 12], done: () => state.villagers.some(v => (v.xp || 0) >= 12), reward: { gold: 60 } },
+    { text: 'Plant feverfew or flax on a farm', prog: () => [state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain') ? 1 : 0, 1], done: () => state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain'), reward: { gold: 25 } },
+    { text: 'Deliver a neighbour\u2019s request at the Stillroom', prog: () => [Math.min(1, state.deliveries || 0), 1], done: () => (state.deliveries || 0) >= 1, reward: { gold: 40 } },
   ];
   function checkGoals() {
     if (!state || state.goalIndex >= GOALS.length) return;
@@ -2835,6 +2910,276 @@
     return m;
   }
 
+  // ── The Stillroom ──────────────────────────────────────────
+  // Farms stay on grain unless the player switches the plot.
+  // Feverfew and flax leave the pantry and bank in the stillroom,
+  // where the player crafts goods the valley neighbours ask for.
+  // Goodwill is the progression: Known, Trusted, then Kin.
+  function blankStores() { return { herbs: 0, fibre: 0, tea: 0, salve: 0, linen: 0, pie: 0 }; }
+  function readStores(raw) {
+    const blank = blankStores();
+    const src = raw && typeof raw === 'object' ? raw : {};
+    Object.keys(blank).forEach(k => { blank[k] = clampStore(src[k]); });
+    return blank;
+  }
+  function readPosts(raw) {
+    const out = { mara: 0, tomas: 0, nessa: 0 };
+    NEIGHBOURS.forEach(n => {
+      const v = raw && typeof raw === 'object' ? Math.floor(Number(raw[n.id])) : 0;
+      out[n.id] = Number.isFinite(v) ? Math.max(0, Math.min(n.asks.length - 1, v)) : 0;
+    });
+    return out;
+  }
+  function readAsks(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    NEIGHBOURS.forEach(n => n.asks.forEach(a => {
+      const key = n.id + ':' + a.id;
+      if (raw[key]) out[key] = 1;
+    }));
+    return out;
+  }
+  function clampStore(n) {
+    const v = Math.floor(Number(n));
+    return Number.isFinite(v) ? Math.max(0, Math.min(999, v)) : 0;
+  }
+  function farmCrop(b) {
+    return (b && b.type === 'farm' && (b.crop === 'feverfew' || b.crop === 'flax')) ? b.crop : 'grain';
+  }
+  function farmBank(b, foodAmt) {
+    const crop = farmCrop(b);
+    if (crop === 'grain') return { crop: crop, key: 'food', n: foodAmt };
+    let n = Math.max(1, Math.ceil(foodAmt * 0.5));
+    if (crop === 'feverfew' && (state.kinship || 0) >= 3 && physicBuilt()) n += 1;
+    return { crop: crop, key: crop === 'feverfew' ? 'herbs' : 'fibre', n: n };
+  }
+  function stillroomBuilt() { return state.buildings.some(b => b.type === 'stillroom' && b.done !== false); }
+  const KIN_RANKS = [
+    { at: 0, name: 'Stranger', perk: 'The bench will take a first kettle, a first bolt, a first pie.' },
+    { at: 3, name: 'Known', perk: 'Salve opens, and feverfew beside a physic garden yields one herb more.' },
+    { at: 6, name: 'Trusted', perk: 'Every delivery lifts the town by 2 cheer.' },
+    { at: 10, name: 'Kin', perk: 'Recipes ask for one less of their dearest ingredient.' },
+  ];
+  function rankAt(kin) {
+    let r = KIN_RANKS[0];
+    for (let i = 0; i < KIN_RANKS.length; i++) if (kin >= KIN_RANKS[i].at) r = KIN_RANKS[i];
+    return r;
+  }
+  const STORE_GLYPH = { herbs: '🌿', fibre: '🧵', tea: '🍵', salve: '🧴', linen: '🧵', pie: '🥧', food: '🍎', wood: '🪵', stone: '🪨', gold: '💰' };
+  const STORE_NAME = { herbs: 'feverfew', fibre: 'flax', tea: 'willow tea', salve: 'salve', linen: 'linen', pie: 'pie', food: 'food', wood: 'wood', stone: 'stone', gold: 'gold' };
+  const RECIPES = [
+    { id: 'tea', name: 'Willow tea', emoji: '🍵', out: { tea: 1 }, cost: { herbs: 2 }, blurb: 'A bitter cup the lane swears by.' },
+    { id: 'linen', name: 'Linen bolt', emoji: '🧵', out: { linen: 1 }, cost: { fibre: 3, wood: 1 }, blurb: 'Flax, beaten and woven.' },
+    { id: 'pie', name: 'Harvest pie', emoji: '🥧', out: { pie: 1 }, cost: { food: 3, herbs: 1 }, blurb: 'Herb, fruit, and a golden crust.' },
+    { id: 'salve', name: 'Fever salve', emoji: '🧴', out: { salve: 1 }, cost: { herbs: 3, food: 1 }, blurb: 'Willowbark worked into fat.', minKin: 3 },
+  ];
+  const NEIGHBOURS = [
+    { id: 'mara', name: 'Mara Wren', emoji: '🌿', asks: [
+      { id: 'kettle', minKin: 0, need: { tea: 1 }, say: 'Bring a kettle of willow tea for the lane.', reward: { gold: 16 }, kin: 1 },
+      { id: 'salves', minKin: 3, need: { salve: 2 }, say: 'Two salves, before the sick season finds us.', reward: { gold: 28 }, kin: 1, ward: 1 },
+    ]},
+    { id: 'tomas', name: 'Tomas Reed', emoji: '🧵', asks: [
+      { id: 'shuttle', minKin: 0, need: { linen: 1 }, say: 'One linen bolt and the shuttle can fly.', reward: { gold: 18, wood: 6 }, kin: 1 },
+      { id: 'pair', minKin: 3, need: { linen: 2 }, say: 'A pair of bolts for the fair cloth.', reward: { gold: 32 }, kin: 1 },
+    ]},
+    { id: 'nessa', name: 'Nessa Holt', emoji: '🥧', asks: [
+      { id: 'table', minKin: 0, need: { pie: 1 }, say: 'A harvest pie for whoever comes in cold.', reward: { gold: 14 }, happy: 6, kin: 1 },
+      { id: 'feast', minKin: 6, need: { pie: 2, tea: 1 }, say: 'Pies and tea. The kin-feast is waiting on you.', reward: { gold: 36 }, happy: 8, kin: 2 },
+    ]},
+  ];
+  function neighbourById(id) { return NEIGHBOURS.find(n => n.id === id); }
+  function postIndex(id) {
+    const n = neighbourById(id);
+    const raw = state.posts && state.posts[id];
+    const i = Math.max(0, Math.floor(Number(raw) || 0));
+    return Math.min(i, n.asks.length - 1);
+  }
+  function currentAsk(id) {
+    const n = neighbourById(id);
+    const idx = postIndex(id);
+    const posted = n.asks[idx];
+    return { ask: posted, index: idx, locked: (state.kinship || 0) < (posted.minKin || 0) };
+  }
+  function askKey(npcId, ask) { return npcId + ':' + ask.id; }
+  function stockOf(key) {
+    if (key === 'food' || key === 'wood' || key === 'stone' || key === 'gold') return state.res[key] || 0;
+    return (state.stores && state.stores[key]) || 0;
+  }
+  function takeStock(key, n) {
+    if (key === 'food' || key === 'wood' || key === 'stone' || key === 'gold') state.res[key] -= n;
+    else state.stores[key] -= n;
+  }
+  function giveStock(key, n) {
+    if (key === 'gold') state.res.gold += n;
+    else if (key === 'food' || key === 'wood' || key === 'stone') state.res[key] = Math.min(capOf(key), (state.res[key] || 0) + n);
+    else state.stores[key] = Math.min(999, (state.stores[key] || 0) + n);
+  }
+  function recipeCost(recipe) {
+    const cost = Object.assign({}, recipe.cost);
+    if ((state.kinship || 0) >= 10) {
+      let key = null, best = 0;
+      for (const k in cost) if (cost[k] > best) { best = cost[k]; key = k; }
+      if (key && cost[key] > 1) cost[key] -= 1;
+    }
+    return cost;
+  }
+  function costText(cost) {
+    return Object.keys(cost).map(k => cost[k] + ' ' + STORE_GLYPH[k]).join(' ');
+  }
+  function gapsFor(need) {
+    const parts = [];
+    for (const k in need) {
+      const have = stockOf(k);
+      if (have < need[k]) parts.push((need[k] - have) + ' more ' + STORE_GLYPH[k] + ' ' + STORE_NAME[k]);
+    }
+    return parts;
+  }
+  function valleyPath() {
+    const planted = state.buildings.some(b => b.type === 'farm' && b.done !== false && farmCrop(b) !== 'grain');
+    return [
+      { id: 'room', text: 'Raise the Stillroom', done: stillroomBuilt() },
+      { id: 'plot', text: 'Plant feverfew or flax', done: planted },
+      { id: 'craft', text: 'Craft something at the bench', done: (state.crafted || 0) >= 1 },
+      { id: 'door', text: 'Deliver a neighbour\u2019s ask', done: (state.deliveries || 0) >= 1 },
+      { id: 'known', text: 'Be Known (3 goodwill)', done: (state.kinship || 0) >= 3 },
+      { id: 'trusted', text: 'Be Trusted (6 goodwill)', done: (state.kinship || 0) >= 6 },
+      { id: 'kin', text: 'Be counted Kin (10 goodwill)', done: (state.kinship || 0) >= 10 },
+    ];
+  }
+  function ensureStillroomState() {
+    if (!state.stores) state.stores = blankStores();
+    if (!state.posts) state.posts = { mara: 0, tomas: 0, nessa: 0 };
+    if (!state.asksFilled) state.asksFilled = {};
+  }
+  function stillroomOpen() {
+    const el = document.getElementById('stillroom');
+    return !!(el && el.classList.contains('show'));
+  }
+  function renderStillroom() {
+    ensureStillroomState();
+    const kin = state.kinship || 0;
+    const rank = rankAt(kin);
+    document.getElementById('still-flavor').textContent = rank.name + ' · ' + kin + ' goodwill. ' + rank.perk;
+    document.getElementById('still-path').innerHTML = valleyPath().map(s =>
+      '<div class="still-step' + (s.done ? ' done' : '') + '" data-step="' + s.id + '" data-done="' + (s.done ? '1' : '0') + '">' + (s.done ? '✓ ' : '○ ') + s.text + '</div>'
+    ).join('');
+    const st = state.stores;
+    let shelf = '🌿 ' + st.herbs + ' feverfew · 🧵 ' + st.fibre + ' flax · 🍵 ' + st.tea + ' tea · 🧴 ' + st.salve + ' salve · 🧵 ' + st.linen + ' linen · 🥧 ' + st.pie + ' pie';
+    if (state.ward) shelf += ' · a shelf salve will shorten the next fever';
+    document.getElementById('still-stores').textContent = shelf;
+    document.getElementById('still-recipes').innerHTML = RECIPES.map(r => {
+      const locked = (r.minKin || 0) > kin;
+      const cost = recipeCost(r);
+      const label = locked
+        ? r.emoji + ' ' + r.name + ' — opens when you are Known'
+        : r.emoji + ' ' + r.name + ' — ' + costText(cost) + ((kin >= 10) ? ' · kin' : '');
+      const title = locked ? 'Opens when you are Known (3 goodwill).' : r.blurb;
+      return '<button type="button" class="still-recipe" id="still-recipe-' + r.id + '" data-recipe="' + r.id + '" title="' + title + '">' + label + '</button>';
+    }).join('');
+    const wrap = document.getElementById('still-anoint-wrap');
+    if (feverActive()) {
+      wrap.hidden = false;
+      wrap.innerHTML = '<button type="button" id="still-anoint">🧴 Anoint the town (1 salve)</button>';
+    } else { wrap.hidden = true; wrap.innerHTML = ''; }
+    document.getElementById('still-neighbours').innerHTML = NEIGHBOURS.map(n => {
+      const cur = currentAsk(n.id);
+      const note = cur.locked
+        ? 'Waiting until you are ' + rankAt(cur.ask.minKin).name + '. ' + cur.ask.say
+        : cur.ask.say;
+      return '<div class="still-row"><div class="who"><b>' + n.emoji + ' ' + n.name + '</b><span id="still-ask-' + n.id + '">' + note + '</span></div>'
+        + '<button type="button" id="still-deliver-' + n.id + '" data-deliver="' + n.id + '">Deliver</button></div>';
+    }).join('');
+  }
+  function openStillroom() {
+    if (!stillroomBuilt()) { toast('Raise a Stillroom first.'); SFX('error'); return; }
+    renderStillroom();
+    document.getElementById('stillroom').classList.add('show');
+  }
+  function afterStillroomAct() {
+    updateHUD(); checkGoals(); checkAchievements(); save();
+    if (stillroomOpen()) renderStillroom();
+  }
+  function craftRecipe(id) {
+    ensureStillroomState();
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const recipe = RECIPES.find(r => r.id === id);
+    if (!recipe) return;
+    if ((recipe.minKin || 0) > (state.kinship || 0)) {
+      toast('Fever salve opens when you are Known (3 goodwill).');
+      SFX('error'); return;
+    }
+    const cost = recipeCost(recipe);
+    const gaps = gapsFor(cost);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cost) takeStock(k, cost[k]);
+    for (const k in recipe.out) giveStock(k, recipe.out[k]);
+    const first = (state.crafted || 0) === 0;
+    state.crafted = (state.crafted || 0) + 1;
+    SFX('coin');
+    toast(recipe.emoji + ' ' + recipe.name + ' is ready on the bench.');
+    if (first) chron(recipe.emoji, 'The Stillroom bench turns out its first ' + recipe.name.toLowerCase());
+    afterStillroomAct();
+  }
+  function deliverAsk(npcId) {
+    ensureStillroomState();
+    const n = neighbourById(npcId);
+    if (!n) return;
+    if (!stillroomBuilt()) { toast('The Stillroom is gone.'); SFX('error'); return; }
+    const cur = currentAsk(npcId);
+    if (cur.locked) {
+      toast(n.name.split(' ')[0] + ' is waiting until you are ' + rankAt(cur.ask.minKin).name + '.');
+      SFX('error'); return;
+    }
+    const gaps = gapsFor(cur.ask.need);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cur.ask.need) takeStock(k, cur.ask.need[k]);
+    for (const k in (cur.ask.reward || {})) giveStock(k, cur.ask.reward[k]);
+    if (cur.ask.happy) state.happy = Math.min(100, state.happy + cur.ask.happy);
+    const key = askKey(npcId, cur.ask);
+    const before = rankAt(state.kinship || 0);
+    if (!state.asksFilled[key]) {
+      state.asksFilled[key] = 1;
+      state.kinship = (state.kinship || 0) + (cur.ask.kin || 0);
+      if (cur.ask.ward) state.ward = (state.ward || 0) + cur.ask.ward;
+    }
+    state.deliveries = (state.deliveries || 0) + 1;
+    if ((state.kinship || 0) >= 6) state.happy = Math.min(100, state.happy + 2);
+    if (cur.index === postIndex(npcId) && postIndex(npcId) < n.asks.length - 1) state.posts[npcId] = postIndex(npcId) + 1;
+    const after = rankAt(state.kinship || 0);
+    SFX('goal');
+    toast(n.emoji + ' ' + n.name.split(' ')[0] + ' takes it. The valley remembers.');
+    chron(n.emoji, n.name + ' collected ' + cur.ask.say.replace(/\.$/, '').toLowerCase());
+    if (after.name !== before.name) {
+      toast('🤝 The valley calls you ' + after.name + '. ' + after.perk);
+      chron('🤝', 'The neighbours name the town ' + after.name);
+    }
+    afterStillroomAct();
+  }
+  function anointTown() {
+    ensureStillroomState();
+    if (!feverActive()) { toast('Nobody is fevered. Save the salve.'); SFX('error'); return; }
+    if ((state.stores.salve || 0) < 1) { toast('Need 1 more 🧴 salve'); SFX('error'); return; }
+    state.stores.salve -= 1;
+    state.feverUntil = -1;
+    state.feversWeathered = (state.feversWeathered || 0) + 1;
+    state.happy = Math.min(100, state.happy + 4);
+    SFX('goal');
+    toast('🧴 The salve goes door to door. The fever breaks. +4 cheer.');
+    chron('🧴', 'A stillroom salve broke the fever before it could settle');
+    afterStillroomAct();
+  }
+  function setFarmCrop(b, crop) {
+    if (!b || b.type !== 'farm' || b.done === false) return;
+    const next = (crop === 'feverfew' || crop === 'flax') ? crop : 'grain';
+    if (farmCrop(b) === next) return;
+    if (next === 'grain') delete b.crop; else b.crop = next;
+    const label = next === 'feverfew' ? '🌿 Feverfew' : next === 'flax' ? '🧵 Flax' : '🌾 Grain';
+    toast(label + ' goes in on the ' + BUILDINGS.farm.name.toLowerCase() + '.');
+    SFX('place');
+    updateHUD(); checkGoals(); save();
+    if (selected === b) showPanel(b);
+  }
+
   function runProduction() {
     const pop = state.villagers.length;
     const morale = moraleMult();
@@ -2911,8 +3256,15 @@
           { const em = elderTradeMult(b); if (em !== 1) amt = Math.max(1, Math.round(amt * em)); } // the Elder's trade (HVALE-12)
           { const gm = goldenMult(); if (gm !== 1) amt = Math.max(1, Math.round(amt * gm)); } // a Golden Day (HVALE-14)
           { const fv = feverMult(); if (fv !== 1) amt = Math.max(1, Math.round(amt * fv)); } // the Fever (HVALE-17)
-          state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
-          floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
+          if (b.type === 'farm' && k === 'food' && farmCrop(b) !== 'grain') {
+            const bank = farmBank(b, amt);
+            if (!state.stores) state.stores = blankStores();
+            state.stores[bank.key] = Math.min(999, (state.stores[bank.key] || 0) + bank.n);
+            floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + bank.n, color: bank.key === 'herbs' ? '#7dcea0' : '#e6d3a3', life: 1.5, maxLife: 1.5 });
+          } else {
+            state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
+            floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
+          }
         }
         if (wk) {   // a cycle actually worked is a cycle learned
           const before = mastery.name;
@@ -5469,7 +5821,7 @@
         if (mm !== 1) amt = Math.max(1, Math.round(amt * mm));
         if (tm !== 1) amt = Math.max(1, Math.round(amt * tm));
         { const cw = cobbledMult(b); if (cw !== 1) amt = Math.max(1, Math.round(amt * cw)); }
-        net[k] += amt;
+        if (!(b.type === 'farm' && k === 'food' && farmCrop(b) !== 'grain')) net[k] += amt;
       }
       if (def.cons) for (const k in def.cons) net[k] -= Math.ceil(def.cons[k] * consM);
     });
@@ -5558,8 +5910,8 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'icehouse', 'warehouse', 'cellar'] },
-    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'palisade', 'tavern', 'chapel', 'school', 'townhall'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'stillroom', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'icehouse', 'warehouse', 'cellar'] },
+    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'watchtower', 'palisade', 'beacon', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
   let buildTab = 'homes';
@@ -5748,7 +6100,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; if (b.type === 'farm' && farmCrop(b) !== 'grain') { const banked = farmBank(b, base); const glyph = farmCrop(b) === 'feverfew' ? '🌿' : '🧵'; html += statRow('Plot', farmCrop(b) === 'feverfew' ? '🌿 Feverfew' : '🧵 Flax'); html += statRow('Banks', banked.n + ' ' + glyph + tag + ' / cycle'); } else { if (b.type === 'farm') html += statRow('Plot', '🌾 Grain'); html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); } if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '<span id="p-windmill">' + windmillLiftReport(b) + '</span>');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -5789,6 +6141,13 @@
       btns += '<button id="p-oak"' + (oaked ? ' disabled' : '') + '>' + olbl + '</button>';
     }
     if (b.type === 'well') btns += '<button id="p-wish"></button>';
+    if (b.type === 'farm' && b.done !== false) {
+      const crop = farmCrop(b);
+      btns += '<button type="button" class="crop' + (crop === 'grain' ? ' on' : '') + '" id="p-crop-grain">🌾 Grain</button>';
+      btns += '<button type="button" class="crop' + (crop === 'feverfew' ? ' on' : '') + '" id="p-crop-feverfew">🌿 Feverfew</button>';
+      btns += '<button type="button" class="crop' + (crop === 'flax' ? ' on' : '') + '" id="p-crop-flax">🧵 Flax</button>';
+    }
+    if ((b.type === 'stillroom' || b.type === 'farm') && stillroomBuilt()) btns += '<button type="button" id="p-still">🍵 Open the stillroom</button>';
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     refreshFestivalBtn();
@@ -5805,6 +6164,14 @@
     if (oakBtn) oakBtn.onclick = () => { plantOak(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
     if (wBtn) wBtn.onclick = () => { makeWish(); refreshWishBtn(); };
+    const grainBtn = document.getElementById('p-crop-grain');
+    if (grainBtn) grainBtn.onclick = () => setFarmCrop(b, 'grain');
+    const fewBtn = document.getElementById('p-crop-feverfew');
+    if (fewBtn) fewBtn.onclick = () => setFarmCrop(b, 'feverfew');
+    const flaxBtn = document.getElementById('p-crop-flax');
+    if (flaxBtn) flaxBtn.onclick = () => setFarmCrop(b, 'flax');
+    const stillBtn = document.getElementById('p-still');
+    if (stillBtn) stillBtn.onclick = () => openStillroom();
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -5986,11 +6353,13 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') {
-      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show');
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show');
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
       document.getElementById('chronicle').classList.remove('show');
       document.getElementById('decrees').classList.remove('show');
+      const stillroom = document.getElementById('stillroom');
+      if (stillroom) stillroom.classList.remove('show');
       const trader = document.getElementById('trader');
       const event = document.getElementById('event');
       const hall = document.getElementById('chain-modal');
@@ -6044,7 +6413,7 @@
     if (townDropped || !townKept()) return;
     try {
       const s = {
-        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
+        res: state.res, buildings: state.buildings.map(b => { const row = { id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 }; if (b.type === 'farm' && (b.crop === 'feverfew' || b.crop === 'flax')) row.crop = b.crop; return row; }),
         villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph, name: v.name, xp: v.xp || 0 })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
@@ -6098,6 +6467,13 @@
         fevers: state.fevers || 0, feversWeathered: state.feversWeathered || 0,   // HVALE-17
         feverUntil: typeof state.feverUntil === 'number' ? state.feverUntil : -1,
         lastFeverYear: typeof state.lastFeverYear === 'number' ? state.lastFeverYear : -1,
+        stores: state.stores || blankStores(),
+        kinship: state.kinship || 0,
+        deliveries: state.deliveries || 0,
+        crafted: state.crafted || 0,
+        posts: state.posts || { mara: 0, tomas: 0, nessa: 0 },
+        asksFilled: state.asksFilled || {},
+        ward: state.ward || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
       if (typeof EurekaPersist !== 'undefined') {
@@ -6155,6 +6531,7 @@
         if (!BUILDINGS[sb.type]) return;
         const def = BUILDINGS[sb.type];
         const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null, done: sb.done !== false, buildTotal: sb.buildTotal || 0, buildLeft: sb.buildLeft || 0, preserves: sb.preserves || 0 };
+        if (b.type === 'farm' && (sb.crop === 'feverfew' || sb.crop === 'flax')) b.crop = sb.crop;
         if (b.done === false && !b.buildTotal) { b.buildTotal = buildWorkOf(sb.type); b.buildLeft = b.buildTotal; }
         for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
         state.buildings.push(b);
@@ -6229,6 +6606,13 @@
       state.feversWeathered = s.feversWeathered || 0;
       state.feverUntil = typeof s.feverUntil === 'number' ? s.feverUntil : -1;
       state.lastFeverYear = typeof s.lastFeverYear === 'number' ? s.lastFeverYear : -1;
+      state.stores = readStores(s.stores);
+      state.kinship = clampStore(s.kinship);
+      state.deliveries = clampStore(s.deliveries);
+      state.crafted = clampStore(s.crafted);
+      state.ward = clampStore(s.ward);
+      state.posts = readPosts(s.posts);
+      state.asksFilled = readAsks(s.asksFilled);
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -6323,7 +6707,7 @@
 
   function playerHeld() {
     if (gameSpeed !== 0 || _modalPrevSpeed !== null) return false;
-    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees'];
+    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees', 'stillroom'];
     return !blocked.some(id => {
       const el = document.getElementById(id);
       return el && el.classList.contains('show');
@@ -6430,6 +6814,16 @@
       });
     }
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
+    const stillClose = document.getElementById('still-close');
+    if (stillClose) stillClose.onclick = () => document.getElementById('stillroom').classList.remove('show');
+    const stillSheet = document.getElementById('stillroom');
+    if (stillSheet) stillSheet.addEventListener('click', e => {
+      const recipe = e.target.closest('[data-recipe]');
+      if (recipe) { craftRecipe(recipe.dataset.recipe); return; }
+      const npc = e.target.closest('[data-deliver]');
+      if (npc) { deliverAsk(npc.dataset.deliver); return; }
+      if (e.target.closest('#still-anoint')) anointTown();
+    });
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
     document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };
     document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
