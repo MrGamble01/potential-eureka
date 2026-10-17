@@ -138,6 +138,19 @@ function countTile(map, id) {
   const saved = await wrapped.announce({ game: 'voxel', event: { type: 'day', detail: 'Day 4' } });
   ok(saved.fallback === true && saved.provider === 'stub' && saved.line.indexOf('Day 4') !== -1, 'a bad model reply falls back to the stub line');
 
+  const bramSpot = AI.speakerAt('ageofwar', { x: 170, y: 448 });
+  ok(bramSpot && bramSpot.id === 'bram', 'a tap on Bram’s feet is Bram');
+  ok(AI.speakerAt('ageofwar', { x: 216, y: 448 }).id === 'bram', 'the edge of Bram’s radius still counts');
+  ok(AI.speakerAt('ageofwar', { x: 217, y: 448 }) === null, 'just past the radius is open field');
+  ok(AI.speakerAt('ageofwar', { x: 800, y: 200 }) === null, 'the sky is not a speaker');
+  ok(AI.speakerAt('homeless', { x: -4.2, z: 1.6 }).id === 'ray', 'a camp tap on Ray is Ray');
+  ok(AI.speakerAt('homeless', { x: 4.2, y: 2.4 }) === null, 'camp height is not the ground plane');
+  ok(AI.speakerAt('hearthvale', { x: 0, y: 0 }) === null, 'a game without speakers has no tap');
+  ok(AI.speakerAt('ageofwar', null) === null, 'a missing point is a miss');
+  const camp = AI.speakers('homeless');
+  ok(camp.length === 3 && camp.map((s) => s.id).join() === 'marisol,ray,dee', 'the camp publishes three spots');
+  ok(AI.speakers('voxel').length === 0, 'voxel has no in-world spots');
+
   const ping = await AI.dispatchAi(stub, { op: 'ping' });
   ok(ping.provider === 'stub', 'dispatch reports the stub on ping');
   let unknown = false;

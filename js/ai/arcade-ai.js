@@ -650,6 +650,48 @@
     return { id: gameId, label: game.label, noun: game.noun };
   }
 
+  // In-world speakers. Age of War spots are logical field pixels
+  // (1280×560, feet on the ground). Homeless Village spots are
+  // world x/z on the camp ground. r is the tap radius.
+  const SPEAKERS = {
+    ageofwar: [
+      { id: 'bram', x: 170, y: 448, r: 46 },
+      { id: 'lira', x: 400, y: 448, r: 46 },
+      { id: 'holt', x: 630, y: 448, r: 46 },
+    ],
+    homeless: [
+      { id: 'marisol', x: 4.2, z: 2.4, r: 1.3 },
+      { id: 'ray', x: -4.2, z: 1.6, r: 1.3 },
+      { id: 'dee', x: 3.2, z: -4.2, r: 1.3 },
+    ],
+  };
+
+  function speakers(gameId) {
+    const list = SPEAKERS[gameId] || [];
+    return list.map(function (s) {
+      return { id: s.id, x: s.x, y: s.y, z: s.z, r: s.r };
+    });
+  }
+
+  function speakerAt(gameId, point) {
+    const list = SPEAKERS[gameId];
+    if (!list || !point) return null;
+    let best = null;
+    let bestD = Infinity;
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i];
+      const dx = Number(point.x) - s.x;
+      const dy = s.z != null ? Number(point.z) - s.z : Number(point.y) - s.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= s.r && d < bestD) {
+        best = s;
+        bestD = d;
+      }
+    }
+    if (!best) return null;
+    return { id: best.id, x: best.x, y: best.y, z: best.z };
+  }
+
   return {
     createStubProvider: createStubProvider,
     createRemoteProvider: createRemoteProvider,
@@ -659,6 +701,8 @@
     games: GAME_IDS,
     npcs: npcs,
     describe: describe,
+    speakers: speakers,
+    speakerAt: speakerAt,
     WIDTH: WIDTH,
     HEIGHT: HEIGHT,
     STAMP: STAMP,

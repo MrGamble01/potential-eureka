@@ -468,5 +468,16 @@
     open: openPanel,
     close: closePanel,
     scrape: scrape,
+    talk: function (npcId, turn) {
+      return provider.talk({ game: gameId, npcId: npcId, context: scrape(), turn: turn || 0 });
+    },
   };
+
+  if (gameId === 'ageofwar' || gameId === 'homeless') {
+    const world = document.createElement('script');
+    world.src = '/js/ai/inworld.js';
+    world.async = false;
+    world.setAttribute('data-arcade-ai', 'inworld');
+    document.head.appendChild(world);
+  }
 })();
