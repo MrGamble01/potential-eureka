@@ -41,6 +41,7 @@
   <link rel="stylesheet" href="css/base.css?v=20261017pages">
   <link rel="stylesheet" href="css/effects.css?v=20261017pages">
   <link rel="stylesheet" href="css/arcade.css?v=20261017pages">
+  <link rel="stylesheet" href="css/feel.css?v=20261017pages">
   <link rel="stylesheet" href="css/game-cards.css?v=20261017pages">
   <link rel="stylesheet" href="css/dashboard.css?v=20261017pages">
   <link rel="stylesheet" href="css/games.css?v=20261017pages">
@@ -259,6 +260,8 @@
 
             </div>
     </div>
+
+    <section id="flag-daily" class="flag-daily" aria-label="Flagship daily challenge" hidden></section>
 
     <div class="arcade-section arcade-section--studio" id="arcade-studio" data-section="studio">
       <div class="arcade-section-head">
@@ -1480,6 +1483,8 @@
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
+  <script src="js/feel.js" defer></script>
+  <script src="js/flag-daily.js" defer></script>
   <script src="js/rivals.js" defer></script>
   <script src="js/achievements.js" defer></script>
   <script src="js/telemetry.js" defer></script>
@@ -2238,6 +2243,11 @@
       // on a miss (today's chips are a way out) and tucks when the
       // filter still has matches, so the catalogue can come up.
       if (dailyBanner) dailyBanner.hidden = !!(q && shown > 0);
+      const flagDaily = document.getElementById('flag-daily');
+      if (flagDaily) {
+        flagDaily.hidden = !!(q && shown > 0);
+        flagDaily.dataset.tucked = (q && shown > 0) ? '1' : '0';
+      }
       if (resumeRow) resumeRow.hidden = !!q || !resumeRow.querySelector('.resume-chip');
       if (primerHint) {
         if (q) primerHint.hidden = true;

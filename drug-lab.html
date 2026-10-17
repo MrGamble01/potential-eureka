@@ -1045,7 +1045,10 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 });
 </script>
 
+<link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/feel.js"></script>
+<script src="/js/flag-daily.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -1269,6 +1272,20 @@ function showToast(msg, type='') {
 }
 
 // ── Cash pop ──
+function feelAt(kind, x, y, text, color) {
+  const F = window.EurekaFeel;
+  if (!F) return;
+  let view = null;
+  try { view = renderer && renderer.domElement; } catch (e) { view = null; }
+  F.punch(kind, {
+    x: typeof x === 'number' ? x : innerWidth / 2,
+    y: typeof y === 'number' ? y : innerHeight * 0.42,
+    text: text || '',
+    color: color || '#3FB950',
+    target: view,
+  });
+}
+
 function cashPop(screenX, screenY, amount) {
   const el = document.createElement('div');
   el.className = 'cash-pop';
@@ -5781,6 +5798,7 @@ function harvestPlot(p) {
   sfx('harvest');
   addShake(0.16);
   juiceFlash('good');
+  feelAt('harvest', innerWidth / 2, innerHeight * 0.42, 'Harvest', '#3FB950');
 }
 
 function depositAtTrim() {
@@ -5873,6 +5891,7 @@ function sellToDealer(d, idx) {
       addHeat(15);
       showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
       addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+      feelAt('sting', innerWidth / 2, innerHeight * 0.4, 'Busted', '#F85149');
     }
     saveGame();
     return;
@@ -5901,6 +5920,7 @@ function sellToDealer(d, idx) {
     checkGrowAchievements();
     const sw=worldToScreen(d.group.position.x,2,d.group.position.z);
     cashPop(sw.x,sw.y,price);
+    feelAt('sell', sw.x, sw.y, '+$' + fmtCash(price), '#7ee787');
     addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
     showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list' + (whaleTax.skim > 0 ? ' (skimmed $' + fmtCash(whaleTax.skim) + ')' : '') + '.', 'good');
     sfx('sale', price);
@@ -5937,6 +5957,7 @@ function sellToDealer(d, idx) {
   }
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
+  feelAt('sell', s.x, s.y, '+$' + fmtCash(price), '#7ee787');
   if(state.heat<85) heatPop(s.x,s.y+20);
   addFeed(`💰 Sold ${qty} bag${qty === 1 ? '' : 's'}${pureUsed>0?` (${pureUsed}✨ pure)`:''}${streetTax.skim>0?` · skimmed $${fmtCash(streetTax.skim)}`:''} → +$${fmtCash(price)}`);
   showToast(saleToast(qty, price, streetTax.skim),'good');

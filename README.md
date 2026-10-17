@@ -4,7 +4,7 @@ A browser arcade of small, self-contained games. Zero dependencies — vanilla H
 
 Open `index.html` and you land in a retro terminal-style hub (clock, system monitor, activity graph) that doubles as the arcade's front door. From there you can jump into a mix of in-page canvas games and standalone game pages.
 
-The hub carries a shared meta-layer across the whole arcade: a **daily challenge** (seven games share one seed per day, so everyone races the same board), **21 achievements** that mint **coins** for accent-color cosmetics, hub **themes**, zero-backend **rival leaderboards** via copy-paste share codes (covering the hub games *and* every flagship's headline record), a Hall of Fame with a downloadable **PNG score card**, one-click **backup/restore** of every save, a `?` **shortcuts cheat-sheet**, gamepad support, and a service worker that makes the whole thing an installable, fully-offline **PWA**.
+The hub carries a shared meta-layer across the whole arcade: a **daily challenge** (seven quick games share one seed per day, so everyone races the same board), a **flagship daily** (one seeded sprint in Startup Tycoon, Beagle Sim, Hearthvale, Grow Op, or Night Clinic, with a goal, a clock, a local best and a streak), **21 achievements** that mint **coins** for accent-color cosmetics, hub **themes**, zero-backend **rival leaderboards** via copy-paste share codes (covering the hub games *and* every flagship's headline record), a Hall of Fame with a downloadable **PNG score card**, one-click **backup/restore** of every save, a `?` **shortcuts cheat-sheet**, gamepad support, and a service worker that makes the whole thing an installable, fully-offline **PWA**. Startup Tycoon, Beagle Sim, Hearthvale, Grow Op and Night Clinic share a game-feel kit (particles, shake, hit-stop, pop-ups, transitions, optional haptics) with a reduced-motion setting.
 
 ## Games
 
@@ -68,6 +68,8 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `cascade-best` | Word Cascade |
 | `crate-best`, `crate-level`, `crate-moves` | Crate Escape (ladder progress, current level, per-level best moves) |
 | `arcade-daily-<game>-<date>` | Daily challenge bests (today's only — stale dates are swept on boot) |
+| `eureka-feel-v1` | Shared game-feel setting: motion (`auto` / `full` / `reduced`) and haptics. Owned by `js/feel.js` |
+| `eureka-flag-daily-v1` | Flagship daily bests, seven-day history and streak. Owned by `js/flag-daily.js` |
 | `arcade-rivals`, `rival-name` | Shared-leaderboard rivals + your share-code name |
 | `arcade-achievements` | Unlocked achievements with timestamps (never re-lock) |
 | `arcade-coins` | Coin balance + owned/equipped accent palettes (achievements mint 10 each) |

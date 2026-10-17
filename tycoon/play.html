@@ -1972,7 +1972,10 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+<link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/feel.js"></script>
+<script src="/js/flag-daily.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2337,6 +2340,33 @@ function lsGet(key)      { try { return localStorage.getItem(key); } catch { ret
 function lsSet(key, val) { try { localStorage.setItem(key, val); } catch {} }
 function lsRemove(key)   { try { localStorage.removeItem(key); } catch {} }
 
+// Screen punch on the actions a player actually takes. Worker
+// deliveries stay on the existing cash floater; standing at a
+// desk, hiring, buying and sprinting get the shared feel kit.
+function officeFeel(kind, text, opts) {
+  const F = window.EurekaFeel;
+  if (!F) return;
+  const beagle = typeof VARIANT !== 'undefined' && VARIANT.id === 'beagle';
+  const labels = {
+    hire: beagle ? 'Adopted' : 'Hired',
+    purchase: beagle ? 'Fetched' : 'Bought',
+    sprint: beagle ? 'Zoomies' : 'Sprint',
+    milestone: beagle ? 'Good dog' : 'Milestone',
+    win: beagle ? 'Best in show' : 'IPO',
+  };
+  const o = opts || {};
+  let view = null;
+  try { view = renderer && renderer.domElement; } catch (e) { view = null; }
+  F.punch(kind, {
+    x: typeof o.x === 'number' ? o.x : window.innerWidth * 0.5,
+    y: typeof o.y === 'number' ? o.y : Math.min(240, window.innerHeight * 0.36),
+    text: text || labels[kind] || '',
+    color: o.color || (beagle ? '#E3B341' : '#58A6FF'),
+    target: view,
+    haptic: o.haptic === true,
+  });
+}
+
 // ── Haptics (Vibration API) ─────────────────────────────────
 // Tactile feedback on touch devices that support navigator.vibrate.
 // Silently no-ops on iOS/desktop. Toggle in settings.
@@ -2356,11 +2386,11 @@ const Haptics = (() => {
       try { localStorage.setItem(LS.haptics, enabled ? '1' : '0'); } catch {}
     },
     isEnabled() { return enabled; },
-    hire()      { buzz(15); },
-    purchase()  { buzz(10); },
-    sprint()    { buzz(30); },
-    milestone() { buzz([20, 60, 20]); },
-    win()       { buzz([30, 80, 30, 80, 30]); },
+    hire()      { buzz(15); officeFeel('hire'); },
+    purchase()  { buzz(10); officeFeel('purchase'); },
+    sprint()    { buzz(30); officeFeel('sprint'); },
+    milestone() { buzz([20, 60, 20]); officeFeel('milestone'); },
+    win()       { buzz([30, 80, 30, 80, 30]); officeFeel('win'); },
   };
 })();
 
@@ -4773,6 +4803,11 @@ function updateIdeaWorkers(dt) {
       } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
         totalFeaturesShipped++;
+        if (window.EurekaFeel) EurekaFeel.drip({
+          x: innerWidth * 0.72,
+          y: 88,
+          color: (typeof VARIANT !== 'undefined' && VARIANT.id === 'beagle') ? '#E3B341' : '#7ee787',
+        });
         grantShipXP(w);
         maybeShipBug(w);
         checkProductVersion();
@@ -4891,6 +4926,7 @@ function updatePlayerProximityWork(dt) {
     const earned = computeDealValue();
     addRevenue(earned);
     totalFeaturesShipped++;
+    officeFeel('ship', '+$' + fmtCash(earned), { color: '#7ee787', haptic: true });
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -4928,6 +4964,7 @@ function updateCeoDeskWork(dt) {
     const earned = computeDealValue();
     addRevenue(earned);
     totalFeaturesShipped++;
+    officeFeel('ship', '+$' + fmtCash(earned), { color: '#7ee787', haptic: true });
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();

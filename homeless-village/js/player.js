@@ -1120,6 +1120,7 @@ function finishAction(a){
       G.dressings=(G.dressings||0)+1;
       log('🩹 Wound dressed. +'+CLINIC_DRESS_HEALTH+' health, care '+Math.floor(G.care)+'.');
       floatText('+'+CLINIC_DRESS_HEALTH+'❤️', 'heal');
+      clinicFeel('+'+CLINIC_DRESS_HEALTH+'❤️');
       if(typeof juice==='function') juice('heal');
       if(typeof flutterGauze==='function') flutterGauze();
       maybeJuneStays();
@@ -1137,6 +1138,7 @@ function finishAction(a){
       addRep(1);
       log('🩺 June\'s night round — one roll on the block. +4 goodwill, the clinic holds.');
       floatText('+4🩶', 'heal');
+      clinicFeel('+4 goodwill');
       if(typeof juice==='function') juice('heal');
       saveGame();
       buildActionUI();
@@ -1152,6 +1154,7 @@ function finishAction(a){
       addRep(2);
       log('🏥 One roll, and they walk off on their own feet. +4 goodwill.');
       floatText('+4🩶', 'heal');
+      clinicFeel('+4 goodwill');
       if(typeof juice==='function') juice('heal');
       saveGame();
       buildActionUI();
@@ -1174,6 +1177,22 @@ function finishAction(a){
   else if(a.id==='juneround' || a.id==='spare') sfx('clinic');
   else sfx('action');
   updateHUD();
+}
+
+function clinicFeel(text){
+  var F = window.EurekaFeel;
+  if(!F || typeof F.punch !== 'function') return;
+  var view = document.getElementById('three-canvas') || document.getElementById('hud');
+  try {
+    F.punch('heal', {
+      x: window.innerWidth / 2,
+      y: window.innerHeight * 0.38,
+      text: text || 'Dressed',
+      color: '#F07178',
+      target: view,
+      haptic: true,
+    });
+  } catch (e) { /* juice must not blank the camp */ }
 }
 
 function doCraft(r){
