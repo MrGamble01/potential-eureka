@@ -346,6 +346,7 @@ const TARGETS = [
       const gold = (await page.locator('#r-gold').innerText()).replace(/[^0-9]/g, '');
       if (!gold) throw new Error('Hearthvale gold did not render after Begin building');
       if (await page.locator('#stillroom').count() !== 1) throw new Error('Hearthvale stillroom board is missing');
+      if (await page.locator('#hollow').count() !== 1) throw new Error('Hearthvale hollow is missing');
       await page.locator('#buildtabs button', { hasText: 'Industry' }).click();
       const still = page.locator('#buildbar .btn[data-type="stillroom"]');
       await still.waitFor({ timeout: 8000 });

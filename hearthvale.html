@@ -238,12 +238,12 @@
     }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome, #achv, #chronicle, #decrees, #stillroom {
+    #trader, #event, #welcome, #achv, #chronicle, #decrees, #stillroom, #hollow {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show, #stillroom.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show { display: flex; }
     #still-path { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; }
     .still-step { font-size: 12.5px; padding: 4px 8px; border-radius: 7px; background: rgba(255,255,255,0.04); color: var(--ink-dim); }
     .still-step.done { color: #b7d7a8; }
@@ -284,9 +284,16 @@
     .cup-empty { color: var(--ink-dim); font-size: 12px; }
     #still-anoint-wrap[hidden] { display: none; }
     /* The board is long. The copy scrolls; Back to the lane and Games stay put. */
-    #stillroom .trader-card { display: flex; flex-direction: column; overflow: hidden; }
-    #stillroom .still-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
-    #stillroom .sheet-ctas { flex: 0 0 auto; }
+    #stillroom .trader-card, #hollow .trader-card { display: flex; flex-direction: column; overflow: hidden; }
+    #stillroom .still-body, #hollow .hollow-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+    #stillroom .sheet-ctas, #hollow .sheet-ctas { flex: 0 0 auto; }
+    #hollow-resolve { font-family: var(--mono); letter-spacing: 2px; color: var(--gold); margin: 4px 0 8px; }
+    #hollow-line { font-size: 13.5px; line-height: 1.45; min-height: 2.6em; margin: 8px 0; }
+    #hollow-offer, #hollow-open, #hollow-away, .hollow-talk {
+      width: 100%; margin-top: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font); text-align: left;
+    }
+    #hollow-away { color: #e7b2aa; }
     #decree-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
     .decree-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; }
     .decree-row .demoji { font-size: 20px; }
@@ -513,11 +520,12 @@
       #paused { left: 8px; right: 8px; top: 50%; transform: translateY(-50%); min-width: 0; }
       #menu-btn, #touch-pause, #zoom-ctl button { width: 44px; height: 44px; }
       #touch-pause { right: calc(64px + env(safe-area-inset-right, 0px)); }
-      #stillroom .trader-card {
+      #stillroom .trader-card, #hollow .trader-card {
         box-sizing: border-box; width: calc(100% - 16px); max-height: calc(100dvh - 12px);
         border-radius: 14px; padding: 12px;
       }
-      .still-recipe, .still-row button, #still-anoint, #cup-enter, #cup-add, #panel button {
+      .still-recipe, .still-row button, #still-anoint, #cup-enter, #cup-add, #panel button,
+      #hollow-offer, #hollow-open, #hollow-away, .hollow-talk, #menu button, #hollow .closebtn {
         min-height: 44px; touch-action: manipulation;
       }
       .still-row { flex-wrap: wrap; }
@@ -580,6 +588,7 @@
     <button id="m-gallery">The Long Gallery</button>
     <button id="chain-btn" title="The Hall — everything this valley remembers, in the order it happened, and what the next one is waiting on.">🧱 The Hall</button>
     <button id="m-achv">Achievements</button>
+    <button id="m-hollow" type="button">The Lantern Hollow</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Hall">
@@ -728,9 +737,32 @@
           <button type="button" id="cup-add">Add</button>
         </div>
         <div id="cup-board"></div>
+        <button type="button" class="still-recipe" id="still-hollow">The Lantern Hollow</button>
       </div>
       <div class="sheet-ctas">
         <button class="closebtn" id="still-close" type="button">Back to the lane</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div id="hollow">
+    <div class="trader-card">
+      <div class="hollow-body">
+        <h2><span>&#128293;</span><span>The Lantern Hollow</span></h2>
+        <div class="flavor" id="hollow-flavor">&mdash;</div>
+        <div id="hollow-seal" data-open="0"></div>
+        <button type="button" id="hollow-open">Part the briar</button>
+        <div id="hollow-warden" data-id="" data-season=""></div>
+        <div id="hollow-resolve" data-resolve="3"></div>
+        <button type="button" id="hollow-offer">Offer</button>
+        <div class="still-h">Companions</div>
+        <div id="hollow-people"></div>
+        <div id="hollow-line"></div>
+        <button type="button" id="hollow-away">Leave the warden</button>
+      </div>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="hollow-close" type="button">Back to the lane</button>
         <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
       </div>
     </div>
@@ -750,6 +782,7 @@
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
         &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
         &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
+        &bull; Once the valley <b>knows</b> you, the <b>Lantern Hollow</b> opens. A warden waits each season.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -879,6 +912,8 @@
       case 'plant':   tone(262, 0.07, 'triangle', 0.09); tone(392, 0.14, 'triangle', 0.08, 0.06); break;
       case 'deliver': tone(440, 0.07, 'square', 0.08); tone(554, 0.09, 'square', 0.08, 0.06); tone(659, 0.16, 'triangle', 0.09, 0.14); break;
       case 'rank':    tone(523, 0.08, 'triangle', 0.11); tone(659, 0.09, 'triangle', 0.11, 0.08); tone(784, 0.12, 'triangle', 0.11, 0.16); tone(1046, 0.24, 'triangle', 0.10, 0.28); break;
+      case 'lantern': tone(392, 0.08, 'sine', 0.08); tone(523, 0.12, 'sine', 0.08, 0.08); tone(659, 0.18, 'triangle', 0.07, 0.16); break;
+      case 'warden':  tone(146, 0.16, 'triangle', 0.10); tone(220, 0.18, 'triangle', 0.09, 0.12); tone(330, 0.22, 'sine', 0.07, 0.24); break;
     }
   }
 
@@ -2088,6 +2123,7 @@
       asksFilled: {},
       ward: 0,
       cup: null,
+      hollow: null,
     };
   }
   const ACHIEVEMENTS = [
@@ -2176,6 +2212,8 @@
     { id: 'goodneighbour', emoji: '🤝', name: 'Good Neighbour', desc: 'Deliver three requests for the valley neighbours.', done: () => (state.deliveries || 0) >= 3, prog: () => [state.deliveries || 0, 3] },
     { id: 'valleykin', emoji: '🌿', name: 'Kin of the Valley', desc: 'Earn 10 goodwill with the neighbours.', done: () => (state.kinship || 0) >= 10, prog: () => [state.kinship || 0, 10] },
     { id: 'cupday', emoji: '🏆', name: 'Cup Day', desc: 'Enter the Valley Cup.', done: () => !!(state.cup && state.cup.day) },
+    { id: 'hollowopen', emoji: '🔥', name: 'The Briar Parts', desc: 'Open the Lantern Hollow.', done: () => !!(state.hollow && state.hollow.open) },
+    { id: 'wardenfaced', emoji: '🦌', name: 'Season\'s Warden', desc: 'See a hollow warden off.', done: () => { const f = state.hollow && state.hollow.faced; return !!f && Object.keys(f).length > 0; } },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2485,8 +2523,37 @@
     pushDeco('well', startX - 2, startY - 2);
     pushDeco('lamp', startX - 1, startY - 3); pushDeco('lamp', startX + 4, startY + 2); pushDeco('lamp', startX + 7, startY - 2);
     pushDeco('barrel', startX + 3, startY - 2); pushDeco('logs', startX - 3, startY + 2);
+    carveHollow(startX, startY);
 
     return { startX, startY };
+  }
+  let hollowPad = null;
+  function carveHollow(startX, startY) {
+    hollowPad = null;
+    const w = 5, h = 4;
+    const spots = [];
+    for (let dy = -14; dy <= -6; dy++) for (let dx = -8; dx <= 2; dx++) spots.push([startX + dx, startY + dy]);
+    for (let i = 0; i < spots.length; i++) {
+      const tx = spots[i][0], ty = spots[i][1];
+      if (tx < 3 || ty < 3 || tx + w >= MAP_W - 2 || ty + h >= MAP_H - 2) continue;
+      let ok = true;
+      for (let y = 0; y < h && ok; y++) for (let x = 0; x < w; x++) {
+        const t = tiles[idx(tx + x, ty + y)];
+        if (t === T_WATER || t === T_BRIDGE || t === T_DIRT) ok = false;
+      }
+      if (!ok) continue;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = idx(tx + x, ty + y);
+        tiles[i] = T_GRASS;
+        tileObj[i] = O_NONE;
+      }
+      hollowPad = { tx: tx, ty: ty, w: w, h: h };
+      return;
+    }
+  }
+  function inHollow(tx, ty) {
+    const p = hollowPad;
+    return !!(p && tx >= p.tx && ty >= p.ty && tx < p.tx + p.w && ty < p.ty + p.h);
   }
 
   // walkable for villagers
@@ -2528,6 +2595,7 @@
         if (occ[idx(gx, gy)] >= 0) return false;
         const o = tileObj[idx(gx, gy)];
         if (o === O_TREE || o === O_ROCK || o === O_BUSH || o === O_MTN) return false;
+        if (inHollow(gx, gy)) return false;
       }
     return true;
   }
@@ -3133,6 +3201,7 @@
       { id: 'trusted', text: 'Be Trusted (6 goodwill)', done: (state.kinship || 0) >= 6 },
       { id: 'kin', text: 'Be counted Kin (10 goodwill)', done: (state.kinship || 0) >= 10 },
       { id: 'cup', text: 'Enter the Valley Cup', done: !!(state.cup && state.cup.day) },
+      { id: 'hollow', text: 'Part the briar of the Lantern Hollow', done: !!(state.hollow && state.hollow.open) },
     ];
   }
   function escHtml(s) {
@@ -3482,6 +3551,355 @@
     }
     if (stillroomOpen()) renderStillroom();
   }
+
+  // The Lantern Hollow is a northern clearing. It stays briared until the
+  // valley knows you. Each season a warden stands there. Companions are the
+  // solo-play voices: local lines by default, and the shared booth when it
+  // is on the page (ArcadeAI.boothTalk, else ArcadeAI.createStubProvider).
+  const WARDENS = [
+    { id: 'hart', season: 'Spring', name: 'The Bloom Hart', emoji: '🦌', need: { tea: 1, herbs: 1 }, bless: { happy: 6 } },
+    { id: 'boar', season: 'Summer', name: 'The Sun Boar', emoji: '🐗', need: { pie: 1, food: 4 }, bless: { gold: 24 } },
+    { id: 'stag', season: 'Autumn', name: 'The Briar Stag', emoji: '🍂', need: { linen: 1, fibre: 2 }, bless: { wood: 20 } },
+    { id: 'frost', season: 'Winter', name: 'The Frost Warden', emoji: '❄️', need: { salve: 1, wood: 8 }, bless: { happy: 8, food: 12 } },
+  ];
+  const COMPANIONS = [
+    { id: 'wren', name: 'Elder Wren', role: 'Hearth', icon: '🔥', ready: (c) => (c.food || 0) >= 8, lines: [
+      { when: (c) => (c.food || 0) < 8, mood: 'grave', text: (c) => 'The stores show ' + c.food + ' food. I will not walk into the hollow hungry.' },
+      { mood: 'soft', text: (c) => 'Day ' + c.day + '. The hearth is lit. I will stand with you.' },
+    ]},
+    { id: 'ada', name: 'Reeve Ada', role: 'Watch', icon: '🪵', ready: (c) => (c.wood || 0) >= 12, lines: [
+      { when: (c) => (c.wood || 0) < 12, mood: 'brisk', text: (c) => 'Wood is ' + c.wood + '. I will not face the warden with an empty yard.' },
+      { mood: 'plain', text: () => 'The watch is with you. Say the word.' },
+    ]},
+    { id: 'sable', name: 'Sable', role: 'Merchant', icon: '🧳', ready: (c) => (c.gold || 0) >= 20, lines: [
+      { when: (c) => (c.gold || 0) < 20, mood: 'wry', text: (c) => 'Coin is ' + c.gold + '. I still have thread, if you have patience.' },
+      { mood: 'bright', text: () => 'I will stand in the lantern light. The road can wait.' },
+    ]},
+  ];
+  function blankHollow() {
+    return { open: 0, faced: {}, fled: '', counsel: {}, counselKey: '', announced: '', talks: 0 };
+  }
+  function readHollow(raw) {
+    const out = blankHollow();
+    if (!raw || typeof raw !== 'object') return out;
+    out.open = raw.open ? 1 : 0;
+    out.fled = /^(Spring|Summer|Autumn|Winter)$/.test(String(raw.fled || '').split('-').pop()) && /^\d+-/.test(String(raw.fled || '')) ? String(raw.fled) : '';
+    out.counselKey = typeof raw.counselKey === 'string' ? raw.counselKey.slice(0, 24) : '';
+    out.announced = typeof raw.announced === 'string' ? raw.announced.slice(0, 24) : '';
+    out.talks = Math.max(0, Math.min(999, Math.floor(Number(raw.talks) || 0)));
+    if (raw.faced && typeof raw.faced === 'object') {
+      Object.keys(raw.faced).forEach(k => {
+        if (/^\d+-(Spring|Summer|Autumn|Winter)$/.test(k) && raw.faced[k]) out.faced[k] = 1;
+      });
+    }
+    if (raw.counsel && typeof raw.counsel === 'object') {
+      COMPANIONS.forEach(c => { if (raw.counsel[c.id]) out.counsel[c.id] = 1; });
+    }
+    return out;
+  }
+  function ensureHollow() {
+    if (!state.hollow) state.hollow = blankHollow();
+  }
+  function hollowIsOpen() { return !!(state.hollow && state.hollow.open); }
+  function currentWarden() {
+    const name = seasonOf(state.day).name;
+    return WARDENS.find(w => w.season === name) || WARDENS[0];
+  }
+  function wardenKey() { return yearOf(state.day) + '-' + currentWarden().season; }
+  function wardenGone() {
+    if (!state.hollow) return false;
+    const key = wardenKey();
+    return !!(state.hollow.faced && state.hollow.faced[key]) || state.hollow.fled === key;
+  }
+  function syncCounsel() {
+    ensureHollow();
+    const key = wardenKey();
+    if (state.hollow.counselKey !== key) {
+      state.hollow.counsel = {};
+      state.hollow.counselKey = key;
+    }
+  }
+  function counselCount() {
+    syncCounsel();
+    return COMPANIONS.filter(c => state.hollow.counsel && state.hollow.counsel[c.id]).length;
+  }
+  function wardenResolve() {
+    if (!hollowIsOpen() || wardenGone()) return 0;
+    return Math.max(0, 3 - counselCount());
+  }
+  function offerCost() {
+    const cost = Object.assign({}, currentWarden().need);
+    let waive = counselCount();
+    while (waive > 0) {
+      let key = null, best = 0;
+      for (const k in cost) if (cost[k] > best) { best = cost[k]; key = k; }
+      if (!key) break;
+      cost[key] -= 1;
+      if (cost[key] <= 0) delete cost[key];
+      waive -= 1;
+    }
+    return cost;
+  }
+  function hearthContext() {
+    const w = currentWarden();
+    return {
+      day: state.day | 0,
+      food: Math.floor(state.res.food || 0),
+      wood: Math.floor(state.res.wood || 0),
+      gold: Math.floor(state.res.gold || 0),
+      pop: (state.villagers && state.villagers.length) || 0,
+      season: w.season,
+      kinship: state.kinship || 0,
+      hollow: hollowIsOpen(),
+      warden: w.id,
+    };
+  }
+  function localCompanionLine(req) {
+    const person = COMPANIONS.find(c => c.id === req.npcId) || COMPANIONS[0];
+    const ctx = req.context || {};
+    let chosen = person.lines[person.lines.length - 1];
+    for (let i = 0; i < person.lines.length; i++) {
+      const line = person.lines[i];
+      if (!line.when || line.when(ctx)) { chosen = line; break; }
+    }
+    return {
+      provider: 'local',
+      game: 'hearthvale',
+      npcId: person.id,
+      name: person.name,
+      role: person.role,
+      icon: person.icon,
+      mood: chosen.mood,
+      line: chosen.text(ctx),
+    };
+  }
+  function companionLine(npcId) {
+    const req = { game: 'hearthvale', npcId: npcId, context: hearthContext(), turn: (state.hollow && state.hollow.talks) || 0 };
+    try { document.dispatchEvent(new CustomEvent('hearthvale-npc-talk', { detail: req })); } catch (e) {}
+    const ai = window.ArcadeAI;
+    let pending = null;
+    try {
+      if (ai && typeof ai.boothTalk === 'function') pending = Promise.resolve().then(() => ai.boothTalk(req));
+      else if (ai && typeof ai.createStubProvider === 'function') pending = Promise.resolve().then(() => ai.createStubProvider().talk(req));
+    } catch (e) { pending = null; }
+    const finish = (result) => {
+      if (!result || !result.line) result = localCompanionLine(req);
+      if (!result.npcId) result.npcId = npcId;
+      try { document.dispatchEvent(new CustomEvent('hearthvale-npc-said', { detail: result })); } catch (e) {}
+      return result;
+    };
+    if (!pending) return Promise.resolve(finish(null));
+    return pending.then(finish).catch(() => finish(localCompanionLine(req)));
+  }
+  function companionById(id) { return COMPANIONS.find(c => c.id === id) || COMPANIONS[0]; }
+  function grantBlessing(w) {
+    const b = w.bless || {};
+    if (b.happy) state.happy = Math.min(100, Math.max(0, state.happy + b.happy));
+    ['gold', 'wood', 'food', 'stone'].forEach(k => { if (b[k]) giveStock(k, b[k]); });
+  }
+  function faceWarden() {
+    ensureHollow();
+    const w = currentWarden();
+    state.hollow.faced[wardenKey()] = 1;
+    state.hollow.counsel = {};
+    grantBlessing(w);
+    SFX('warden');
+    celebrateT = CELEBRATE_DUR;
+    juice(w.emoji, w.name + ' bows');
+    toast(w.emoji + ' ' + w.name + ' bows and leaves a blessing.');
+    chron(w.emoji, w.name + ' left the hollow a blessing');
+    afterHollow();
+  }
+  function hollowAtDawn() {
+    if (!hollowIsOpen()) return;
+    const key = wardenKey();
+    if (state.hollow.announced === key) return;
+    state.hollow.announced = key;
+    syncCounsel();
+    if (wardenGone()) return;
+    const w = currentWarden();
+    toast(w.emoji + ' ' + w.name + ' is in the lantern hollow.');
+    chron(w.emoji, w.name + ' stepped into the hollow');
+  }
+  function renderHollow() {
+    ensureHollow();
+    syncCounsel();
+    const open = hollowIsOpen();
+    const w = currentWarden();
+    const key = wardenKey();
+    const gone = wardenGone();
+    const seal = document.getElementById('hollow-seal');
+    if (seal) {
+      seal.dataset.open = open ? '1' : '0';
+      seal.textContent = open
+        ? 'The briar is parted. The lanterns are lit.'
+        : 'The briar is shut. The hollow opens when the valley knows you.';
+    }
+    const flavor = document.getElementById('hollow-flavor');
+    if (flavor) flavor.textContent = open
+      ? (gone ? 'The hollow is quiet until the season turns.' : w.name + ' holds the clearing.')
+      : 'Strangers see only thorns.';
+    const openBtn = document.getElementById('hollow-open');
+    if (openBtn) openBtn.hidden = open;
+    const ward = document.getElementById('hollow-warden');
+    if (ward) {
+      ward.dataset.id = w.id;
+      ward.dataset.season = w.season;
+      ward.textContent = open ? (w.emoji + ' ' + w.name + ' · ' + w.season) : '';
+    }
+    const resolve = wardenResolve();
+    const resEl = document.getElementById('hollow-resolve');
+    if (resEl) {
+      resEl.dataset.resolve = String(resolve);
+      resEl.textContent = open && !gone ? 'Resolve ' + '●'.repeat(resolve) + '○'.repeat(3 - resolve) : '';
+    }
+    const cost = offerCost();
+    const offer = document.getElementById('hollow-offer');
+    if (offer) {
+      offer.hidden = !open || gone;
+      ['tea', 'herbs', 'pie', 'food', 'linen', 'fibre', 'salve', 'wood'].forEach(k => {
+        offer.dataset[k] = String(cost[k] || 0);
+      });
+      const label = Object.keys(cost).length ? 'Offer ' + costText(cost) : 'The companions have stood';
+      offer.textContent = label;
+    }
+    const away = document.getElementById('hollow-away');
+    if (away) away.hidden = !open || gone;
+    const people = document.getElementById('hollow-people');
+    if (people) {
+      people.innerHTML = COMPANIONS.map(c => {
+        const stood = open && state.hollow.counsel && state.hollow.counsel[c.id] ? ' · stood' : '';
+        return '<button type="button" class="hollow-talk" id="hollow-talk-' + c.id + '" data-talk="' + c.id + '">' + c.icon + ' ' + c.name + stood + '</button>';
+      }).join('');
+    }
+    const line = document.getElementById('hollow-line');
+    if (line && !line.dataset.hold) {
+      if (!open) line.textContent = 'Wren, Ada, and Sable will walk in with you once the briar parts.';
+      else if (state.hollow.faced && state.hollow.faced[key]) line.textContent = 'The warden has left a blessing on the lane.';
+      else if (state.hollow.fled === key) line.textContent = 'The warden raked the lane and left.';
+    }
+  }
+  function openHollow() {
+    renderHollow();
+    document.getElementById('hollow').classList.add('show');
+  }
+  function afterHollow() {
+    const line = document.getElementById('hollow-line');
+    if (line) delete line.dataset.hold;
+    updateHUD(); checkAchievements(); save();
+    if (document.getElementById('hollow').classList.contains('show')) renderHollow();
+    if (stillroomOpen()) renderStillroom();
+  }
+  function partTheBriar() {
+    ensureHollow();
+    if (hollowIsOpen()) { openHollow(); return; }
+    if ((state.kinship || 0) < 3) {
+      toast('The briar keeps the hollow until the valley knows you (3 goodwill).');
+      SFX('error');
+      return;
+    }
+    state.hollow.open = 1;
+    state.hollow.announced = wardenKey();
+    SFX('lantern');
+    juice('🔥', 'The briar parts');
+    toast('🔥 The briar parts. Lanterns wake in the northern hollow.');
+    chron('🔥', 'The Lantern Hollow opened to a known valley');
+    const w = currentWarden();
+    toast(w.emoji + ' ' + w.name + ' is already waiting.');
+    afterHollow();
+  }
+  function offerWarden() {
+    ensureHollow();
+    ensureStillroomState();
+    if (!hollowIsOpen()) { toast('The hollow is still shut.'); SFX('error'); return; }
+    if (wardenGone()) { toast('The warden has already left this season.'); SFX('error'); return; }
+    const cost = offerCost();
+    const gaps = gapsFor(cost);
+    if (gaps.length) { toast('Need ' + gaps.join(' and ')); SFX('error'); return; }
+    for (const k in cost) takeStock(k, cost[k]);
+    faceWarden();
+  }
+  function leaveWarden() {
+    ensureHollow();
+    if (!hollowIsOpen() || wardenGone()) return;
+    state.hollow.fled = wardenKey();
+    state.hollow.counsel = {};
+    state.happy = Math.max(0, state.happy - 6);
+    SFX('error');
+    toast(currentWarden().emoji + ' You turn away. The warden rakes the lane. −6 cheer.');
+    chron(currentWarden().emoji, 'The town left the hollow warden unfaced');
+    afterHollow();
+  }
+  function askCompanion(id) {
+    ensureHollow();
+    if (!hollowIsOpen()) { toast('The hollow is still shut.'); SFX('error'); return; }
+    const person = companionById(id);
+    companionLine(id).then(result => {
+      state.hollow.talks = (state.hollow.talks || 0) + 1;
+      const line = document.getElementById('hollow-line');
+      if (line) {
+        line.dataset.hold = '1';
+        line.textContent = result.line;
+      }
+      const key = wardenKey();
+      const fresh = !wardenGone() && !(state.hollow.counsel && state.hollow.counsel[person.id]) && person.ready(hearthContext());
+      if (fresh) {
+        syncCounsel();
+        state.hollow.counsel[person.id] = 1;
+        if (counselCount() >= 3 && !(state.hollow.faced && state.hollow.faced[key])) {
+          faceWarden();
+          if (line) { line.dataset.hold = '1'; line.textContent = result.line; }
+          return;
+        }
+        SFX('deliver');
+        juice(person.icon, person.name + ' stands with you');
+      } else SFX(result.provider === 'local' ? 'trader' : 'deliver');
+      save();
+      if (document.getElementById('hollow').classList.contains('show')) {
+        const kept = line ? line.textContent : '';
+        renderHollow();
+        if (line && kept) { line.dataset.hold = '1'; line.textContent = kept; }
+      }
+    });
+  }
+  function drawHollow(sx, sy, z) {
+    const p = hollowPad;
+    if (!p) return;
+    const x = sx + p.tx * TILE * z, y = sy + p.ty * TILE * z;
+    const w = p.w * TILE * z, h = p.h * TILE * z;
+    ctx.save();
+    ctx.fillStyle = hollowIsOpen() ? 'rgba(242,193,78,0.16)' : 'rgba(20,28,18,0.28)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = hollowIsOpen() ? '#f2c14e' : '#3d4a38';
+    ctx.lineWidth = Math.max(1, z);
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    const bob = Math.sin(ambientTime * 2.4) * 1.5 * z;
+    const corners = [[0.15, 0.2], [0.85, 0.2], [0.15, 0.82], [0.85, 0.82]];
+    corners.forEach((c, i) => {
+      const lx = x + c[0] * w, ly = y + c[1] * h + bob * (i % 2 ? 1 : -1);
+      ctx.fillStyle = hollowIsOpen() ? '#f2c14e' : '#6a5a3a';
+      ctx.beginPath();
+      ctx.arc(lx, ly, 2.2 * z, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(242,193,78,0.35)';
+      if (hollowIsOpen()) { ctx.beginPath(); ctx.arc(lx, ly, 5 * z, 0, Math.PI * 2); ctx.fill(); }
+    });
+    if (hollowIsOpen() && !wardenGone()) {
+      ctx.font = Math.round(16 * z) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(currentWarden().emoji, x + w / 2, y + h * 0.55);
+    }
+    ctx.restore();
+  }
+
+  window.HearthvaleAI = {
+    game: 'hearthvale',
+    companions: () => COMPANIONS.map(c => ({ id: c.id, name: c.name, role: c.role, icon: c.icon })),
+    context: () => hearthContext(),
+    pad: () => hollowPad ? { tx: hollowPad.tx, ty: hollowPad.ty, w: hollowPad.w, h: hollowPad.h } : null,
+    talk: (npcId) => companionLine(npcId),
+  };
 
   function runProduction() {
     const pop = state.villagers.length;
@@ -4684,6 +5102,7 @@
     iceAtDawn();    // HVALE-24: winter banked, summer withdrawn
     advanceAtDawn(); // HVALE-27: and the merchant's wagon calls its debt
     ledgerAtDawn(); // HVALE-29: and the reeve counts the coffers
+    hollowAtDawn();
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -5074,6 +5493,7 @@
         ctx.drawImage(d.spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + drawY * z), wpx * z, hpx * z);
       }
     }
+    drawHollow(sx, sy, z);
 
     // road tool: single-tile hover highlight
     if (buildMode === 'road' && hoverTile && inMap(hoverTile.tx, hoverTile.ty)) {
@@ -6013,6 +6433,10 @@
     state.villagers.forEach(v => mx.fillRect(Math.round(v.x / TILE), Math.round(v.y / TILE), 1, 1));
     // the traveling merchant's wagon stands out in gold
     if (cart) { mx.fillStyle = '#f2c14e'; mx.fillRect(Math.round(cart.x / TILE) - 1, Math.round(cart.y / TILE), 2, 1); }
+    if (hollowPad) {
+      mx.fillStyle = hollowIsOpen() ? '#f2c14e' : '#6a4a78';
+      mx.fillRect(hollowPad.tx, hollowPad.ty, hollowPad.w, hollowPad.h);
+    }
     const vw = view.w / cam.z / TILE, vh = view.h / cam.z / TILE;
     mx.strokeStyle = 'rgba(255,255,255,0.9)'; mx.lineWidth = 1;
     mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
@@ -6679,6 +7103,7 @@
     // else: select a building
     const o = occ[idx(t.tx, t.ty)];
     if (o >= 0) showPanel(buildingById(o));
+    else if (inHollow(t.tx, t.ty)) openHollow();
     else hidePanel();
   }
 
@@ -6702,13 +7127,15 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') {
-      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show');
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show');
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
       document.getElementById('chronicle').classList.remove('show');
       document.getElementById('decrees').classList.remove('show');
       const stillroom = document.getElementById('stillroom');
       if (stillroom) stillroom.classList.remove('show');
+      const hollow = document.getElementById('hollow');
+      if (hollow) hollow.classList.remove('show');
       const trader = document.getElementById('trader');
       const event = document.getElementById('event');
       const hall = document.getElementById('chain-modal');
@@ -6824,6 +7251,7 @@
         asksFilled: state.asksFilled || {},
         ward: state.ward || 0,
         cup: state.cup && state.cup.day ? { day: String(state.cup.day), score: state.cup.score | 0 } : null,
+        hollow: state.hollow || blankHollow(),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
       if (typeof EurekaPersist !== 'undefined') {
@@ -6964,6 +7392,7 @@
       state.posts = readPosts(s.posts);
       state.asksFilled = readAsks(s.asksFilled);
       state.cup = readCup(s.cup);
+      state.hollow = readHollow(s.hollow);
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -7058,7 +7487,7 @@
 
   function playerHeld() {
     if (gameSpeed !== 0 || _modalPrevSpeed !== null) return false;
-    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees', 'stillroom'];
+    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees', 'stillroom', 'hollow'];
     return !blocked.some(id => {
       const el = document.getElementById(id);
       return el && el.classList.contains('show');
@@ -7175,8 +7604,27 @@
       if (npc) { deliverAsk(npc.dataset.deliver); return; }
       if (e.target.closest('#still-anoint')) { anointTown(); return; }
       if (e.target.closest('#cup-enter')) { enterValleyCup(); return; }
-      if (e.target.closest('#cup-add')) addCupRival();
+      if (e.target.closest('#cup-add')) { addCupRival(); return; }
+      if (e.target.closest('#still-hollow')) {
+        document.getElementById('stillroom').classList.remove('show');
+        openHollow();
+      }
     });
+    const hollowClose = document.getElementById('hollow-close');
+    if (hollowClose) hollowClose.onclick = () => document.getElementById('hollow').classList.remove('show');
+    const hollowSheet = document.getElementById('hollow');
+    if (hollowSheet) hollowSheet.addEventListener('click', e => {
+      if (e.target.closest('#hollow-open')) { partTheBriar(); return; }
+      if (e.target.closest('#hollow-offer')) { offerWarden(); return; }
+      if (e.target.closest('#hollow-away')) { leaveWarden(); return; }
+      const who = e.target.closest('[data-talk]');
+      if (who) askCompanion(who.dataset.talk);
+    });
+    const hollowMenu = document.getElementById('m-hollow');
+    if (hollowMenu) hollowMenu.onclick = () => {
+      document.getElementById('menu').classList.remove('show');
+      openHollow();
+    };
     const cupPaste = document.getElementById('cup-paste');
     if (cupPaste) cupPaste.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); addCupRival(); }

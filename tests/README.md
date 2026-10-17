@@ -55,6 +55,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
 | Hearthvale stillroom | `hvalestill` (hook-free: farm crop choice and food-net, craft refusals, neighbour deliveries, Known/Kin ranks, salve lock, fever anoint, live feverfew harvest, save round-trip, Escape; 1280px/768px; zero page errors) |
 | Hearthvale Valley Cup | `hvalecup` (hook-free: daily basket refusal, one entry at score 80, share-code round trip, pasted rival, bad slip, same-day lock, juice banner, 390px touch targets; zero page errors) |
+| Hearthvale Lantern Hollow | `hvalehollow` (hook-free: sealed briar, Known unlock, spring offering, companion counsel, booth talk hook, flee, phone targets; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |
