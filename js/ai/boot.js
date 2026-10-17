@@ -1,9 +1,11 @@
 /* Flagship booth. Loaded by persist.js on every page that
    already shares settings. Mounts only on the six games
    (Beagle Sim is Startup Tycoon with ?theme=beagle).
-   The page always starts on the stub. /api/ai is asked
-   once; a remote provider is used only when that route
-   says a key is configured. A failed call falls back. */
+   The page uses the stub. createAiProvider switches to the
+   remote adapter only when AI_API_KEY is in an environment,
+   which is what api/ai.js does. The page does not call that
+   route: the key stays on the server, and a missing route
+   would be a console error on the static host. */
 (function () {
   if (typeof document === 'undefined' || !window.ArcadeAI) return;
   if (document.getElementById('arcade-ai-root')) return;
@@ -241,11 +243,6 @@
   panel.querySelector('#arcade-ai-seed').value = SEEDS[gameId];
   panel.querySelector('#arcade-ai-prompt').value = PROMPTS[gameId];
 
-  function setBadge() {
-    const badge = panel.querySelector('#arcade-ai-badge');
-    badge.textContent = provider.label || provider.id;
-  }
-
   function showTab(name) {
     const panes = { talk: 'arcade-ai-talk', map: 'arcade-ai-map', calls: 'arcade-ai-calls-pane' };
     Object.keys(panes).forEach((tab) => {
@@ -455,46 +452,6 @@
     provider.announce({ game: gameId, event: { type: 'state', detail: detail } }).then(pushCall).catch(function () {});
   }
 
-  function browserRemote() {
-    async function post(op, req) {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ op: op, req: req }),
-      });
-      if (!res.ok) throw new Error('booth route failed');
-      const data = await res.json();
-      if (!data || !data.result) throw new Error('booth route was empty');
-      return data.result;
-    }
-    return {
-      id: 'remote',
-      label: 'live model',
-      talk: function (req) { return post('talk', req); },
-      generateMap: function (req) { return post('generateMap', req); },
-      announce: function (req) { return post('announce', req); },
-    };
-  }
-
-  function probe() {
-    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 1200);
-    fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ op: 'ping' }),
-      signal: ctrl ? ctrl.signal : undefined,
-    }).then(function (res) {
-      if (!res.ok) return null;
-      return res.json();
-    }).then(function (data) {
-      if (!data || data.provider !== 'remote') return;
-      provider = AI.withStubFallback(browserRemote(), stub);
-      setBadge();
-    }).catch(function () { /* static host, or no key: the stub stays */ })
-      .then(function () { clearTimeout(timer); });
-  }
-
   place();
   setTimeout(place, 400);
   setTimeout(place, 1400);
@@ -502,7 +459,6 @@
   window.addEventListener('resize', place);
   setTimeout(watch, 600);
   setTimeout(openingCall, 700);
-  probe();
 
   const requested = new URLSearchParams(location.search).get('booth');
   if (requested === 'talk' || requested === 'map' || requested === 'calls') openPanel(requested);
