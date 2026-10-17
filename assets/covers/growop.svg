@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Grow Op cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#102418"/>
+      <stop offset="1" stop-color="#070d09"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#3fb950" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#3fb950" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <rect x="40" y="40" width="560" height="320" rx="8" fill="none" stroke="#245c34" stroke-width="6"/>
+      <g stroke="#1d4a2c" stroke-width="3">
+        <path d="M40 120 H600"/><path d="M40 200 H600"/><path d="M40 280 H600"/>
+      </g>
+      <g>
+        
+          <path d="M110 118 C90 90 88 70 110 48 C132 70 130 90 110 118 Z" fill="#3fb950"/>
+          <path d="M110 118 C80 100 72 78 98 58" fill="none" stroke="#7dff9a" stroke-width="3"/>
+          <rect x="102" y="112" width="16" height="10" rx="2" fill="#6b4a2a"/>
+        
+          <path d="M210 118 C190 90 188 70 210 48 C232 70 230 90 210 118 Z" fill="#3fb950"/>
+          <path d="M210 118 C180 100 172 78 198 58" fill="none" stroke="#7dff9a" stroke-width="3"/>
+          <rect x="202" y="112" width="16" height="10" rx="2" fill="#6b4a2a"/>
+        
+          <path d="M310 118 C290 90 288 70 310 48 C332 70 330 90 310 118 Z" fill="#3fb950"/>
+          <path d="M310 118 C280 100 272 78 298 58" fill="none" stroke="#7dff9a" stroke-width="3"/>
+          <rect x="302" y="112" width="16" height="10" rx="2" fill="#6b4a2a"/>
+        
+          <path d="M410 118 C390 90 388 70 410 48 C432 70 430 90 410 118 Z" fill="#3fb950"/>
+          <path d="M410 118 C380 100 372 78 398 58" fill="none" stroke="#7dff9a" stroke-width="3"/>
+          <rect x="402" y="112" width="16" height="10" rx="2" fill="#6b4a2a"/>
+        
+          <path d="M510 118 C490 90 488 70 510 48 C532 70 530 90 510 118 Z" fill="#3fb950"/>
+          <path d="M510 118 C480 100 472 78 498 58" fill="none" stroke="#7dff9a" stroke-width="3"/>
+          <rect x="502" y="112" width="16" height="10" rx="2" fill="#6b4a2a"/>
+        
+        
+          <ellipse cx="110" cy="188" rx="22" ry="16" fill="#2f9e44"/>
+          <ellipse cx="126" cy="180" rx="16" ry="12" fill="#57d06a"/>
+          <rect x="104" y="198" width="18" height="8" fill="#6b4a2a"/>
+        
+          <ellipse cx="230" cy="188" rx="22" ry="16" fill="#2f9e44"/>
+          <ellipse cx="246" cy="180" rx="16" ry="12" fill="#57d06a"/>
+          <rect x="224" y="198" width="18" height="8" fill="#6b4a2a"/>
+        
+          <ellipse cx="350" cy="188" rx="22" ry="16" fill="#2f9e44"/>
+          <ellipse cx="366" cy="180" rx="16" ry="12" fill="#57d06a"/>
+          <rect x="344" y="198" width="18" height="8" fill="#6b4a2a"/>
+        
+          <ellipse cx="470" cy="188" rx="22" ry="16" fill="#2f9e44"/>
+          <ellipse cx="486" cy="180" rx="16" ry="12" fill="#57d06a"/>
+          <rect x="464" y="198" width="18" height="8" fill="#6b4a2a"/>
+        
+      </g>
+      <g>
+        <rect x="70" y="36" width="70" height="12" rx="3" fill="#7c5cff"/>
+        <rect x="250" y="36" width="70" height="12" rx="3" fill="#c084fc"/>
+        <rect x="450" y="36" width="70" height="12" rx="3" fill="#7c5cff"/>
+        <path d="M105 48 V90 M285 48 V90 M485 48 V90" stroke="#c4b5fd" stroke-width="2" opacity="0.7"/>
+      </g>
+      <rect x="548" y="150" width="14" height="90" rx="7" fill="#102018" stroke="#f0883e"/>
+      <rect x="550" y="190" width="10" height="48" rx="5" fill="#f0883e"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

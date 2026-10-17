@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Pong++ cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#102033"/>
+      <stop offset="1" stop-color="#061018"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#58a6ff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#58a6ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <path d="M320 30 V370" stroke="#234" stroke-width="4" stroke-dasharray="14 12"/>
+      <rect x="70" y="150" width="16" height="90" rx="6" fill="#e7f3ff"/>
+      <rect x="554" y="170" width="16" height="70" rx="6" fill="#58a6ff"/>
+      <rect x="554" y="250" width="16" height="40" rx="6" fill="#9ad0ff" opacity="0.7"/>
+      <circle cx="300" cy="200" r="14" fill="#fff"/>
+      <circle cx="360" cy="250" r="8" fill="#58a6ff"/>
+      <circle cx="250" cy="180" r="6" fill="#fff" opacity="0.35"/>
+      <circle cx="210" cy="168" r="4" fill="#fff" opacity="0.2"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

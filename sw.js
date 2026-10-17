@@ -56,6 +56,7 @@ const SHELL = [
   '/vendor/three-r128.min.js',
   '/css/arcade-chrome.css',
   '/css/arcade.css',
+  '/css/game-cards.css',
   '/css/base.css',
   '/css/dashboard.css',
   '/css/effects.css',

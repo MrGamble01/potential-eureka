@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Vector Storm cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16122a"/>
+      <stop offset="1" stop-color="#07060f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <g fill="#efeaff">
+        <circle cx="80" cy="60" r="1.5"/><circle cx="160" cy="100" r="1.2"/><circle cx="540" cy="70" r="1.5"/>
+        <circle cx="480" cy="200" r="1.2"/><circle cx="120" cy="300" r="1.4"/><circle cx="400" cy="40" r="1"/>
+      </g>
+      <g fill="none" stroke="#c4b5fd" stroke-width="3">
+        <polygon points="120,180 180,150 210,200 170,250 110,230"/>
+        <polygon points="430,90 500,70 540,120 500,170 440,150 420,110"/>
+        <polygon points="460,240 530,220 560,280 510,320 450,290"/>
+        <polygon points="200,300 250,280 270,320 220,340"/>
+      </g>
+      <polygon points="320,150 360,230 320,214 280,230" fill="none" stroke="#f5f3ff" stroke-width="3"/>
+      <path d="M308 228 L320 258 L332 228" fill="none" stroke="#f0c552" stroke-width="3"/>
+      <path d="M300 200 L250 190" stroke="#f5f3ff" stroke-width="2"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>

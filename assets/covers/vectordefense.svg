@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Vector Defense cover</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16122c"/>
+      <stop offset="1" stop-color="#0c0818"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#8b83ff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#8b83ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  
+      <path d="M40 80 H200 V200 H400 V320 H600" fill="none" stroke="#2a2450" stroke-width="28" stroke-linejoin="round"/>
+      <path d="M40 80 H200 V200 H400 V320 H600" fill="none" stroke="#3a3468" stroke-width="6" stroke-linejoin="round"/>
+      <g>
+        <circle cx="160" cy="140" r="22" fill="#1a1630" stroke="#8b83ff" stroke-width="3"/>
+        <rect x="152" y="132" width="16" height="16" fill="#8b83ff"/>
+        <circle cx="360" cy="240" r="22" fill="#1a1630" stroke="#22d3ee" stroke-width="3"/>
+        <rect x="352" y="232" width="16" height="16" fill="#22d3ee"/>
+        <circle cx="500" cy="300" r="22" fill="#1a1630" stroke="#f0c552" stroke-width="3"/>
+        <rect x="492" y="292" width="16" height="16" fill="#f0c552"/>
+      </g>
+      <g fill="none" stroke="#f778ba" stroke-width="3">
+        <polygon points="80,70 100,80 80,90"/>
+        <polygon points="240,190 260,200 240,210"/>
+        <polygon points="460,310 480,320 460,330"/>
+      </g>
+      <path d="M172 140 L230 190" stroke="#8b83ff" stroke-width="2"/>
+      <path d="M372 250 L450 310" stroke="#22d3ee" stroke-width="2"/>
+    
+  <rect width="640" height="400" fill="url(#shade)"/>
+</svg>
