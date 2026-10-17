@@ -589,6 +589,7 @@
     <button id="chain-btn" title="The Hall — everything this valley remembers, in the order it happened, and what the next one is waiting on.">🧱 The Hall</button>
     <button id="m-achv">Achievements</button>
     <button id="m-hollow" type="button">The Lantern Hollow</button>
+    <button id="m-expedition" type="button">Wilds Expedition</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Hall">
@@ -783,6 +784,7 @@
         &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
         &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
         &bull; Once the valley <b>knows</b> you, the <b>Lantern Hollow</b> opens. A warden waits each season.<br>
+        &bull; The gear menu's <b>Wilds Expedition</b> grows a fresh trail from a seed. Deeper pays more, and the same seed walks it again.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -809,6 +811,7 @@
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
+<script src="/js/hearthvale-expedition.js"></script>
 <script>
 "use strict";
 (function () {
@@ -7609,6 +7612,37 @@
   function careerEmit(event, value) {
     try { if (window.EurekaProgress) EurekaProgress.emit('hearthvale', event, value); } catch (e) {}
   }
+  // The scout's purse comes home as coin, food and pelts. Depth is also
+  // minted on the trail itself; the max stat ignores a second report.
+  window.addEventListener('hv-expedition-return', function (ev) {
+    const d = (ev && ev.detail) || {};
+    const depth = Math.max(0, Math.floor(Number(d.depth) || 0));
+    const gold = Math.max(0, Math.floor(Number(d.gold) || 0));
+    const food = Math.max(0, Math.floor(Number(d.food) || 0));
+    const pelts = Math.max(0, Math.floor(Number(d.pelts) || 0));
+    if (depth) careerEmit('expedition', depth);
+    if (!state || !state.seenIntro) return;
+    if (gold) state.res.gold += gold;
+    if (food) state.res.food += food;
+    if (pelts) state.pelts = (state.pelts || 0) + pelts;
+    if (gold || food || pelts) {
+      const label = d.label ? String(d.label) : 'the wilds';
+      chron('🌲', 'A scout returns from ' + label + ' with ' + gold + ' coin, ' + food + ' food and ' + pelts + ' pelts');
+      toast('🌲 The wilds give back ' + gold + ' coin');
+      updateHUD();
+      save();
+    }
+  });
+  function openWilds(seed) {
+    const menuEl = document.getElementById('menu');
+    if (menuEl) menuEl.classList.remove('show');
+    if (!window.HearthvaleExpedition) return;
+    pauseForModal();
+    HearthvaleExpedition.open({
+      seed: seed || '',
+      onClose: function () { resumeFromModal(); },
+    });
+  }
   function noteHearthCareer() {
     if (!state || !state.seenIntro) return;
     careerEmit('found', 1);
@@ -7672,6 +7706,7 @@
       });
     }
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
+    { const mex = document.getElementById('m-expedition'); if (mex) mex.onclick = () => openWilds(''); }
     const stillClose = document.getElementById('still-close');
     if (stillClose) stillClose.onclick = () => document.getElementById('stillroom').classList.remove('show');
     const stillSheet = document.getElementById('stillroom');
@@ -7787,6 +7822,13 @@
     });
     if (state.seenIntro) hideHint();
     noteHearthCareer();
+    try {
+      const wilds = new URLSearchParams(location.search);
+      if (wilds.get('daily') !== '1' && wilds.has('expedition')) {
+        const raw = wilds.get('expedition');
+        openWilds(raw && raw !== '1' ? raw : '');
+      }
+    } catch (e) { /* a bad query must not stop the valley */ }
 
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
     document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
