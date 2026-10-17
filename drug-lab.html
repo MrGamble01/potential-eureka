@@ -389,6 +389,17 @@ canvas{display:block;touch-action:none;}
   display:none;align-items:center;justify-content:center;z-index:200;
 }
 #event-modal.open{display:flex;animation:evFade 0.2s ease;}
+#raid-night-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.82);
+  display:none;align-items:center;justify-content:center;z-index:210;
+}
+#raid-night-modal.open{display:flex;animation:evFade 0.2s ease;}
+#nia-card{
+  border:1px solid rgba(255,209,102,0.4);border-radius:6px;
+  padding:8px;margin:0 0 8px;background:rgba(255,209,102,0.06);
+}
+#nia-line{font-size:11px;color:#e6d7a8;line-height:1.4;margin:4px 0 8px;}
+#raid-call:disabled{opacity:0.55;cursor:not-allowed;}
 @keyframes evFade{from{opacity:0;}to{opacity:1;}}
 .ev-panel{
   background:rgba(4,10,4,0.98);
@@ -922,8 +933,14 @@ canvas{display:block;touch-action:none;}
     <div id="strain-list"></div>
   </div>
   <div id="upgrades-panel" class="panel"></div>
-  <div id="hire-panel" class="panel">
+    <div id="hire-panel" class="panel">
     <div class="panel-title">👥 Crew</div>
+    <div id="nia-card">
+      <div class="stat-line"><span>🧢 Nia</span><span id="nia-post">On the door</span></div>
+      <div id="nia-line">Harvest once. Then I will call the night.</div>
+      <button class="act-btn" id="nia-ask" type="button">Ask Nia</button>
+      <button class="act-btn" id="raid-call" type="button">Raid Night — locked</button>
+    </div>
     <div class="stat-line"><span>Trimmers</span><span id="trimmer-count">0/3</span></div>
     <button class="act-btn" id="hire-trimmer-btn">Hire Trimmer<span class="cost" id="trimmer-cost">$150</span></button>
     <div class="stat-line" style="margin-top:6px"><span>Lookouts</span><span id="lookout-count">0/2</span></div>
@@ -948,6 +965,14 @@ canvas{display:block;touch-action:none;}
   </div>
 </div>
 <div id="toast-container"></div>
+<div id="raid-night-modal">
+  <div class="ev-panel">
+    <div class="ev-icon">🚔</div>
+    <div class="ev-title" id="raid-night-title">Raid Night</div>
+    <div class="ev-body" id="raid-night-body"></div>
+    <div class="ev-choices" id="raid-night-choices"></div>
+  </div>
+</div>
 <div id="event-modal">
   <div class="ev-panel">
     <div class="ev-icon" id="ev-icon">⚠️</div>
@@ -999,6 +1024,7 @@ canvas{display:block;touch-action:none;}
       <div class="intro-row">&bull; <b>The strain board is the cut in the tent.</b> Garage Kush is free and even. The other cuts trade speed, price and heat, and the line on that board is what the next bag pays.</div>
       <div class="intro-row">&bull; <b>The alley is today's neighbors.</b> The same three marks for everyone, and any friend code you paste stays on this device. Pass their lifetime take.</div>
       <div class="intro-row">&bull; <b>On a phone, use the stick and the big button.</b> The button runs the next step — harvest, trim, stash, sell — so you never have to tap a tiny pot.</div>
+      <div class="intro-row">&bull; <b>Nia watches the door.</b> Ask her and she walks the next step with you. Harvest once and she will call Raid Night — live through Sergeant Voss and the Night Lot out back is yours.</div>
       <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
       <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
       <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
@@ -1041,6 +1067,10 @@ let state = {
   strainsOwned: ['kush'],
   taxLeft: 0,
   alleyCleared: [],
+  niaSeenWork: false,
+  raidNightWon: false,
+  raidNights: 0,
+  raidCool: 0,
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -1132,6 +1162,7 @@ const ROOM_DEFS = [
   {id:'warehouse',gx:1,gz:1,cost:8000, label:'📦 Warehouse',      act:2},
   {id:'front',   gx:-1,gz:1,cost:20000,label:'💈 Laundry Front',  act:3},
   {id:'penthouse',gx:1,gz:-1,cost:50000,label:'👑 Penthouse',     act:3},
+  {id:'lot',     gx:-1,gz:-1,cost:0,    label:'🌙 Night Lot',      act:2},
 ];
 
 // ── Scene ──
@@ -1297,6 +1328,7 @@ const PALETTE = {
   warehouse: {floor:0x242420, wall:0x302e28},
   front:     {floor:0x282418, wall:0x383020},
   penthouse: {floor:0x181820, wall:0x242230},
+  lot:       {floor:0x3a3424, wall:0x4a4030},
 };
 
 function roomCenter(def) {
@@ -2197,6 +2229,13 @@ function relocateChemStation(x, z) {
 
 // ── Events ──
 let activeEvent = null;
+let raidNightOpen = false;
+const RAID_HOLD_BAGS = 2;
+const RAID_HOLD_MULT = 2;
+const RAID_LIGHTS_HEAT = 18;
+const RAID_PAY_COST = 180;
+const RAID_COOL = 50;
+const LOT_DRAIN = 0.2;
 let eventTimer = 0;
 let eventCooldown = 60; // seconds between events
 let raidActive = false;
@@ -2424,8 +2463,232 @@ function prepareEvent(ev) {
   }
   return ev;
 }
+function niaPlan() {
+  if ((state.heat || 0) >= 50 || stashCount < RAID_HOLD_BAGS) return 'lights';
+  if (state.cash >= RAID_PAY_COST) return 'pay';
+  return 'hold';
+}
+function niaPlanLine(plan) {
+  if (plan === 'pay') return 'pay Voss off';
+  if (plan === 'hold') return 'hold the lot';
+  return 'kill the lights';
+}
+function niaRead() {
+  if (pCarrying === 'bud') return { line: 'Trim table. I will walk you.', act: 'trim' };
+  if (pCarrying === 'bag') return { line: 'Stash that bag.', act: 'stash' };
+  if (!pCarrying && trimBags > 0) return { line: 'Bags on the table. Grab them.', act: 'grab' };
+  const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+  if (!pCarrying && stashCount > 0 && dealer) return { line: 'Buyer is up. I would sell.', act: 'sell' };
+  if (growPlots.some(p => p.ready)) return { line: 'A plant is ready. I would cut it.', act: 'harvest' };
+  if (!state.niaSeenWork) return { line: 'Harvest once. Then I will call the night.', act: 'wait' };
+  if ((state.raidCool || 0) > 0) return { line: 'Lay low. Voss is still circling.', act: 'wait' };
+  if (state.heat >= 70) return { line: 'Heat is loud. Do not sell big.', act: 'wait' };
+  if (!state.raidNightWon) return { line: 'The block is quiet. Call the night.', act: 'raid' };
+  return { line: 'I am on the lot. Let it grow.', act: 'wait' };
+}
+function paintNia() {
+  const line = document.getElementById('nia-line');
+  const post = document.getElementById('nia-post');
+  const call = document.getElementById('raid-call');
+  if (!line || !call) return;
+  const read = niaRead();
+  if (line.textContent !== read.line) line.textContent = read.line;
+  if (post) post.textContent = ownedRoomSet.has('lot') ? 'Night Lot' : 'On the door';
+  const cool = state.raidCool || 0;
+  const ready = !!state.niaSeenWork && cool <= 0 && !raidNightOpen;
+  call.disabled = !ready;
+  const label = !state.niaSeenWork
+    ? 'Raid Night — locked'
+    : cool > 0
+      ? 'Laying low · ' + Math.ceil(cool) + 's'
+      : state.raidNightWon ? 'Raid Night again' : 'Call Raid Night';
+  if (call.textContent !== label) call.textContent = label;
+  call.title = !state.niaSeenWork
+    ? 'Nia calls the night after she sees you harvest.'
+    : cool > 0
+      ? 'Voss is still on the block.'
+      : 'Sergeant Voss. Live through it and the Night Lot is yours.';
+}
+function askNia() {
+  const read = niaRead();
+  showToast('🧢 Nia: ' + read.line, 'good');
+  addFeed('🧢 Nia: ' + read.line);
+  sfx('ui');
+  if (read.act === 'harvest') {
+    let best = null, bestD = 1e9;
+    for (const p of growPlots) {
+      if (!p.ready) continue;
+      const d = (player.position.x - p.x) ** 2 + (player.position.z - p.z) ** 2;
+      if (d < bestD) { best = p; bestD = d; }
+    }
+    if (best) walkToward(best.x, best.z + 1.05);
+  } else if (read.act === 'trim' && trimStation) walkToward(trimStation.x, trimStation.z + 0.9);
+  else if (read.act === 'stash' && stashNode) walkToward(stashNode.x, stashNode.z + 1.2);
+  else if (read.act === 'grab' && trimStation) walkToward(trimStation.x, trimStation.z + 0.6);
+  else if (read.act === 'sell') {
+    const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+    if (dealer) walkToward(dealer.group.position.x, dealer.group.position.z + 0.4);
+  } else if (read.act === 'raid') openRaidNight();
+}
+function grantNightLot() {
+  if (ownedRoomSet.has('lot')) return;
+  const def = ROOM_DEFS.find(r => r.id === 'lot');
+  ownedRoomSet.add('lot');
+  if (!state.ownedRooms.includes('lot')) state.ownedRooms.push('lot');
+  buildRoom(def);
+  onRoomUnlocked('lot');
+  const home = roomCenter(def);
+  panX = home.cx;
+  panZ = home.cz;
+  applyCamera();
+}
+let nia = null;
+function niaHome() {
+  if (ownedRoomSet.has('lot')) {
+    const c = roomCenter(ROOM_DEFS.find(r => r.id === 'lot'));
+    return { x: c.cx + 2.2, z: c.cz + 1.4 };
+  }
+  return { x: 2.4, z: 3.4 };
+}
+function spawnNia() {
+  if (nia) return;
+  const g = buildRunnerNPC();
+  const home = niaHome();
+  g.position.set(home.x, 0, home.z);
+  scene.add(g);
+  nia = { group: g };
+}
+function updateNia(dt) {
+  if (!nia) return;
+  const home = niaHome();
+  const dx = home.x - nia.group.position.x;
+  const dz = home.z - nia.group.position.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > 0.15) {
+    const step = Math.min(dist, 3.4 * dt);
+    nia.group.position.x += (dx / dist) * step;
+    nia.group.position.z += (dz / dist) * step;
+    nia.group.rotation.y = Math.atan2(dx, dz);
+  }
+  setLabel('nia', ownedRoomSet.has('lot') ? '🧢 Nia · lot' : '🧢 Nia', nia.group.position.x, 2.35, nia.group.position.z);
+  paintNia();
+}
+function updateRaidCool(dt) {
+  if ((state.raidCool || 0) <= 0) return;
+  const before = Math.ceil(state.raidCool);
+  state.raidCool = Math.max(0, state.raidCool - dt);
+  if (Math.ceil(state.raidCool) !== before) paintNia();
+}
+function closeRaidNight() {
+  raidNightOpen = false;
+  const modal = document.getElementById('raid-night-modal');
+  if (modal) modal.classList.remove('open');
+  paintNia();
+}
+function finishRaidNight() {
+  state.raidNights = (state.raidNights || 0) + 1;
+  state.raidCool = RAID_COOL;
+  const first = !state.raidNightWon;
+  state.raidNightWon = true;
+  closeRaidNight();
+  if (first) {
+    grantNightLot();
+    sfx('buy');
+    addShake(0.45);
+    juiceFlash('good');
+    showToast('🌙 The Night Lot is yours. Nia posts up out back — heat drains a little faster while she is there.', 'good');
+    addFeed('🌙 Night Lot opened — Nia has the door');
+  }
+  renderExpandPanel();
+  refreshHud();
+  saveGame();
+}
+function applyRaidChoice(which) {
+  const plan = which === 'nia' ? niaPlan() : which;
+  if (plan === 'hold') {
+    if (stashCount < RAID_HOLD_BAGS) { showToast('The shelf is short — Voss would just take the room.', 'bust'); return; }
+    const qty = RAID_HOLD_BAGS;
+    const price = salePrice() * RAID_HOLD_MULT * qty;
+    stashCount -= qty;
+    pureBags = Math.min(pureBags, stashCount);
+    state.totalSold += qty;
+    addCash(price);
+    addHeat(16);
+    if (stashNode) setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+    showToast('Held the lot. Voss left with nothing. +$' + fmtCash(price) + '.', 'good');
+    addFeed('🚔 Raid night — held the lot, moved ' + qty + ' bags');
+    sfx('sale', price);
+  } else if (plan === 'pay') {
+    if (state.cash < RAID_PAY_COST) { showToast("Can't cover Voss ($" + fmtCash(RAID_PAY_COST) + ').', 'bust'); return; }
+    state.cash -= RAID_PAY_COST;
+    addHeat(-12);
+    showToast('Nia slipped Voss $' + fmtCash(RAID_PAY_COST) + '. The cars roll on.', 'good');
+    addFeed('🚔 Raid night — paid Voss $' + fmtCash(RAID_PAY_COST));
+    sfx('ui');
+  } else {
+    addHeat(-RAID_LIGHTS_HEAT);
+    const hit = setBackCrop();
+    showToast('Lights out. Voss drove past.' + (hit ? ' ' + hit + ' plant' + (hit > 1 ? 's' : '') + ' set back.' : ''), 'good');
+    addFeed('🚔 Raid night — killed the lights');
+    sfx('heat');
+  }
+  finishRaidNight();
+}
+function openRaidNight() {
+  if (raidNightOpen || activeEvent || busted || raidActive) return;
+  if (!state.niaSeenWork) { showToast('Nia: let me see you harvest once. Then I call it.', ''); return; }
+  if ((state.raidCool || 0) > 0) {
+    showToast('Nia: Voss is still on the block. Lay low ' + Math.ceil(state.raidCool) + 's.', '');
+    return;
+  }
+  raidNightOpen = true;
+  const plan = niaPlan();
+  const body = document.getElementById('raid-night-body');
+  if (body) {
+    body.textContent = 'Sergeant Voss is coming down the alley with two cars and no lights. '
+      + 'The Night Lot is the only door that is not on the warrant. Live through tonight and Nia keeps it. '
+      + 'Nia would ' + niaPlanLine(plan) + '.';
+  }
+  const box = document.getElementById('raid-night-choices');
+  if (box) {
+    box.innerHTML = '';
+    const specs = [
+      { id: 'raid-nia', which: 'nia', text: 'Let Nia run it — she would ' + niaPlanLine(plan), risky: false },
+      { id: 'raid-hold', which: 'hold', text: 'Hold the lot (' + RAID_HOLD_BAGS + ' bags at ' + RAID_HOLD_MULT + '×)', risky: true },
+      { id: 'raid-lights', which: 'lights', text: 'Kill the lights', risky: false },
+    ];
+    for (const spec of specs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = spec.id;
+      btn.className = 'ev-choice' + (spec.risky ? ' risky' : '');
+      btn.textContent = spec.text;
+      if (spec.which === 'hold' && stashCount < RAID_HOLD_BAGS) {
+        btn.disabled = true;
+        btn.title = 'Need ' + RAID_HOLD_BAGS + ' bags on the shelf to hold the lot.';
+      }
+      btn.onclick = () => applyRaidChoice(spec.which);
+      box.appendChild(btn);
+    }
+  }
+  const modal = document.getElementById('raid-night-modal');
+  if (modal) modal.classList.add('open');
+  sfx('event');
+  addShake(0.28);
+  juiceFlash('heat');
+  paintNia();
+}
+function bindNia() {
+  const ask = document.getElementById('nia-ask');
+  const call = document.getElementById('raid-call');
+  if (ask) ask.addEventListener('click', askNia);
+  if (call) call.addEventListener('click', openRaidNight);
+  spawnNia();
+  paintNia();
+}
+
 function triggerEvent(forced) {
-  if (activeEvent || raidActive) return;
+  if (activeEvent || raidActive || raidNightOpen) return;
   const ev = prepareEvent(forced || EVENTS[Math.floor(Math.random()*EVENTS.length)]);
   activeEvent = ev;
   document.getElementById('ev-icon').textContent = ev.icon;
@@ -3535,7 +3798,9 @@ function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('secu
 function heatDrainPerSec() {
   // LAB-13: an open laundromat out front cools things off on its own —
   // customers coming and going are the best cover there is.
-  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
+  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2
+    + (ownedRoomSet.has('front') ? 0.35 : 0)
+    + (ownedRoomSet.has('lot') ? LOT_DRAIN : 0)) * DIFF().drain;
 }
 
 // ── The Getaway Bag (LAB-21) ──────────────────────────────
@@ -4391,7 +4656,7 @@ window.addEventListener('keyup',   e => { keys[e.code]=false; });
 let suppressClick = false; // set by a touch pan-drag to cancel the synthetic click
 renderer.domElement.addEventListener('click', e => {
   if (suppressClick) { suppressClick = false; return; }
-  if (activeEvent || raidActive) return;
+  if (activeEvent || raidActive || raidNightOpen) return;
   const mouse = new THREE.Vector2(
     (e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   const ray = new THREE.Raycaster();
@@ -4425,6 +4690,7 @@ function refreshHud() {
   renderStrainPanel();
   document.getElementById('act-badge').textContent =
     ACT_LABELS[currentAct()] + (state.difficulty === 'kingpin' ? ' · 👑' : '');
+  paintNia();
 
   // Employee counts
   document.getElementById('trimmer-count').textContent = state.trimmers+'/3';
@@ -4480,6 +4746,16 @@ function renderExpandPanel() {
       el.appendChild(d);
       continue;
     }
+    if (def.id === 'lot' && !state.raidNightWon) {
+      const locked = document.createElement('button');
+      locked.type = 'button';
+      locked.className = 'act-btn locked';
+      locked.disabled = true;
+      locked.innerHTML = def.label + '<span class="cost">Survive Raid Night</span>';
+      locked.title = 'Nia holds the Night Lot until you live through a raid night.';
+      el.appendChild(locked);
+      continue;
+    }
     const btn = document.createElement('button');
     btn.className='act-btn'+(state.cash<def.cost?' locked':'');
     btn.disabled = state.cash<def.cost;
@@ -4496,6 +4772,10 @@ function renderExpandPanel() {
 function buyRoom(id) {
   const def = ROOM_DEFS.find(r=>r.id===id);
   if (!def||ownedRoomSet.has(id)||state.cash<def.cost) return;
+  if (def.id === 'lot' && !state.raidNightWon) {
+    showToast('Nia: the lot stays dark until we live through a raid night.', '');
+    return;
+  }
   state.cash -= def.cost;
   ownedRoomSet.add(id);
   state.ownedRooms.push(id);
@@ -4536,6 +4816,31 @@ function onRoomUnlocked(id) {
   if (id==='basement') {
     buildGrowPlot(cx-2, cz-2, id);
     buildGrowPlot(cx+2, cz-2, id);
+  }
+  if (id==='lot') {
+    const lamp = new THREE.PointLight(0xffaa44, 1.4, 22);
+    lamp.position.set(cx, 4.5, cz);
+    scene.add(lamp);
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8),
+      new THREE.MeshLambertMaterial({color:0x221c14})
+    );
+    pole.position.set(cx, 1.6, cz);
+    scene.add(pole);
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 10, 8),
+      new THREE.MeshLambertMaterial({color:0xffcc66, emissive:0xff8800, emissiveIntensity:0.8})
+    );
+    bulb.position.set(cx, 3.3, cz);
+    scene.add(bulb);
+    const crate = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.9, 0.9),
+      new THREE.MeshLambertMaterial({color:0x6a4a28})
+    );
+    crate.position.set(cx - 3, 0.45, cz + 2);
+    crate.castShadow = true;
+    scene.add(crate);
+    setLabel('lot', '🌙 Night Lot', cx, 3.8, cz);
   }
   if (id==='lab') {
     if (!chemStation) {
@@ -4915,6 +5220,10 @@ function saveGame() {
     strainsOwned: state.strainsOwned || ['kush'],
     taxLeft: Math.max(0, Math.min(TAX_HANDS, Math.floor(state.taxLeft || 0))),
     alleyCleared: state.alleyCleared || [],
+    niaSeenWork: !!state.niaSeenWork,
+    raidNightWon: !!state.raidNightWon,
+    raidNights: state.raidNights || 0,
+    raidCool: Math.max(0, Math.round(state.raidCool || 0)),
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
     bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
@@ -4950,6 +5259,10 @@ function loadGame() {
     }
     state.taxLeft = Math.max(0, Math.min(TAX_HANDS, Math.floor(Number(sv.taxLeft) || 0)));
     state.alleyCleared = Array.isArray(sv.alleyCleared) ? sv.alleyCleared.filter(x => typeof x === 'string').slice(0, 40) : [];
+    state.niaSeenWork = !!sv.niaSeenWork;
+    state.raidNightWon = !!sv.raidNightWon;
+    state.raidNights = Math.max(0, Math.floor(Number(sv.raidNights) || 0));
+    state.raidCool = Math.max(0, Math.min(RAID_COOL, Math.floor(Number(sv.raidCool) || 0)));
     state.trimmers=sv.trimmers||0;
     state.lookouts=sv.lookouts||0;
     state.runners=sv.runners||0;
@@ -5461,6 +5774,8 @@ function harvestPlot(p) {
   player.userData.carryMesh.material.color.setHex(0x22ff44);
   player.userData.carryMesh.material.emissive.setHex(0x00aa22);
   player.userData.carryMesh.visible=true;
+  state.niaSeenWork = true;
+  paintNia();
   setStatus('Harvest done! Take it to the Trim Station.');
   addFeed('🌿 Harvested a plant');
   sfx('harvest');
@@ -6124,7 +6439,7 @@ function walkToward(x, z) {
   sfx('ui');
 }
 function nextStep() {
-  if (busted || activeEvent) return;
+  if (busted || activeEvent || raidNightOpen) return;
   if (pCarrying === 'bud' && trimStation) return walkToward(trimStation.x, trimStation.z + 0.9);
   if (pCarrying === 'bag' && stashNode) return walkToward(stashNode.x, stashNode.z + 1.2);
   if (!pCarrying && trimBags > 0 && trimStation) return walkToward(trimStation.x, trimStation.z + 0.6);
@@ -6225,6 +6540,7 @@ function bindJuiceUi() {
   } catch (e) {}
 }
 bindJuiceUi();
+bindNia();
 syncAlley(false);
 
 // ── Start ──
@@ -6252,7 +6568,9 @@ function animate(now_ms) {
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent && !readingSheet) {
+  if(!raidActive && !activeEvent && !raidNightOpen && !readingSheet) {
+    updateRaidCool(dt);
+    updateNia(dt);
     updateGrowPlots(dt);
     updateTrimStation(dt);
   updateDice(dt);
