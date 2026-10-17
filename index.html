@@ -33,15 +33,19 @@
        styled paint. As <link>s they're all found in the initial HTML scan and
        fetch in parallel. Order still decides the cascade, so keep it. -->
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/effects.css">
-  <link rel="stylesheet" href="css/arcade.css">
-  <link rel="stylesheet" href="css/game-cards.css">
-  <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/games.css">
-  <link rel="stylesheet" href="css/productivity.css">
-  <link rel="stylesheet" href="css/personal.css">
-  <link rel="stylesheet" href="css/orgchart.css">
+  <!-- ?v= busts vercel.json's year-long immutable cache on /css/*.
+       The service worker matches these ignoring the query, so sw.js
+       SW_VERSION has to move in the same change or installed PWAs
+       keep the previous sheet. game-cards.css stays after arcade.css. -->
+  <link rel="stylesheet" href="css/base.css?v=20261017hub">
+  <link rel="stylesheet" href="css/effects.css?v=20261017hub">
+  <link rel="stylesheet" href="css/arcade.css?v=20261017hub">
+  <link rel="stylesheet" href="css/game-cards.css?v=20261017hub">
+  <link rel="stylesheet" href="css/dashboard.css?v=20261017hub">
+  <link rel="stylesheet" href="css/games.css?v=20261017hub">
+  <link rel="stylesheet" href="css/productivity.css?v=20261017hub">
+  <link rel="stylesheet" href="css/personal.css?v=20261017hub">
+  <link rel="stylesheet" href="css/orgchart.css?v=20261017hub">
 </head>
 <body>
 
@@ -55,7 +59,7 @@
   <canvas id="matrix-canvas" style="display:none"></canvas>
 
   <!-- NAVIGATION -->
-  <nav>
+  <nav class="site-nav">
     <button class="logo logo-btn glitch" data-text=">_ EUREKA GAMES" data-view="arcade">&gt;_ EUREKA GAMES</button>
     <div class="nav-spacer"></div>
     <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
@@ -1540,7 +1544,7 @@
       try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section: section || '', q: '' })); } catch {}
     }
     function syncChrome() {
-      const bar = document.querySelector('nav');
+      const bar = document.querySelector('nav.site-nav');
       const shell = document.querySelector('.arcade-shell');
       if (bar) document.documentElement.style.setProperty('--nav-height', bar.offsetHeight + 'px');
       if (shell) document.documentElement.style.setProperty('--shell-height', shell.offsetHeight + 'px');
