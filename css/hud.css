@@ -378,6 +378,14 @@ html.hud .aow-stage {
   border-radius: var(--hud-radius-card);
 }
 
+/* Win, loss, and resume sheets sit on the viewport. A full Eclipse
+   roster can shrink the stage to a sliver, and an absolute sheet
+   then paints its button under the recruit row. */
+html.hud .aow-overlay {
+  position: fixed;
+  z-index: 80;
+}
+
 html.hud .aow-modal-card,
 html.hud .aow-welcome-card,
 html.hud .aow-settings-card,
