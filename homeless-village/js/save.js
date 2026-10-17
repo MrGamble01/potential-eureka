@@ -153,6 +153,17 @@ function loadGame(){
     G.ledgerSigned=G.ledgerSigned?1:0;
     G.ledgerClaimed=G.ledgerClaimed?1:0;
     if(typeof G.ledgerId!=='string') G.ledgerId='';
+    if(typeof G.structures.gate!=='boolean') G.structures.gate=false;
+    if(typeof G.rio!=='number'||G.rio<0||G.rio>2) G.rio=0;
+    else G.rio=Math.floor(G.rio);
+    G.stormDue=!!G.stormDue;
+    G.stormOn=!!G.stormOn;
+    if(typeof G.stormPhase!=='number'||G.stormPhase<0||G.stormPhase>2) G.stormPhase=0;
+    if(typeof G.stormStrikes!=='number'||!isFinite(G.stormStrikes)||G.stormStrikes<0) G.stormStrikes=0;
+    if(typeof G.stormDeadline!=='number'||!isFinite(G.stormDeadline)) G.stormDeadline=0;
+    if(typeof G.stormsCleared!=='number'||!isFinite(G.stormsCleared)||G.stormsCleared<0) G.stormsCleared=0;
+    else G.stormsCleared=Math.floor(G.stormsCleared);
+    if(typeof G.lotSalvageDay!=='number'||!isFinite(G.lotSalvageDay)) G.lotSalvageDay=-9;
     // Persist a newly revealed legacy forecast so reload cannot reroll it.
     if(ensureForecast()) saveGame();
   }catch(e){}

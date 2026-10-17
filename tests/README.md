@@ -301,6 +301,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvfifthwait` (HV-282: Stand at the Fifth Panel ran a job when the four were still bare — the HV-208 waiting-on-the-four refuse moves ahead of the 2s job and the 30s lock; HV-227 keeps the two-dig bare-block gate)
 - `hvclinic` (Night Clinic: gauze, care, June's night shift, the neighbor's ask, sweep, steady dawns, vital pills, and a real dress click)
 - `hvledger` (Night ledger board, the block's challenge, clinic chime, phone walk pad, and the clinic dock)
+- `hvstorm` (Storm night on the river lot: the Storm Gate, Rio's local fallback, a lost night, a cleared night, salvage, and the phone banner)
 - `labintro` (LAB-62: Grow Op's crash course — the sixth flagship finally explains itself, and every number the panel quotes (heat per unit, the 95 raid line, the 100 bust line, the demand band, the stash cap) is recomputed from the source so the copy cannot rot)
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
 - `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))

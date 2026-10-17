@@ -23,9 +23,12 @@ var G = {
   // This camp's line on the shared night ledger (the board itself lives
   // outside the save, so Start Over does not wipe other camps).
   ledgerSigned: 0, ledgerClaimed: 0, ledgerId: '',
+  // Storm gate. rio 0 absent, 1 waiting at the lot, 2 stayed after a night.
+  rio: 0, stormDue: false, stormOn: false, stormPhase: 0, stormStrikes: 0,
+  stormDeadline: 0, stormsCleared: 0, lotSalvageDay: -9,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false, clinic:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false, clinic:false, gate:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -99,6 +102,7 @@ var RECIPES = [
   {id:'workbench',   icon:'🔧', name:'Workbench',      cost:{wood:5,scraps:4},                gives:{structure:'workbench'},  time:8000,  desc:'Enables crafting upgrades.'},
   {id:'clinic',      icon:'\ud83c\udfe5', name:'Night Clinic',    cost:{wood:7,scraps:5,cardboard:3,goodwill:4}, gives:{structure:'clinic'}, time:11000, desc:'A tarp, a cot, and a red cross cut from a reflector. Care falls every dawn. Dress wounds here, and a street medic may decide the fire is worth staying for.', requires:'workbench'},
   {id:'gauze',       icon:'\ud83e\ude79', name:'Gauze Roll',      cost:{scraps:2,cardboard:1},           gives:{bandages:2},             time:3000,  desc:'Two clean rolls from scrap cloth. The clinic keeps them dry. Each roll dresses one wound.', requires:'clinic'},
+  {id:'gate',        icon:'\ud83d\udeaa', name:'Storm Gate',      cost:{wood:6,scraps:4,goodwill:3}, gives:{structure:'gate'}, time:9000, desc:'Posts and a rope across the path to the river lot. Opens a new ground, and a watcher named Rio comes up from the water. Every fifth dawn she calls a storm night.', requires:'clinic'},
   {id:'tent',        icon:'🏕️', name:'Tent',           cost:{cardboard:8,scraps:6,wood:3},   gives:{structure:'tent',warmth:20}, time:10000, desc:'A roof of sorts.', requires:'workbench'},
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Soup night: feeds everyone at dusk (1 food each) for +4 morale, +2 health — and neighbors sometimes chip in.', requires:'workbench'},
@@ -1081,6 +1085,37 @@ function claimLedger(){
   return true;
 }
 
+// Storm night on the river lot. The offer is every fifth dawn, and only
+// once the gate stands — no roll, so a camp without the gate never
+// spends a random number on it. Rio is a local policy: she spends the
+// phase's cost if the pile can bear it, and she always counts heads.
+var STORM_PHASE_MS=8000;
+var STORM_FAIL_WARMTH=8;
+var STORM_FAIL_HEALTH=4;
+var STORM_PHASES=[
+  {id:'tarp', title:'Weight the tarp', need:'scraps', cost:2,
+    player:'You pile scrap on the windward corners.',
+    rio:'Rio drops scrap on the corner that is lifting.'},
+  {id:'fire', title:'Feed the barrel', need:'wood', cost:2,
+    player:'You feed the barrel. The flame stands up.',
+    rio:'Rio shoves two sticks in. The wind does not get the fire.'},
+  {id:'heads', title:'Count heads', need:null, cost:0,
+    player:'You count everyone still under the bridge.',
+    rio:'Rio already has the count. Nobody is left in the lot.'}
+];
+function openGate(){
+  if((G.rio||0)<1) G.rio=1;
+}
+function rioChoose(phase){
+  if(!phase || !phase.need) return {ok:true};
+  return {ok:(G[phase.need]||0)>=phase.cost};
+}
+function salvageDone(){ return G.lotSalvageDay===G.days; }
+function salvageAction(){
+  return { id:'salvage', icon:'\ud83e\udeb5', label:'Salvage the lot', time:4000, cooldown:0,
+    tooltip:'Once a day, after a storm night, the river lot gives 3 wood and 2 cardboard. Rio knows which piles stayed dry.' };
+}
+
 // Sequential goal ladder surfaced in the HUD (checkGoals in ui.js).
 // Each goal reads counters G already tracks, so progress accrues even
 // before a goal becomes current; only goalIndex is new state, and it
@@ -1144,6 +1179,7 @@ var GOALS = [
   {id:'dress6',     desc:'Dress 6 wounds', target:6, reward:6, value:function(){ return G.dressings||0; }},
   {id:'june1',      desc:'June takes the night shift', target:1, reward:8, value:function(){ return G.june===2?1:0; }},
   {id:'care5',      desc:'Keep the clinic steady 5 dawns', target:5, reward:8, value:function(){ return G.clinicSteady||0; }},
+  {id:'storm1',     desc:'Ride out a storm night', target:1, reward:8, value:function(){ return (G.stormsCleared||0)>=1?1:0; }},
 ];
 
 var activeJobs = {};

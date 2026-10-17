@@ -144,6 +144,11 @@ function doAction(a){
     if(typeof openLedger==='function') openLedger();
     return;
   }
+  if(a.id==='salvage'){
+    if(!G.structures.gate){ log('🪵 The gate is down — the lot is not ours.'); sfx('error'); return; }
+    if((G.stormsCleared||0)<1){ log('🪵 Ride out a storm night before the piles are safe to pick.'); sfx('error'); return; }
+    if(salvageDone()){ log('🪵 The dry piles are already in. Tomorrow.'); sfx('error'); return; }
+  }
   // HV-61: these four already knew how to refuse in finishAction — after
   // a 2–4s job and with the full cooldown charged as if they had paid.
   // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
@@ -1151,6 +1156,19 @@ function finishAction(a){
       saveGame();
       buildActionUI();
     }
+  } else if(a.id==='salvage'){
+    if(!G.structures.gate || (G.stormsCleared||0)<1){ log('🪵 The lot is not open.'); }
+    else if(salvageDone()){ log('🪵 The dry piles are already in. Tomorrow.'); }
+    else {
+      G.wood=(G.wood||0)+3;
+      G.cardboard=(G.cardboard||0)+2;
+      G.lotSalvageDay=G.days;
+      log('🪵 Rio points at the dry piles. +3 wood, +2 cardboard.');
+      floatText('+3🪵', 'heal');
+      if(typeof juice==='function') juice('heal');
+      saveGame();
+      buildActionUI();
+    }
   }
   if(a.id==='dress') sfx('dress');
   else if(a.id==='juneround' || a.id==='spare') sfx('clinic');
@@ -1196,6 +1214,7 @@ function finishCraft(r){
   // shows a tarp with nobody watching it.
   var clinicReturning=r.id==='clinic' && (G.june||0)>=1;
   if(r.id==='clinic') openClinic();
+  if(r.id==='gate') openGate();
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.bandages) grantGauze(r.gives.bandages);
   if(typeof ensureForecast==='function') ensureForecast();
@@ -1218,6 +1237,11 @@ function finishCraft(r){
     if(typeof buildWorkersUI==='function') buildWorkersUI();
   }
   if(r.gives.bandages) log('🩹 '+r.gives.bandages+' gauze rolls on the shelf — '+(G.bandages||0)+' ready.');
+  if(r.id==='gate'){
+    log('🚪 The storm gate stands on the path to the river lot. Rio comes up from the water and waits.');
+    sfx('storm');
+    if(typeof buildWorkersUI==='function') buildWorkersUI();
+  }
   saveGame();
   updateHUD(); buildCraftUI();
   // HV-89: the cart (and the guitar) unlock a new verb on the action

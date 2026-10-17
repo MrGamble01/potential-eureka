@@ -128,6 +128,7 @@ function buildActionUI(){
     appendClinicButton(ledgerAction());
   }
   if(G.clinicAsk && G.structures.clinic) appendClinicButton(spareAction());
+  if(G.structures.gate && (G.stormsCleared||0)>=1) appendClinicButton(salvageAction());
   // A craft or hire can rebuild this list while other actions are running.
   Object.keys(activeJobs).forEach(function(id){
     var btn=document.getElementById('action-'+id);
@@ -199,6 +200,7 @@ function buildWorkersUI(){
   refreshWorkerHireButtons();
   buildPetitionsUI();  // HV-15: the notice board rides the same panel
   buildClinicUI();
+  buildRioUI();
   buildRegularsUI();   // HV-7: the roster shares the Community panel
   buildFavorUI();      // HV-16: a friend's ask rides under the roster
 }
@@ -329,22 +331,101 @@ function refreshClinicActions(){
     if(llabel && llabel.textContent!==ltext) llabel.textContent=ltext;
     ledger.setAttribute('data-tip', ledgerAction().tooltip);
   }
+  var salvage=document.getElementById('action-salvage');
+  if(salvage){
+    var done=salvageDone();
+    var sjob=activeJobs.salvage;
+    var slabel=document.getElementById('salvage-label');
+    var stext=(window.matchMedia('(max-width:700px)').matches?'🪵 Lot':'🪵 Salvage the lot')+(done?' ✓':'');
+    if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
+    salvage.disabled=!!sjob||done;
+    salvage.style.opacity=salvage.disabled?'.5':'';
+    salvage.classList.toggle('active-job',!!sjob);
+    salvage.setAttribute('data-tip', (done?'The dry piles are already in. Tomorrow. ':'')+salvageAction().tooltip);
+  }
 }
 function placeClinicDock(){
   var dock=document.getElementById('clinic-dock');
   var list=document.getElementById('action-list');
   if(!dock || !list) return;
   var mobile=window.matchMedia('(max-width:700px)').matches;
-  ['dress','juneround','spare','ledger'].forEach(function(id){
+  ['dress','juneround','spare','ledger','salvage'].forEach(function(id){
     var btn=document.getElementById('action-'+id);
     if(!btn) return;
     var keep=(id==='juneround') ? (G.june===2 && !!G.structures.clinic)
       : (id==='spare') ? !!(G.clinicAsk && G.structures.clinic)
+      : (id==='salvage') ? (!!G.structures.gate && (G.stormsCleared||0)>=1)
       : !!G.structures.clinic;
     if(!keep){ btn.remove(); return; }
     var home=mobile ? dock : list;
     if(btn.parentElement!==home) home.appendChild(btn);
   });
+}
+var rioRowRevealKey='';
+function rioRevealKey(){
+  return (G.rio||0)+':'+(G.structures.gate?1:0)+':'+(G.stormDue?1:0);
+}
+function buildRioUI(){
+  var el=document.getElementById('workers-list');
+  if(!el || !(G.rio>0)) return;
+  var row=document.createElement('div');
+  row.className='worker-row'+(G.rio===2?' hired':'');
+  row.id='rio-row';
+  row.innerHTML='<span class="w-icon">🌧️</span><span class="w-name"></span><span class="w-status"></span>';
+  row.setAttribute('data-tip','Rio watches the river lot. Every fifth dawn she calls a storm night. Hold the line, or she spends what the pile can bear. Ride one out and the dry piles can be salvaged.');
+  row.addEventListener('mouseenter',showTip);
+  row.addEventListener('mouseleave',hideTip);
+  el.appendChild(row);
+  refreshRioRow();
+  var key=rioRevealKey();
+  if(key!==rioRowRevealKey){
+    rioRowRevealKey=key;
+    var panel=row.parentElement;
+    while(panel && panel!==document.body){
+      scrollChildInto(panel, row, 6);
+      var style=getComputedStyle(panel);
+      if((style.overflowY==='auto'||style.overflowY==='scroll') && panel.scrollHeight>panel.clientHeight+2) break;
+      panel=panel.parentElement;
+    }
+  }
+}
+function refreshRioRow(){
+  var row=document.getElementById('rio-row');
+  if(!row) return;
+  var name=row.querySelector('.w-name');
+  var status=row.querySelector('.w-status');
+  if(name) name.textContent=G.rio===2?'Rio, staying':'Rio, at the gate';
+  if(status) status.textContent=G.stormOn?'holding the line':G.stormDue?'storm coming':G.rio===2?'the lot is dry':'watching the water';
+  row.classList.toggle('hired', G.rio===2);
+}
+function stormShown(el, on){
+  if(!el) return;
+  el.hidden=!on;
+  el.classList.toggle('show', !!on);
+}
+function refreshStormHUD(){
+  var due=!!(G.structures.gate && G.stormDue && !G.stormOn);
+  stormShown(document.getElementById('storm-call'), due);
+  stormShown(document.getElementById('storm-banner'), !!G.stormOn);
+  stormShown(document.getElementById('storm-rain'), !!G.stormOn);
+  if(!G.stormOn) return;
+  var phase=STORM_PHASES[G.stormPhase]||STORM_PHASES[0];
+  var title=document.getElementById('storm-title');
+  var rio=document.getElementById('storm-rio');
+  var kicker=document.getElementById('storm-kicker');
+  var fill=document.getElementById('storm-fill');
+  if(kicker) kicker.textContent='STORM NIGHT · '+(G.stormStrikes||0)+' break'+((G.stormStrikes||0)===1?'':'s');
+  if(title && phase) title.textContent=phase.title;
+  if(rio && phase){
+    rio.textContent=phase.need
+      ? 'Need '+phase.cost+' '+phase.need+'. Rio steps in if you wait.'
+      : 'Rio already has the count if you freeze.';
+  }
+  if(fill){
+    var left=(!isFinite(G.stormDeadline))?0:Math.max(0, G.stormDeadline-Date.now());
+    fill.style.width=Math.max(0, Math.min(100, left/STORM_PHASE_MS*100))+'%';
+  }
+  refreshRioRow();
 }
 
 // Refresh in place so HUD ticks preserve button focus and click targets.
@@ -548,8 +629,9 @@ function updateHUD(){
   refreshClinicHUD();
   refreshClinicRow();
   refreshClinicActions();
+  refreshStormHUD();
   document.getElementById('morale-val').textContent   =Math.floor(G.morale);
-  document.getElementById('pop-val').textContent      =G.population+(G.dog===2?(G.dogHungry?' 🐕💢':' 🐕'):'')+(G.june===2?' 🩺':'');
+  document.getElementById('pop-val').textContent      =G.population+(G.dog===2?(G.dogHungry?' 🐕💢':' 🐕'):'')+(G.june===2?' 🩺':'')+(G.rio===2?' 🌧️':'');
   document.getElementById('days-counter').textContent ='Days Survived: '+G.days;
   document.getElementById('season-badge').textContent =['SPRING','SUMMER','AUTUMN','WINTER'][G.season]
     + ' ' + weatherDef().icon
@@ -886,6 +968,10 @@ function closeIntro(){
   if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeLedger(); });
   if(sign) sign.onclick=function(){ if(signLedger()) renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); };
   if(claim) claim.onclick=function(){ if(claimLedger()){ renderLedger(); if(typeof buildActionUI==='function') buildActionUI(); if(typeof updateHUD==='function') updateHUD(); } };
+  var stormCall=document.getElementById('storm-call');
+  var stormHoldBtn=document.getElementById('storm-hold');
+  if(stormCall) stormCall.onclick=function(){ if(typeof stormStart==='function') stormStart(); };
+  if(stormHoldBtn) stormHoldBtn.onclick=function(){ if(typeof stormHold==='function') stormHold(); };
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape' && modal && modal.classList.contains('open')) closeLedger();
   });

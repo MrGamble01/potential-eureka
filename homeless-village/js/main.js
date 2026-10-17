@@ -263,6 +263,17 @@ function frame(ts){
   camera.position.z=20+Math.cos(camSwayT*.7)*.12;
   camera.lookAt(0,0,0);
   if(typeof tickFlutter==='function') tickFlutter(dt);
+  if(typeof stormExpireIfDue==='function') stormExpireIfDue();
+  if(typeof rioMesh!=='undefined' && rioMesh){
+    rioMesh.position.y=Math.abs(Math.sin(ts*.0025))*.04;
+    if(G.stormOn && typeof rioTarget==='function'){
+      var rioTo=rioTarget();
+      var rioStep=Math.min(1, dt*.004);
+      rioMesh.position.x+=(rioTo.x-rioMesh.position.x)*rioStep;
+      rioMesh.position.z+=(rioTo.z-rioMesh.position.z)*rioStep;
+      rioMesh.rotation.y=rioTo.ry;
+    }
+  }
   if(clinicMesh){
     var low=(G.care||0)<CLINIC_STEADY_LINE && !!G.structures.clinic;
     var beat=low?Math.sin(ts*.008):Math.sin(ts*.002);
