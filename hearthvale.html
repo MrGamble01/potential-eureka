@@ -590,6 +590,7 @@
     <button id="m-achv">Achievements</button>
     <button id="m-hollow" type="button">The Lantern Hollow</button>
     <button id="m-expedition" type="button">Wilds Expedition</button>
+    <button id="m-wolf" type="button">The Hollow Wolf</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Hall">
@@ -812,6 +813,7 @@
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/hearthvale-expedition.js"></script>
+<script src="/js/climax.js"></script>
 <script>
 "use strict";
 (function () {
@@ -4090,7 +4092,7 @@
   function guardStrength() {
     return state.buildings
       .filter(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed)
-      .reduce((s, b) => s + (b.level || 1), 0) + (palisadeBuilt() ? 1 : 0);
+      .reduce((s, b) => s + (b.level || 1), 0) + (palisadeBuilt() ? 1 : 0) + (state.wolfBanner ? 1 : 0);
   }
   // HVALE-8: a finished Chapel rings the alarm on a bad night — the bell
   // can't fight, but it buys everyone time to bar the larders.
@@ -6363,12 +6365,29 @@
   // Very quiet, respects mute, silent while paused.
   let ambSndTimer = 6;
   let scoreAcc = 0;
+  let climaxOpen = false;
   // The town's score follows the same clock as the birds, but on its
   // own timer so a mute doesn't freeze the mood for the next unmute.
   function soundtrackMood(dt) {
     const a = window.EurekaAudio;
     if (!a || !state) return;
     scoreAcc += dt || 0;
+    if (climaxOpen) {
+      try {
+        if (!soundtrackMood.ready) {
+          soundtrackMood.ready = true;
+          a.bind({
+            muted: function () { return !!(state && state.muted); },
+            musicOff: function () { return !!(state && state.muted); },
+          });
+          const host = document.getElementById('hv-audio');
+          if (host) a.attachReadout(host);
+        }
+        a.start('calm');
+        a.setMood('tense');
+      } catch (e) { /* the stand still plays if the score cannot */ }
+      return;
+    }
     if (soundtrackMood.ready && scoreAcc < 0.45) return;
     scoreAcc = 0;
     try {
@@ -7276,6 +7295,7 @@
         nextRaidDay: state.nextRaidDay || 9, raidTonight: !!state.raidTonight,
         raidsRepelled: state.raidsRepelled || 0, raidsSuffered: state.raidsSuffered || 0,
         pelts: state.pelts || 0, peltsWorked: state.peltsWorked || 0,
+        wolfBanner: !!state.wolfBanner, wolvesDown: state.wolvesDown || 0,
         chronicle: state.chronicle || [],
         bellSaves: state.bellSaves || 0,
         caravan: state.caravan || null,
@@ -7410,6 +7430,8 @@
       state.raidsRepelled = s.raidsRepelled || 0;
       state.raidsSuffered = s.raidsSuffered || 0;
       state.pelts = s.pelts || 0;                 // HVALE-4 (pre-Furrier saves migrate to 0)
+      state.wolfBanner = !!s.wolfBanner;
+      state.wolvesDown = s.wolvesDown || 0;
       state.peltsWorked = s.peltsWorked || 0;
       // HVALE-5: older saves have no history — the record opens today
       state.chronicle = Array.isArray(s.chronicle) ? s.chronicle.slice(-CHRON_CAP)
@@ -7556,6 +7578,7 @@
   }
 
   function playerHeld() {
+    if (climaxOpen) return false;
     if (gameSpeed !== 0 || _modalPrevSpeed !== null) return false;
     const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees', 'stillroom', 'hollow'];
     return !blocked.some(id => {
@@ -7642,6 +7665,51 @@
       seed: seed || '',
       onClose: function () { resumeFromModal(); },
     });
+  }
+  function standHollowWolf() {
+    if (!window.EurekaClimax) { toast('The night watch is still walking up.'); return; }
+    if (document.getElementById('climax-root')) return;
+    const resumeAt = gameSpeed > 0 ? gameSpeed : (prevSpeed || 1);
+    gameSpeed = 0;
+    climaxOpen = true;
+    syncPaused();
+    let view;
+    try {
+      view = window.EurekaClimax.mount(document, {
+        spec: 'hearthvale',
+        onClose: function () {
+          climaxOpen = false;
+          gameSpeed = resumeAt;
+          syncPaused();
+        },
+        onWin: function () {
+          const first = !state.wolfBanner;
+          state.res.gold += first ? 120 : 40;
+          state.pelts = (state.pelts || 0) + (first ? 2 : 1);
+          state.happy = Math.min(100, (state.happy || 0) + (first ? 14 : 6));
+          state.wolvesDown = (state.wolvesDown || 0) + 1;
+          state.wolfBanner = true;
+          const msg = first
+            ? 'The night banner stands with the watch. +120 gold, 2 pelts, +1 guard.'
+            : 'The wolf runs again. +40 gold and a pelt.';
+          toast('🐺 ' + msg);
+          chron('🐺', first
+            ? 'The Hollow Wolf was turned at the gate — the night banner counts as a guard'
+            : 'The Hollow Wolf was turned again');
+          careerEmit('boss', 1);
+          checkAchievements();
+          save();
+          updateHUD();
+          return msg;
+        },
+      });
+    } catch (e) {
+      climaxOpen = false;
+      gameSpeed = resumeAt;
+      syncPaused();
+      return;
+    }
+    view.open();
   }
   function noteHearthCareer() {
     if (!state || !state.seenIntro) return;
@@ -7737,6 +7805,11 @@
     if (hollowMenu) hollowMenu.onclick = () => {
       document.getElementById('menu').classList.remove('show');
       openHollow();
+    };
+    const wolfMenu = document.getElementById('m-wolf');
+    if (wolfMenu) wolfMenu.onclick = () => {
+      document.getElementById('menu').classList.remove('show');
+      standHollowWolf();
     };
     const cupPaste = document.getElementById('cup-paste');
     if (cupPaste) cupPaste.addEventListener('keydown', e => {
