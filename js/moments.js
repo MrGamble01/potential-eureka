@@ -2,16 +2,21 @@
    MOMENTS — photo mode and a short replay
    for the flagships that opt in.
 
-   The highlight reel is a ring of tiny indexed
+   The highlight reel is a ring of full-colour
    frames, about twelve seconds at four frames
-   a second. Sampling happens only when the
-   game calls afterFrame(), and only on that
-   cadence, so a phone is not copying the
-   full canvas every tick. Turn it off and
-   the sampler never reads pixels.
+   a second. A desktop frame is about 640px
+   wide; a phone stores a smaller copy. Each
+   sample is a JPEG or WebP, drawn with
+   smoothing when it plays back. Sampling
+   happens only when the game calls
+   afterFrame(), and only on that cadence.
+   Turn it off and the sampler never reads
+   pixels.
 
-   The choice lives in eureka-moments-v1,
-   one key for every game on this origin.
+   The on/off choice lives in eureka-moments-v1.
+   Flagged clips are too big for localStorage,
+   so they go to IndexedDB when it is there
+   and stay in memory when it is not.
    ============================================ */
 
 (function (root, factory) {
@@ -22,6 +27,16 @@
   const STORE = 'eureka-moments-v1';
   const SECONDS = 12;
   const FPS = 4;
+  const DESKTOP_W = 640;
+  const PHONE_W = 400;
+  const CLIP_DB = 'eureka-moments-clips';
+  const CLIP_STORE = 'clips';
+  const IDB_CLIP_CAP = 4;
+  const GAME_TITLE = {
+    voxel: 'Voxel Isle',
+    hearthvale: 'Hearthvale',
+    aow: 'Age of War',
+  };
   const FILTERS = ['none', 'warm', 'noir', 'vivid', 'dusk'];
   const FRAMES = ['none', 'polaroid', 'film', 'arcade'];
   const FILTER_LABEL = { none: 'None', warm: 'Warm', noir: 'Noir', vivid: 'Vivid', dusk: 'Dusk' };
@@ -143,15 +158,62 @@
     };
   }
 
-  function flagClip(buffer, gallery, label, limit) {
+  function frameSize(canvasW, canvasH, phone) {
+    const maxW = phone ? PHONE_W : DESKTOP_W;
+    const aspect = canvasW > 0 && canvasH > 0 ? canvasW / canvasH : 16 / 9;
+    let w = maxW;
+    let h = Math.max(8, Math.round(w / aspect));
+    if (h > maxW) { h = maxW; w = Math.max(8, Math.round(h * aspect)); }
+    if (w % 2) w -= 1;
+    if (h % 2) h -= 1;
+    return { w: Math.max(8, w), h: Math.max(8, h) };
+  }
+
+  function formatWhen(ms) {
+    const d = new Date(ms);
+    if (!d || isNaN(d.getTime())) return '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function clipTitle(item) {
+    if (!item) return '';
+    const parts = [];
+    if (item.label) parts.push(String(item.label));
+    if (item.game) parts.push(String(item.game));
+    const when = item.when ? formatWhen(item.when) : '';
+    if (when) parts.push(when);
+    return parts.join(' · ');
+  }
+
+  // Pixel reels do not belong in localStorage. A few kilobytes can
+  // stay in memory; anything larger uses IndexedDB when the browser
+  // has it, and memory alone when it does not.
+  function storePlan(bytes, env) {
+    const n = bytes | 0;
+    if (n < 4096) return 'memory';
+    if (env && env.indexedDB) return 'indexeddb';
+    return 'memory';
+  }
+
+  function flagClip(buffer, gallery, label, limit, meta) {
     const frames = buffer.list();
     if (frames.length < 2) return null;
     const copy = [];
     for (let i = 0; i < frames.length; i++) {
       const f = frames[i];
-      copy.push({ t: f.t, w: f.w, h: f.h, idx: f.idx.slice() });
+      const row = { t: f.t, w: f.w, h: f.h };
+      if (f.url) row.url = f.url;
+      if (f.idx) row.idx = f.idx.slice();
+      copy.push(row);
     }
-    gallery.unshift({ label: label || 'Highlight', at: copy[copy.length - 1].t, frames: copy });
+    gallery.unshift({
+      label: label || 'Highlight',
+      game: (meta && meta.game) || '',
+      at: copy[copy.length - 1].t,
+      when: (meta && meta.when) || Date.now(),
+      frames: copy,
+    });
     const cap = limit || 8;
     while (gallery.length > cap) gallery.pop();
     return gallery[0];
@@ -355,7 +417,7 @@
       '.moments-row button,.moments-gate button{min-height:44px;min-width:44px;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:#24303a;color:#eef3ea;font:600 14px/1.2 system-ui,sans-serif;flex:0 0 auto;touch-action:manipulation;cursor:pointer}',
       '.moments-row button[aria-pressed="true"]{border-color:#7ec8ff;color:#d7f1ff;background:#1c3a4a}',
       '.moments-status{font:12px/1.3 system-ui,sans-serif;color:#c5d0c8;padding:0 4px}',
-      '#moments-replay canvas{width:100%;height:100%;object-fit:contain;background:#0c1014;pointer-events:none}',
+      '#moments-replay canvas{width:100%;height:100%;object-fit:contain;background:#0c1014;pointer-events:none;image-rendering:auto}',
       '#moments-gallery .moments-list{pointer-events:auto;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}',
       '#moments-gate{align-items:center;justify-content:center;background:rgba(8,10,14,.55)}',
       '#moments-gate .card{pointer-events:auto;background:#182028;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px;width:min(360px,92vw);display:flex;flex-direction:column;gap:10px}',
@@ -551,6 +613,7 @@
       applyHud(false);
       hold(false);
       shotWait = null;
+      if (o.onClose) try { o.onClose(); } catch (e) {}
     }
     function closeTop() {
       if (view === 'gallery' || view === 'replay') {
@@ -577,14 +640,7 @@
       } catch (e) { return false; }
     }
     function captureSize(canvas) {
-      const maxW = phone() ? 112 : 160;
-      const aspect = canvas.width / canvas.height || 16 / 9;
-      let w = maxW;
-      let h = Math.max(8, Math.round(w / aspect));
-      if (h > maxW) { h = maxW; w = Math.max(8, Math.round(h * aspect)); }
-      if (w % 2) w -= 1;
-      if (h % 2) h -= 1;
-      return { w: Math.max(8, w), h: Math.max(8, h) };
+      return frameSize(canvas.width, canvas.height, phone());
     }
     const scratch = doc.createElement('canvas');
     const scratchCtx = scratch.getContext('2d', { willReadFrequently: true });
@@ -594,9 +650,16 @@
         scratch.width = size.w;
         scratch.height = size.h;
       }
+      scratchCtx.imageSmoothingEnabled = true;
+      scratchCtx.imageSmoothingQuality = 'high';
       scratchCtx.drawImage(canvas, 0, 0, size.w, size.h);
-      const data = scratchCtx.getImageData(0, 0, size.w, size.h).data;
-      buffer.push({ t: now, w: size.w, h: size.h, idx: indexFrame(data, size.w, size.h) });
+      let url = '';
+      try { url = scratch.toDataURL('image/webp', 0.8); } catch (e) { url = ''; }
+      if (!url || url.indexOf('data:image/webp') !== 0) {
+        try { url = scratch.toDataURL('image/jpeg', 0.82); } catch (e2) { url = ''; }
+      }
+      if (!url) return;
+      buffer.push({ t: now, w: size.w, h: size.h, url: url });
     }
     function composeCanvas(src) {
       const maxEdge = phone() ? 1280 : 1600;
@@ -693,6 +756,30 @@
       }
       ctx.putImageData(img, 0, 0);
     }
+    function loadImage(frame) {
+      if (!frame) return null;
+      if (frame.image) return frame.image;
+      if (!frame.url || !root.Image) return null;
+      const img = new root.Image();
+      img.decoding = 'async';
+      img.src = frame.url;
+      frame.image = img;
+      return img;
+    }
+    function paintShot(ctx, frame, dw, dh) {
+      ctx.imageSmoothingEnabled = true;
+      try { ctx.imageSmoothingQuality = 'high'; } catch (e) {}
+      const img = loadImage(frame);
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, 0, 0, dw, dh);
+        return true;
+      }
+      if (frame && frame.idx) {
+        paintIndexed(ctx, frame);
+        return true;
+      }
+      return false;
+    }
     function stopPlay() {
       if (playTimer) { clearTimeout(playTimer); playTimer = 0; }
     }
@@ -706,14 +793,21 @@
       backTo = view === 'photo' || view === 'gallery' ? 'photo' : 'live';
       if (view === 'live') hold(true);
       show('replay');
-      replayCanvas.width = frames[0].w;
-      replayCanvas.height = frames[0].h;
+      const box = stage.getBoundingClientRect();
+      const aspect = frames[0].w / frames[0].h || 16 / 9;
+      let dw = Math.max(frames[0].w, Math.round(box.width || frames[0].w));
+      let dh = Math.round(dw / aspect);
+      const maxH = Math.max(frames[0].h, Math.round(box.height || dh));
+      if (dh > maxH && maxH > 8) { dh = maxH; dw = Math.max(2, Math.round(dh * aspect)); }
+      replayCanvas.width = Math.max(2, dw);
+      replayCanvas.height = Math.max(2, dh);
       const ctx = replayCanvas.getContext('2d');
       let i = 0;
       function step() {
-        paintIndexed(ctx, frames[i]);
-        const wait = i + 1 < frames.length ? Math.max(40, Math.min(400, frames[i + 1].t - frames[i].t)) : 240;
-        i = (i + 1) % frames.length;
+        const painted = paintShot(ctx, frames[i], replayCanvas.width, replayCanvas.height);
+        replayCanvas.dataset.smoothing = ctx.imageSmoothingEnabled ? 'high' : 'off';
+        const wait = !painted ? 40 : (i + 1 < frames.length ? Math.max(40, Math.min(400, frames[i + 1].t - frames[i].t)) : 240);
+        if (painted) i = (i + 1) % frames.length;
         playTimer = setTimeout(step, wait);
       }
       step();
@@ -735,6 +829,7 @@
         c.width = frames[0].w;
         c.height = frames[0].h;
         const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
         let stream;
         try { stream = c.captureStream(8); }
         catch (e) { resolve(null); return; }
@@ -749,13 +844,26 @@
         catch (e) { resolve(null); return; }
         let i = 0;
         function step() {
-          paintIndexed(ctx, frames[i]);
+          paintShot(ctx, frames[i], c.width, c.height);
           i++;
           if (i >= frames.length) { try { rec.stop(); } catch (err) { resolve(null); } return; }
           const wait = Math.max(40, Math.min(400, frames[i].t - frames[i - 1].t));
           setTimeout(step, wait);
         }
-        step();
+        let left = 0;
+        let started = false;
+        function begin() { if (started) return; started = true; step(); }
+        for (let n = 0; n < frames.length; n++) {
+          const img = loadImage(frames[n]);
+          if (img && !img.complete) {
+            left++;
+            const tick = function () { left--; if (!left) begin(); };
+            img.addEventListener('load', tick);
+            img.addEventListener('error', tick);
+          }
+        }
+        if (!left) begin();
+        else setTimeout(begin, 800);
       });
     }
     function exportClip(frames) {
@@ -763,11 +871,12 @@
         setStatus('Nothing recorded yet');
         return Promise.resolve(null);
       }
-      const gif = gifEncode(frames);
-      const gifBlob = new Blob([gif], { type: 'image/gif' });
+      const gifOk = !!(frames[0] && frames[0].idx);
       return recordWebm(frames).then(function (webm) {
         if (webm && webm.size > 32) return saveBlob(webm, fileName('replay.webm'), 'Replay');
-        return saveBlob(gifBlob, fileName('replay.gif'), 'Replay');
+        if (!gifOk) { setStatus('Could not export the clip'); return null; }
+        const gif = gifEncode(frames);
+        return saveBlob(new Blob([gif], { type: 'image/gif' }), fileName('replay.gif'), 'Replay');
       });
     }
     function renderGallery() {
@@ -781,7 +890,7 @@
       }
       for (let i = 0; i < gallery.length; i++) {
         const item = gallery[i];
-        const b = btn(item.label);
+        const b = btn(clipTitle(item) || item.label);
         b.addEventListener('click', function () { play(item.frames); });
         galleryList.appendChild(b);
       }
@@ -793,9 +902,88 @@
       renderGallery();
       show('gallery');
     }
-    function mark(label) {
+    function gameTitle() {
+      return o.gameTitle || GAME_TITLE[o.game] || o.game || '';
+    }
+    function clipBytes(item) {
+      if (!item || !item.frames) return 0;
+      let n = 0;
+      for (let i = 0; i < item.frames.length; i++) {
+        const url = item.frames[i].url;
+        n += url ? url.length : (item.frames[i].idx ? item.frames[i].idx.length : 0);
+      }
+      return n;
+    }
+    function openClipDb() {
+      return new Promise(function (resolve, reject) {
+        if (!root.indexedDB) { reject(new Error('no indexedDB')); return; }
+        let req;
+        try { req = root.indexedDB.open(CLIP_DB, 1); }
+        catch (e) { reject(e); return; }
+        req.onupgradeneeded = function () {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(CLIP_STORE)) db.createObjectStore(CLIP_STORE, { keyPath: 'id' });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error('indexedDB')); };
+      });
+    }
+    function persistGallery() {
+      const bytes = gallery.reduce(function (sum, item) { return sum + clipBytes(item); }, 0);
+      if (storePlan(bytes, root) !== 'indexeddb') return;
+      const slim = [];
+      for (let i = 0; i < gallery.length && slim.length < IDB_CLIP_CAP; i++) {
+        const item = gallery[i];
+        const frames = [];
+        for (let f = 0; f < item.frames.length; f++) {
+          const fr = item.frames[f];
+          if (!fr.url) continue;
+          frames.push({ t: fr.t, w: fr.w, h: fr.h, url: fr.url });
+        }
+        if (frames.length < 2) continue;
+        slim.push({ id: item.when || (Date.now() + i), label: item.label, game: item.game || '', when: item.when, frames: frames });
+      }
+      openClipDb().then(function (db) {
+        const tx = db.transaction(CLIP_STORE, 'readwrite');
+        const store = tx.objectStore(CLIP_STORE);
+        store.clear();
+        for (let i = 0; i < slim.length; i++) store.put(slim[i]);
+        tx.oncomplete = function () { try { db.close(); } catch (e) {} };
+      }).catch(function () { /* memory gallery still works */ });
+    }
+    function restoreClips() {
+      openClipDb().then(function (db) {
+        const tx = db.transaction(CLIP_STORE, 'readonly');
+        const req = tx.objectStore(CLIP_STORE).getAll();
+        req.onsuccess = function () {
+          if (gallery.length) { try { db.close(); } catch (e) {} return; }
+          const rows = req.result || [];
+          rows.sort(function (a, b) { return (a.when || 0) - (b.when || 0); });
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || !row.frames || row.frames.length < 2) continue;
+            gallery.unshift({
+              label: row.label || 'Highlight',
+              game: row.game || '',
+              at: row.frames[row.frames.length - 1].t,
+              when: row.when || Date.now(),
+              frames: row.frames,
+            });
+          }
+          while (gallery.length > 8) gallery.pop();
+          try { db.close(); } catch (e) {}
+        };
+        req.onerror = function () { try { db.close(); } catch (e) {} };
+      }).catch(function () {});
+    }
+    function mark(label, meta) {
       if (!enabled) return null;
-      return flagClip(buffer, gallery, label, 8);
+      const item = flagClip(buffer, gallery, label, 8, {
+        game: (meta && meta.game) || gameTitle(),
+        when: (meta && meta.when) || Date.now(),
+      });
+      if (item) persistGallery();
+      return item;
     }
     function nudge(dx, dy) {
       if (!o.camera) return;
@@ -922,6 +1110,14 @@
     stage.addEventListener('pointerup', endPointer);
     stage.addEventListener('pointercancel', endPointer);
 
+    const hotkey = o.hotkey === undefined
+      ? { key: 'p', shift: false }
+      : (o.hotkey ? { key: String(o.hotkey.key || o.hotkey), shift: !!o.hotkey.shift } : null);
+    function hotkeyMatch(e) {
+      if (!hotkey || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return false;
+      if (!!e.shiftKey !== !!hotkey.shift) return false;
+      return String(e.key || '').toLowerCase() === String(hotkey.key || '').toLowerCase();
+    }
     function typing(e) {
       const t = e.target;
       if (!t || !t.tagName) return false;
@@ -930,15 +1126,11 @@
     doc.addEventListener('keydown', function (e) {
       if (typing(e)) return;
       const open = view !== 'live';
-      if (open && e.key === 'Escape') {
+      if (open) {
         e.preventDefault();
         e.stopPropagation();
-        closeTop();
-        return;
-      }
-      if (open && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === '+' || e.key === '=' || e.key === '-' || e.key === 'h' || e.key === 'H')) {
-        e.preventDefault();
-        e.stopPropagation();
+        if (e.key === 'Escape') { closeTop(); return; }
+        if (hotkeyMatch(e)) { togglePhoto(); return; }
         if (view === 'photo') {
           if (e.key === 'ArrowLeft') nudge(-26, 0);
           else if (e.key === 'ArrowRight') nudge(26, 0);
@@ -950,9 +1142,10 @@
         }
         return;
       }
-      if (!open && !e.repeat && (e.key === 'p' || e.key === 'P')) {
+      if (hotkeyMatch(e)) {
         if (o.blocked && o.blocked()) return;
         e.preventDefault();
+        e.stopPropagation();
         togglePhoto();
       }
     }, true);
@@ -977,14 +1170,22 @@
         let unlocked = {};
         try { unlocked = progress.profile().unlocked || {}; }
         catch (e) { return; }
-        let fresh = 0;
+        const fresh = [];
         const ids = Object.keys(unlocked);
-        for (let i = 0; i < ids.length; i++) if (!seen[ids[i]]) fresh++;
+        for (let i = 0; i < ids.length; i++) if (!seen[ids[i]]) fresh.push(ids[i]);
         seen = Object.assign({}, unlocked);
-        if (fresh) mark(fresh > 1 ? fresh + ' trophies' : 'Trophy');
+        if (!fresh.length) return;
+        const names = [];
+        for (let i = 0; i < fresh.length; i++) {
+          let name = '';
+          try { if (progress.awardName) name = progress.awardName(fresh[i]); } catch (e) { name = ''; }
+          names.push(name || 'Trophy');
+        }
+        mark(names.join(' & '));
       });
     }
     watchCareer();
+    restoreClips();
 
     const session = {
       afterFrame: afterFrame,
@@ -1028,6 +1229,12 @@
     createRecorder: createRecorder,
     spanSeconds: spanSeconds,
     flagClip: flagClip,
+    frameSize: frameSize,
+    clipTitle: clipTitle,
+    storePlan: storePlan,
+    DESKTOP_W: DESKTOP_W,
+    PHONE_W: PHONE_W,
+    CLIP_DB: CLIP_DB,
     readSettings: readSettings,
     writeSettings: writeSettings,
     chooseExport: chooseExport,
@@ -1042,6 +1249,8 @@
     setEnabled: function (on) { return active ? active.setEnabled(on) : on; },
     enabled: function () { return active ? active.enabled() : true; },
     frameCount: function () { return active ? active.frameCount() : 0; },
+    frames: function () { return active ? active.frames() : []; },
+    gallery: function () { return active ? active.gallery() : []; },
     setFilter: function (name) { if (active) active.setFilter(name); },
     filter: function () { return active ? active.filter() : 'none'; },
     view: function () { return active ? active.view() : 'live'; },

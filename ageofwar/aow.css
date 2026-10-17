@@ -929,6 +929,25 @@
   border-color: var(--border-strong);
   transform: rotate(45deg);
 }
+.aow-moments-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  touch-action: manipulation;
+}
+.aow-moments-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--border-strong);
+}
 .aow-settings-card { max-width: 460px; }
 .aow-settings-body {
   display: flex; flex-direction: column;
