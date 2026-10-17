@@ -174,7 +174,8 @@ canvas{display:block;touch-action:none;}
 #left-panel{
   position:fixed;top:54px;left:14px;
   display:flex;flex-direction:column;gap:7px;
-  max-width:210px;user-select:none;
+  max-width:236px;user-select:none;
+  /* fitLeftPanel() shortens this once the corner tray reaches the column. */
   max-height:calc(100vh - 68px);overflow-y:auto;
 }
 #left-panel::-webkit-scrollbar{width:4px;}
@@ -233,6 +234,101 @@ canvas{display:block;touch-action:none;}
   border-top:1px solid rgba(255,255,255,0.05);
 }
 .upg-cat:first-child{border-top:none;margin-top:0;}
+.upg-btn.locked:not(:disabled){opacity:0.78;border-color:rgba(255,255,255,0.06);}
+#heat-rate{font-size:9px;font-weight:700;color:#aa6644;letter-spacing:0.2px;
+  margin-top:3px;text-align:right;line-height:1.35;}
+#cash-hud.pop{animation:cashHud 0.38s ease;}
+@keyframes cashHud{
+  0%{transform:scale(1);}
+  35%{transform:scale(1.14);box-shadow:0 0 18px rgba(34,221,85,0.55);}
+  100%{transform:scale(1);}
+}
+#juice-flash{position:fixed;inset:0;pointer-events:none;z-index:35;opacity:0;}
+#juice-flash.good{background:radial-gradient(circle at 50% 42%, rgba(34,221,85,0.22), transparent 58%);}
+#juice-flash.heat{background:radial-gradient(circle at 50% 42%, rgba(239,68,68,0.28), transparent 58%);}
+#juice-flash.on{animation:juiceFlash 0.48s ease;}
+@keyframes juiceFlash{0%{opacity:1;}100%{opacity:0;}}
+#sfx-btn{
+  position:fixed;bottom:14px;left:102px;z-index:72;
+  width:44px;height:36px;padding:0;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:16px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#sfx-btn[aria-pressed="true"]{color:#886655;border-color:rgba(255,255,255,0.15);}
+#alley-hud{position:fixed;top:54px;left:268px;z-index:25;max-width:210px;}
+#alley-btn{
+  display:block;text-align:left;cursor:pointer;font-family:inherit;
+  background:rgba(4,10,4,0.92);border:1px solid rgba(255,209,102,0.4);
+  color:#ffd166;border-radius:6px;padding:6px 10px;min-width:148px;
+}
+#alley-btn .kicker{display:block;font-size:8px;font-weight:800;letter-spacing:1.4px;color:#aa8844;}
+#alley-line{font-size:12px;font-weight:800;}
+#alley-sheet{
+  display:none;position:fixed;top:108px;left:268px;z-index:85;width:280px;
+  background:rgba(4,10,4,0.97);border:1px solid rgba(255,209,102,0.45);
+  border-radius:8px;padding:12px;color:#e8dcc0;box-shadow:0 10px 30px rgba(0,0,0,0.55);
+}
+#alley-sheet.open{display:block;}
+#alley-sheet h3{margin:0 0 6px;font-size:12px;letter-spacing:1px;color:#ffd166;}
+#alley-sheet p{margin:0 0 8px;font-size:11px;line-height:1.45;color:#c8b48a;}
+#alley-list{font-size:11px;line-height:1.55;margin-bottom:8px;}
+#alley-list .ahead{color:#ffd166;}
+#alley-list .done{color:#88cc88;}
+#alley-sheet input{
+  width:100%;box-sizing:border-box;margin-top:4px;background:#081008;color:#efe6ff;
+  border:1px solid rgba(255,209,102,0.3);border-radius:4px;padding:6px 8px;font-family:inherit;font-size:11px;
+}
+#alley-sheet .row{display:flex;gap:6px;margin-top:6px;}
+#alley-sheet button{
+  font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;
+  background:rgba(255,209,102,0.1);border:1px solid rgba(255,209,102,0.4);color:#ffd166;
+  border-radius:5px;padding:6px 8px;
+}
+#touch-dock{
+  display:none;position:fixed;left:10px;bottom:58px;z-index:45;
+  align-items:flex-end;gap:8px;touch-action:none;user-select:none;
+}
+#stick{
+  width:92px;height:92px;border-radius:50%;position:relative;
+  background:rgba(4,10,4,0.72);border:1px solid rgba(0,180,60,0.45);
+  box-shadow:inset 0 0 12px rgba(0,0,0,0.45);touch-action:none;
+}
+#stick-knob{
+  width:36px;height:36px;border-radius:50%;position:absolute;left:28px;top:28px;
+  background:rgba(34,221,85,0.85);box-shadow:0 0 10px rgba(34,221,85,0.45);
+}
+#next-step{
+  min-width:108px;min-height:52px;padding:10px 14px;
+  background:rgba(0,140,40,0.92);border:1px solid rgba(120,255,160,0.7);
+  color:#041404;font-family:inherit;font-size:15px;font-weight:900;
+  border-radius:12px;cursor:pointer;letter-spacing:0.3px;
+}
+#next-step.hot{animation:nextPulse 1.1s ease-in-out infinite;}
+@keyframes nextPulse{0%,100%{box-shadow:0 0 0 rgba(34,221,85,0);}50%{box-shadow:0 0 16px rgba(34,221,85,0.7);}}
+@media (max-width:700px), (pointer: coarse){
+  #touch-dock{display:flex;}
+}
+#strain-panel{border-color:rgba(180,140,255,0.28);}
+.strain-note{font-size:10px;color:#8d78b0;line-height:1.4;margin:-2px 0 6px;}
+.strain-quote{
+  font-size:10px;font-weight:800;color:#efe6ff;line-height:1.4;
+  background:rgba(120,80,180,0.16);
+  border:1px solid rgba(180,140,255,0.32);
+  border-radius:4px;padding:5px 7px;margin-bottom:6px;
+}
+.strain-btn{
+  display:block;width:100%;margin-top:4px;text-align:left;cursor:pointer;
+  background:rgba(140,90,220,0.06);border:1px solid rgba(180,140,255,0.22);
+  color:#d9c8f5;border-radius:4px;padding:6px 8px;
+  font-weight:700;font-size:11px;font-family:inherit;line-height:1.35;
+}
+.strain-btn:hover{background:rgba(140,90,220,0.16);border-color:rgba(180,140,255,0.5);}
+.strain-btn.on{background:rgba(140,90,220,0.22);border-color:rgba(210,180,255,0.75);color:#fff;}
+.strain-btn.locked{opacity:0.72;}
+.strain-btn .tag{float:right;font-size:9px;font-weight:800;color:#c8b0ee;letter-spacing:0.3px;}
+.strain-btn.on .tag{color:#fff;}
+.strain-btn .sub{display:block;clear:both;color:#a894cc;font-size:10px;font-weight:700;margin-top:2px;}
+.strain-btn.on .sub{color:#e6d8ff;}
 
 /* ── Labels overlay ── */
 #labels{position:fixed;inset:0;pointer-events:none;z-index:5;}
@@ -293,6 +389,17 @@ canvas{display:block;touch-action:none;}
   display:none;align-items:center;justify-content:center;z-index:200;
 }
 #event-modal.open{display:flex;animation:evFade 0.2s ease;}
+#raid-night-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.82);
+  display:none;align-items:center;justify-content:center;z-index:210;
+}
+#raid-night-modal.open{display:flex;animation:evFade 0.2s ease;}
+#nia-card{
+  border:1px solid rgba(255,209,102,0.4);border-radius:6px;
+  padding:8px;margin:0 0 8px;background:rgba(255,209,102,0.06);
+}
+#nia-line{font-size:11px;color:#e6d7a8;line-height:1.4;margin:4px 0 8px;}
+#raid-call:disabled{opacity:0.55;cursor:not-allowed;}
 @keyframes evFade{from{opacity:0;}to{opacity:1;}}
 .ev-panel{
   background:rgba(4,10,4,0.98);
@@ -729,6 +836,11 @@ canvas{display:block;touch-action:none;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
   #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
+  #act-badge{max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #alley-hud{top:58px;left:8px;}
+  #alley-sheet{top:auto;bottom:168px;left:8px;width:min(280px, calc(100vw - 16px));}
+  #sfx-btn{left:96px;bottom:14px;}
+  #heat-hud,#goal-hud{min-width:0;max-width:46vw;}
 }
 </style>
 </head>
@@ -781,20 +893,54 @@ canvas{display:block;touch-action:none;}
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
   <div class="heat-val"><span id="heat-val">0</span>%</div>
+  <div id="heat-rate"></div>
 </div>
 <div id="goal-hud">
   <div class="goal-label">🎯 Next Goal</div>
   <div id="goal-text">—</div>
   <div id="goal-prog"></div>
 </div>
+<div id="juice-flash"></div>
+<button id="sfx-btn" type="button" aria-pressed="false" aria-label="Sound on" title="Sound">🔊</button>
+<div id="alley-hud">
+  <button id="alley-btn" type="button" title="Today's alley. The same neighbors for everyone, plus any friend code you paste.">
+    <span class="kicker">THE ALLEY</span>
+    <span id="alley-line">…</span>
+  </button>
+</div>
+<div id="alley-sheet" role="dialog" aria-label="The alley">
+  <h3>THE ALLEY</h3>
+  <p>Same three neighbors for everyone today. Pass their lifetime take. A friend's code pins them on your board — it stays on this device.</p>
+  <div id="alley-list"></div>
+  <label>Your code<input id="alley-mine" readonly></label>
+  <div class="row"><button type="button" id="alley-copy">Copy</button></div>
+  <label>Friend's code<input id="alley-paste" autocomplete="off" spellcheck="false" placeholder="Paste a code"></label>
+  <div class="row"><button type="button" id="alley-add">Pin them</button><button type="button" id="alley-close">Close</button></div>
+</div>
+<div id="touch-dock">
+  <div id="stick" role="slider" aria-label="Walk" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"><div id="stick-knob"></div></div>
+  <button id="next-step" type="button">Wait</button>
+</div>
 <div id="activity-feed">
   <div class="feed-title">⚡ Dispatch</div>
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
+  <div id="strain-panel" class="panel">
+    <div class="panel-title">🌱 Strains</div>
+    <div class="strain-note">The cut in the tent right now. Switching retimes plants that are already growing.</div>
+    <div id="strain-quote" class="strain-quote">🌿 Garage Kush</div>
+    <div id="strain-list"></div>
+  </div>
   <div id="upgrades-panel" class="panel"></div>
-  <div id="hire-panel" class="panel">
+    <div id="hire-panel" class="panel">
     <div class="panel-title">👥 Crew</div>
+    <div id="nia-card">
+      <div class="stat-line"><span>🧢 Nia</span><span id="nia-post">On the door</span></div>
+      <div id="nia-line">Harvest once. Then I will call the night.</div>
+      <button class="act-btn" id="nia-ask" type="button">Ask Nia</button>
+      <button class="act-btn" id="raid-call" type="button">Raid Night — locked</button>
+    </div>
     <div class="stat-line"><span>Trimmers</span><span id="trimmer-count">0/3</span></div>
     <button class="act-btn" id="hire-trimmer-btn">Hire Trimmer<span class="cost" id="trimmer-cost">$150</span></button>
     <div class="stat-line" style="margin-top:6px"><span>Lookouts</span><span id="lookout-count">0/2</span></div>
@@ -819,6 +965,14 @@ canvas{display:block;touch-action:none;}
   </div>
 </div>
 <div id="toast-container"></div>
+<div id="raid-night-modal">
+  <div class="ev-panel">
+    <div class="ev-icon">🚔</div>
+    <div class="ev-title" id="raid-night-title">Raid Night</div>
+    <div class="ev-body" id="raid-night-body"></div>
+    <div class="ev-choices" id="raid-night-choices"></div>
+  </div>
+</div>
 <div id="event-modal">
   <div class="ev-panel">
     <div class="ev-icon" id="ev-icon">⚠️</div>
@@ -866,7 +1020,11 @@ canvas{display:block;touch-action:none;}
     </div>
     <div id="intro-flavor">A grow in the back of a garage. Turn it into something bigger before the block turns on you.</div>
     <div id="intro-body">
-      <div class="intro-row">&bull; <b>The loop is plant → harvest → sell.</b> Click a plot to plant, wait for it to ripen, then bag it. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>The loop is grow → harvest → sell.</b> Plants ripen on their own. Walk up to a ripe one, carry it to the trim table, stash the bags, and sell to the buyers who come to you. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>The strain board is the cut in the tent.</b> Garage Kush is free and even. The other cuts trade speed, price and heat, and the line on that board is what the next bag pays.</div>
+      <div class="intro-row">&bull; <b>The alley is today's neighbors.</b> The same three marks for everyone, and any friend code you paste stays on this device. Pass their lifetime take.</div>
+      <div class="intro-row">&bull; <b>On a phone, use the stick and the big button.</b> The button runs the next step — harvest, trim, stash, sell — so you never have to tap a tiny pot.</div>
+      <div class="intro-row">&bull; <b>Nia watches the door.</b> Ask her and she walks the next step with you. Harvest once and she will call Raid Night — live through Sergeant Voss and the Night Lot out back is yours.</div>
       <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
       <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
       <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
@@ -887,8 +1045,11 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 });
 </script>
 
+<link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
+<script src="/js/feel.js"></script>
+<script src="/js/flag-daily.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -906,6 +1067,14 @@ let state = {
   totalSold: 0,
   heat: 0,
   crunch: false,   // LAB-12: night shifts — faster production, hotter heat
+  strain: 'kush',
+  strainsOwned: ['kush'],
+  taxLeft: 0,
+  alleyCleared: [],
+  niaSeenWork: false,
+  raidNightWon: false,
+  raidNights: 0,
+  raidCool: 0,
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -930,15 +1099,62 @@ let state = {
 // again. If you change an effect, change its `desc` in the same edit.
 const UPG = [
   {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level \u2014 and you move 5% quicker'},
+  {id:'drip',     name:'Drip Lines',             icon:'💧', cat:'Grow Op',       maxLv:2, base:240, mult:2.0, desc:'Plants grow 15% faster per level'},
   {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+1 bag per trimmed batch per level \u2014 Lv1 doubles your output'},
   {id:'trim',     name:'Electric Trimmer',       icon:'✂️', cat:'Processing',    maxLv:3, base:180, mult:2.0, desc:'Trim 25% faster per level'},
+  {id:'fan',      name:'Trim Fan',               icon:'🌀', cat:'Processing',    maxLv:2, base:200, mult:2.0, desc:'Trim 15% faster per level'},
   {id:'bags',     name:'Vac-Seal Bags',          icon:'📦', cat:'Processing',    maxLv:3, base:250, mult:2.0, desc:'+15% sale price per level'},
   {id:'network',  name:'Distribution Network',   icon:'🚗', cat:'Sales',         maxLv:4, base:400, mult:1.8, desc:'Buyers arrive 30% faster per level'},
   {id:'price',    name:'Premium Product',        icon:'💎', cat:'Sales',         maxLv:3, base:500, mult:2.2, desc:'+40% sale price per level'},
   {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Sales run 25% cooler per level \u2014 75% at Lv3'},
+  {id:'filter',   name:'Carbon Filter',          icon:'🫧', cat:'Security',      maxLv:2, base:280, mult:2.2, desc:'+0.2 heat cleared per second per level'},
   {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'+0.5 heat cleared per second per level'},
   {id:'chemistry',name:'Chemistry Equipment',    icon:'⚗️', cat:'The Next Level',maxLv:1, base:2500,mult:1.0, desc:'Unlock the cook station — harder product, way more $'},
 ];
+
+// ── Strains ──────────────────────────────────────────────
+// One cut runs the whole tent. Garage Kush is the classic 1× line, so a
+// save with no strain field grows, sells and heats exactly as before.
+// Each paid cut wins one race and loses another. Per second of grow time,
+// versus Kush:
+//   Sour Diesel  fastest finish (0.70× time) but the hottest per second
+//   Purple Haze  coolest per second, and still more cash per second
+//   Chem Dawg    most cash per second, hotter than Kush, Act II only
+// None of them wins both cash-per-second and heat-per-second. Lights stay
+// the better first grow buy than Drip Lines (30% for $120 vs 15% for $240),
+// and the Electric Trimmer stays the better first trim buy than the fan.
+const STRAINS = [
+  { id:'kush',   name:'Garage Kush', icon:'🌿', cost:0,   act:1, grow:1,    price:1,    heat:1,    color:0x22cc44, light:0x8833ee },
+  { id:'diesel', name:'Sour Diesel', icon:'⛽', cost:160, act:1, grow:0.70, price:0.88, heat:1.25, color:0xc6d84a, light:0x88aa22 },
+  { id:'haze',   name:'Purple Haze', icon:'🟣', cost:280, act:1, grow:1.25, price:1.48, heat:0.72, color:0xb06cff, light:0xaa44ff },
+  { id:'dawg',   name:'Chem Dawg',   icon:'🧪', cost:750, act:2, grow:1.05, price:1.70, heat:1.40, color:0x3ddc97, light:0x22ffaa },
+];
+function strainById(id) { return STRAINS.find(s => s.id === id) || STRAINS[0]; }
+function activeStrain() { return strainById(state.strain || 'kush'); }
+function strainUnlocked(s) { return (state.strainsOwned || ['kush']).includes(s.id); }
+function strainBlurb(s) {
+  if (s.grow === 1 && s.price === 1 && s.heat === 1) return 'The starter cut. Even grow, street price, and heat.';
+  const time = Math.round(s.grow * 100);
+  const heatPct = Math.round(Math.abs(s.heat - 1) * 100);
+  const heatWord = s.heat > 1 ? heatPct + '% hotter' : heatPct + '% cooler';
+  const act = s.act > 1 ? 'Act II genetics. ' : '';
+  return act + 'Finishes in ' + time + '% of the time. Sells at ' + s.price.toFixed(2) + '\u00d7 and runs ' + heatWord + '.';
+}
+function strainStat(s) {
+  const m = n => (n === 1 ? '1' : n.toFixed(2));
+  return m(s.grow) + '\u00d7 grow \u00b7 ' + m(s.price) + '\u00d7 price \u00b7 ' + m(s.heat) + '\u00d7 heat';
+}
+function nextStrain() {
+  const act = currentAct();
+  return STRAINS.find(s => !strainUnlocked(s) && act >= (s.act || 1)) || null;
+}
+function normalizeStrains(owned, current) {
+  const ids = new Set(STRAINS.map(s => s.id));
+  const list = Array.isArray(owned) ? owned.filter(id => typeof id === 'string' && ids.has(id)) : [];
+  if (!list.includes('kush')) list.unshift('kush');
+  const strain = typeof current === 'string' && ids.has(current) && list.includes(current) ? current : 'kush';
+  return { strain, owned: list };
+}
 
 // ── Room definitions ──
 const ROOM_DEFS = [
@@ -950,6 +1166,7 @@ const ROOM_DEFS = [
   {id:'warehouse',gx:1,gz:1,cost:8000, label:'📦 Warehouse',      act:2},
   {id:'front',   gx:-1,gz:1,cost:20000,label:'💈 Laundry Front',  act:3},
   {id:'penthouse',gx:1,gz:-1,cost:50000,label:'👑 Penthouse',     act:3},
+  {id:'lot',     gx:-1,gz:-1,cost:0,    label:'🌙 Night Lot',      act:2},
 ];
 
 // ── Scene ──
@@ -981,7 +1198,25 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
+// The corner tray is bottom-anchored and grows left as buttons unlock.
+// Once it crosses into the management column, the last controls (Reset
+// Game among them) scroll underneath it and cannot be clicked. Keep that
+// column's scrollport above the tray. On a phone the column is a sheet
+// and the tray is already lifted, so the stylesheet rule stands.
+function fitLeftPanel() {
+  const panel = document.getElementById('left-panel');
+  const tray = document.getElementById('lab-tray');
+  if (!panel || !tray) return;
+  if (innerWidth <= 700) { panel.style.maxHeight = ''; return; }
+  const tr = tray.getBoundingClientRect();
+  const panelRight = 14 + 236;
+  if (tr.width < 2 || tr.left >= panelRight - 4) { panel.style.maxHeight = ''; return; }
+  const limit = Math.max(160, Math.floor(tr.top - 54 - 8));
+  panel.style.maxHeight = limit + 'px';
+}
+window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); fitLeftPanel(); });
+new ResizeObserver(fitLeftPanel).observe(document.getElementById('lab-tray'));
+fitLeftPanel();
 
 // ── Lights ──
 const ambLight = new THREE.AmbientLight(0x1a2a14, 0.8);
@@ -1038,6 +1273,20 @@ function showToast(msg, type='') {
 }
 
 // ── Cash pop ──
+function feelAt(kind, x, y, text, color) {
+  const F = window.EurekaFeel;
+  if (!F) return;
+  let view = null;
+  try { view = renderer && renderer.domElement; } catch (e) { view = null; }
+  F.punch(kind, {
+    x: typeof x === 'number' ? x : innerWidth / 2,
+    y: typeof y === 'number' ? y : innerHeight * 0.42,
+    text: text || '',
+    color: color || '#3FB950',
+    target: view,
+  });
+}
+
 function cashPop(screenX, screenY, amount) {
   const el = document.createElement('div');
   el.className = 'cash-pop';
@@ -1064,6 +1313,11 @@ function addCash(n) {
   state.cash += n;
   state.totalEarned += n;
   refreshHud();
+  if (n > 0) {
+    const hud = document.getElementById('cash-hud');
+    if (hud) { hud.classList.remove('pop'); void hud.offsetWidth; hud.classList.add('pop'); }
+    syncAlley(true);
+  }
 }
 
 // ── stepToward (shared NPC walker) ──
@@ -1092,6 +1346,7 @@ const PALETTE = {
   warehouse: {floor:0x242420, wall:0x302e28},
   front:     {floor:0x282418, wall:0x383020},
   penthouse: {floor:0x181820, wall:0x242230},
+  lot:       {floor:0x3a3424, wall:0x4a4030},
 };
 
 function roomCenter(def) {
@@ -1181,7 +1436,12 @@ const growPlots = [];
 const GROW_TIME_BASE = 18; // seconds
 
 function upgLv(id) { return state.upgrades[id] || 0; }
-function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1); }   // LAB-12
+function growTime() {
+  // Kush with no drip matches the classic lights / night-shift formula.
+  // The strain multiplier and the drip divisor are both 1 until bought.
+  const tuned = GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1);   // LAB-12
+  return tuned * activeStrain().grow / (1 + upgLv('drip') * 0.15);
+}
 
 function buildGrowPlot(x, z, roomId) {
   const g = new THREE.Group();
@@ -1228,14 +1488,17 @@ function buildGrowPlot(x, z, roomId) {
 function updatePlantMesh(plot) {
   const {plantG, progress} = plot;
   const stage = progress <= 0.01 ? 0 : progress < 0.35 ? 1 : progress < 0.7 ? 2 : 3;
-  if (stage === plot.stage) return;
+  const tint = activeStrain().color;
+  if (stage === plot.stage && tint === plot.tint) return;
+  plot.tint = tint;
   // Only clear/rebuild when the visible stage actually changed, so a no-op
   // call no longer blanks a fully-grown plant.
   while (plantG.children.length) plantG.remove(plantG.children[0]);
   plot.stage = stage;
   if (stage === 0) return;
 
-  const greenShade = stage === 3 ? 0x22cc44 : stage === 2 ? 0x2a8a2a : 0x1a5a1a;
+  const cut = activeStrain();
+  const greenShade = stage === 3 ? cut.color : stage === 2 ? 0x2a8a2a : 0x1a5a1a;
   const mat = new THREE.MeshLambertMaterial({
     color: greenShade,
     emissive: stage === 3 ? 0x114411 : 0x000000,
@@ -1264,7 +1527,7 @@ function updatePlantMesh(plot) {
   // Buds on stage 3
   if (stage === 3) {
     const budMat = new THREE.MeshLambertMaterial({
-      color:0x44dd44, emissive:0x00aa00, emissiveIntensity:0.5});
+      color:cut.color, emissive:cut.light, emissiveIntensity:0.45});
     const bud = new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6), budMat);
     bud.position.y = h + 0.14; plantG.add(bud);
   }
@@ -1984,6 +2247,13 @@ function relocateChemStation(x, z) {
 
 // ── Events ──
 let activeEvent = null;
+let raidNightOpen = false;
+const RAID_HOLD_BAGS = 2;
+const RAID_HOLD_MULT = 2;
+const RAID_LIGHTS_HEAT = 18;
+const RAID_PAY_COST = 180;
+const RAID_COOL = 50;
+const LOT_DRAIN = 0.2;
 let eventTimer = 0;
 let eventCooldown = 60; // seconds between events
 let raidActive = false;
@@ -1995,6 +2265,53 @@ let busted = false;
 // — which, without this flag, wrote the run straight back over the key
 // that had just been cleared. "Reset Game" had never reset anything.
 let resetting = false;
+
+// Street tax: refuse the crew and the next few hands pay TAX_RATE.
+// The skim percent in the copy is derived from TAX_RATE so it cannot drift.
+const TAX_RATE = 0.85, TAX_HANDS = 4;
+const SMELL_PAY = 220, SMELL_RELIEF = 16, SMELL_HEAT = 14, SMELL_HEAT_FILTERED = 4;
+const MOLD_COST = 150, MOLD_RELIEF = 8, MOLD_AIR_RELIEF = 3, CROP_SETBACK = 0.22;
+const CLONE_TIP = 80, CLONE_HEAT = 4;
+function streetTaxCost() {
+  return Math.min(1200, Math.max(50, Math.floor(state.cash * 0.10)));
+}
+function fmtTenths(n) {
+  const r = Math.round(n * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
+function heatClause(before) {
+  const d = Math.round(state.heat - before);
+  if (d === 0) return 'Heat unchanged.';
+  return 'Heat ' + (d > 0 ? '+' : '\u2212') + Math.abs(d) + '.';
+}
+function applyStreetTax(price) {
+  if ((state.taxLeft || 0) <= 0 || price <= 0) return { price, skim: 0 };
+  state.taxLeft--;
+  const kept = Math.min(price, Math.max(1, Math.floor(price * TAX_RATE)));
+  if (state.taxLeft === 0) addFeed('The skim is paid. Street price is clean.');
+  refreshStrainQuote();
+  return { price: kept, skim: price - kept };
+}
+function previewBag() {
+  const list = salePrice();
+  if ((state.taxLeft || 0) <= 0 || list <= 0) return list;
+  return Math.min(list, Math.max(1, Math.floor(list * TAX_RATE)));
+}
+function setBackCrop() {
+  let hit = 0;
+  for (const p of growPlots) {
+    if (p.ready || p.progress <= 0.02) continue;
+    p.progress = Math.max(0, +(p.progress - CROP_SETBACK).toFixed(4));
+    p.ready = false;
+    p.stage = -1;
+    updatePlantMesh(p);
+    hit++;
+  }
+  return hit;
+}
+function retintPlots() {
+  for (const p of growPlots) { p.stage = -1; updatePlantMesh(p); }
+}
 
 const EVENTS = [
   {
@@ -2053,11 +2370,344 @@ const EVENTS = [
       {text:'Ignore it. Just pay the bill.', effect:()=>{ addHeat(15); return 'Paid the bill but now on a list somewhere.'; }, type:'risky'},
     ]
   },
+  {
+    id:'tent_mold', icon:'🫧', title:'Mold in the Tent',
+    body:'The tent is sweating. A rented dryer holds the crop. Cracking the tent dries the room and sets the plants back.',
+    choices:[
+      {text:'Rent a dryer overnight.', cost:MOLD_COST, type:'safe', effect:()=>{
+        if (state.cash < MOLD_COST) { showToast("Can't afford the dryer!", 'bust'); return null; }
+        state.cash -= MOLD_COST;
+        const before = state.heat;
+        addHeat(-MOLD_RELIEF);
+        return 'Dryer ran all night. The plants held. ' + heatClause(before);
+      }},
+      {text:'Crack the tent and take the setback.', type:'risky', effect:()=>{
+        const hit = setBackCrop();
+        const before = state.heat;
+        addHeat(-MOLD_AIR_RELIEF);
+        const what = hit
+          ? hit + ' plant' + (hit > 1 ? 's' : '') + ' set back ' + Math.round(CROP_SETBACK * 100) + '%.'
+          : 'Nothing was mid-grow.';
+        return 'Opened the tent. ' + what + ' ' + heatClause(before);
+      }},
+    ]
+  },
+  {
+    id:'clone_jar', icon:'🌱', title:'A Jar of Clones',
+    body:'A grower from across town has clones in a jar.',
+    choices:[
+      {text:'Buy the cut.', cost:160, type:'risky', effect:()=>{
+        const next = nextStrain();
+        if (!next) {
+          if (state.cash < CLONE_TIP) { showToast("Can't cover the tip!", 'bust'); return null; }
+          state.cash -= CLONE_TIP;
+          const before = state.heat;
+          addHeat(-4);
+          return 'You already run every cut they sell. $' + fmtCash(CLONE_TIP) + ' for the trip. ' + heatClause(before);
+        }
+        if (!unlockStrain(next.id, true)) return null;
+        const before = state.heat;
+        addHeat(CLONE_HEAT);
+        return next.icon + ' ' + next.name + ' is in the dirt. ' + strainBlurb(next) + ' ' + heatClause(before);
+      }},
+      {text:'Send them on.', type:'safe', effect:()=>{
+        return 'The jar walks. The tent stays on the cut you already run.';
+      }},
+    ]
+  },
+  {
+    id:'smell_check', icon:'👃', title:'Someone Asked About the Smell',
+    body:'A city inspector is two doors down, asking about that smell. Money walks him the other way. Playing dumb is fine if the tent does not reek.',
+    choices:[
+      {text:'Pay him to walk the other way.', cost:SMELL_PAY, type:'safe', effect:()=>{
+        if (state.cash < SMELL_PAY) { showToast("Can't afford it!", 'bust'); return null; }
+        state.cash -= SMELL_PAY;
+        const before = state.heat;
+        addHeat(-SMELL_RELIEF);
+        return 'He wrote down a bakery. ' + heatClause(before);
+      }},
+      {text:'Play dumb.', type:'risky', effect:()=>{
+        const filtered = upgLv('filter') > 0;
+        const before = state.heat;
+        addHeat(filtered ? SMELL_HEAT_FILTERED : SMELL_HEAT);
+        return (filtered
+          ? 'The carbon filter did the talking.'
+          : 'The alley told on you.') + ' ' + heatClause(before);
+      }},
+    ]
+  },
+  {
+    id:'corner_tax', icon:'🤝', title:'The Block Wants a Taste',
+    body:'A crew you do not run with is at the end of the alley.',
+    choices:[
+      {text:'Pay the taste. They walk.', cost:50, type:'safe', effect:()=>{
+        const cost = streetTaxCost();
+        if (state.cash < cost) { showToast("Can't cover the taste!", 'bust'); return null; }
+        state.cash -= cost;
+        const before = state.heat;
+        addHeat(-10);
+        return 'Paid $' + fmtCash(cost) + '. The alley is yours. ' + heatClause(before);
+      }},
+      {text:'Refuse. Let them skim.', type:'risky', effect:()=>{
+        state.taxLeft = TAX_HANDS;
+        const before = state.heat;
+        addHeat(6);
+        refreshStrainQuote();
+        const skimPct = Math.round((1 - TAX_RATE) * 100);
+        return 'They will take ' + skimPct + '% of the next ' + TAX_HANDS + ' street sales. ' + heatClause(before);
+      }},
+    ]
+  },
 ];
 
+function prepareEvent(ev) {
+  if (!ev) return ev;
+  if (ev.id === 'clone_jar') {
+    const next = nextStrain();
+    const skimNote = next ? strainBlurb(next) : 'You already run every cut they sell.';
+    ev.body = next
+      ? 'A grower from across town has a jar of ' + next.name + ' clones. ' + skimNote
+      : 'A grower from across town came with clones. ' + skimNote;
+    ev.choices[0].cost = next ? next.cost : CLONE_TIP;
+    ev.choices[0].text = next ? 'Buy the ' + next.name + ' cut' : 'Slip them $' + fmtCash(CLONE_TIP) + ' for the trip';
+  }
+  if (ev.id === 'corner_tax') {
+    const cost = streetTaxCost();
+    const skimPct = Math.round((1 - TAX_RATE) * 100);
+    ev.choices[0].cost = cost;
+    ev.choices[0].text = 'Pay the taste. They walk.';
+    ev.body = 'A crew you do not run with is at the end of the alley. $' + fmtCash(cost)
+      + ' and they walk. Refuse and they skim ' + skimPct + '% off the next ' + TAX_HANDS + ' street sales.';
+  }
+  return ev;
+}
+function niaPlan() {
+  if ((state.heat || 0) >= 50 || stashCount < RAID_HOLD_BAGS) return 'lights';
+  if (state.cash >= RAID_PAY_COST) return 'pay';
+  return 'hold';
+}
+function niaPlanLine(plan) {
+  if (plan === 'pay') return 'pay Voss off';
+  if (plan === 'hold') return 'hold the lot';
+  return 'kill the lights';
+}
+function niaRead() {
+  if (pCarrying === 'bud') return { line: 'Trim table. I will walk you.', act: 'trim' };
+  if (pCarrying === 'bag') return { line: 'Stash that bag.', act: 'stash' };
+  if (!pCarrying && trimBags > 0) return { line: 'Bags on the table. Grab them.', act: 'grab' };
+  const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+  if (!pCarrying && stashCount > 0 && dealer) return { line: 'Buyer is up. I would sell.', act: 'sell' };
+  if (growPlots.some(p => p.ready)) return { line: 'A plant is ready. I would cut it.', act: 'harvest' };
+  if (!state.niaSeenWork) return { line: 'Harvest once. Then I will call the night.', act: 'wait' };
+  if ((state.raidCool || 0) > 0) return { line: 'Lay low. Voss is still circling.', act: 'wait' };
+  if (state.heat >= 70) return { line: 'Heat is loud. Do not sell big.', act: 'wait' };
+  if (!state.raidNightWon) return { line: 'The block is quiet. Call the night.', act: 'raid' };
+  return { line: 'I am on the lot. Let it grow.', act: 'wait' };
+}
+function paintNia() {
+  const line = document.getElementById('nia-line');
+  const post = document.getElementById('nia-post');
+  const call = document.getElementById('raid-call');
+  if (!line || !call) return;
+  const read = niaRead();
+  if (line.textContent !== read.line) line.textContent = read.line;
+  if (post) post.textContent = ownedRoomSet.has('lot') ? 'Night Lot' : 'On the door';
+  const cool = state.raidCool || 0;
+  const ready = !!state.niaSeenWork && cool <= 0 && !raidNightOpen;
+  call.disabled = !ready;
+  const label = !state.niaSeenWork
+    ? 'Raid Night — locked'
+    : cool > 0
+      ? 'Laying low · ' + Math.ceil(cool) + 's'
+      : state.raidNightWon ? 'Raid Night again' : 'Call Raid Night';
+  if (call.textContent !== label) call.textContent = label;
+  call.title = !state.niaSeenWork
+    ? 'Nia calls the night after she sees you harvest.'
+    : cool > 0
+      ? 'Voss is still on the block.'
+      : 'Sergeant Voss. Live through it and the Night Lot is yours.';
+}
+function askNia() {
+  const read = niaRead();
+  showToast('🧢 Nia: ' + read.line, 'good');
+  addFeed('🧢 Nia: ' + read.line);
+  sfx('ui');
+  if (read.act === 'harvest') {
+    let best = null, bestD = 1e9;
+    for (const p of growPlots) {
+      if (!p.ready) continue;
+      const d = (player.position.x - p.x) ** 2 + (player.position.z - p.z) ** 2;
+      if (d < bestD) { best = p; bestD = d; }
+    }
+    if (best) walkToward(best.x, best.z + 1.05);
+  } else if (read.act === 'trim' && trimStation) walkToward(trimStation.x, trimStation.z + 0.9);
+  else if (read.act === 'stash' && stashNode) walkToward(stashNode.x, stashNode.z + 1.2);
+  else if (read.act === 'grab' && trimStation) walkToward(trimStation.x, trimStation.z + 0.6);
+  else if (read.act === 'sell') {
+    const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+    if (dealer) walkToward(dealer.group.position.x, dealer.group.position.z + 0.4);
+  } else if (read.act === 'raid') openRaidNight();
+}
+function grantNightLot() {
+  if (ownedRoomSet.has('lot')) return;
+  const def = ROOM_DEFS.find(r => r.id === 'lot');
+  ownedRoomSet.add('lot');
+  if (!state.ownedRooms.includes('lot')) state.ownedRooms.push('lot');
+  buildRoom(def);
+  onRoomUnlocked('lot');
+  const home = roomCenter(def);
+  panX = home.cx;
+  panZ = home.cz;
+  applyCamera();
+}
+let nia = null;
+function niaHome() {
+  if (ownedRoomSet.has('lot')) {
+    const c = roomCenter(ROOM_DEFS.find(r => r.id === 'lot'));
+    return { x: c.cx + 2.2, z: c.cz + 1.4 };
+  }
+  return { x: 2.4, z: 3.4 };
+}
+function spawnNia() {
+  if (nia) return;
+  const g = buildRunnerNPC();
+  const home = niaHome();
+  g.position.set(home.x, 0, home.z);
+  scene.add(g);
+  nia = { group: g };
+}
+function updateNia(dt) {
+  if (!nia) return;
+  const home = niaHome();
+  const dx = home.x - nia.group.position.x;
+  const dz = home.z - nia.group.position.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > 0.15) {
+    const step = Math.min(dist, 3.4 * dt);
+    nia.group.position.x += (dx / dist) * step;
+    nia.group.position.z += (dz / dist) * step;
+    nia.group.rotation.y = Math.atan2(dx, dz);
+  }
+  setLabel('nia', ownedRoomSet.has('lot') ? '🧢 Nia · lot' : '🧢 Nia', nia.group.position.x, 2.35, nia.group.position.z);
+  paintNia();
+}
+function updateRaidCool(dt) {
+  if ((state.raidCool || 0) <= 0) return;
+  const before = Math.ceil(state.raidCool);
+  state.raidCool = Math.max(0, state.raidCool - dt);
+  if (Math.ceil(state.raidCool) !== before) paintNia();
+}
+function closeRaidNight() {
+  raidNightOpen = false;
+  const modal = document.getElementById('raid-night-modal');
+  if (modal) modal.classList.remove('open');
+  paintNia();
+}
+function finishRaidNight() {
+  state.raidNights = (state.raidNights || 0) + 1;
+  state.raidCool = RAID_COOL;
+  const first = !state.raidNightWon;
+  state.raidNightWon = true;
+  closeRaidNight();
+  if (first) {
+    grantNightLot();
+    sfx('buy');
+    addShake(0.45);
+    juiceFlash('good');
+    showToast('🌙 The Night Lot is yours. Nia posts up out back — heat drains a little faster while she is there.', 'good');
+    addFeed('🌙 Night Lot opened — Nia has the door');
+  }
+  renderExpandPanel();
+  refreshHud();
+  saveGame();
+}
+function applyRaidChoice(which) {
+  const plan = which === 'nia' ? niaPlan() : which;
+  if (plan === 'hold') {
+    if (stashCount < RAID_HOLD_BAGS) { showToast('The shelf is short — Voss would just take the room.', 'bust'); return; }
+    const qty = RAID_HOLD_BAGS;
+    const price = salePrice() * RAID_HOLD_MULT * qty;
+    stashCount -= qty;
+    pureBags = Math.min(pureBags, stashCount);
+    state.totalSold += qty;
+    addCash(price);
+    addHeat(16);
+    if (stashNode) setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+    showToast('Held the lot. Voss left with nothing. +$' + fmtCash(price) + '.', 'good');
+    addFeed('🚔 Raid night — held the lot, moved ' + qty + ' bags');
+    sfx('sale', price);
+  } else if (plan === 'pay') {
+    if (state.cash < RAID_PAY_COST) { showToast("Can't cover Voss ($" + fmtCash(RAID_PAY_COST) + ').', 'bust'); return; }
+    state.cash -= RAID_PAY_COST;
+    addHeat(-12);
+    showToast('Nia slipped Voss $' + fmtCash(RAID_PAY_COST) + '. The cars roll on.', 'good');
+    addFeed('🚔 Raid night — paid Voss $' + fmtCash(RAID_PAY_COST));
+    sfx('ui');
+  } else {
+    addHeat(-RAID_LIGHTS_HEAT);
+    const hit = setBackCrop();
+    showToast('Lights out. Voss drove past.' + (hit ? ' ' + hit + ' plant' + (hit > 1 ? 's' : '') + ' set back.' : ''), 'good');
+    addFeed('🚔 Raid night — killed the lights');
+    sfx('heat');
+  }
+  finishRaidNight();
+}
+function openRaidNight() {
+  if (raidNightOpen || activeEvent || busted || raidActive) return;
+  if (!state.niaSeenWork) { showToast('Nia: let me see you harvest once. Then I call it.', ''); return; }
+  if ((state.raidCool || 0) > 0) {
+    showToast('Nia: Voss is still on the block. Lay low ' + Math.ceil(state.raidCool) + 's.', '');
+    return;
+  }
+  raidNightOpen = true;
+  const plan = niaPlan();
+  const body = document.getElementById('raid-night-body');
+  if (body) {
+    body.textContent = 'Sergeant Voss is coming down the alley with two cars and no lights. '
+      + 'The Night Lot is the only door that is not on the warrant. Live through tonight and Nia keeps it. '
+      + 'Nia would ' + niaPlanLine(plan) + '.';
+  }
+  const box = document.getElementById('raid-night-choices');
+  if (box) {
+    box.innerHTML = '';
+    const specs = [
+      { id: 'raid-nia', which: 'nia', text: 'Let Nia run it — she would ' + niaPlanLine(plan), risky: false },
+      { id: 'raid-hold', which: 'hold', text: 'Hold the lot (' + RAID_HOLD_BAGS + ' bags at ' + RAID_HOLD_MULT + '×)', risky: true },
+      { id: 'raid-lights', which: 'lights', text: 'Kill the lights', risky: false },
+    ];
+    for (const spec of specs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = spec.id;
+      btn.className = 'ev-choice' + (spec.risky ? ' risky' : '');
+      btn.textContent = spec.text;
+      if (spec.which === 'hold' && stashCount < RAID_HOLD_BAGS) {
+        btn.disabled = true;
+        btn.title = 'Need ' + RAID_HOLD_BAGS + ' bags on the shelf to hold the lot.';
+      }
+      btn.onclick = () => applyRaidChoice(spec.which);
+      box.appendChild(btn);
+    }
+  }
+  const modal = document.getElementById('raid-night-modal');
+  if (modal) modal.classList.add('open');
+  sfx('event');
+  addShake(0.28);
+  juiceFlash('heat');
+  paintNia();
+}
+function bindNia() {
+  const ask = document.getElementById('nia-ask');
+  const call = document.getElementById('raid-call');
+  if (ask) ask.addEventListener('click', askNia);
+  if (call) call.addEventListener('click', openRaidNight);
+  spawnNia();
+  paintNia();
+}
+
 function triggerEvent(forced) {
-  if (activeEvent || raidActive) return;
-  const ev = forced || EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  if (activeEvent || raidActive || raidNightOpen) return;
+  const ev = prepareEvent(forced || EVENTS[Math.floor(Math.random()*EVENTS.length)]);
   activeEvent = ev;
   document.getElementById('ev-icon').textContent = ev.icon;
   document.getElementById('ev-title').textContent = ev.title;
@@ -2090,11 +2740,16 @@ function triggerEvent(forced) {
   }
   document.getElementById('event-modal').classList.add('open');
   addFeed(`⚠️ ${ev.title}`);
+  sfx('event');
+  addShake(0.18);
 }
 
 function triggerRaid() {
   if (raidActive) return;
   raidActive = true;
+  sfx('heat');
+  addShake(0.7);
+  juiceFlash('heat');
   raidTimer = 15;
   document.getElementById('raid-overlay').classList.add('active');
   document.getElementById('status-bar').textContent = '🚔 DEA RAID — STAY LOW';
@@ -3131,13 +3786,14 @@ function addHeat(amount) {
   // every heat GAIN lands a quarter lighter (stacks with the crunch tax).
   if (amount > 0 && ownedRoomSet.has('front')) amount *= 0.75;
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
+  if (amount >= 8 && state.heat < 100) { sfx('heat'); addShake(0.22); juiceFlash('heat'); }
   if (state.heat >= 100) triggerBust();
   refreshHud();
 }
 // qty scales the heat hit so selling more units in one sale isn't
 // strictly better than making the same number of smaller sales.
 function heatGainPerSale(qty = 1) {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain;
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain * activeStrain().heat;
 }
 // Big operations attract big attention: past the Act III threshold
 // ($15k lifetime) every sale runs hotter, up to 2.5x — otherwise maxed
@@ -3160,7 +3816,9 @@ function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('secu
 function heatDrainPerSec() {
   // LAB-13: an open laundromat out front cools things off on its own —
   // customers coming and going are the best cover there is.
-  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
+  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2
+    + (ownedRoomSet.has('front') ? 0.35 : 0)
+    + (ownedRoomSet.has('lot') ? LOT_DRAIN : 0)) * DIFF().drain;
 }
 
 // ── The Getaway Bag (LAB-21) ──────────────────────────────
@@ -3214,7 +3872,15 @@ function skipTown() {
 // ── Bust ──
 function labAudio() { return window.EurekaAudio || null; }
 function labSfx(name) {
-  try { const a = labAudio(); if (a) a.sfx(name); } catch (e) {}
+  // Once the shared score is unlocked it owns the five cues. Before
+  // that first tap, callers fall back to the corner's own tones.
+  try {
+    const a = labAudio();
+    if (!a) return false;
+    a.sfx(name);
+    return !!(a.unlocked && a.unlocked());
+  } catch (e) {}
+  return false;
 }
 function labFanfare() {
   try { const a = labAudio(); if (a) a.celebrate(8); } catch (e) {}
@@ -3247,10 +3913,13 @@ function labSoundtrack(now) {
 }
 
 function triggerBust() {
-  labSfx('fail');
+  const sharedFail = labSfx('fail');
   try { const a = labAudio(); if (a) a.setMood('tense', { force: true }); } catch (e) {}
   if (state.bagPacked) { skipTown(); return; }   // LAB-21: you weren't home
   busted = true;
+  if (!sharedFail) sfx('bust');
+  addShake(1);
+  juiceFlash('heat');
   // Make the loss stick: stop the sim/autosave and wipe the save so a reload
   // can't resume the busted run.
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
@@ -3259,6 +3928,7 @@ function triggerBust() {
     'The DEA kicked in the door. Everything\'s seized.\n10 to 15, no deal.';
   const stats = document.getElementById('bust-stats');
   stats.innerHTML = `
+    <div class="row"><span>Cut in the tent</span><strong>${activeStrain().icon} ${activeStrain().name}</strong></div>
     <div class="row"><span>Total Earned</span><strong>$${fmtCash(state.totalEarned)}</strong></div>
     <div class="row"><span>Units Sold</span><strong>${state.totalSold}</strong></div>
     <div class="row"><span>Batches Cooked</span><strong>${state.batches}</strong></div>
@@ -3330,6 +4000,7 @@ function updateMarket(dt) {
 }
 let _lastMktShown = 0, _lastMktSeconds = null, _lastMktWindow = '';
 function updateMarketHUD() {
+  refreshStrainQuote();
   const eff = marketMult();
   const seconds = market.surge ? Math.ceil(market.surge.left) : null;
   const window = market.surge ? (market.surge.mult > 1 ? 'surge' : 'crash') : '';
@@ -3355,7 +4026,7 @@ function salePrice() {
   const chemiBonus = chemStation ? 1.8 : 1;
   // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
   const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
-  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult());
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult() * activeStrain().price);
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -3991,6 +4662,7 @@ const GROW_ACH = [
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
+  { id: 'full_menu',    name: 'The Full Menu',    test: () => (state.strainsOwned || []).length >= STRAINS.length },
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -4047,7 +4719,7 @@ window.addEventListener('keyup',   e => { keys[e.code]=false; });
 let suppressClick = false; // set by a touch pan-drag to cancel the synthetic click
 renderer.domElement.addEventListener('click', e => {
   if (suppressClick) { suppressClick = false; return; }
-  if (activeEvent || raidActive) return;
+  if (activeEvent || raidActive || raidNightOpen) return;
   const mouse = new THREE.Vector2(
     (e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   const ray = new THREE.Raycaster();
@@ -4077,8 +4749,11 @@ function refreshHud() {
   refreshBagBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
+  paintHeatRate();
+  renderStrainPanel();
   document.getElementById('act-badge').textContent =
     ACT_LABELS[currentAct()] + (state.difficulty === 'kingpin' ? ' · 👑' : '');
+  paintNia();
 
   // Employee counts
   document.getElementById('trimmer-count').textContent = state.trimmers+'/3';
@@ -4134,6 +4809,16 @@ function renderExpandPanel() {
       el.appendChild(d);
       continue;
     }
+    if (def.id === 'lot' && !state.raidNightWon) {
+      const locked = document.createElement('button');
+      locked.type = 'button';
+      locked.className = 'act-btn locked';
+      locked.disabled = true;
+      locked.innerHTML = def.label + '<span class="cost">Survive Raid Night</span>';
+      locked.title = 'Nia holds the Night Lot until you live through a raid night.';
+      el.appendChild(locked);
+      continue;
+    }
     const btn = document.createElement('button');
     btn.className='act-btn'+(state.cash<def.cost?' locked':'');
     btn.disabled = state.cash<def.cost;
@@ -4150,6 +4835,10 @@ function renderExpandPanel() {
 function buyRoom(id) {
   const def = ROOM_DEFS.find(r=>r.id===id);
   if (!def||ownedRoomSet.has(id)||state.cash<def.cost) return;
+  if (def.id === 'lot' && !state.raidNightWon) {
+    showToast('Nia: the lot stays dark until we live through a raid night.', '');
+    return;
+  }
   state.cash -= def.cost;
   ownedRoomSet.add(id);
   state.ownedRooms.push(id);
@@ -4192,6 +4881,31 @@ function onRoomUnlocked(id) {
     buildGrowPlot(cx-2, cz-2, id);
     buildGrowPlot(cx+2, cz-2, id);
   }
+  if (id==='lot') {
+    const lamp = new THREE.PointLight(0xffaa44, 1.4, 22);
+    lamp.position.set(cx, 4.5, cz);
+    scene.add(lamp);
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8),
+      new THREE.MeshLambertMaterial({color:0x221c14})
+    );
+    pole.position.set(cx, 1.6, cz);
+    scene.add(pole);
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 10, 8),
+      new THREE.MeshLambertMaterial({color:0xffcc66, emissive:0xff8800, emissiveIntensity:0.8})
+    );
+    bulb.position.set(cx, 3.3, cz);
+    scene.add(bulb);
+    const crate = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.9, 0.9),
+      new THREE.MeshLambertMaterial({color:0x6a4a28})
+    );
+    crate.position.set(cx - 3, 0.45, cz + 2);
+    crate.castShadow = true;
+    scene.add(crate);
+    setLabel('lot', '🌙 Night Lot', cx, 3.8, cz);
+  }
   if (id==='lab') {
     if (!chemStation) {
       buildChemStation(cx, cz);
@@ -4203,6 +4917,127 @@ function onRoomUnlocked(id) {
       showToast('⚗️ Chemistry Station moved into The Lab.', 'info');
     }
   }
+}
+
+function saleToast(qty, price, skim) {
+  const cut = activeStrain();
+  const who = cut.id === 'kush' ? '' : ' of ' + cut.name;
+  const skimNote = skim > 0 ? ' \u00b7 skimmed $' + fmtCash(skim) : '';
+  return '+$' + fmtCash(price) + ' \u2014 ' + qty + ' unit' + (qty > 1 ? 's' : '') + who + ' moved' + skimNote;
+}
+function paintHeatRate() {
+  const el = document.getElementById('heat-rate');
+  if (!el) return;
+  const text = '\u2212' + heatDrainPerSec().toFixed(1) + '/s \u00b7 +' + fmtTenths(heatGainPerSale(1)) + '/sale';
+  if (el.textContent !== text) el.textContent = text;
+  const hud = document.getElementById('heat-hud');
+  if (hud) hud.title = 'Heat bleeds ' + heatDrainPerSec().toFixed(2) + ' per second. The next single-bag street sale adds ' + fmtTenths(heatGainPerSale(1)) + '.';
+}
+function strainQuote() {
+  const s = activeStrain();
+  const tax = (state.taxLeft || 0) > 0
+    ? ' \u00b7 skim \u00d7' + TAX_RATE + ' on next ' + state.taxLeft
+    : '';
+  return s.icon + ' ' + s.name + ' \u00b7 bag $' + fmtCash(previewBag())
+    + ' \u00b7 heat +' + fmtTenths(heatGainPerSale(1))
+    + ' \u00b7 grow ' + fmtTenths(growTime()) + 's' + tax;
+}
+function refreshStrainQuote() {
+  const el = document.getElementById('strain-quote');
+  if (!el) return;
+  const text = strainQuote();
+  if (el.textContent !== text) el.textContent = text;
+}
+function renderStrainPanel() {
+  const el = document.getElementById('strain-list');
+  if (!el) return;
+  el.innerHTML = '';
+  const act = currentAct();
+  for (const s of STRAINS) {
+    const owned = strainUnlocked(s);
+    const running = activeStrain().id === s.id;
+    const gated = !owned && act < (s.act || 1);
+    const broke = !owned && !gated && state.cash < s.cost;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'strain-' + s.id;
+    btn.className = 'strain-btn' + (running ? ' on' : '') + (!owned ? ' locked' : '');
+    const tag = running ? 'RUNNING'
+      : owned ? 'Switch'
+      : gated ? 'Act II'
+      : broke ? 'Need $' + fmtCash(s.cost - state.cash)
+      : '$' + fmtCash(s.cost);
+    btn.innerHTML = s.icon + ' ' + s.name + ' <span class="tag">' + tag + '</span><span class="sub">' + strainStat(s) + '</span>';
+    btn.title = (gated
+      ? s.name + ' unlocks in Act II. '
+      : broke
+        ? 'Need $' + fmtCash(s.cost - state.cash) + ' more for ' + s.name + '. '
+        : running
+          ? 'Running ' + s.name + '. '
+          : owned
+            ? 'Switch the tent to ' + s.name + '. '
+            : 'Buy ' + s.name + ' for $' + fmtCash(s.cost) + '. ') + strainBlurb(s);
+    btn.onclick = () => onStrainClick(s.id);
+    el.appendChild(btn);
+  }
+  refreshStrainQuote();
+}
+function selectStrain(id) {
+  const s = strainById(id);
+  if (!strainUnlocked(s)) return false;
+  const changed = activeStrain().id !== s.id;
+  state.strain = s.id;
+  retintPlots();
+  if (changed) {
+    setStatus(s.icon + ' Running ' + s.name + '.');
+    saveGame();
+  }
+  renderStrainPanel();
+  return changed;
+}
+function unlockStrain(id, quiet) {
+  const s = strainById(id);
+  if (!s || s.id === 'kush') return false;
+  if (strainUnlocked(s)) { selectStrain(s.id); return true; }
+  if (currentAct() < (s.act || 1)) {
+    showToast(s.icon + ' ' + s.name + ' shows up in Act II.', 'bust');
+    return false;
+  }
+  if (state.cash < s.cost) {
+    showToast(s.icon + ' Need $' + fmtCash(s.cost - state.cash) + ' more for ' + s.name + '.', 'bust');
+    return false;
+  }
+  state.cash -= s.cost;
+  if (!state.strainsOwned.includes(s.id)) state.strainsOwned.push(s.id);
+  selectStrain(s.id);
+  if (!quiet) {
+    showToast(s.icon + ' ' + s.name + ' is in the tent \u2014 ' + strainBlurb(s), 'good');
+    sfx('buy');
+    addShake(0.2);
+    juiceFlash('good');
+    addFeed(s.icon + ' Cut switched to ' + s.name);
+  }
+  checkGrowAchievements();
+  saveGame();
+  refreshHud();
+  renderUpgradesPanel();
+  return true;
+}
+function onStrainClick(id) {
+  const s = strainById(id);
+  if (!s) return;
+  if (strainUnlocked(s)) {
+    if (activeStrain().id === s.id) {
+      showToast(s.icon + ' ' + s.name + ' \u2014 ' + strainBlurb(s), '');
+      return;
+    }
+    selectStrain(s.id);
+    showToast(s.icon + ' Switched to ' + s.name + '. ' + strainBlurb(s), 'good');
+    addFeed(s.icon + ' Now running ' + s.name);
+    refreshHud();
+    return;
+  }
+  unlockStrain(s.id);
 }
 
 // ── Upgrades panel ──
@@ -4224,11 +5059,20 @@ function renderUpgradesPanel() {
     }
     const cost = upgCost(u);
     const maxed = lv>=u.maxLv;
+    const short = !maxed && state.cash<cost;
     const btn = document.createElement('button');
-    btn.className='upg-btn';
-    btn.disabled = maxed || state.cash<cost;
+    btn.className='upg-btn'+(short?' locked':'');
+    btn.disabled = maxed;
     const lvEl = maxed?`<span class="lvl maxed">MAX</span>`:`<span class="lvl">Lv${lv}</span>`;
-    btn.innerHTML=`${u.icon} ${u.name} ${lvEl}${!maxed?`<span class="cost">$${fmtCash(cost)} · ${u.desc}</span>`:''}`;
+    const costLine = short
+      ? `Need $${fmtCash(cost-state.cash)} \u00b7 ${u.desc}`
+      : `$${fmtCash(cost)} \u00b7 ${u.desc}`;
+    btn.innerHTML=`${u.icon} ${u.name} ${lvEl}${!maxed?` <span class="cost">${costLine}</span>`:''}`;
+    btn.title = maxed
+      ? u.name + ' is maxed.'
+      : short
+        ? 'Need $' + fmtCash(cost - state.cash) + ' more. ' + u.desc
+        : '$' + fmtCash(cost) + ' \u2014 ' + u.desc;
     if (!maxed) btn.onclick = () => buyUpgrade(u.id);
     el.appendChild(btn);
   }
@@ -4238,7 +5082,11 @@ function buyUpgrade(id) {
   const u = UPG.find(x=>x.id===id);
   if (!u) return;
   const cost = upgCost(u);
-  if (state.cash<cost || upgLv(id)>=u.maxLv) return;
+  if (upgLv(id)>=u.maxLv) { showToast(u.icon + ' ' + u.name + ' is already maxed.', ''); return; }
+  if (state.cash<cost) {
+    showToast(u.icon + ' Need $' + fmtCash(cost - state.cash) + ' more for ' + u.name + '.', 'bust');
+    return;
+  }
   // The Lab room builds the chem station too — once it exists this
   // upgrade buys nothing, so refuse instead of taking the cash.
   if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); labSfx('fail'); renderUpgradesPanel(); return; }
@@ -4256,8 +5104,9 @@ function buyUpgrade(id) {
     showToast('⚗️ Chemistry Station built! Now you\'re cooking.','good');
     addFeed('⚗️ Chemistry unlocked');
   }
-  labSfx('build');
+  if (!labSfx('build')) sfx('buy');
   showToast(`${u.icon} ${u.name} upgraded!`,'good');
+  addShake(0.14);
   addFeed(`🔧 ${u.name} Lv${state.upgrades[id]}`);
   saveGame();
   refreshHud();
@@ -4435,6 +5284,14 @@ function saveGame() {
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
+    strain: activeStrain().id,
+    strainsOwned: state.strainsOwned || ['kush'],
+    taxLeft: Math.max(0, Math.min(TAX_HANDS, Math.floor(state.taxLeft || 0))),
+    alleyCleared: state.alleyCleared || [],
+    niaSeenWork: !!state.niaSeenWork,
+    raidNightWon: !!state.raidNightWon,
+    raidNights: state.raidNights || 0,
+    raidCool: Math.max(0, Math.round(state.raidCool || 0)),
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
     bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
@@ -4455,12 +5312,25 @@ function loadGame() {
   try{
     const sv = JSON.parse(localStorage.getItem(LS_KEY)||'null');
     if(!sv) return;
-    state.cash=sv.cash||50;
+    // 0 is a real balance. `|| 50` used to treat a broke corner as a missing
+    // save and hand back the seed money on every reload.
+    state.cash = Number.isFinite(Number(sv.cash)) ? Math.max(0, Number(sv.cash)) : 50;
     state.difficulty = sv.difficulty === 'kingpin' ? 'kingpin' : 'careful';
     state.totalEarned=sv.totalEarned||0;
     state.totalSold=sv.totalSold||0;
     state.heat=Math.min(99,sv.heat||0); // don't load at 100
     state.upgrades=sv.upgrades||{};
+    {
+      const cuts = normalizeStrains(sv.strainsOwned, sv.strain);
+      state.strain = cuts.strain;
+      state.strainsOwned = cuts.owned;
+    }
+    state.taxLeft = Math.max(0, Math.min(TAX_HANDS, Math.floor(Number(sv.taxLeft) || 0)));
+    state.alleyCleared = Array.isArray(sv.alleyCleared) ? sv.alleyCleared.filter(x => typeof x === 'string').slice(0, 40) : [];
+    state.niaSeenWork = !!sv.niaSeenWork;
+    state.raidNightWon = !!sv.raidNightWon;
+    state.raidNights = Math.max(0, Math.floor(Number(sv.raidNights) || 0));
+    state.raidCool = Math.max(0, Math.min(RAID_COOL, Math.floor(Number(sv.raidCool) || 0)));
     state.trimmers=sv.trimmers||0;
     state.lookouts=sv.lookouts||0;
     state.runners=sv.runners||0;
@@ -4811,10 +5681,18 @@ function updateGrowPlots(dt) {
     p.progress = Math.min(1, p.progress + speed*dt);
     if (p.progress>=1 && !p.ready) {
       p.ready=true;
+      sfx('ready');
+    }
+    if (p.plantG) {
+      if (p.ready) {
+        const s = 1 + Math.sin(now() * 5 + p.x) * 0.08;
+        p.plantG.scale.set(s, s, s);
+      } else if (p.plantG.scale.x !== 1) p.plantG.scale.set(1, 1, 1);
     }
     updateGrowPlotLabel(p, growPlots.indexOf(p));
-    if (p.stage !== Math.floor(p.progress*3)+1) updatePlantMesh(p);
-    // UV flicker
+    if (p.stage !== Math.floor(p.progress*3)+1 || p.tint !== activeStrain().color) updatePlantMesh(p);
+    // UV flicker — the lamp takes the color of the cut in the tent
+    p.uvLight.color.setHex(activeStrain().light);
     p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
   }
 }
@@ -4822,7 +5700,7 @@ function now(){return performance.now()/1000;}
 
 // ── Update trim station ──
 let trimAutoTimer = 0;
-function trimSpeedMult() { return 1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4; }
+function trimSpeedMult() { return (1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4) * (1 + upgLv('fan')*0.15); }
 function trimBatchLabel() {
   const seconds = Math.ceil(Math.max(0, (1-trimProgress)*TRIM_TIME/trimSpeedMult()));
   return `✂️ Trimming — ${seconds}s · ${trimQueue} queued`;
@@ -4836,6 +5714,8 @@ function updateTrimStation(dt) {
     let bags = 1 + upgLv('yield1');
     if (motherRooted()) { bags += 1; state.motherBags = (state.motherBags || 0) + 1; refreshMotherBtn(); }   // LAB-26: her cutting in every batch
     trimBags += bags; bumpBatches();
+    sfx('trim');
+    addShake(0.12);
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
   // Trimmer NPC movement is handled once per frame in updateTrimmerNPCs().
@@ -4877,10 +5757,10 @@ function updatePlayer(dt) {
   const spd = playerSpeed();
   // WASD movement override
   let moved=false;
-  if(keys['KeyW']||keys['ArrowUp'])    {player.position.z-=spd*dt;moved=true;}
-  if(keys['KeyS']||keys['ArrowDown'])  {player.position.z+=spd*dt;moved=true;}
-  if(keys['KeyA']||keys['ArrowLeft'])  {player.position.x-=spd*dt;moved=true;}
-  if(keys['KeyD']||keys['ArrowRight']) {player.position.x+=spd*dt;moved=true;}
+  if(keys['KeyW']||keys['ArrowUp']||stickVec.z<-0.25)    {player.position.z-=spd*dt;moved=true;}
+  if(keys['KeyS']||keys['ArrowDown']||stickVec.z>0.25)  {player.position.z+=spd*dt;moved=true;}
+  if(keys['KeyA']||keys['ArrowLeft']||stickVec.x<-0.25) {player.position.x-=spd*dt;moved=true;}
+  if(keys['KeyD']||keys['ArrowRight']||stickVec.x>0.25) {player.position.x+=spd*dt;moved=true;}
   if(moved) { pState='idle'; pTarget=null; }
 
   // Walk-to target (click)
@@ -4962,9 +5842,14 @@ function harvestPlot(p) {
   player.userData.carryMesh.material.color.setHex(0x22ff44);
   player.userData.carryMesh.material.emissive.setHex(0x00aa22);
   player.userData.carryMesh.visible=true;
+  state.niaSeenWork = true;
+  paintNia();
   setStatus('Harvest done! Take it to the Trim Station.');
   addFeed('🌿 Harvested a plant');
-  labSfx('harvest');
+  if (!labSfx('harvest')) sfx('harvest');
+  addShake(0.16);
+  juiceFlash('good');
+  feelAt('harvest', innerWidth / 2, innerHeight * 0.42, 'Harvest', '#3FB950');
 }
 
 function depositAtTrim() {
@@ -4972,6 +5857,7 @@ function depositAtTrim() {
   pCarrying=null;
   player.userData.carryMesh.visible=false;
   setStatus('Trimming in progress...');
+  sfx('trim');
 }
 
 function depositAtStash() {
@@ -4982,6 +5868,8 @@ function depositAtStash() {
     stashCount+=added;
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     addFeed(`📦 Stashed ${added} bags`);
+    sfx('stash');
+    addShake(0.1);
     if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
@@ -5056,6 +5944,7 @@ function sellToDealer(d, idx) {
       showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
       addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
       labSfx('fail');
+      feelAt('sting', innerWidth / 2, innerHeight * 0.4, 'Busted', '#F85149');
     }
     saveGame();
     return;
@@ -5072,7 +5961,8 @@ function sellToDealer(d, idx) {
       return;
     }
     d.paid=true;
-    const price = salePrice() * WHALE_MULT * WHALE_BAGS;
+    const whaleTax = applyStreetTax(salePrice() * WHALE_MULT * WHALE_BAGS);
+    const price = whaleTax.price;
     stashCount -= WHALE_BAGS; state.totalSold += WHALE_BAGS;
     pureBags = Math.min(pureBags, stashCount);   // the ✨ ledger can't exceed what's left
     addCash(price);
@@ -5084,9 +5974,12 @@ function sellToDealer(d, idx) {
     checkGrowAchievements();
     const sw=worldToScreen(d.group.position.x,2,d.group.position.z);
     cashPop(sw.x,sw.y,price);
+    feelAt('sell', sw.x, sw.y, '+$' + fmtCash(price), '#7ee787');
     addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
-    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list.', 'good');
-    labSfx('buy');
+    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list' + (whaleTax.skim > 0 ? ' (skimmed $' + fmtCash(whaleTax.skim) + ')' : '') + '.', 'good');
+    if (!labSfx('buy')) sfx('sale', price);
+    addShake(0.45);
+    juiceFlash('good');
     d.state='leaving';
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     saveGame();
@@ -5098,14 +5991,14 @@ function sellToDealer(d, idx) {
   const qty=Math.min(stashCount, d.buyCount);
   // LAB-10: pure bags move first and fetch 1.6× list
   const pureUsed=Math.min(pureBags, qty);
-  const price=salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed;
+  const streetTax=applyStreetTax(salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed);
+  const price=streetTax.price;
   pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
   state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
   clientTick();   // LAB-27: and a face becomes familiar
   diceSaleTick();   // LAB-30: and the hot hand counts it
   addCash(price);
-  labSfx('buy');
   recordSale(price);   // LAB-34: the corner's record book sees the hand
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   burnStreetSale();   // LAB-24: the corner burns the number
@@ -5118,9 +6011,13 @@ function sellToDealer(d, idx) {
   }
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
+  feelAt('sell', s.x, s.y, '+$' + fmtCash(price), '#7ee787');
   if(state.heat<85) heatPop(s.x,s.y+20);
-  addFeed(`💰 Sold ${qty} bags${pureUsed>0?` (${pureUsed}✨ pure)`:''} → +$${fmtCash(price)}`);
-  showToast(`+$${fmtCash(price)} — ${qty} unit${qty>1?'s':''} moved`,'good');
+  addFeed(`💰 Sold ${qty} bag${qty === 1 ? '' : 's'}${pureUsed>0?` (${pureUsed}✨ pure)`:''}${streetTax.skim>0?` · skimmed $${fmtCash(streetTax.skim)}`:''} → +$${fmtCash(price)}`);
+  showToast(saleToast(qty, price, streetTax.skim),'good');
+  if (!labSfx('buy')) sfx('sale', price);
+  addShake(0.3);
+  juiceFlash('good');
   d.state='leaving';
   setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   saveGame();
@@ -5262,6 +6159,7 @@ function updateHeatDrain(dt) {
   state.heat=Math.min(100, Math.max(0, state.heat+net*dt));
   document.getElementById('heat-fill').style.width=state.heat+'%';
   document.getElementById('heat-val').textContent=Math.floor(state.heat);
+  paintHeatRate();
 }
 
 // ── Events ──
@@ -5346,7 +6244,7 @@ renderUpgradesPanel();
 renderExpandPanel();
 refreshGoalHud();
 addFeed('🌿 Operation started');
-addFeed('💡 Plants need ~18s to grow');
+addFeed('💡 Garage Kush finishes in about 18s');
 addFeed('🏃 Walk to ready plants to harvest');
 
 // Autosave on unload
@@ -5356,6 +6254,369 @@ window.addEventListener('beforeunload', saveGame);
 // reliably fire when a tab is hidden/backgrounded/closed on mobile.
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
 window.addEventListener('pagehide', () => saveGame());
+
+// ── Sound, juice, the alley, phone walk ──
+// Tones are synthesized. The speaker button is this corner's mute; the
+// arcade mute (EurekaPersist) still wins when the hub has set one.
+let sfxCtx = null;
+let sfxMuted = false;
+let music = null;
+let shake = 0;
+let stickVec = { x: 0, z: 0 };
+try { sfxMuted = localStorage.getItem('growop-muted') === '1'; } catch (e) {}
+try {
+  if (window.EurekaPersist && EurekaPersist.settings.get().touched) sfxMuted = !!EurekaPersist.settings.get().muted;
+} catch (e) {}
+
+function sfxScale() {
+  try {
+    if (window.EurekaPersist && EurekaPersist.audio && typeof EurekaPersist.audio.sfx === 'function') {
+      return EurekaPersist.audio.sfx(sfxMuted);
+    }
+  } catch (e) {}
+  return sfxMuted ? 0 : 1;
+}
+function sfxAc() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!sfxCtx) { try { sfxCtx = new AC(); } catch (e) { return null; } }
+  if (sfxCtx.state === 'suspended') sfxCtx.resume().catch(() => {});
+  return sfxCtx;
+}
+function sfxTone(freq, dur, opt) {
+  const c = sfxAc();
+  const scale = sfxScale();
+  if (!c || scale <= 0) return;
+  const o = opt || {};
+  const t0 = c.currentTime + (o.delay || 0);
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(Math.max(1, freq), t0);
+  if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.slide), t0 + dur);
+  const level = (o.gain == null ? 0.08 : o.gain) * scale;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(level, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(c.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.03);
+}
+function sfx(name, amount) {
+  try {
+    if (name === 'harvest') { sfxTone(520, 0.07, { type: 'triangle', slide: 860 }); sfxTone(880, 0.09, { delay: 0.05, gain: 0.05 }); }
+    else if (name === 'trim') sfxTone(210, 0.05, { type: 'square', slide: 90, gain: 0.05 });
+    else if (name === 'stash') sfxTone(180, 0.09, { type: 'triangle', slide: 110, gain: 0.07 });
+    else if (name === 'sale') {
+      const f = 620 + Math.min(380, (amount || 25) * 0.4);
+      sfxTone(f, 0.08, { type: 'square', gain: 0.06 });
+      sfxTone(f * 1.25, 0.1, { type: 'square', delay: 0.07, gain: 0.05 });
+      sfxTone(f * 1.5, 0.14, { type: 'triangle', delay: 0.14, gain: 0.04 });
+    } else if (name === 'heat') sfxTone(150, 0.16, { type: 'sawtooth', slide: 60, gain: 0.05 });
+    else if (name === 'bust') { [240, 160, 90].forEach((f, i) => sfxTone(f, 0.28, { type: 'sawtooth', delay: i * 0.16, gain: 0.07, slide: f * 0.7 })); }
+    else if (name === 'buy') { [523, 659, 784].forEach((f, i) => sfxTone(f, 0.09, { type: 'triangle', delay: i * 0.06, gain: 0.06 })); }
+    else if (name === 'event') sfxTone(440, 0.12, { type: 'square', slide: 220, gain: 0.05 });
+    else if (name === 'ready') sfxTone(760, 0.08, { type: 'sine', gain: 0.04 });
+    else if (name === 'clear') { [523, 659, 784, 1046].forEach((f, i) => sfxTone(f, 0.1, { type: 'triangle', delay: i * 0.05, gain: 0.05 })); }
+    else if (name === 'ui') sfxTone(880, 0.03, { type: 'square', gain: 0.03 });
+  } catch (e) {}
+}
+function stopMusic() {
+  if (!music) return;
+  try { music.osc.stop(); music.lfo.stop(); } catch (e) {}
+  music = null;
+}
+function startMusic() {
+  if (music || sfxScale() <= 0) return;
+  const c = sfxAc();
+  if (!c) return;
+  try {
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    const lfo = c.createOscillator();
+    const lg = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 55;
+    g.gain.value = 0.018 * sfxScale();
+    lfo.frequency.value = 0.12;
+    lg.gain.value = 6;
+    lfo.connect(lg).connect(osc.frequency);
+    osc.connect(g).connect(c.destination);
+    osc.start();
+    lfo.start();
+    music = { osc, g, lfo };
+  } catch (e) { music = null; }
+}
+function addShake(n) { shake = Math.min(1.2, shake + n); }
+function applyShake() {
+  applyCamera();
+  if (stickVec.x || stickVec.z) {
+    /* camera stays put; the stick moves the player in updatePlayer */
+  }
+  if (shake > 0.02) {
+    camera.position.x += Math.sin(performance.now() * 0.09) * shake * 0.4;
+    camera.position.y += Math.cos(performance.now() * 0.13) * shake * 0.18;
+    shake *= 0.9;
+  }
+}
+function juiceFlash(kind) {
+  const el = document.getElementById('juice-flash');
+  if (!el) return;
+  el.className = kind === 'heat' ? 'heat' : 'good';
+  void el.offsetWidth;
+  el.classList.add('on');
+}
+function paintSfxBtn() {
+  const b = document.getElementById('sfx-btn');
+  if (!b) return;
+  const off = sfxScale() <= 0;
+  b.textContent = off ? '🔇' : '🔊';
+  b.setAttribute('aria-pressed', off ? 'true' : 'false');
+  b.setAttribute('aria-label', off ? 'Sound off' : 'Sound on');
+  b.title = off ? 'Sound off' : 'Sound on';
+}
+function setSfxMuted(m) {
+  sfxMuted = !!m;
+  try { localStorage.setItem('growop-muted', sfxMuted ? '1' : '0'); } catch (e) {}
+  try {
+    if (window.EurekaPersist) EurekaPersist.settings.update({ muted: sfxMuted, touched: true });
+  } catch (e) {}
+  if (sfxScale() <= 0) stopMusic();
+  else startMusic();
+  paintSfxBtn();
+}
+
+// The alley: three neighbors generated from the UTC date, so every device
+// sees the same marks today, plus friend codes kept in localStorage.
+const ALLEY_FRIENDS_KEY = 'growop-alley';
+const ALLEY_NAMES = ['Rae', 'Moss', 'Junie', 'Polo', 'Nia', 'Vic', 'Sol', 'Kit', 'Remy', 'Ash'];
+function alleyDayNumber(date) {
+  const d = date || new Date();
+  const start = Date.UTC(d.getUTCFullYear(), 0, 0);
+  const day = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
+  return d.getUTCFullYear() * 1000 + day;
+}
+function alleyRand(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function todaysGhosts(date) {
+  const rnd = alleyRand(alleyDayNumber(date));
+  const pool = ALLEY_NAMES.slice();
+  const ghosts = [];
+  let bar = 100;
+  for (let i = 0; i < 3; i++) {
+    const name = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
+    bar += 60 + Math.floor(rnd() * 180);
+    ghosts.push({ name, earned: bar });
+  }
+  return ghosts;
+}
+function alleyChecksum(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+function alleyCodeFor(name, earned) {
+  const clean = String(name || 'You').replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 12) || 'You';
+  const body = clean + ':' + Math.max(0, Math.floor(earned));
+  const b = btoa(body).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return b + '.' + alleyChecksum(b);
+}
+function alleyReadCode(code) {
+  const m = /^([A-Za-z0-9_-]+)\.([a-z0-9]+)$/.exec(String(code || '').trim());
+  if (!m || alleyChecksum(m[1]) !== m[2]) return null;
+  let body = '';
+  try {
+    const pad = m[1] + '='.repeat((4 - m[1].length % 4) % 4);
+    body = atob(pad.replace(/-/g, '+').replace(/_/g, '/'));
+  } catch (e) { return null; }
+  const cut = body.lastIndexOf(':');
+  if (cut <= 0) return null;
+  const name = body.slice(0, cut).replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 12);
+  const earned = Number(body.slice(cut + 1));
+  if (!name || !Number.isFinite(earned) || earned < 0 || earned > 1e9) return null;
+  return { name, earned: Math.floor(earned) };
+}
+function alleyFriends() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ALLEY_FRIENDS_KEY) || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(f => f && typeof f.name === 'string' && Number.isFinite(f.earned)).slice(0, 8);
+  } catch (e) { return []; }
+}
+function saveAlleyFriends(list) {
+  try { localStorage.setItem(ALLEY_FRIENDS_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) {}
+}
+function alleyMarks() {
+  const marks = todaysGhosts().map(g => ({ key: 'day:' + g.name + ':' + g.earned, name: g.name, earned: g.earned, kind: 'today' }));
+  for (const f of alleyFriends()) marks.push({ key: 'friend:' + f.name + ':' + f.earned, name: f.name, earned: f.earned, kind: 'friend' });
+  return marks;
+}
+function paintAlley() {
+  const line = document.getElementById('alley-line');
+  const list = document.getElementById('alley-list');
+  const mine = document.getElementById('alley-mine');
+  if (!line) return;
+  const marks = alleyMarks().slice().sort((a, b) => a.earned - b.earned);
+  const next = marks.find(m => state.totalEarned < m.earned);
+  line.textContent = next ? (next.name + ' · $' + fmtCash(next.earned)) : 'You run the alley';
+  if (list) {
+    list.innerHTML = marks.map(m => {
+      const done = state.totalEarned >= m.earned;
+      const who = m.kind === 'friend' ? m.name + ' (friend)' : m.name;
+      return '<div class="' + (done ? 'done' : 'ahead') + '">' + (done ? '✓ ' : '→ ') + who + ' · $' + fmtCash(m.earned) + '</div>';
+    }).join('');
+  }
+  if (mine) {
+    let nick = 'You';
+    try { nick = (localStorage.getItem('rival-name') || 'You'); } catch (e) {}
+    const code = alleyCodeFor(nick, state.totalEarned);
+    if (mine.value !== code) mine.value = code;
+  }
+}
+function syncAlley(toast) {
+  if (!Array.isArray(state.alleyCleared)) state.alleyCleared = [];
+  for (const m of alleyMarks()) {
+    if (state.totalEarned < m.earned) continue;
+    if (state.alleyCleared.includes(m.key)) continue;
+    state.alleyCleared.push(m.key);
+    if (toast) {
+      showToast('🏁 Passed ' + m.name + ' — $' + fmtCash(m.earned) + ' on the alley.', 'good');
+      addFeed('🏁 Passed ' + m.name);
+      sfx('clear');
+      addShake(0.35);
+      juiceFlash('good');
+    }
+  }
+  paintAlley();
+}
+function pinAlleyFriend(code) {
+  const parsed = alleyReadCode(code);
+  if (!parsed) { showToast('That code does not read.', 'bust'); sfx('ui'); return false; }
+  const list = alleyFriends().filter(f => f.name !== parsed.name);
+  list.unshift(parsed);
+  saveAlleyFriends(list);
+  showToast('📌 ' + parsed.name + ' is on your alley — $' + fmtCash(parsed.earned) + '.', 'good');
+  sfx('buy');
+  syncAlley(true);
+  return true;
+}
+
+function walkToward(x, z) {
+  pTarget = { x, z };
+  pState = 'walkTo';
+  sfx('ui');
+}
+function nextStep() {
+  if (busted || activeEvent || raidNightOpen) return;
+  if (pCarrying === 'bud' && trimStation) return walkToward(trimStation.x, trimStation.z + 0.9);
+  if (pCarrying === 'bag' && stashNode) return walkToward(stashNode.x, stashNode.z + 1.2);
+  if (!pCarrying && trimBags > 0 && trimStation) return walkToward(trimStation.x, trimStation.z + 0.6);
+  if (!pCarrying && chemProduct > 0 && chemStation) return walkToward(chemStation.x, chemStation.z + 0.8);
+  const dealer = dealers.find(d => d.state === 'waiting' && !d.paid);
+  if (!pCarrying && stashCount > 0 && dealer) return walkToward(dealer.group.position.x, dealer.group.position.z + 0.4);
+  let best = null;
+  let bestD = 1e9;
+  for (const p of growPlots) {
+    if (!p.ready || pCarrying) continue;
+    const d = (player.position.x - p.x) ** 2 + (player.position.z - p.z) ** 2;
+    if (d < bestD) { best = p; bestD = d; }
+  }
+  if (best) return walkToward(best.x, best.z + 1.05);
+  setStatus('Nothing to run yet — the plants are still growing.');
+  sfx('ui');
+}
+function refreshNextStep() {
+  const b = document.getElementById('next-step');
+  if (!b) return;
+  let label = 'Wait';
+  if (pCarrying === 'bud') label = 'Trim';
+  else if (pCarrying === 'bag') label = 'Stash';
+  else if (trimBags > 0) label = 'Grab bags';
+  else if (!pCarrying && stashCount > 0 && dealers.some(d => d.state === 'waiting' && !d.paid)) label = 'Sell';
+  else if (growPlots.some(p => p.ready)) label = 'Harvest';
+  if (b.textContent !== label) b.textContent = label;
+  b.classList.toggle('hot', label === 'Harvest' || label === 'Sell' || label === 'Trim' || label === 'Grab bags' || label === 'Stash');
+}
+function bindStick() {
+  const stick = document.getElementById('stick');
+  const knob = document.getElementById('stick-knob');
+  if (!stick || !knob) return;
+  const max = 28;
+  function setFrom(clientX, clientY) {
+    const r = stick.getBoundingClientRect();
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    const cl = Math.max(-1, Math.min(1, dx / max));
+    const ct = Math.max(-1, Math.min(1, dy / max));
+    knob.style.transform = 'translate(' + (cl * max) + 'px,' + (ct * max) + 'px)';
+    stickVec.x = cl;
+    stickVec.z = ct;
+    stick.setAttribute('aria-valuenow', String(Math.round(cl * 10) / 10));
+  }
+  function end() { stickVec.x = 0; stickVec.z = 0; knob.style.transform = ''; stick.setAttribute('aria-valuenow', '0'); }
+  stick.addEventListener('pointerdown', e => {
+    stick.setPointerCapture(e.pointerId);
+    setFrom(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  stick.addEventListener('pointermove', e => {
+    if (!stick.hasPointerCapture(e.pointerId)) return;
+    setFrom(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+}
+function bindJuiceUi() {
+  paintSfxBtn();
+  paintAlley();
+  bindStick();
+  const sfxBtn = document.getElementById('sfx-btn');
+  if (sfxBtn) sfxBtn.addEventListener('click', () => { setSfxMuted(!sfxMuted); sfx('ui'); });
+  const alleyBtn = document.getElementById('alley-btn');
+  const sheet = document.getElementById('alley-sheet');
+  if (alleyBtn && sheet) alleyBtn.addEventListener('click', () => { paintAlley(); sheet.classList.toggle('open'); sfx('ui'); });
+  const close = document.getElementById('alley-close');
+  if (close && sheet) close.addEventListener('click', () => sheet.classList.remove('open'));
+  const copy = document.getElementById('alley-copy');
+  if (copy) copy.addEventListener('click', async () => {
+    const value = document.getElementById('alley-mine').value;
+    try { await navigator.clipboard.writeText(value); showToast('Code copied.', 'good'); }
+    catch (e) {
+      const input = document.getElementById('alley-mine');
+      input.focus(); input.select();
+      showToast('Select the code and copy it.', '');
+    }
+    sfx('ui');
+  });
+  const add = document.getElementById('alley-add');
+  if (add) add.addEventListener('click', () => {
+    const input = document.getElementById('alley-paste');
+    if (pinAlleyFriend(input.value)) input.value = '';
+  });
+  const step = document.getElementById('next-step');
+  if (step) step.addEventListener('click', nextStep);
+  document.addEventListener('pointerdown', () => { if (sfxScale() > 0) startMusic(); }, { once: false });
+  try {
+    if (window.EurekaPersist && EurekaPersist.settings.subscribe) {
+      EurekaPersist.settings.subscribe(() => {
+        try { if (EurekaPersist.settings.get().touched) sfxMuted = !!EurekaPersist.settings.get().muted; } catch (e) {}
+        if (sfxScale() <= 0) stopMusic();
+        paintSfxBtn();
+      });
+    }
+  } catch (e) {}
+}
+bindJuiceUi();
+bindNia();
+syncAlley(false);
 
 // ── Start ──
 requestAnimationFrame(animate);
@@ -5383,7 +6644,9 @@ function animate(now_ms) {
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent && !readingSheet) {
+  if(!raidActive && !activeEvent && !raidNightOpen && !readingSheet) {
+    updateRaidCool(dt);
+    updateNia(dt);
     updateGrowPlots(dt);
     updateTrimStation(dt);
   updateDice(dt);
@@ -5424,6 +6687,8 @@ function animate(now_ms) {
   if(autoSaveTimer>8){autoSaveTimer=0;saveGame();}
 
   updateLabels();
+  refreshNextStep();
+  applyShake();
   renderer.render(scene,camera);
 }
 

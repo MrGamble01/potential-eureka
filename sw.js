@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261016-clear';  // Life gun, sticky paddle, Esc dialogs, hidden-tab time, reset progress
+const SW_VERSION = 'eureka-20261017-pages';  // Studio subpage sheet + hub chrome. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -57,9 +57,11 @@ const SHELL = [
   '/css/arcade-chrome.css',
   '/css/arcade.css',
   '/css/game-cards.css',
+  '/css/hub-pages.css',
   '/css/base.css',
   '/css/dashboard.css',
   '/css/effects.css',
+  '/css/feel.css',
   '/css/games.css',
   '/css/orgchart.css',
   '/css/personal.css',
@@ -72,6 +74,7 @@ const SHELL = [
   '/homeless-village/js/player.js',
   '/homeless-village/js/gameloop.js',
   '/homeless-village/js/main.js',
+  '/js/audio.js',
   '/js/achievements.js',
   '/js/asteroids.js',
   '/js/bookmarks.js',
@@ -82,6 +85,8 @@ const SHELL = [
   '/js/daily.js',
   '/js/dashboard.js',
   '/js/effects.js',
+  '/js/feel.js',
+  '/js/flag-daily.js',
   '/js/game2048.js',
   '/js/gamepad.js',
   '/js/hub-routes.js',

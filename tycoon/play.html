@@ -158,7 +158,41 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .confetti-piece { animation: none; display: none; }
+      .upg-btn.just-bought, #event-label.event-live { animation: none; }
     }
+    .upg-btn.just-bought { animation: upgPop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+    @keyframes upgPop {
+      0% { transform: scale(0.97); }
+      45% { transform: scale(1.04); box-shadow: 0 0 0 1px rgba(63,185,80,0.75), 0 0 16px rgba(63,185,80,0.45); }
+      100% { transform: scale(1); }
+    }
+    #event-label.event-live {
+      animation: eventPulse 0.9s ease-in-out 3;
+      color: #fcd34d;
+      font-weight: 800;
+    }
+    @keyframes eventPulse {
+      50% { transform: scale(1.08); }
+    }
+    .upg-btn[data-cat="scale"] { border-color: rgba(88,166,255,0.38); }
+    .upg-btn.locked-chain:disabled {
+      opacity: 0.82;
+      border-style: dashed;
+      border-color: rgba(88,166,255,0.28);
+    }
+    .upg-btn.locked-chain .cost { color: #8b949e; }
+    #partner-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 340;
+    }
+    #partner-modal.open { display: flex; animation: winFade 0.3s ease; }
+    .partner-steps { display: flex; gap: 8px; justify-content: center; margin: 0 0 10px; }
+    .partner-dot {
+      width: 9px; height: 9px; border-radius: 99px;
+      background: rgba(255,255,255,0.22);
+    }
+    .partner-dot.on { background: #58A6FF; box-shadow: 0 0 10px rgba(88,166,255,0.85); }
+    .partner-dot.done { background: #3FB950; }
     #cash-hud .bill {
       display: inline-block; width: 22px; height: 13px; border-radius: 3px;
       background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
@@ -786,6 +820,72 @@
     }
     #goal-rival-label { font-size: 9px; color: #7D8590; margin-top: 2px; letter-spacing: 0.5px; }
     #goal-rival-label strong { color: #ff8a82; }
+    #goal-hall-label { display: none; font-size: 9px; color: #c4b5fd; margin-top: 2px; letter-spacing: 0.4px; }
+    #goal-hall-label strong { color: #ddd6fe; }
+    #goal-hall-label.lead { color: #86efac; animation: hallPop .45s ease; }
+    @keyframes hallPop { 45% { transform: scale(1.06); } }
+    #annex-btn {
+      pointer-events: auto;
+      display: none;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(134,239,172,0.55);
+      background: rgba(63,185,80,0.12);
+      color: #bbf7d0;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #annex-btn.on { display: flex; align-items: center; justify-content: center; }
+    #annex-chip { display: none; font-size: 9px; color: #86efac; margin-top: 2px; letter-spacing: 0.3px; }
+    #annex-chip.on { display: block; }
+    #annex-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 345;
+    }
+    #annex-modal.open { display: flex; }
+    .annex-kicker { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: #86efac; font-weight: 800; }
+    .annex-scene {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      height: 64px; margin: 8px 0; padding: 0 16px 6px;
+      background: linear-gradient(#1e293b, #1e293b 42%, #334155 42%, #3f3f46 100%);
+      border-radius: 10px; font-size: 26px;
+    }
+    .annex-boss-name { font-weight: 800; font-size: 13px; color: #fecaca; }
+    .annex-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 4px 0 8px; }
+    #annex-pressure { height: 100%; width: 100%; background: linear-gradient(90deg, #F85149, #fdba74); }
+    .annex-crew { display: flex; gap: 8px; text-align: left; margin: 8px 0; }
+    .annex-card {
+      flex: 1; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      padding: 8px; font-size: 12px; background: rgba(255,255,255,0.03);
+    }
+    .annex-card.lead { border-color: rgba(134,239,172,0.8); box-shadow: 0 0 0 1px rgba(134,239,172,0.35); }
+    .annex-card b { display: block; font-size: 13px; }
+    .annex-card span { color: #9aa3ad; }
+    #annex-log { font-size: 13px; font-weight: 700; min-height: 2.6em; margin: 6px 0; }
+    #annex-morale { font-size: 12px; color: #fcd34d; margin-bottom: 8px; }
+    @media (max-width: 900px) {
+      #partner-modal.open { align-items: flex-end; padding: 10px; }
+      #partner-modal .win-panel {
+        width: 100%; max-height: min(82dvh, 640px); overflow: auto;
+        margin: 0 0 env(safe-area-inset-bottom, 0px);
+      }
+      #partner-yes, #partner-no, #annex-follow, #annex-close { min-height: 48px; font-size: 15px; }
+      #annex-modal.open { align-items: flex-end; padding: 10px; }
+      #annex-modal .win-panel {
+        width: 100%; max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
+        overflow: auto; box-sizing: border-box;
+        margin: 0 0 env(safe-area-inset-bottom, 0px);
+      }
+      .annex-crew { flex-direction: column; }
+      #annex-btn.on { min-height: 44px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #goal-hall-label.lead { animation: none; }
+    }
     #goal-hud.complete {
       border-color: rgba(252,211,77,0.7);
       box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
@@ -1496,6 +1596,8 @@
   <span id="rush-label" style="display:none"></span>
   <span class="sep" id="event-sep" style="display:none">|</span>
   <span id="event-label" style="display:none"></span>
+  <span class="sep" id="partner-sep" style="display:none">|</span>
+  <span id="partner-chip" style="display:none"></span>
 </div>
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
@@ -1514,6 +1616,9 @@
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
+  <div id="goal-hall-label" title="The office across the hall — a ghost of your best season, saved in this browser. No server.">🚪 Hall</div>
+  <button type="button" id="annex-btn">🏢 The Annex</button>
+  <div id="annex-chip" title="Mira, Sol, and Penn kept the annex. Deals +6% this season.">🏢 Annex · +6%</div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
 <div id="achievements-modal" role="dialog" aria-modal="true" aria-label="Achievements">
@@ -1590,6 +1695,7 @@
       <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for the whole team for 30s.</div>
       <div class="help-tip">💊 Buy the <strong>Adderall Cabinet</strong> + 🥫 <strong>Zyn Stash</strong> (sidebar) — engineers self-serve to ship faster.</div>
       <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
+      <div class="help-tip">🤝 At <strong>25 ships</strong> the Scale chain opens — Customer Success, then a 3-step design partner.</div>
     </div>
     <button class="tip-ok" id="help-close-btn">Got it</button>
   </div>
@@ -1661,6 +1767,34 @@
     <div class="ipo-actions" style="flex-direction:column;gap:8px">
       <button class="ipo-confirm" id="board-yes"></button>
       <button class="ipo-cancel" id="board-no"></button>
+    </div>
+  </div>
+</div>
+<div id="annex-modal" role="dialog" aria-modal="true" aria-labelledby="annex-title">
+  <div class="win-panel">
+    <div class="annex-kicker">New area</div>
+    <div class="win-title" id="annex-title">The Annex</div>
+    <div class="win-sub" id="annex-body">Across the street from the office. Three companions hold it. The Auditor is already in the stairwell.</div>
+    <div class="annex-scene" aria-hidden="true"><span>👩‍💻</span><span>🤝</span><span>🗂️</span><b>🕵️</b></div>
+    <div class="annex-boss-name">The Auditor</div>
+    <div class="annex-bar"><div id="annex-pressure"></div></div>
+    <div class="annex-crew" id="annex-crew"></div>
+    <div id="annex-log"></div>
+    <div id="annex-morale"></div>
+    <div class="ipo-actions" style="flex-direction:column;gap:8px">
+      <button class="ipo-confirm" id="annex-follow" type="button">Follow the lead</button>
+      <button class="ipo-cancel" id="annex-close" type="button">Back to the floor</button>
+    </div>
+  </div>
+</div>
+<div id="partner-modal" role="dialog" aria-modal="true" aria-labelledby="partner-title">
+  <div class="win-panel">
+    <div class="partner-steps" id="partner-steps" aria-hidden="true"></div>
+    <div class="win-title" id="partner-title">Design partner</div>
+    <div class="win-sub" id="partner-body"></div>
+    <div class="ipo-actions" style="flex-direction:column;gap:8px">
+      <button class="ipo-confirm" id="partner-yes"></button>
+      <button class="ipo-cancel" id="partner-no"></button>
     </div>
   </div>
 </div>
@@ -1838,8 +1972,11 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+<link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
+<script src="/js/feel.js"></script>
+<script src="/js/flag-daily.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -1897,6 +2034,7 @@ const VARIANTS = {
       ['Engineers',                  'Beagles'],
       ['Hire an engineer',           'Adopt a beagle'],
       ['Welcome to Startup Tycoon',  'Welcome to Beagle Sim'],
+      ['They sit at a desk and ship features for cash.', 'They sit at a desk and ship features. Tap the yard at the bottom to dig up bones.'],
     ],
     // Nouns the game re-renders every HUD tick, so a one-shot DOM patch
     // can't hold them — these are read at the render site instead.
@@ -1918,6 +2056,16 @@ const VARIANT = (() => {
   } catch {}
   return VARIANTS.default;
 })();
+
+// Beagle Sim's yard, pack audio, and beagle meshes live in beagle-pack.js.
+// Startup Tycoon never imports it. If the file fails to load, the reskin
+// still runs — the office just won't grow a yard.
+let BEAGLE = null;
+let beaglePack = null;
+if (VARIANT.id === 'beagle') {
+  try { BEAGLE = await import('./beagle-pack.js'); }
+  catch (err) { console.warn('Beagle pack failed to load', err); }
+}
 
 // Identity + copy. Both are no-ops for the base build, which declares
 // neither, so nothing here can change how Startup Tycoon looks.
@@ -2193,6 +2341,33 @@ function lsGet(key)      { try { return localStorage.getItem(key); } catch { ret
 function lsSet(key, val) { try { localStorage.setItem(key, val); } catch {} }
 function lsRemove(key)   { try { localStorage.removeItem(key); } catch {} }
 
+// Screen punch on the actions a player actually takes. Worker
+// deliveries stay on the existing cash floater; standing at a
+// desk, hiring, buying and sprinting get the shared feel kit.
+function officeFeel(kind, text, opts) {
+  const F = window.EurekaFeel;
+  if (!F) return;
+  const beagle = typeof VARIANT !== 'undefined' && VARIANT.id === 'beagle';
+  const labels = {
+    hire: beagle ? 'Adopted' : 'Hired',
+    purchase: beagle ? 'Fetched' : 'Bought',
+    sprint: beagle ? 'Zoomies' : 'Sprint',
+    milestone: beagle ? 'Good dog' : 'Milestone',
+    win: beagle ? 'Best in show' : 'IPO',
+  };
+  const o = opts || {};
+  let view = null;
+  try { view = renderer && renderer.domElement; } catch (e) { view = null; }
+  F.punch(kind, {
+    x: typeof o.x === 'number' ? o.x : window.innerWidth * 0.5,
+    y: typeof o.y === 'number' ? o.y : Math.min(240, window.innerHeight * 0.36),
+    text: text || labels[kind] || '',
+    color: o.color || (beagle ? '#E3B341' : '#58A6FF'),
+    target: view,
+    haptic: o.haptic === true,
+  });
+}
+
 // ── Haptics (Vibration API) ─────────────────────────────────
 // Tactile feedback on touch devices that support navigator.vibrate.
 // Silently no-ops on iOS/desktop. Toggle in settings.
@@ -2212,11 +2387,11 @@ const Haptics = (() => {
       try { localStorage.setItem(LS.haptics, enabled ? '1' : '0'); } catch {}
     },
     isEnabled() { return enabled; },
-    hire()      { buzz(15); },
-    purchase()  { buzz(10); },
-    sprint()    { buzz(30); },
-    milestone() { buzz([20, 60, 20]); },
-    win()       { buzz([30, 80, 30, 80, 30]); },
+    hire()      { buzz(15); officeFeel('hire'); },
+    purchase()  { buzz(10); officeFeel('purchase'); },
+    sprint()    { buzz(30); officeFeel('sprint'); },
+    milestone() { buzz([20, 60, 20]); officeFeel('milestone'); },
+    win()       { buzz([30, 80, 30, 80, 30]); officeFeel('win'); },
   };
 })();
 
@@ -2347,6 +2522,31 @@ const SFX = (() => {
     done() {
       // Soft fall — used when sprint / boost ends.
       tone({ freq: 660, slideTo: 330, dur: 0.20, type: 'sine', vol: 0.18 });
+    },
+    upgrade() {
+      [494, 659, 880].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.12, type: 'triangle', vol: 0.24 }),
+        i * 55,
+      ));
+    },
+    event() {
+      tone({ freq: 392, slideTo: 784, dur: 0.2, type: 'sawtooth', vol: 0.1 });
+      setTimeout(() => tone({ freq: 988, dur: 0.14, type: 'triangle', vol: 0.16 }), 80);
+    },
+    yes() {
+      [523, 659, 880].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.1, type: 'triangle', vol: 0.22 }), i * 50));
+    },
+    no() {
+      tone({ freq: 440, slideTo: 330, dur: 0.14, type: 'sine', vol: 0.16 });
+    },
+    hall() {
+      [392, 494, 587].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.14, type: 'triangle', vol: 0.2 }), i * 70));
+    },
+    annex() {
+      tone({ freq: 294, dur: 0.08, type: 'square', vol: 0.1 });
+      setTimeout(() => tone({ freq: 440, dur: 0.12, type: 'triangle', vol: 0.18 }), 60);
     },
   };
 })();
@@ -3844,6 +4044,9 @@ const BEANIE_COLORS  = [0x202048, 0x882030, 0x206838, 0x582878, 0xa87828, 0x2828
 const SKIN_COLORS    = [0xffe0b0, 0xf5c890, 0xe0ad70, 0xc08850, 0xa06838, 0x704828];
 
 function buildScrappyCharacter(opts) {
+  if (opts && opts.species === 'beagle' && BEAGLE && typeof BEAGLE.buildBeagle === 'function') {
+    return BEAGLE.buildBeagle(THREE, opts);
+  }
   const g = new THREE.Group();
   const bodyColor   = opts.bodyColor   ?? HOODIE_COLORS[0];
   const pantsColor  = opts.pantsColor  ?? PANTS_COLORS[0];
@@ -4125,9 +4328,52 @@ scene.add(player);
 
 // ── Tunables (mutated by upgrades) ──
 let playerSpeed = CONFIG.playerBaseSpeed;
-let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
-let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
-let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
+let dealSpeedMult = 1;   // walk speed + delivery gate (0 pauses ships). Events own this.
+let ideaSpeedMult = 1;   // upgrade base for engineer speed. Events must not write this.
+let dealValueMult = 1;   // enterprise + prestige. Events must not write this.
+// TYC-62: timed events used to assign ideaSpeedMult / dealValueMult directly,
+// so a Hackathon or Demo Day erased Faster Ideation and Enterprise for the
+// rest of the run. Event spikes live on their own factors.
+let eventIdeaMult = 1;
+let burstIdeaMult = 1;
+let burstGen = 0;
+let eventDealMult = 1;
+let corpDealMult = 1;    // Corp Dev's 60s handshake. Must not write dealValueMult.
+let partnerBeat = 0;       // 0 idle, 1-3 choosing, 6 signed
+let partnerTiger = false;
+let partnerBooks = false;
+let partnerLogo = false;
+let partnerSlowT = 0;
+let partnerWaitT = 0;
+let partnerNextBeat = 0;
+let renewalT = 0;
+function ideaRateMult() {
+  return Math.min(10, ideaSpeedMult * eventIdeaMult * burstIdeaMult);
+}
+function setIdeaBurst(mult, secs) {
+  const g = ++burstGen;
+  const season = sessionGen;
+  burstIdeaMult = mult;
+  setTimeout(() => {
+    if (g !== burstGen || season !== sessionGen) return;
+    burstIdeaMult = 1;
+  }, secs * 1000);
+}
+function scaleDealMult() {
+  const cs = upgLevels && upgLevels.cs ? upgLevels.cs : 0;
+  return 1 + cs * 0.04 + (partnerLogo ? 0.08 : 0);
+}
+function scaleWorkMult() {
+  const impl = upgLevels && upgLevels.impl ? upgLevels.impl : 0;
+  const base = 1 + impl * 0.05;
+  return partnerSlowT > 0 ? base * 0.85 : base;
+}
+function scaleGate() {
+  const shipped = typeof totalFeaturesShipped === 'number' ? totalFeaturesShipped : 0;
+  const rev = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
+  const goal = typeof currentGoalTarget === 'function' ? currentGoalTarget() : 25000;
+  return shipped >= 25 || rev >= goal * 0.12;
+}
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
 // sessionGen increments on IPO reset so any in-flight setTimeouts
@@ -4389,6 +4635,7 @@ function spawnIdeaWorker(opts = {}) {
   desk.occupied = true;
 
   const look = randomWorkerLook(ideaWorkers.length + 1);
+  if (VARIANT.id === 'beagle') look.species = 'beagle';
   if (opts.external) {
     // Collared button-down + neutral slacks
     look.isCollared = true;
@@ -4438,6 +4685,13 @@ function spawnIdeaWorker(opts = {}) {
 // binding initializes (same reason the campus check guards founderHas).
 function alumniXp() { try { return Math.min(poachesLost || 0, 5); } catch (e) { return 0; } }
 
+function beagleWorkMult() {
+  if (!beaglePack) return 1;
+  try {
+    const m = beaglePack.workMult();
+    return Number.isFinite(m) && m > 0 ? m : 1;
+  } catch { return 1; }
+}
 function updateIdeaWorkers(dt) {
   const coffeeAm  = amenities.find(a => a.id === 'coffee'   && a.isOwned);
   const printerAm = amenities.find(a => a.id === 'printer'  && a.isOwned);
@@ -4477,7 +4731,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult() * retroWorkMult();
+      const rate = CONFIG.workRateBase * ideaRateMult() * scaleWorkMult() * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult() * retroWorkMult() * beagleWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -4573,6 +4827,11 @@ function updateIdeaWorkers(dt) {
       } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
         totalFeaturesShipped++;
+        if (window.EurekaFeel) EurekaFeel.drip({
+          x: innerWidth * 0.72,
+          y: 88,
+          color: (typeof VARIANT !== 'undefined' && VARIANT.id === 'beagle') ? '#E3B341' : '#7ee787',
+        });
         grantShipXP(w);
         maybeShipBug(w);
         checkProductVersion();
@@ -4677,7 +4936,7 @@ function updatePlayerProximityWork(dt) {
   if (!playerNearDesk) return;
 
   // Accumulate work at the same rate as a hired worker
-  const rate = CONFIG.workRateBase * ideaSpeedMult * (rushActive ? CONFIG.rushBoost : 1.0);
+  const rate = CONFIG.workRateBase * ideaRateMult() * scaleWorkMult() * (rushActive ? CONFIG.rushBoost : 1.0);
   playerWorkProgress = Math.min(1.0, playerWorkProgress + rate * dt);
 
   // Paper stack grows with progress
@@ -4691,6 +4950,7 @@ function updatePlayerProximityWork(dt) {
     const earned = computeDealValue();
     addRevenue(earned);
     totalFeaturesShipped++;
+    officeFeel('ship', '+$' + fmtCash(earned), { color: '#7ee787', haptic: true });
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -4718,7 +4978,7 @@ function updateCeoDeskWork(dt) {
     ceoMonitorGlow.material.color.setHex(0x2979ff);
     return;
   }
-  const rate = CONFIG.workRateBase * ideaSpeedMult * (rushActive ? CONFIG.rushBoost : 1.0);
+  const rate = CONFIG.workRateBase * ideaRateMult() * scaleWorkMult() * (rushActive ? CONFIG.rushBoost : 1.0);
   ceoWorkProgress = Math.min(1.0, ceoWorkProgress + rate * dt);
   setPaperStackProgress(ceoPaperStack, ceoWorkProgress);
   ceoMonitorGlow.material.color.setHex(0x3FB950);
@@ -4728,6 +4988,7 @@ function updateCeoDeskWork(dt) {
     const earned = computeDealValue();
     addRevenue(earned);
     totalFeaturesShipped++;
+    officeFeel('ship', '+$' + fmtCash(earned), { color: '#7ee787', haptic: true });
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -5994,7 +6255,9 @@ hireBtnEl.addEventListener('click', () => {
   if (!spawnIdeaWorker()) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
-  addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
+  addFeedEntry(VARIANT.id === 'beagle'
+    ? `🐶 Adopted beagle #${ideaWorkers.length}!`
+    : `💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
   SFX.hire(); Haptics.hire();
   showTip('goal');
@@ -6015,7 +6278,9 @@ hireExtEngBtnEl.addEventListener('click', () => {
   if (!spawnIdeaWorker({ external: true })) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
-  addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
+  addFeedEntry(VARIANT.id === 'beagle'
+    ? `🦮 Adopted a pedigree beagle (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% dig rate)`
+    : `👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
   changeMorale(-2, 'External hire rattles the team');
   SFX.hire(); Haptics.hire();
 });
@@ -6055,7 +6320,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult()
+    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6233,6 +6498,7 @@ function updateGoalHud(cumulative) {
   }
   if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
+    publishHall();
     trophiesWon++;
     if (hedge) {
       hedge = null;
@@ -9044,10 +9310,12 @@ const INVESTOR_TYPES = [
       addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor');
       addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
-    onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
+    onGreet: () => {
+      corpDealMult = 1.5;
       addFeedEntry('🏦 Corp Dev: deal value ×1.5 for 60s');
       const g = sessionGen;
-      setTimeout(() => { if (sessionGen !== g) return; dealValueMult = Math.max(1, prev); }, 60000); } },
+      setTimeout(() => { if (sessionGen !== g) return; corpDealMult = 1; }, 60000);
+    } },
   { id: 'advisor',    label: 'Advisor',         icon: '🎓', baseReward: 0,    windowSec: 30, color: 0x3a6a4a,
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
@@ -9492,6 +9760,9 @@ function resolveNextAction() {
       action: () => buyUpgrade('enterprise'),
     };
   }
+  // 10b. Scale chain — the mid-game spend once Enterprise is bought or out of reach.
+  const scaleStep = nextAffordableScale();
+  if (scaleStep) return scaleStep;
   // 11. Any other affordable room.
   for (const r of ROOM_DEFS) {
     if (ownedRooms.has(r.id)) continue;
@@ -9569,6 +9840,7 @@ const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
   { id:'engineering', label:'⚙️ Engineering' },
   { id:'revenue',     label:'📈 Revenue' },
+  { id:'scale',       label:'🤝 Scale' },
 ];
 const UPGRADES = [
   // ── Ideation ──
@@ -9601,6 +9873,31 @@ const UPGRADES = [
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
     apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; },
     describe: lv => { const v=[1,3,8,20]; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
+  // ── Scale (TYC-62): the spend between "team is real" and the first IPO.
+  // Opens at 25 ships (the v1.5 bump) or 12% of the season goal. Each
+  // step requires the one before it, so the panel stays a chain.
+  { id:'cs', cat:'scale', label:'🤝 Customer Success', base:400, scale:1.65, max:5,
+    unlocked: () => scaleGate(),
+    lockText: () => 'Opens at 25 features shipped (v1.5) or 12% of the season goal',
+    apply: () => {},
+    describe: lv => lv >= 5 ? 'Deals +20% from the book (max)' : `Deals +${lv * 4}% → +${(lv + 1) * 4}%, on top of Premium and Enterprise` },
+  { id:'impl', cat:'scale', label:'📦 Implementation', base:750, scale:1.7, max:4,
+    unlocked: () => (upgLevels.cs || 0) >= 1,
+    lockText: () => 'Buy Customer Success first',
+    apply: () => {},
+    describe: lv => lv >= 4 ? 'The team ships +20% faster (max)' : `Team ships +${lv * 5}% → +${(lv + 1) * 5}%` },
+  { id:'partner', cat:'scale', label:'📝 Design Partner', base:2400, scale:1, max:1,
+    unlocked: () => (upgLevels.impl || 0) >= 2,
+    lockText: () => 'Buy Implementation twice, then run the pilot',
+    apply: () => {},
+    describe: () => 'A 3-step pilot: tiger team or a deck, then a term sheet' },
+  { id:'refs', cat:'scale', label:'🏷️ Reference Customers', base:1800, scale:1.6, max:3,
+    unlocked: () => partnerBeat >= 6,
+    lockText: () => 'Sign the design-partner term sheet first',
+    apply: () => {},
+    describe: lv => lv >= 3
+      ? 'Renewals pay 54% of a deal every 24s (max)'
+      : `Renewals ${lv * 18}% → ${(lv + 1) * 18}% of a deal, every 24s` },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
@@ -9654,17 +9951,17 @@ setInterval(renderFeed, 5000);
 // ── Startup Events ──────────────────────────────────────────
 const EVENT_POOL = [
   { id:'producthunt', label:'🚀 Product Hunt', dur:25,
-    msg:'🚀 #1 on Product Hunt! Deal flow surging!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=5; changeMorale(+5, 'Product Hunt hype'); },
-    onEnd:()=>{ dealSpeedMult=1; showToast('Product Hunt wave over.','rush','ambient'); } },
+    msg:'🚀 #1 on Product Hunt! Deals pay 1.6×!', cls:'rush',
+    onStart:()=>{ eventDealMult=1.6; dealSpeedMult=1.8; changeMorale(+5, 'Product Hunt hype'); },
+    onEnd:()=>{ eventDealMult=1; dealSpeedMult=1; showToast('Product Hunt wave over.','rush','ambient'); } },
   { id:'techcrunch', label:'📰 TechCrunch', dur:20,
-    msg:'📰 TechCrunch dropped an article! Insane deal flow!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=8; changeMorale(+5, 'TechCrunch article'); },
-    onEnd:()=>{ dealSpeedMult=1; showToast('TechCrunch wave done.','rush','ambient'); } },
+    msg:'📰 TechCrunch feature! Deals pay 1.9×!', cls:'rush',
+    onStart:()=>{ eventDealMult=1.9; dealSpeedMult=2; changeMorale(+5, 'TechCrunch article'); },
+    onEnd:()=>{ eventDealMult=1; dealSpeedMult=1; showToast('TechCrunch wave done.','rush','ambient'); } },
   { id:'hackathon', label:'💡 Hackathon', dur:40,
-    msg:'💡 Internal hackathon! Ideas flowing 3× faster!', cls:'milestone',
-    onStart:()=>{ ideaSpeedMult=3; changeMorale(+4, 'Hackathon energy'); },
-    onEnd:()=>{ ideaSpeedMult=1; showToast('Hackathon over — back to normal velocity.','','ambient'); } },
+    msg:'💡 Internal hackathon! Ideation 2.5× on top of your upgrades!', cls:'milestone',
+    onStart:()=>{ eventIdeaMult=2.5; changeMorale(+4, 'Hackathon energy'); },
+    onEnd:()=>{ eventIdeaMult=1; showToast('Hackathon over — your upgrades are still in place.','','ambient'); } },
   { id:'bug', label:'🐛 Prod Bug', dur:18,
     msg:'🐛 Critical bug in prod! Deals paused — devs on it...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-10, 'Prod bug in flight'); },
@@ -9674,25 +9971,25 @@ const EVENT_POOL = [
     onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt, 'event'); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
     onEnd:()=>{} },
   { id:'viral', label:'📱 Viral', dur:15,
-    msg:'📱 Tweet went viral! 10× deal rate!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=10; changeMorale(+4, 'Gone viral'); },
-    onEnd:()=>{ dealSpeedMult=1; showToast('Viral wave fading...','rush','ambient'); } },
+    msg:'📱 Tweet went viral! Deals pay 2.2×!', cls:'rush',
+    onStart:()=>{ eventDealMult=2.2; dealSpeedMult=2.2; changeMorale(+4, 'Gone viral'); },
+    onEnd:()=>{ eventDealMult=1; dealSpeedMult=1; showToast('Viral wave fading...','rush','ambient'); } },
   { id:'competitor', label:'⚔️ Competition', dur:22,
-    msg:'⚔️ Competitor launched! Market tightening...', cls:'',
-    onStart:()=>{ dealSpeedMult=0.2; changeMorale(-5, 'Competitor launched'); },
-    onEnd:()=>{ dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
+    msg:'⚔️ Competitor launched! Deals pay 0.7× while they soak the press.', cls:'',
+    onStart:()=>{ eventDealMult=0.7; dealSpeedMult=0.6; changeMorale(-5, 'Competitor launched'); },
+    onEnd:()=>{ eventDealMult=1; dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
   { id:'demo', label:'🎤 Demo Day', dur:30,
-    msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=3; changeMorale(+4, 'Demo Day spotlight'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.','','ambient'); } },
+    msg:'🎤 Demo Day! Investors watching — deals pay 2.25×!', cls:'milestone',
+    onStart:()=>{ eventDealMult=2.25; changeMorale(+4, 'Demo Day spotlight'); },
+    onEnd:()=>{ eventDealMult=1; showToast('Demo Day over.','','ambient'); } },
   { id:'award', label:'🏅 Award', dur:20,
-    msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best Startup Award!'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...','','ambient'); } },
+    msg:'🏅 Best Startup Award! Deals pay 2.5× for 20s!', cls:'milestone',
+    onStart:()=>{ eventDealMult=2.5; changeMorale(+6, 'Best Startup Award!'); },
+    onEnd:()=>{ eventDealMult=1; showToast('Award spotlight fading...','','ambient'); } },
   { id:'marketdown', label:'📉 Downturn', dur:15,
-    msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
-    onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); changeMorale(-4, 'Market downturn'); },
-    onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
+    msg:'📉 Market turbulence! Deals pay 0.75× for 15s.', cls:'',
+    onStart:()=>{ eventDealMult=0.75; dealSpeedMult=0.7; changeMorale(-4, 'Market downturn'); },
+    onEnd:()=>{ eventDealMult=1; dealSpeedMult=1; showToast('Market stabilized — deal flow restored!','milestone'); } },
   { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
     msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
     onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt, 'event'); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
@@ -9700,10 +9997,10 @@ const EVENT_POOL = [
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-8, 'Prod outage'); },
-    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+    onEnd:()=>{ dealSpeedMult=1; setIdeaBurst(2.5, 8); showToast('🔥 Systems restored! 2.5× ideation burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
-    msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
-    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
+    msg:'🔄 Brilliant pivot! Ideation 2× for 30s, on top of your upgrades!', cls:'milestone',
+    onStart:()=>{ setIdeaBurst(2, 30); showToast('🔄 Pivot! 2× ideation for 30s, on top of your upgrades!','milestone'); },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -9716,13 +10013,15 @@ function triggerRandomEvent() {
   if (activeEvent) return; // one event at a time
   const ev = EVENT_POOL[Math.floor(Math.random()*EVENT_POOL.length)];
   showToast(ev.msg, ev.cls);
-  addFeedEntry(ev.msg.slice(0, 45));
+  addFeedEntry(ev.msg.slice(0, 60));
   ev.onStart();
+  SFX.event();
   if (ev.dur > 0) {
     activeEvent = ev; eventT = 0;
     eventSepEl.style.display = 'inline';
     eventLabelEl.style.display = 'inline';
     eventLabelEl.textContent = `${ev.label} ${ev.dur}s`;
+    eventLabelEl.classList.add('event-live');
   }
 }
 
@@ -9966,6 +10265,7 @@ function updatePingPong(dt) {
 }
 
 function updateEvents(dt) {
+  // Timed spikes stay on eventIdeaMult / eventDealMult / corpDealMult.
   nextEventIn -= dt;
   if (nextEventIn <= 0) {
     nextEventIn = 75 + Math.random()*75;
@@ -9980,6 +10280,7 @@ function updateEvents(dt) {
       activeEvent = null;
       eventSepEl.style.display = 'none';
       eventLabelEl.style.display = 'none';
+      eventLabelEl.classList.remove('event-live');
     }
   }
 }
@@ -10021,15 +10322,433 @@ function upgCost(u) {
 function buyUpgrade(id) {
   const u = UPGRADES.find(x => x.id === id);
   if (!u || upgLevels[id] >= u.max) return;
+  if (u.unlocked && !u.unlocked()) {
+    showToast(u.lockText ? u.lockText() : 'Not yet', '', 'standard');
+    SFX.done();
+    return;
+  }
   const cost = upgCost(u);
-  if (state.cash < cost) return;
+  if (state.cash < cost) {
+    showToast(`Need $${fmtCash(cost - state.cash)} more for ${u.label}`, '', 'standard');
+    SFX.done();
+    return;
+  }
   state.cash -= cost; showSpendPop(cost);
   upgLevels[id]++;
   u.apply(upgLevels[id]);
   addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
   refreshHud();
-  SFX.purchase(); Haptics.purchase();
+  SFX.upgrade();
+  Haptics.purchase();
+  const btn = upgEl.querySelector(`[data-id="${id}"]`);
+  if (btn) {
+    btn.classList.remove('just-bought');
+    void btn.offsetWidth;
+    btn.classList.add('just-bought');
+  }
+  if (id === 'partner') beginPartnerChain();
 }
+function nextAffordableScale() {
+  for (const id of ['cs', 'impl', 'partner', 'refs']) {
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u || (upgLevels[id] || 0) >= u.max) continue;
+    if (u.unlocked && !u.unlocked()) return null;
+    const c = upgCost(u);
+    if (!_canAfford(c)) return null;
+    return {
+      title: u.label,
+      sub: `$${fmtCash(c)} — ${u.describe(upgLevels[id] || 0)}`,
+      action: () => buyUpgrade(id),
+    };
+  }
+  return null;
+}
+
+// ── Design partner chain (TYC-62) ───────────────────────────
+// Buying Design Partner opens three choices. Effects stack into the
+// term sheet: a tiger team and open books raise the check, the logo
+// trades cash for +8% deals for the rest of the season. Reference
+// Customers then renew a slice of deal value onto the goal bar.
+function partnerModalEl() { return document.getElementById('partner-modal'); }
+function partnerGrant() {
+  const deal = computeDealValue();
+  const base = Math.max(2200, Math.round(deal * 28));
+  const mult = (partnerTiger ? 1.35 : 1) * (partnerBooks ? 1.4 : 1);
+  const cap = Math.max(2200, Math.round(currentGoalTarget() * 0.18));
+  return Math.min(cap, Math.round(base * mult));
+}
+function renewalPayout() {
+  const lv = upgLevels.refs || 0;
+  if (partnerBeat < 6 || lv <= 0) return 0;
+  return Math.max(1, Math.round(computeDealValue() * 0.18 * lv));
+}
+function refreshPartnerChip() {
+  const sep = document.getElementById('partner-sep');
+  const el = document.getElementById('partner-chip');
+  if (!el || !sep) return;
+  if (partnerBeat >= 1 && partnerBeat <= 3) {
+    sep.style.display = '';
+    el.style.display = '';
+    const name = partnerBeat === 1 ? 'Pilot' : partnerBeat === 2 ? 'Review' : 'Term sheet';
+    el.textContent = '🤝 ' + name;
+    el.title = 'Design partner — step ' + partnerBeat + ' of 3. Pick a side in the meeting.';
+  } else if (partnerBeat >= 6) {
+    const pay = renewalPayout();
+    sep.style.display = '';
+    el.style.display = '';
+    if (pay > 0) {
+      const left = Math.max(0, Math.ceil(24 - renewalT));
+      el.textContent = '🤝 $' + fmtCash(pay);
+      el.title = 'Reference customers renew $' + fmtCash(pay) + ' in ' + left + 's.'
+        + (partnerLogo ? ' Their logo is up — deals +8% this season.' : '');
+    } else {
+      el.textContent = partnerLogo ? '🤝 Logo' : '🤝 Signed';
+      el.title = partnerLogo
+        ? 'Design partner signed with a logo — deals +8% this season. Reference Customers add renewals.'
+        : 'Design partner signed. Reference Customers start the renewals.';
+    }
+  } else {
+    sep.style.display = 'none';
+    el.style.display = 'none';
+    el.textContent = '';
+    el.title = '';
+  }
+  refreshAnnexOffer();
+}
+const ANNEX_CREW = [
+  { id: 'mira', name: 'Mira', role: 'engineer', icon: '👩‍💻', focus: 'findings', line: 'Mira closes the finding before the Auditor can write it up.' },
+  { id: 'sol', name: 'Sol', role: 'seller', icon: '🤝', focus: 'revenue', line: 'Sol walks the Auditor through the number until it holds.' },
+  { id: 'penn', name: 'Penn', role: 'PM', icon: '🗂️', focus: 'timeline', line: 'Penn resequences the week so the raid loses its hour.' },
+];
+const ANNEX_FOCUS = ['findings', 'revenue', 'timeline'];
+let annexLive = false;
+let annexPressure = 108;
+let annexMorale = 90;
+let annexFocus = 'findings';
+let annexNoteT = 0;
+function annexDealMult() { return annexLive ? 1.06 : 1; }
+function annexLead() { return ANNEX_CREW.find(c => c.focus === annexFocus) || ANNEX_CREW[0]; }
+function refreshAnnexOffer() {
+  const btn = document.getElementById('annex-btn');
+  const chip = document.getElementById('annex-chip');
+  if (btn) {
+    const show = partnerBeat >= 6 && !annexLive;
+    btn.classList.toggle('on', show);
+    btn.title = 'Across the street. Mira, Sol, and Penn hold the annex. The Auditor is the boss of the block.';
+  }
+  if (chip) chip.classList.toggle('on', annexLive);
+}
+function paintAnnex() {
+  const bar = document.getElementById('annex-pressure');
+  const crew = document.getElementById('annex-crew');
+  const log = document.getElementById('annex-log');
+  const morale = document.getElementById('annex-morale');
+  const follow = document.getElementById('annex-follow');
+  const lead = annexLead();
+  if (bar) bar.style.width = Math.max(0, Math.round(annexPressure / 108 * 100)) + '%';
+  if (morale) morale.textContent = 'Crew morale ' + annexMorale + ' / 90';
+  if (follow) follow.textContent = 'Follow ' + lead.name + ' — the Auditor is on ' + annexFocus;
+  if (crew) {
+    crew.textContent = '';
+    for (const c of ANNEX_CREW) {
+      const card = document.createElement('div');
+      card.className = 'annex-card' + (c.id === lead.id ? ' lead' : '');
+      const b = document.createElement('b');
+      b.textContent = c.icon + ' ' + c.name;
+      const span = document.createElement('span');
+      span.textContent = c.role + (c.id === lead.id ? ' · leading' : '');
+      card.append(b, span);
+      crew.append(card);
+    }
+  }
+  if (log && !log.textContent) log.textContent = 'The Auditor opens on ' + annexFocus + '. ' + lead.name + ' steps up.';
+}
+function openAnnex() {
+  if (partnerBeat < 6 || annexLive) return;
+  const modal = document.getElementById('annex-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  paintAnnex();
+  SFX.event();
+}
+function closeAnnex() {
+  const modal = document.getElementById('annex-modal');
+  if (modal) modal.classList.remove('open');
+}
+function resetAnnex() {
+  annexLive = false;
+  annexPressure = 108;
+  annexMorale = 90;
+  annexFocus = 'findings';
+  annexNoteT = 0;
+  closeAnnex();
+  const log = document.getElementById('annex-log');
+  if (log) log.textContent = '';
+  refreshAnnexOffer();
+}
+function followAnnex() {
+  if (partnerBeat < 6 || annexLive) return;
+  if (!document.getElementById('annex-modal').classList.contains('open')) return;
+  const lead = annexLead();
+  annexPressure = Math.max(0, annexPressure - 36);
+  annexMorale = Math.max(0, annexMorale - 14);
+  annexFocus = ANNEX_FOCUS[(ANNEX_FOCUS.indexOf(annexFocus) + 1) % ANNEX_FOCUS.length];
+  const log = document.getElementById('annex-log');
+  if (log) log.textContent = lead.line;
+  paintAnnex();
+  SFX.annex();
+  if (annexPressure <= 0) return claimAnnex();
+  if (annexMorale <= 0) {
+    annexMorale = 90;
+    annexPressure = 108;
+    if (log) log.textContent = 'The crew regroups in the stairwell. The Auditor is still in the building.';
+    paintAnnex();
+  }
+}
+function claimAnnex() {
+  annexLive = true;
+  closeAnnex();
+  showToast('🏢 The Annex is yours. Mira, Sol, and Penn stay. Deals +6% this season.', 'good', 'standard');
+  addFeedEntry('🏢 Annex live — Mira, Sol, and Penn. Deals +6% this season.');
+  SFX.win();
+  refreshAnnexOffer();
+}
+function updateAnnex(dt) {
+  if (!annexLive) return;
+  annexNoteT += dt;
+  if (annexNoteT < 22) return;
+  annexNoteT = 0;
+  const c = ANNEX_CREW[Math.floor(annexNoteT + seasonT) % ANNEX_CREW.length];
+  addFeedEntry(c.icon + ' ' + c.name + ' is still in the annex');
+}
+function resetPartnerChain() {
+  partnerBeat = 0;
+  partnerTiger = false;
+  partnerBooks = false;
+  partnerLogo = false;
+  partnerSlowT = 0;
+  partnerWaitT = 0;
+  partnerNextBeat = 0;
+  renewalT = 0;
+  const m = partnerModalEl();
+  if (m) m.classList.remove('open');
+  resetAnnex();
+  refreshPartnerChip();
+}
+function openPartnerModal(beat) {
+  const modal = partnerModalEl();
+  if (!modal) return;
+  const blocked = (typeof boardModalEl === 'function' && boardModalEl().classList.contains('open'))
+    || document.querySelector('#win-modal.open, #ipo-modal.open');
+  if (blocked) {
+    partnerBeat = beat;
+    partnerNextBeat = beat;
+    partnerWaitT = 0.4;
+    refreshPartnerChip();
+    return;
+  }
+  partnerBeat = beat;
+  partnerNextBeat = 0;
+  const steps = document.getElementById('partner-steps');
+  if (steps) {
+    steps.innerHTML = [1, 2, 3].map(i =>
+      `<span class="partner-dot${i === beat ? ' on' : i < beat ? ' done' : ''}"></span>`).join('');
+  }
+  const title = document.getElementById('partner-title');
+  const body = document.getElementById('partner-body');
+  const yes = document.getElementById('partner-yes');
+  const no = document.getElementById('partner-no');
+  if (beat === 1) {
+    title.textContent = '🤝 Design partner — pilot';
+    body.textContent = 'A prospect will run the product with their own team. Staff a tiger team and the term sheet gets richer, or send a deck and keep shipping at full speed.';
+    yes.textContent = 'Staff a tiger team (−15% work for 35s, richer term sheet)';
+    no.textContent = 'Send a deck (cash now, standard term sheet)';
+  } else if (beat === 2) {
+    title.textContent = '🤝 Design partner — security review';
+    body.textContent = 'Their counsel wants the books. Opening them costs morale and sweetens the payout. Redlining keeps the team steady.';
+    yes.textContent = 'Open the books (morale −4, term sheet +40%)';
+    no.textContent = 'Redline the contract';
+  } else {
+    const grant = partnerGrant();
+    const logo = Math.round(grant * 0.45);
+    title.textContent = '🤝 Design partner — term sheet';
+    body.textContent = 'They will sign today. The check funds the next hire or Enterprise tier. The logo makes every later deal worth more for the rest of this season, and unlocks Reference Customers.';
+    yes.textContent = `Take the check (+$${fmtCash(grant)} cash)`;
+    no.textContent = `Take the logo (+$${fmtCash(logo)} cash, deals +8% this season)`;
+  }
+  modal.classList.add('open');
+  SFX.event();
+  refreshPartnerChip();
+}
+function beginPartnerChain() {
+  if (partnerBeat >= 1) return;
+  openPartnerModal(1);
+}
+function choosePartner(which) {
+  const beat = partnerBeat;
+  if (beat < 1 || beat > 3) return;
+  const modal = partnerModalEl();
+  if (modal) modal.classList.remove('open');
+  if (which === 'yes') SFX.yes(); else SFX.no();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(which === 'yes' ? 16 : 8); } catch {}
+  }
+  if (beat === 1) {
+    if (which === 'yes') {
+      partnerTiger = true;
+      partnerSlowT = 35;
+      showToast('🤝 Tiger team staffed — shipping slows 15% for 35s. The term sheet noticed.', 'event', 'standard');
+      addFeedEntry('🤝 Tiger team on the design partner');
+    } else {
+      const deck = Math.min(1500, Math.max(600, Math.round(computeDealValue() * 8)));
+      addCash(deck, 'event');
+      showToast(`🤝 Deck sent — +$${fmtCash(deck)}. The pilot starts without pulling the team.`, 'good', 'standard');
+      addFeedEntry(`🤝 Design-partner deck — +$${fmtCash(deck)}`);
+    }
+    partnerNextBeat = 2;
+    partnerWaitT = 1.2;
+  } else if (beat === 2) {
+    if (which === 'yes') {
+      partnerBooks = true;
+      changeMorale(-4, 'The books were opened');
+      showToast('🤝 Books opened — morale −4, and the payout just got serious.', '', 'standard');
+      addFeedEntry('🤝 Opened the books for the design partner');
+    } else {
+      showToast('🤝 Contract redlined — the team keeps its pace.', '', 'standard');
+      addFeedEntry('🤝 Redlined the design-partner contract');
+    }
+    partnerNextBeat = 3;
+    partnerWaitT = 1.2;
+  } else {
+    const grant = partnerGrant();
+    const logoCash = Math.round(grant * 0.45);
+    if (which === 'yes') {
+      addCash(grant, 'event');
+      showToast(`🤝 Term sheet signed — +$${fmtCash(grant)} in the bank.`, 'good', 'critical');
+      addFeedEntry(`🤝 Design-partner check — +$${fmtCash(grant)}`);
+    } else {
+      partnerLogo = true;
+      addCash(logoCash, 'event');
+      showToast(`🤝 Their logo is on the site — +$${fmtCash(logoCash)} and deals +8% this season.`, 'good', 'critical');
+      addFeedEntry('🤝 Reference logo — deals +8% this season');
+    }
+    partnerBeat = 6;
+    partnerNextBeat = 0;
+    partnerWaitT = 0;
+    launchConfetti({ pieces: 48, duration: 2200, palette: ['#58A6FF', '#3FB950', '#fcd34d', '#fff'] });
+    SFX.milestone();
+  }
+  refreshPartnerChip();
+  refreshHud();
+  saveGame();
+}
+// The hall: samples of this season's revenue, raced next time against
+// the best curve saved in this browser. Local only.
+let seasonT = 0;
+let hallSampleT = 0;
+let hallSamples = [0];
+let hallGhost = null;
+let hallLead = null;
+const HALL_STEP = 15;
+function loadHallGhost() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('tycoon-hall') || 'null');
+    hallGhost = (raw && Array.isArray(raw.samples) && raw.samples.length) ? raw : null;
+  } catch { hallGhost = null; }
+  hallLead = null;
+}
+function hallGhostValue() {
+  if (!hallGhost) return 0;
+  const step = hallGhost.step > 0 ? hallGhost.step : HALL_STEP;
+  const i = Math.min(hallGhost.samples.length - 1, Math.max(0, Math.floor(seasonT / step)));
+  return Math.max(0, hallGhost.samples[i] | 0);
+}
+function publishHall() {
+  if (hallSamples.length < 3) return;
+  const mine = hallSamples[hallSamples.length - 1] || 0;
+  let prevBest = 0;
+  try {
+    const prev = JSON.parse(localStorage.getItem('tycoon-hall') || 'null');
+    if (prev && Array.isArray(prev.samples) && prev.samples.length) prevBest = prev.samples[prev.samples.length - 1] || 0;
+  } catch {}
+  if (prevBest > mine) return;
+  try {
+    localStorage.setItem('tycoon-hall', JSON.stringify({ step: HALL_STEP, samples: hallSamples.slice(-48) }));
+  } catch {}
+}
+function resetHallRun() {
+  seasonT = 0;
+  hallSampleT = 0;
+  hallSamples = [0];
+  hallLead = null;
+}
+function updateHall(dt) {
+  seasonT += dt;
+  hallSampleT += dt;
+  if (hallSampleT >= HALL_STEP && hallSamples.length < 48) {
+    hallSampleT = 0;
+    hallSamples.push(Math.round(seasonRecurringRevenue || 0));
+  }
+  const el = document.getElementById('goal-hall-label');
+  if (!el) return;
+  if (!hallGhost) { el.style.display = 'none'; return; }
+  const ghost = hallGhostValue();
+  const mine = seasonRecurringRevenue || 0;
+  const goal = Math.max(1, currentGoalTarget());
+  const pct = Math.min(100, Math.floor(ghost / goal * 100));
+  const lead = mine >= ghost;
+  el.style.display = 'block';
+  el.classList.toggle('lead', lead);
+  el.textContent = '';
+  el.append('🚪 Hall ');
+  const strong = document.createElement('strong');
+  strong.textContent = pct + '%';
+  el.append(strong);
+  el.append(lead ? ' · you lead' : ' · behind');
+  if (hallLead === null) hallLead = lead;
+  else if (lead !== hallLead && seasonT > 1) {
+    hallLead = lead;
+    if (lead) {
+      showToast('🚪 Ahead of the office across the hall.', 'good', 'standard');
+      addFeedEntry('🚪 Ahead of the hall');
+      SFX.hall();
+    } else {
+      showToast('🚪 The hall pulled ahead.', '', 'standard');
+      addFeedEntry('🚪 The hall pulled ahead');
+      SFX.no();
+    }
+  }
+}
+function updatePartner(dt) {
+  if (partnerSlowT > 0) {
+    partnerSlowT -= dt;
+    if (partnerSlowT <= 0) {
+      partnerSlowT = 0;
+      showToast('🤝 Tiger team back on the roadmap — full speed.', 'good', 'standard');
+      addFeedEntry('🤝 Tiger team returned to the roadmap');
+    }
+  }
+  if (partnerWaitT > 0) {
+    partnerWaitT -= dt;
+    if (partnerWaitT <= 0 && partnerNextBeat) openPartnerModal(partnerNextBeat);
+  }
+  if (renewalPayout() > 0) {
+    renewalT += dt;
+    if (renewalT >= 24) {
+      const pay = renewalPayout();
+      renewalT -= 24;
+      addRevenue(pay, 'event');
+      addFeedEntry(`🤝 Reference renewal — +$${fmtCash(pay)}`);
+    }
+  }
+  refreshPartnerChip();
+}
+document.getElementById('partner-yes').onclick = () => choosePartner('yes');
+document.getElementById('partner-no').onclick = () => choosePartner('no');
+document.getElementById('annex-btn').onclick = () => openAnnex();
+document.getElementById('annex-follow').onclick = () => followAnnex();
+document.getElementById('annex-close').onclick = () => closeAnnex();
+
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
   // Rebuild structure if first-time (no data-id buttons present)
@@ -10048,6 +10767,7 @@ function renderUpgrades() {
       const btn = document.createElement('button');
       btn.className = 'upg-btn';
       btn.dataset.id = u.id;
+      btn.dataset.cat = u.cat;
       btn.onclick = () => buyUpgrade(u.id);
       upgEl.appendChild(btn);
     }
@@ -10058,14 +10778,18 @@ function renderUpgrades() {
     if (!btn) continue;
     const lv = upgLevels[u.id];
     const maxed = lv >= u.max;
+    const locked = !!(u.unlocked && !u.unlocked());
     const cost = upgCost(u);
-    const short = lv >= u.max ? null : (state.cash < cost ? `Need $${fmtCash(cost - state.cash)} more` : null);
-    btn.disabled = maxed || state.cash < cost;
-    const effect = u.describe ? u.describe(lv) : '';
-    const costOrLock = maxed ? '' : `<span class="cost">${short || '$' + fmtCash(cost)}</span>`;
+    const short = maxed || locked ? null : (state.cash < cost ? `Need $${fmtCash(cost - state.cash)} more` : null);
+    btn.disabled = maxed || locked || state.cash < cost;
+    btn.classList.toggle('locked-chain', locked);
+    const effect = locked && u.lockText ? u.lockText() : (u.describe ? u.describe(lv) : '');
+    const costOrLock = maxed ? '' : `<span class="cost">${locked ? 'Locked' : (short || '$' + fmtCash(cost))}</span>`;
     btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv + '/' + u.max}</span>${u.label}${costOrLock}`
       + (effect ? `<span class="upg-effect">${effect}</span>` : '');
-    btn.title = short
+    btn.title = locked
+      ? `${u.label} — ${effect}`
+      : short
       ? `${u.label} — Lv ${lv}/${u.max}. ${effect}. ${short}.`
       : (maxed ? `${u.label} — MAX. ${effect}.` : `${u.label} — Lv ${lv}/${u.max}. ${effect}. $${fmtCash(cost)} to upgrade.`);
   }
@@ -11601,6 +12325,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   if (tryFixBugAt(raycaster)) return;   // clicking a bugged desk hotfixes instead of walking
+  if (beaglePack && beaglePack.tryCollect(raycaster)) return;
   if (raycaster.ray.intersectPlane(groundPlane, _v3B)) target = { x: _v3B.x, z: _v3B.z };
 });
 
@@ -12002,6 +12727,10 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   try {
     const joy = lsGet(LS.joystick);
     lsRemove(LS.save);
+    if (VARIANT.id === 'beagle') {
+      if (beaglePack) beaglePack.wipe();
+      else { try { localStorage.removeItem('beagle:yard'); } catch {} }
+    }
     if (joy !== null) lsSet(LS.joystick, joy);
     if (window.EurekaPersist) window.EurekaPersist.progress.clear(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon');
   } catch (_) {}
@@ -12358,6 +13087,9 @@ function frameBody(now) {
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
+  updatePartner(dt);
+  updateHall(dt);
+  updateAnnex(dt);
   updatePingPong(dt);
   updatePet(dt);
   updateBugs(dt);
@@ -12400,6 +13132,7 @@ function frameBody(now) {
   }
 
   tickCashHud(dt);
+  if (beaglePack) beaglePack.tick(dt);
   tickIdleBreathing(now);
   renderer.render(scene, activeCamera());
 }
@@ -12598,6 +13331,11 @@ function doIPO() {
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
+  eventDealMult = 1; eventIdeaMult = 1; corpDealMult = 1; burstIdeaMult = 1; burstGen++;
+  publishHall();
+  resetPartnerChain();
+  resetHallRun();
+  loadHallGhost();
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
@@ -12814,6 +13552,59 @@ const SAVE_SCHEMA = [
     read: p => { state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0); },
   },
   {
+    key: 'partnerChain', // TYC-62: mid-season design-partner choices
+    write: p => {
+      p.partnerChain = {
+        beat: partnerBeat, tiger: partnerTiger, books: partnerBooks, logo: partnerLogo,
+        slowT: partnerSlowT, waitT: partnerWaitT, next: partnerNextBeat, renewalT,
+      };
+    },
+    read: p => {
+      const c = p.partnerChain;
+      if (!c || typeof c !== 'object') return;
+      partnerBeat = Math.max(0, Math.min(6, c.beat | 0));
+      partnerTiger = !!c.tiger;
+      partnerBooks = !!c.books;
+      partnerLogo = !!c.logo;
+      partnerSlowT = Math.max(0, Number(c.slowT) || 0);
+      partnerWaitT = Math.max(0, Number(c.waitT) || 0);
+      partnerNextBeat = Math.max(0, Math.min(3, c.next | 0));
+      renewalT = Math.max(0, Number(c.renewalT) || 0);
+      if (partnerBeat >= 1 && partnerBeat <= 3 && partnerWaitT <= 0 && !partnerNextBeat) {
+        setTimeout(() => openPartnerModal(partnerBeat), 400);
+      }
+      refreshPartnerChip();
+    },
+  },
+  {
+    key: 'hallRun', // this season's curve; the ghost itself lives in tycoon-hall
+    write: p => { p.hallRun = { t: seasonT, sampleT: hallSampleT, samples: hallSamples.slice(-48) }; },
+    read: p => {
+      const h = p.hallRun;
+      if (!h || typeof h !== 'object') return;
+      seasonT = Math.max(0, Number(h.t) || 0);
+      hallSampleT = Math.max(0, Number(h.sampleT) || 0);
+      hallSamples = Array.isArray(h.samples) ? h.samples.map(n => Math.max(0, n | 0)).slice(-48) : [0];
+      if (!hallSamples.length) hallSamples = [0];
+    },
+  },
+  {
+    key: 'annex',
+    write: p => {
+      if (!annexLive && annexPressure === 108 && annexMorale === 90 && annexFocus === 'findings') return;
+      p.annex = { live: annexLive, pressure: annexPressure, morale: annexMorale, focus: annexFocus };
+    },
+    read: p => {
+      const a = p.annex;
+      if (!a || typeof a !== 'object') return;
+      annexLive = !!a.live;
+      annexPressure = Math.max(0, Math.min(108, a.pressure | 0 || 108));
+      annexMorale = Math.max(0, Math.min(90, a.morale | 0 || 90));
+      annexFocus = ANNEX_FOCUS.indexOf(a.focus) >= 0 ? a.focus : 'findings';
+      refreshAnnexOffer();
+    },
+  },
+  {
     key: 'upgrades',
     write: p => { p.upgrades = upgLevels; },
     // Must run before ideaWorkers are re-spawned below: per-worker
@@ -12849,7 +13640,11 @@ const SAVE_SCHEMA = [
       if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
       // Apply prestige multiplier to deal value
       if (prestigeLevel > 0) {
-        dealValueMult = prestigeMultiplier;
+        // Upgrade read runs first, while prestigeMultiplier is still 1,
+        // so Enterprise's apply() baked the wrong base. Fold the saved
+        // tier back in now that the season multiplier is known.
+        const ent = [1, 3, 8, 20][upgLevels.enterprise || 0] || 1;
+        dealValueMult = prestigeMultiplier * ent;
         seasonBadge.style.display = 'inline-block';
         seasonBadge.textContent   = `S${prestigeLevel + 1}`;
       }
@@ -13405,7 +14200,7 @@ function estimateOfflineRatePerSec() {
   let rate = 0;
   // Engineers: work progress/sec × value per shipped feature.
   for (const w of ideaWorkers) {
-    rate += CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * (w.externalMult || 1) * dealVal;
+    rate += CONFIG.workRateBase * ideaRateMult() * scaleWorkMult() * engTeamMultiplier * (w.externalMult || 1) * dealVal;
   }
   // BDRs: one deal per ~(min + range/2)s at the solo fraction; deals
   // routed to a free AE close at aeProcessMult× instead, so each BDR
@@ -13544,6 +14339,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
+loadHallGhost();
 initRival(false);   // TYC-3: name the rival (kept from the save when mid-season)
 // Fresh-start players get $400 (enough to hire engineer #1 with
 // change toward #2, so the loop catches fire fast). Returning players
@@ -13601,6 +14397,33 @@ addEventListener('pagehide', () => saveGame());
 // (welcome only fires for fresh games; welcome-back implies a save).
 if (_pendingOfflineEarnings && _pendingOfflineEarnings.amount > 0) {
   setTimeout(() => showOfflineModal(_pendingOfflineEarnings.amount, _pendingOfflineEarnings.seconds), 600);
+}
+
+if (BEAGLE && typeof BEAGLE.create === 'function') {
+  try {
+    beaglePack = BEAGLE.create({
+      THREE,
+      scene,
+      addCash,
+      changeMorale,
+      showToast,
+      addFeedEntry,
+      haptics: Haptics,
+      sfxScale() {
+        let enabled = true;
+        try { enabled = SFX.isEnabled(); } catch { /* settings unreadable */ }
+        let scale = enabled ? 1 : 0;
+        try { if (window.EurekaPersist) scale = window.EurekaPersist.audio.sfx(!enabled); } catch { /* keep local */ }
+        return scale;
+      },
+      confetti: launchConfetti,
+      worldToScreen,
+      getPlayer: () => player.position,
+      getWorkers: () => ideaWorkers,
+    });
+  } catch (err) {
+    console.warn('Beagle yard failed to start', err);
+  }
 }
 
 requestAnimationFrame(loop);

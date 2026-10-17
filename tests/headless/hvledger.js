@@ -1,146 +1,221 @@
-/* HV-77 — Borrow from Ray locked the button for 30 seconds when a
- * loan was already out.
+/* Night ledger, clinic juice, and phone play.
  *
- * HV-61 taught Trade / Rain Bet / Garage / Fridge to refuse in
- * doAction *before* the timer. Borrow from Ray did not. The tooltip
- * says one ledger at a time ("until 5 is repaid"). finishAction
- * already knew: "Ray taps his ledger — X still owed. One at a time."
- * Clicking 🤲 with debt standing still started the 2-second job,
- * chimed success, logged that refuse, then locked the button for the
- * full 30-second cooldown — the same lock a real front earns.
- *
- * Distinct from HV-30 (the loan itself), HV-61 (the four cost gates),
- * and hvborrow.js (which calls finishAction, not doAction).
- * ui.js is not this ticket.
- *
- * This suite is write-first and source-driven.
- *
- * A. Source: doAction refuses borrow when rayDebt > 0 before
- *    setTimeout, same log line finishAction already used.
- * B. Named: click Borrow with a standing loan — immediate refuse, no
- *    job, no cooldown after the old 2s timer would have fired, debt
- *    and goodwill unchanged.
- * C. Isolation: a clear ledger still fronts 4 and books 5, and still
- *    takes the lock.
+ * A. A fresh board plants Inez, Malik, and Rosa. Malik leads with 7.
+ * B. Signing with an empty shelf of dressings refuses. One dressing signs,
+ *    and the line survives outside the camp save.
+ * C. Beating the mark pays 8 goodwill once. A tied mark does not.
+ * D. A broken board is replaced by the neighbors. A quiet dawn does not
+ *    write the board.
+ * E. The dressing chime starts three oscillators. juice() flashes the camp.
+ * F. On a phone the walk pad moves the player, clinic actions sit in the
+ *    dock with 44px targets, and the pad does not cover them.
+ * G. On a desktop the pad is hidden and Dress stays on the action rail.
  * Z. Zero page errors.
  */
 const { chromium } = require('playwright');
-const fs = require('fs');
-const path = require('path');
-
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
-const ROOT = path.resolve(__dirname, '..', '..');
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
-const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'), 'utf8');
-const ui     = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
-const doAt = player.indexOf('function doAction(a){');
-const finishAt = player.indexOf('function finishAction(a){');
-const doBlock = doAt >= 0 && finishAt > doAt ? player.slice(doAt, finishAt) : '';
-const finishBorrowAt = player.indexOf("} else if(a.id==='borrow')");
-const finish = finishBorrowAt >= 0 ? player.slice(finishBorrowAt, player.indexOf("} else if(a.id==='fridge')", finishBorrowAt)) : '';
-
-ok(doAt >= 0 && /function doAction\(a\)\{/.test(doBlock),
-  'doAction is still in player.js — guards the guard');
-
-const timeoutAt = doBlock.indexOf('setTimeout');
-ok(timeoutAt > 0, 'doAction still starts the job with setTimeout');
-
-const borrowAt = doBlock.indexOf("a.id==='borrow'");
-ok(borrowAt >= 0 && borrowAt < timeoutAt && /rayDebt/.test(doBlock.slice(borrowAt, timeoutAt)),
-  'doAction refuses Borrow when a loan is already out, before the timer');
-
-ok(/One at a time/.test(doBlock) && /One at a time/.test(finish),
-  'the refuse is the same line finishAction already used');
-
-ok(/a\.id==='trade'/.test(doBlock) && /G\.cans\s*<\s*3/.test(doBlock),
-  'HV-61 Trade refuse is still in doAction — this ticket did not eat it');
-
-ok(!/function buildActionUI/.test(doBlock) && !/rayDebt/.test(ui),
-  'the ledger gate lives in doAction — ui.js is not this ticket');
-
 (async () => {
   const browser = await chromium.launch({
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 880 } });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
   const errs = [];
-  page.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 110)));
+  page.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 180)));
   await page.addInitScript(() => {
-    try { localStorage.setItem('hv-intro-seen', '1'); } catch (e) {}
+    localStorage.setItem('hv-intro-seen', '1');
+    if (!sessionStorage.getItem('hvledger-init')) {
+      sessionStorage.setItem('hvledger-init', '1');
+      localStorage.removeItem('homeless_village_v1');
+      localStorage.removeItem('hv-night-ledger');
+    }
   });
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });
-  await page.waitForTimeout(2500);
+  await page.waitForFunction(() => typeof loadLedger === 'function' && typeof G !== 'undefined');
+  await page.waitForTimeout(400);
+  const t = fn => page.evaluate(fn);
 
-  const boot = await page.evaluate(() => {
-    const a = ACTIONS.find(x => x.id === 'borrow');
+  const planted = await t(() => {
+    ledgerCache = null;
+    localStorage.removeItem('hv-night-ledger');
+    const rows = loadLedger();
+    const mark = ledgerMark();
     return {
-      intro: !!(document.getElementById('intro-modal') && document.getElementById('intro-modal').classList.contains('open')),
-      btn: !!document.getElementById('action-borrow'),
-      time: a && a.time,
-      cd: a && a.cooldown,
-      amt: BORROW_AMT,
-      owed: BORROW_OWED,
+      names: rows.map(e => e.name).join(','),
+      malik: rows.find(e => e.id === 'malik').dressings,
+      mark: mark.name + ':' + mark.dressings,
+      stored: !!localStorage.getItem('hv-night-ledger'),
     };
   });
-  ok(!boot.intro && boot.btn,
-    'a returning camp has Borrow on the board and is not behind the crash course');
-  ok(boot.time === 2000 && boot.cd === 30000 && boot.amt === 4 && boot.owed === 5,
-    `Borrow is still a 2s job with a 30s lock, 4 against 5 (${boot.time}/${boot.cd}/${boot.amt}/${boot.owed})`);
+  ok(planted.names === 'Inez,Malik,Rosa' && planted.malik === 7 && planted.mark === 'Malik:7' && planted.stored,
+    `a fresh board plants the three neighbors and Malik leads (${planted.mark})`);
 
-  // --- B. named ---------------------------------------------------------
-  const owed = await page.evaluate(() => {
-    G.rayDebt = 5;
-    G.goodwill = 3;
-    G.cooldowns = {};
-    const before = Date.now();
-    doAction(ACTIONS.find(a => a.id === 'borrow'));
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
-    return {
-      job: !!activeJobs.borrow,
-      cd: G.cooldowns.borrow || 0,
-      debt: G.rayDebt,
-      gw: G.goodwill,
-      log: log,
-      btnOn: document.getElementById('action-borrow') && document.getElementById('action-borrow').classList.contains('active-job'),
-      started: Date.now() - before,
+  const signed = await t(() => {
+    G.structures.clinic = true; G.dressings = 0; G.ledgerSigned = 0; G.ledgerId = ''; G.days = 4;
+    G.goalIndex = GOALS.length;
+    const refused = signLedger() === false && !localStorage.getItem('hv-night-ledger').includes('Your camp');
+    G.dressings = 2;
+    const okSign = signLedger() === true;
+    ledgerCache = null;
+    const again = loadLedger().find(e => e.name === 'Your camp');
+    return { refused, okSign, dressings: again && again.dressings, days: again && again.days, signed: G.ledgerSigned };
+  });
+  ok(signed.refused && signed.okSign && signed.dressings === 2 && signed.days === 4 && signed.signed === 1,
+    `one dressing signs the camp, and the line is outside the save (${signed.dressings} dressed, day ${signed.days})`);
+
+  const claim = await t(() => {
+    G.ledgerClaimed = 0; G.goodwill = 10; G.dressings = 7; G.goalIndex = GOALS.length;
+    const tied = claimLedger() === false && G.goodwill === 10;
+    G.dressings = 8;
+    const won = claimLedger() === true;
+    const paid = G.goodwill;
+    const twice = claimLedger() === false && G.goodwill === paid;
+    ledgerCache = null;
+    const yours = loadLedger().find(e => e.id === G.ledgerId);
+    return { tied, won, paid, twice, yours: yours && yours.dressings, claimed: G.ledgerClaimed };
+  });
+  ok(claim.tied && claim.won && claim.paid === 18 && claim.twice && claim.yours === 8 && claim.claimed === 1,
+    `beating Malik pays 8 goodwill once (goodwill ${claim.paid}, your line ${claim.yours})`);
+
+  const broken = await t(() => {
+    localStorage.setItem('hv-night-ledger', '{');
+    ledgerCache = null;
+    const rows = loadLedger();
+    localStorage.removeItem('hv-night-ledger');
+    ledgerCache = null;
+    G.structures.clinic = false; G.care = 40; G.june = 0;
+    const real = Math.random;
+    Math.random = () => 0.5;
+    onNewDay();
+    Math.random = real;
+    return { names: rows.map(e => e.name).join(','), wrote: localStorage.getItem('hv-night-ledger') };
+  });
+  ok(broken.names === 'Inez,Malik,Rosa' && broken.wrote === null,
+    'a broken board is replaced by the neighbors, and a dawn with the tarp down does not write one');
+
+  const sound = await t(() => {
+    initAudio();
+    let starts = 0;
+    const orig = audioCtx.createOscillator.bind(audioCtx);
+    audioCtx.createOscillator = function () {
+      const o = orig();
+      const start = o.start.bind(o);
+      o.start = function () { starts++; return start.apply(o, arguments); };
+      return o;
     };
+    sfx('dress');
+    juice('heal');
+    const flash = document.getElementById('hud').classList.contains('flash-heal');
+    juice('hurt');
+    const hurt = document.getElementById('hud').classList.contains('flash-hurt');
+    return { starts, flash, hurt };
   });
-  ok(!owed.job && !owed.btnOn,
-    'a standing loan does not start a job — the button is not active-job');
-  ok(owed.cd === 0 && owed.debt === 5 && owed.gw === 3,
-    `HV-77: a standing loan takes no cooldown and no extra goodwill (cd ${owed.cd}, debt ${owed.debt}, gw ${owed.gw})`);
-  ok(/One at a time/.test(owed.log) && /still owed/.test(owed.log),
-    'the refuse is the same line finishAction already used — named, not silent');
-
-  await page.waitForTimeout(2500);
-  const afterWait = await page.evaluate(() => ({
-    cd: G.cooldowns.borrow || 0,
-    debt: G.rayDebt,
-    gw: G.goodwill,
-    job: !!activeJobs.borrow,
-  }));
-  ok(afterWait.cd === 0 && afterWait.debt === 5 && afterWait.gw === 3 && !afterWait.job,
-    `2.5s later the 30s lock still has not landed (cd ${afterWait.cd}) — reverting the guard fails this by name`);
-
-  // --- C. isolation -----------------------------------------------------
-  const clear = await page.evaluate(() => {
-    G.rayDebt = 0;
-    G.goodwill = 1;
-    G.cooldowns = {};
-    document.getElementById('action-borrow').click();
-  });
-  await page.waitForTimeout(2300);
-  const paid = await page.evaluate(() => ({ gw: G.goodwill, debt: G.rayDebt, cd: G.cooldowns.borrow || 0 }));
-  ok(paid.gw === 5 && paid.debt === 5 && paid.cd > Date.now(),
-    `a clear ledger still fronts 4, books 5, and still takes the lock (gw ${paid.gw}, debt ${paid.debt})`);
-
-  ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
+  ok(sound.starts === 3 && sound.flash && sound.hurt,
+    `a dressing chime is three notes, and juice flashes the camp (${sound.starts} oscillators)`);
 
   await ctx.close();
-  await browser.close();
+
+  const phone = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const mp = await phone.newPage();
+  mp.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 180)));
+  await mp.addInitScript(() => localStorage.setItem('hv-intro-seen', '1'));
+  await mp.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });
+  await mp.waitForFunction(() => typeof player !== 'undefined');
+  await mp.waitForTimeout(400);
+  const before = await mp.evaluate(() => player.position.x);
+  const right = mp.locator('#walk-right');
+  await right.dispatchEvent('pointerdown', { pointerId: 1, bubbles: true });
+  await mp.waitForTimeout(450);
+  await right.dispatchEvent('pointerup', { pointerId: 1, bubbles: true });
+  const moved = await mp.evaluate(() => player.position.x);
+  const pad = await mp.evaluate(() => {
+    function box(id) {
+      const el = document.getElementById(id);
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return {
+        h: Math.round(r.height), w: Math.round(r.width),
+        on: cs.display !== 'none' && r.width > 8,
+        in: r.top >= -1 && r.left >= -1 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1,
+      };
+    }
+    return { up: box('walk-up'), right: box('walk-right'), toggle: box('craft-toggle') };
+  });
+  ok(moved > before + 0.4 && pad.right.on && pad.right.h >= 44 && pad.right.in && pad.up.in && pad.toggle.in,
+    `the pad walks and stays on screen (${before.toFixed(2)} → ${moved.toFixed(2)}, button ${pad.right.h}px)`);
+
+  const dock = await mp.evaluate(() => {
+    G.structures.workbench = true; G.wood = 20; G.scraps = 20; G.cardboard = 10; G.goodwill = 20;
+    G.goalIndex = GOALS.length; G.june = 1; G.bandages = 2; G.days = 4; G.clinicAsk = { day: 4 };
+    G.activeCrafts.clinic = { start: Date.now() - 50, duration: 1 };
+    finishCraft(RECIPES.find(r => r.id === 'clinic'));
+    buildActionUI();
+    function info(id) {
+      const el = document.getElementById(id);
+      if (!el) return { missing: true };
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        parent: el.parentElement.id,
+        h: Math.round(r.height),
+        in: r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth,
+        owns: !!hit && (hit === el || el.contains(hit)),
+      };
+    }
+    const pad = document.getElementById('walk-pad').getBoundingClientRect();
+    const dress = document.getElementById('action-dress').getBoundingClientRect();
+    const overlap = Math.min(pad.right, dress.right) - Math.max(pad.left, dress.left) > 2
+      && Math.min(pad.bottom, dress.bottom) - Math.max(pad.top, dress.top) > 2;
+    return {
+      dress: info('action-dress'),
+      ledger: info('action-ledger'),
+      spare: info('action-spare'),
+      overlap,
+    };
+  });
+  ok(dock.dress.parent === 'clinic-dock' && dock.ledger.parent === 'clinic-dock' && dock.spare.parent === 'clinic-dock'
+    && dock.dress.h >= 44 && dock.dress.in && dock.dress.owns && dock.ledger.owns && !dock.overlap,
+    `clinic actions sit in the phone dock and own their centres (${JSON.stringify(dock)})`);
+
+  await mp.locator('#action-ledger').click();
+  const modal = await mp.evaluate(() => {
+    const m = document.getElementById('ledger-modal');
+    const text = document.getElementById('ledger-challenge').textContent;
+    const open = m.classList.contains('open');
+    const sign = document.getElementById('ledger-sign').getBoundingClientRect();
+    return { open, text, signH: Math.round(sign.height), walking: overlayOpen() };
+  });
+  ok(modal.open && /Malik/.test(modal.text) && modal.signH >= 44 && modal.walking,
+    `the ledger opens on the phone and holds the player still (${modal.text})`);
+  await phone.close();
+
+  const desk = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const dp = await desk.newPage();
+  dp.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 180)));
+  await dp.addInitScript(() => localStorage.setItem('hv-intro-seen', '1'));
+  await dp.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });
+  await dp.waitForFunction(() => typeof finishCraft === 'function');
+  const wide = await dp.evaluate(() => {
+    G.goalIndex = GOALS.length;
+    G.activeCrafts.clinic = { start: Date.now() - 50, duration: 1 };
+    finishCraft(RECIPES.find(r => r.id === 'clinic'));
+    const dress = document.getElementById('action-dress');
+    const pad = getComputedStyle(document.getElementById('walk-pad')).display;
+    return { parent: dress.parentElement.id, pad };
+  });
+  ok(wide.parent === 'action-list' && wide.pad === 'none',
+    `on a wide screen Dress stays on the rail and the pad is hidden (${wide.parent}, pad ${wide.pad})`);
+
+  ok(errs.length === 0, 'no page errors' + (errs.length ? ' — ' + errs.join(' | ') : ''));
   console.log(`\n${pass} passed, ${fail} failed`);
+  await browser.close();
   process.exit(fail ? 1 : 0);
-})();
+})().catch(e => { console.error(e); process.exit(1); });

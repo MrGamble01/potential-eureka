@@ -124,6 +124,31 @@ function doAction(a){
       log('🚌 The fare is short — it takes '+TICKET_COST_GW+'🩶 and '+TICKET_COST_SCRAPS+' scraps.'); sfx('error'); return;
     }
   }
+  if(a.id==='dress'){
+    if(!G.structures.clinic){ log('🩹 The clinic is down — nowhere to dress a wound.'); sfx('error'); return; }
+    if((G.bandages||0)<1){ log('🩹 No gauze on the shelf — roll some at the clinic.'); sfx('error'); return; }
+  }
+  if(a.id==='juneround'){
+    if(G.june!==2){ log('🩺 June has not taken the night shift.'); sfx('error'); return; }
+    if(!G.structures.clinic){ log('🩺 The tarp is down — June has nowhere to work from.'); sfx('error'); return; }
+    if(juneRoundDone()){ log('🩺 June already walked the block today.'); sfx('error'); return; }
+    if((G.bandages||0)<1){ log('🩺 June is ready, but the shelf is empty.'); sfx('error'); return; }
+  }
+  if(a.id==='spare'){
+    if(!G.clinicAsk){ log('🏥 Nobody is waiting at the tarp.'); sfx('error'); return; }
+    if(!G.structures.clinic){ log('🏥 The clinic is down.'); sfx('error'); return; }
+    if((G.bandages||0)<1){ log('🏥 They need one gauze roll, and the shelf is empty.'); sfx('error'); return; }
+  }
+  if(a.id==='ledger'){
+    if(!G.structures.clinic){ log('📒 The ledger hangs at the clinic, and the tarp is down.'); sfx('error'); return; }
+    if(typeof openLedger==='function') openLedger();
+    return;
+  }
+  if(a.id==='salvage'){
+    if(!G.structures.gate){ log('🪵 The gate is down — the lot is not ours.'); sfx('error'); return; }
+    if((G.stormsCleared||0)<1){ log('🪵 Ride out a storm night before the piles are safe to pick.'); sfx('error'); return; }
+    if(salvageDone()){ log('🪵 The dry piles are already in. Tomorrow.'); sfx('error'); return; }
+  }
   // HV-61: these four already knew how to refuse in finishAction — after
   // a 2–4s job and with the full cooldown charged as if they had paid.
   // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
@@ -428,7 +453,7 @@ function doAction(a){
     return;
   }
   if(a.id==='scavenge' && !scavengeInRange()){
-    log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
+    log('Too far from a dumpster — walk up to one first (WASD, the pad, or tap the ground).');
     sfx('error');
     return;
   }
@@ -1084,9 +1109,90 @@ function finishAction(a){
       saveGame();
       buildActionUI();
     }
+  } else if(a.id==='dress'){
+    if(!G.structures.clinic){ log('🩹 The clinic is down — nowhere to dress a wound.'); }
+    else if((G.bandages||0)<1){ log('🩹 No gauze on the shelf — roll some at the clinic.'); }
+    else {
+      G.bandages--;
+      G.care=Math.min(CLINIC_CARE_MAX,(G.care||0)+CLINIC_DRESS_CARE);
+      G.health=Math.min(100,G.health+CLINIC_DRESS_HEALTH);
+      G.morale=Math.min(100,G.morale+2);
+      G.dressings=(G.dressings||0)+1;
+      log('🩹 Wound dressed. +'+CLINIC_DRESS_HEALTH+' health, care '+Math.floor(G.care)+'.');
+      floatText('+'+CLINIC_DRESS_HEALTH+'❤️', 'heal');
+      clinicFeel('+'+CLINIC_DRESS_HEALTH+'❤️');
+      if(typeof juice==='function') juice('heal');
+      if(typeof flutterGauze==='function') flutterGauze();
+      maybeJuneStays();
+      saveGame();
+    }
+  } else if(a.id==='juneround'){
+    if(G.june!==2 || !G.structures.clinic){ log('🩺 June has nowhere to walk from.'); }
+    else if(juneRoundDone()){ log('🩺 June already walked the block today.'); }
+    else if((G.bandages||0)<1){ log('🩺 June is ready, but the shelf is empty.'); }
+    else {
+      G.bandages--;
+      G.juneRoundDay=G.days;
+      G.care=Math.min(CLINIC_CARE_MAX,(G.care||0)+10);
+      G.goodwill=(G.goodwill||0)+4;
+      addRep(1);
+      log('🩺 June\'s night round — one roll on the block. +4 goodwill, the clinic holds.');
+      floatText('+4🩶', 'heal');
+      clinicFeel('+4 goodwill');
+      if(typeof juice==='function') juice('heal');
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='spare'){
+    if(!G.clinicAsk || !G.structures.clinic){ log('🏥 Nobody is waiting at the tarp.'); }
+    else if((G.bandages||0)<1){ log('🏥 They need one gauze roll, and the shelf is empty.'); }
+    else {
+      G.bandages--;
+      G.clinicAsk=null;
+      G.care=Math.min(CLINIC_CARE_MAX,(G.care||0)+8);
+      G.goodwill=(G.goodwill||0)+4;
+      addRep(2);
+      log('🏥 One roll, and they walk off on their own feet. +4 goodwill.');
+      floatText('+4🩶', 'heal');
+      clinicFeel('+4 goodwill');
+      if(typeof juice==='function') juice('heal');
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='salvage'){
+    if(!G.structures.gate || (G.stormsCleared||0)<1){ log('🪵 The lot is not open.'); }
+    else if(salvageDone()){ log('🪵 The dry piles are already in. Tomorrow.'); }
+    else {
+      G.wood=(G.wood||0)+3;
+      G.cardboard=(G.cardboard||0)+2;
+      G.lotSalvageDay=G.days;
+      log('🪵 Rio points at the dry piles. +3 wood, +2 cardboard.');
+      floatText('+3🪵', 'heal');
+      if(typeof juice==='function') juice('heal');
+      saveGame();
+      buildActionUI();
+    }
   }
-  sfx('action');
+  if(a.id==='dress') sfx('dress');
+  else if(a.id==='juneround' || a.id==='spare') sfx('clinic');
+  else sfx('action');
   updateHUD();
+}
+
+function clinicFeel(text){
+  var F = window.EurekaFeel;
+  if(!F || typeof F.punch !== 'function') return;
+  var view = document.getElementById('three-canvas') || document.getElementById('hud');
+  try {
+    F.punch('heal', {
+      x: window.innerWidth / 2,
+      y: window.innerHeight * 0.38,
+      text: text || 'Dressed',
+      color: '#F07178',
+      target: view,
+      haptic: true,
+    });
+  } catch (e) { /* juice must not blank the camp */ }
 }
 
 function doCraft(r){
@@ -1123,7 +1229,13 @@ function finishCraft(r){
   if(!G.activeCrafts[r.id]) return; // already resolved (fast-forwarded on load)
   delete G.activeCrafts[r.id];
   markCraftBusy(r.id,false);
+  // June has to exist before the mesh refresh, or the first build
+  // shows a tarp with nobody watching it.
+  var clinicReturning=r.id==='clinic' && (G.june||0)>=1;
+  if(r.id==='clinic') openClinic();
+  if(r.id==='gate') openGate();
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
+  if(r.gives.bandages) grantGauze(r.gives.bandages);
   if(typeof ensureForecast==='function') ensureForecast();
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
@@ -1134,6 +1246,21 @@ function finishCraft(r){
   G.totalCrafted++;
   sfx('craft');
   log('Crafted '+r.name+'.');
+  if(r.id==='clinic'){
+    log(clinicReturning
+      ? '🏥 The night clinic is back up. June is already laying gauze on the cot.'
+      : '🏥 A tarp, a cot, a red cross cut from a reflector. June watches from the sidewalk, canvas bag on her shoulder.');
+    sfx('clinic');
+    if(typeof juice==='function') juice('heal');
+    if(typeof flutterGauze==='function') flutterGauze();
+    if(typeof buildWorkersUI==='function') buildWorkersUI();
+  }
+  if(r.gives.bandages) log('🩹 '+r.gives.bandages+' gauze rolls on the shelf — '+(G.bandages||0)+' ready.');
+  if(r.id==='gate'){
+    log('🚪 The storm gate stands on the path to the river lot. Rio comes up from the water and waits.');
+    sfx('storm');
+    if(typeof buildWorkersUI==='function') buildWorkersUI();
+  }
   saveGame();
   updateHUD(); buildCraftUI();
   // HV-89: the cart (and the guitar) unlock a new verb on the action
