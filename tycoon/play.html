@@ -840,6 +840,27 @@
       cursor: pointer;
     }
     #annex-btn.on { display: flex; align-items: center; justify-content: center; }
+    #clash-btn {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      border-radius: 8px;
+      border: 1px solid rgba(248,81,73,0.55);
+      background: rgba(248,81,73,0.14);
+      color: #fecaca;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #clash-btn:focus-visible { outline: 2px solid #fecaca; outline-offset: 2px; }
+    #clash-chip { display: none; font-size: 9px; color: #fecaca; margin-top: 2px; letter-spacing: 0.3px; }
+    #clash-chip.on { display: block; }
     #annex-chip { display: none; font-size: 9px; color: #86efac; margin-top: 2px; letter-spacing: 0.3px; }
     #annex-chip.on { display: block; }
     #annex-modal {
@@ -1618,6 +1639,8 @@
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
   <div id="goal-hall-label" title="The office across the hall — a ghost of your best season, saved in this browser. No server.">🚪 Hall</div>
   <button type="button" id="annex-btn">🏢 The Annex</button>
+  <button type="button" id="clash-btn">⚔ Hostile takeover</button>
+  <div id="clash-chip">⚔ Charter · deals +5%</div>
   <div id="annex-chip" title="Mira, Sol, and Penn kept the annex. Deals +6% this season.">🏢 Annex · +6%</div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
@@ -1978,6 +2001,7 @@
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
+<script src="/js/climax.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2065,6 +2089,7 @@ function careerEmit(event, value) {
     EurekaProgress.emit(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon', event, value);
   } catch (e) { /* a trophy cannot stop the office */ }
 }
+let clashCharter = false;
 
 // Beagle Sim's yard, pack audio, and beagle meshes live in beagle-pack.js.
 // Startup Tycoon never imports it. If the file fails to load, the reskin
@@ -6332,7 +6357,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult()
+    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult() * clashDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -10439,6 +10464,19 @@ let annexMorale = 90;
 let annexFocus = 'findings';
 let annexNoteT = 0;
 function annexDealMult() { return annexLive ? 1.06 : 1; }
+function clashDealMult() { return clashCharter ? 1.05 : 1; }
+function refreshClashChip() {
+  const chip = document.getElementById('clash-chip');
+  const btn = document.getElementById('clash-btn');
+  const beagle = VARIANT.id === 'beagle';
+  if (btn && !btn.dataset.named) {
+    btn.dataset.named = '1';
+    btn.textContent = beagle ? '🐾 Yard raid' : '⚔ Hostile takeover';
+  }
+  if (!chip) return;
+  chip.textContent = beagle ? '🐾 Charter · digs +5%' : '⚔ Charter · deals +5%';
+  chip.classList.toggle('on', !!clashCharter);
+}
 function annexLead() { return ANNEX_CREW.find(c => c.focus === annexFocus) || ANNEX_CREW[0]; }
 function refreshAnnexOffer() {
   const btn = document.getElementById('annex-btn');
@@ -10760,6 +10798,32 @@ document.getElementById('partner-no').onclick = () => choosePartner('no');
 document.getElementById('annex-btn').onclick = () => openAnnex();
 document.getElementById('annex-follow').onclick = () => followAnnex();
 document.getElementById('annex-close').onclick = () => closeAnnex();
+function openClash() {
+  if (!window.EurekaClimax || document.getElementById('climax-root')) return;
+  const beagle = VARIANT.id === 'beagle';
+  const view = window.EurekaClimax.mount(document, {
+    spec: beagle ? 'beagle' : 'tycoon',
+    onWin: () => {
+      const first = !clashCharter;
+      clashCharter = true;
+      const purse = first ? 2500 : 800;
+      addCash(purse, 'event');
+      const msg = beagle
+        ? `🐾 The yard holds. +$${fmtCash(purse)} and digs pay 5% more.`
+        : `⚔ Takeover broken. +$${fmtCash(purse)} and deals pay 5% more.`;
+      showToast(msg, 'good', 'critical');
+      addFeedEntry(msg);
+      careerEmit('boss', 1);
+      refreshClashChip();
+      saveGame();
+      return msg;
+    },
+  });
+  view.open();
+}
+const clashBtn = document.getElementById('clash-btn');
+if (clashBtn) clashBtn.onclick = () => openClash();
+refreshClashChip();
 
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -12999,6 +13063,10 @@ function tycoonScore() {
       if (host) a.attachReadout(host);
     }
     a.start('calm');
+    if (document.getElementById('climax-root')) {
+      a.setMood('tense');
+      return;
+    }
     const morale = teamMorale();
     const crew = ideaWorkers.length;
     const broke = state.cash < 40 && crew > 1;
@@ -13615,6 +13683,14 @@ const SAVE_SCHEMA = [
       annexMorale = Math.max(0, Math.min(90, a.morale | 0 || 90));
       annexFocus = ANNEX_FOCUS.indexOf(a.focus) >= 0 ? a.focus : 'findings';
       refreshAnnexOffer();
+    },
+  },
+  {
+    key: 'clash',
+    write: p => { if (clashCharter) p.clash = { charter: true }; },
+    read: p => {
+      clashCharter = !!(p.clash && p.clash.charter);
+      refreshClashChip();
     },
   },
   {
