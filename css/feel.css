@@ -1,0 +1,336 @@
+/* Shared game-feel layer and the flagship daily card.
+   Popups and particles sit above flagship modals.
+   Reduced motion is also enforced in EurekaFeel. */
+
+.feel-fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 13900;
+}
+
+.feel-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13850;
+  background: rgba(255, 255, 255, 0);
+}
+
+.feel-flash.on {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.feel-popup {
+  position: fixed;
+  z-index: 14000;
+  pointer-events: none;
+  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+}
+
+.feel-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 14500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 8, 12, 0.78);
+  pointer-events: none;
+}
+
+.feel-transition-card { text-align: center; color: #f4f1ea; padding: 24px; }
+.feel-transition-title {
+  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.feel-transition-sub {
+  margin-top: 8px;
+  font-size: 15px;
+  color: rgba(244, 241, 234, 0.78);
+}
+
+html[data-feel-reduced="1"] .feel-flash,
+html[data-feel-reduced="1"] .feel-popup,
+html[data-feel-reduced="1"] .feel-transition {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── Flagship daily card (hub) ── */
+.flag-daily {
+  max-width: 1200px;
+  margin: 0 auto 14px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--fd-accent, #58A6FF);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    rgba(88, 166, 255, 0.06);
+  color: var(--text, #E6EDF3);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.flag-daily[hidden] { display: none !important; }
+.flag-daily-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.flag-daily-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  color: var(--fd-accent, #58A6FF);
+}
+.flag-daily-date, .flag-daily-seed {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #7D8590);
+}
+.flag-daily-name {
+  margin: 6px 0 0;
+  font-size: clamp(22px, 4vw, 30px);
+  line-height: 1.1;
+  letter-spacing: 0.3px;
+}
+.flag-daily-goal {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text, #E6EDF3);
+}
+.flag-daily-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.flag-daily-stat {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  font-weight: 800;
+}
+.flag-daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.flag-daily-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--fd-accent, #58A6FF);
+  color: #0d1117;
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: none;
+}
+.flag-daily-play:hover { filter: brightness(1.06); }
+.flag-daily-toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.16));
+  background: transparent;
+  color: var(--text, #E6EDF3);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.flag-daily-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.flag-daily-day {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, #7D8590);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.flag-daily-day.is-met { color: #7ee787; }
+.flag-daily-day.is-miss { color: #F85149; }
+
+@media (max-width: 640px) {
+  #view-arcade #flag-daily { order: 9; }
+}
+
+/* ── In-game daily board ── */
+.flag-daily-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding:
+    calc(14px + env(safe-area-inset-top, 0px))
+    14px
+    calc(14px + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(88, 166, 255, 0.18), transparent 60%),
+    #12141a;
+  color: #f4f1ea;
+  overflow: auto;
+  box-sizing: border-box;
+}
+.flag-daily-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.flag-daily-layer h1 {
+  margin: 2px 0 0;
+  font-size: clamp(26px, 6vw, 40px);
+  line-height: 1;
+}
+.flag-daily-layer .fd-blurb {
+  margin: 6px 0 0;
+  max-width: 42ch;
+  color: rgba(244, 241, 234, 0.78);
+  font-size: 14px;
+}
+.fd-meters { min-width: min(100%, 220px); }
+.fd-time, .fd-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+}
+.fd-goal-line { margin-top: 4px; font-size: 13px; font-weight: 700; color: rgba(244, 241, 234, 0.7); }
+.fd-bar {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.fd-bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--fd-accent, #58A6FF);
+}
+.fd-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: min(520px, 100%);
+  margin: 4px auto 0;
+}
+.fd-tile {
+  aspect-ratio: 1;
+  min-height: 84px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  touch-action: manipulation;
+}
+.fd-tile:active { background: rgba(255, 255, 255, 0.12); }
+.fd-tile.is-trap { border-color: rgba(248, 81, 73, 0.45); }
+.fd-face { font-size: clamp(28px, 7vw, 40px); line-height: 1; }
+.fd-val { font-size: 13px; font-weight: 800; color: rgba(244, 241, 234, 0.8); }
+.fd-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+}
+.fd-bank, .fd-again, .fd-hub {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fd-bank, .fd-again {
+  border: none;
+  background: var(--fd-accent, #58A6FF);
+  color: #0d1117;
+}
+.fd-hub {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f4f1ea;
+  background: transparent;
+}
+.flag-daily-results {
+  width: min(520px, 100%);
+  margin: 8px auto 0;
+  text-align: center;
+}
+.flag-daily-results .fd-big {
+  font-size: clamp(56px, 14vw, 92px);
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.flag-daily-results .fd-big.is-met { color: #7ee787; }
+.flag-daily-results .fd-big.is-miss { color: #F85149; }
+.fd-history {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  text-align: left;
+}
+.fd-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  font-weight: 700;
+}
+.fd-history .is-met { color: #7ee787; }
+.fd-history .is-miss { color: #F85149; }
+.fd-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
