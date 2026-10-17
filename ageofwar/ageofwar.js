@@ -483,6 +483,131 @@ const AgeOfWarGame = (() => {
     const el = document.getElementById('aow-council');
     if (el) el.style.display = 'none';
   }
+
+  // -- Field Orders (AOW-61) --
+  // Castle Age is where the war stops being "send Clubmen" and starts
+  // costing real gold: swords, crossbows, the first turret that matters.
+  // One order, chosen the moment you age up, leans the rest of the run.
+  const FIELD_ORDERS = [
+    { id: 'levy', icon: '🪙', name: 'Levy',
+      desc: 'Kills pay +18% gold. Recruits cost +10%. Fund the push into the Renaissance.' },
+    { id: 'shield', icon: '🛡️', name: 'Shield Drill',
+      desc: 'Your soldiers take 12% less damage. Kills pay 8% less gold. Hold the midfield.' },
+    { id: 'sapper', icon: '🏹', name: 'Sapper Corps',
+      desc: 'Turrets hit +18% harder and reload 8% faster. Reaching the Renaissance costs +15% XP.' },
+  ];
+  let fieldOrder = null;
+  let fieldOrderOpen = false;
+  function orderGoldMult() {
+    return fieldOrder === 'levy' ? 1.18 : fieldOrder === 'shield' ? 0.92 : 1;
+  }
+  function recruitCost(def) {
+    if (!def) return 0;
+    return fieldOrder === 'levy' ? Math.round(def.cost * 1.1) : def.cost;
+  }
+  function orderMitigate(u, dmg) {
+    if (fieldOrder !== 'shield' || !u || u.side !== 'player' || u.role) return dmg;
+    return Math.max(1, Math.round(dmg * 0.88));
+  }
+  function nextAgeXp() {
+    const base = ERAS[playerEra].upXP;
+    if (fieldOrder === 'sapper' && playerEra === 1) return Math.round(base * 1.15);
+    return base;
+  }
+  function orderChip() {
+    let el = document.getElementById('aow-order-chip');
+    if (!el) {
+      const host = document.getElementById('aow-wave');
+      if (!host) return null;
+      el = document.createElement('span');
+      el.id = 'aow-order-chip';
+      el.className = 'aow-wave-sub';
+      el.style.cssText = 'display:none;text-transform:none;letter-spacing:0;color:#58A6FF;font-weight:800';
+      host.appendChild(el);
+    }
+    return el;
+  }
+  function refreshOrderChip() {
+    const el = orderChip();
+    if (!el) return;
+    const o = FIELD_ORDERS.find(x => x.id === fieldOrder);
+    if (!o) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = '';
+    el.textContent = o.icon + ' ' + o.name;
+    el.title = o.desc;
+  }
+  function closeFieldOrder() {
+    fieldOrderOpen = false;
+    const el = document.getElementById('aow-field-order');
+    if (el) el.style.display = 'none';
+  }
+  function offerFieldOrder() {
+    if (fieldOrder || fieldOrderOpen || playerEra !== 1) return;
+    fieldOrderOpen = true;
+    let el = document.getElementById('aow-field-order');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aow-field-order';
+      el.setAttribute('role', 'dialog');
+      el.setAttribute('aria-label', 'Field order');
+      document.body.appendChild(el);
+    }
+    el.style.cssText = 'position:fixed;top:108px;left:50%;transform:translateX(-50%);z-index:70;display:block;' +
+      'background:rgba(8,12,20,0.96);border:1px solid rgba(88,166,255,0.55);border-radius:12px;padding:14px 16px;' +
+      'max-width:520px;width:min(520px, calc(100vw - 24px));text-align:center;color:#E6EDF3;' +
+      'box-shadow:0 12px 40px rgba(0,0,0,0.6);animation:aowOrderIn .28s ease';
+    if (!document.getElementById('aow-order-style')) {
+      const st = document.createElement('style');
+      st.id = 'aow-order-style';
+      st.textContent = '@keyframes aowOrderIn{from{transform:translateX(-50%) translateY(-8px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}' +
+        '#aow-field-order button{transition:transform .08s ease, border-color .15s ease}' +
+        '#aow-field-order button:hover{transform:translateY(-1px)}' +
+        '#aow-field-order button:active{transform:scale(0.98)}' +
+        '@media (prefers-reduced-motion:reduce){#aow-field-order{animation:none}}';
+      document.head.appendChild(st);
+    }
+    el.innerHTML = '<div style="font-size:12px;letter-spacing:1.5px;color:#58A6FF;font-weight:800;text-transform:uppercase">📜 Field order — Castle Age</div>' +
+      '<div style="font-size:12px;color:#9aa3ad;margin:4px 0 10px">One order for the rest of this war. The line keeps fighting while you choose. Keys 1–3.</div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+      FIELD_ORDERS.map((o, i) =>
+        '<button type="button" data-order="' + o.id + '" style="flex:1;min-width:140px;background:rgba(88,166,255,0.08);' +
+        'border:1px solid rgba(88,166,255,0.45);color:#E6EDF3;border-radius:10px;padding:10px 8px;' +
+        'font-family:inherit;cursor:pointer">' +
+        '<div style="font-size:20px">' + o.icon + '</div>' +
+        '<div style="font-weight:800;font-size:13px;margin:2px 0">' + o.name + '</div>' +
+        '<div style="font-size:11px;color:#9aa3ad;line-height:1.35">' + o.desc + '</div>' +
+        '<div style="font-size:10px;color:#58A6FF;margin-top:4px">[' + (i + 1) + ']</div></button>').join('') +
+      '</div>';
+    el.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); chooseFieldOrder(btn.dataset.order); });
+    });
+    SFX.order();
+  }
+  function chooseFieldOrder(id) {
+    if (!fieldOrderOpen || !FIELD_ORDERS.some(o => o.id === id)) return;
+    fieldOrder = id;
+    closeFieldOrder();
+    const o = FIELD_ORDERS.find(x => x.id === id);
+    goldFloaters.push({
+      text: o.icon + ' ' + o.name + ' — ' + o.desc,
+      x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#58A6FF', t: 2.4,
+    });
+    ageFlash = Math.max(ageFlash, 0.45);
+    for (let i = 0; i < 16; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+      const spd = 80 + Math.random() * 160;
+      particles.push({
+        x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 70,
+        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+        color: ['#58A6FF', '#fcd34d', '#E6EDF3'][i % 3],
+        size: 2 + Math.random() * 2, life: 0.8,
+      });
+    }
+    SFX.order();
+    refreshOrderChip();
+    renderHud();
+    renderSpawnPanel();
+  }
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
@@ -966,6 +1091,10 @@ const AgeOfWarGame = (() => {
         [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
           () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }), i * 70));
       },
+      order() {
+        [392, 523, 659].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.16, type: 'triangle', vol: 0.26 }), i * 70));
+      },
       enemyAgeUp() {
         // Ominous minor rise — the enemy's tech drum, deliberately darker
         // than the player's bright ageUp arpeggio.
@@ -1228,6 +1357,9 @@ const AgeOfWarGame = (() => {
     bossKilledThisWave = false;
     councilBoons = {};            // AOW-10: boons are run-scoped
     closeCouncil();
+    fieldOrder = null;            // AOW-61: the order is this war's
+    fieldOrderOpen = false;
+    closeFieldOrder();
     killFeed = [];
     shakeT = 0; shakeMag = 0;
     setUserPaused(false);      // never carry a pause into a fresh run
@@ -1401,11 +1533,12 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: queueFullMessage(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
-    if (gold < def.cost) {
-      goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+    const cost = recruitCost(def);
+    if (gold < cost) {
+      goldFloaters.push({ text: `Need $${Math.ceil(cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
     }
-    gold -= def.cost;
+    gold -= cost;
     const total = trainingTimeFor(def);
     if (drillBought) runStats.drilled = (runStats.drilled || 0) + 1;   // AOW-28
     trainingQueue.push({ key, total, remaining: total });
@@ -1420,7 +1553,7 @@ const AgeOfWarGame = (() => {
     const entry = trainingQueue[idx];
     if (!entry) return;
     const def = UNITS[entry.key];
-    if (def) gold += def.cost;
+    if (def) gold += recruitCost(def);
     trainingQueue.splice(idx, 1);
     renderHud();
     renderTrainingQueue();
@@ -1455,7 +1588,7 @@ const AgeOfWarGame = (() => {
       ageBannerT = 2.4;
       return;
     }
-    const need = ERAS[playerEra].upXP;
+    const need = nextAgeXp();
     if (xp < need) {
       ageBannerText = `Need ${need - xp} more XP for ${ERAS[playerEra + 1].name}`;
       ageBannerT = 2.4;
@@ -1517,6 +1650,7 @@ const AgeOfWarGame = (() => {
     renderSpawnPanel();
     renderTrainingQueue();
     renderTurretPanel();
+    if (playerEra === 1) offerFieldOrder();   // AOW-61
   }
 
   // Shared special-barrage spawner, used by BOTH the player's fireSpecial()
@@ -3387,6 +3521,11 @@ const AgeOfWarGame = (() => {
       if (userPaused) return;  // only P (above) is live while user-paused
       // AOW-10: while a War Council is open, 1/2 pick the boon instead of
       // training units.
+      if (fieldOrderOpen) {
+        const c = parseInt(e.key, 10);
+        if (c >= 1 && c <= FIELD_ORDERS.length) { chooseFieldOrder(FIELD_ORDERS[c - 1].id); e.preventDefault(); }
+        return;
+      }
       if (councilPending) {
         const c = parseInt(e.key, 10);
         if (c >= 1 && c <= councilPending.length) { chooseBoon(councilPending[c - 1].id); e.preventDefault(); }
@@ -3878,7 +4017,7 @@ const AgeOfWarGame = (() => {
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              const dd = vetDmg(u);
+              const dd = orderMitigate(target, vetDmg(u));
               target.hp -= dd; target.hitFlash = 0.2;
               spawnDmgFloater(dd, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
               spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
@@ -3922,8 +4061,9 @@ const AgeOfWarGame = (() => {
       for (const u of foes) {
         if (u.hp <= 0) continue;
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
-          u.hp -= p.dmg; u.hitFlash = 0.2;
-          spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
+          const hit = p.side === 'enemy' ? orderMitigate(u, p.dmg) : p.dmg;
+          u.hp -= hit; u.hitFlash = 0.2;
+          spawnDmgFloater(hit, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
           spawnHitSparks(p.x, p.y, p.color);
           SFX.hit();
           p.life = 0;
@@ -4024,8 +4164,8 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult();
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult()));
+          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult() * orderGoldMult();
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult() * orderGoldMult()));
           bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
@@ -4228,11 +4368,13 @@ const AgeOfWarGame = (() => {
           side, x: turretX,
           y: GROUND_Y - 90,
           vx: (target.x > turretX ? 1 : -1) * 380,
-          dmg: t.dmg, life: 1.2, color: t.color || '#fcd34d',
+          dmg: side === 'player' && fieldOrder === 'sapper' ? Math.round(t.dmg * 1.18) : t.dmg,
+          life: 1.2, color: t.color || '#fcd34d',
           kind: tKind, vy: tArc.vy, grav: tArc.grav,
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
-        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() : 1);   // AOW-27: fletched bolts nock faster
+        const sapperReload = side === 'player' && fieldOrder === 'sapper' ? 0.92 : 1;
+        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() * sapperReload : 1);   // AOW-27 / AOW-61
         if (side === 'player' && fletcherBought) runStats.fletched = (runStats.fletched || 0) + 1;
       }
     }
@@ -8797,11 +8939,12 @@ const AgeOfWarGame = (() => {
     const xpBar     = document.getElementById('aow-xp-bar');
     if (eraIconEl) eraIconEl.textContent = era.icon;
     if (eraNameEl) eraNameEl.textContent = era.name;
+    const ageNeed = playerEra >= ERAS.length - 1 ? era.upXP : nextAgeXp();
     if (eraSubEl)  eraSubEl.textContent  = playerEra >= ERAS.length - 1
       ? `${xp} XP · MAX`
-      : `${xp} / ${era.upXP} XP`;
+      : `${xp} / ${ageNeed} XP`;
     if (xpBar) {
-      const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / era.upXP) * 100);
+      const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / ageNeed) * 100);
       xpBar.style.width = pct + '%';
     }
 
@@ -8857,12 +9000,13 @@ const AgeOfWarGame = (() => {
       } else {
         if (ico) ico.textContent = '⬆️';
         if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
-        ageBtn.disabled = xp < era.upXP;
+        const ageNeedBtn = nextAgeXp();
+        ageBtn.disabled = xp < ageNeedBtn;
         const nextEra = ERAS[playerEra + 1].name;
         const hint = playerEra === 4 && !earnedAchievements.max_age
           ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
-          : xp < era.upXP
-            ? `Need ${era.upXP - xp} more XP for ${nextEra}`
+          : xp < ageNeedBtn
+            ? `Need ${ageNeedBtn - xp} more XP for ${nextEra}`
             : `Ready to age up to ${nextEra}`;
         ageBtn.title = hint;
         ageBtn.setAttribute('aria-label', hint);
@@ -9395,20 +9539,21 @@ const AgeOfWarGame = (() => {
           const btn = list.children[i];
           if (btn) {
             btn.title = recruitTitle(def, queueFull);
-            btn.classList.toggle('aow-not-afford', gold < def.cost);
+            btn.classList.toggle('aow-not-afford', gold < recruitCost(def));
             btn.classList.toggle('aow-queue-full', queueFull);
           }
           i++;
         }
       }
     }
+    refreshOrderChip();
     updateCoach();
   }
 
   function updateTrainingLabel(slot, entry, isFront) {
     const def = UNITS[entry.key];
     const timing = isFront ? `${Math.ceil(Math.max(0, entry.remaining))}s left` : 'queued';
-    const label = `${def?.name || entry.key} — ${timing} · cancel refunds $${def?.cost}`;
+    const label = `${def?.name || entry.key} — ${timing} · cancel refunds $${def ? recruitCost(def) : 0}`;
     if (slot.title !== label) {
       slot.title = label;
       slot.setAttribute('aria-label', label);
@@ -9452,8 +9597,9 @@ const AgeOfWarGame = (() => {
   }
 
   function recruitTitle(def, queueFull) {
+    const price = recruitCost(def);
     const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
-      : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
+      : gold < price ? `Need $${Math.ceil(price - gold)} more. ` : '';
     return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
   }
 
@@ -9475,7 +9621,7 @@ const AgeOfWarGame = (() => {
           <span class="aow-spawn-key">${idx <= 9 ? idx : ''}</span>
           ${iconHtml}
           <span class="aow-spawn-name">${def.name}</span>
-          <span class="aow-spawn-cost">$${def.cost}</span>
+          <span class="aow-spawn-cost">$${recruitCost(def)}</span>
         `;
         const queueFull = trainingQueue.length >= TRAINING_MAX;
         btn.disabled = queueFull;
@@ -9767,6 +9913,7 @@ const AgeOfWarGame = (() => {
         pendingPerks: packPerkMap(pendingPerks),
         councilBoons: { ...councilBoons },
         councilPending: councilPending ? councilPending.map(b => b.id) : undefined,
+        fieldOrder: fieldOrder || undefined,
         strongholdsRazed, chestGold,
         units: packUnits(units),
         trainingQueue: packQueue(trainingQueue),
@@ -9845,6 +9992,9 @@ const AgeOfWarGame = (() => {
     if (snap.councilBoons && typeof snap.councilBoons === 'object' && !Array.isArray(snap.councilBoons)) {
       councilBoons = { ...snap.councilBoons };
     }
+    fieldOrder = (snap.fieldOrder === 'levy' || snap.fieldOrder === 'shield' || snap.fieldOrder === 'sapper') ? snap.fieldOrder : null;
+    fieldOrderOpen = false;
+    closeFieldOrder();
     strongholdsRazed = sessionInt(snap.strongholdsRazed, 0, 0, 999);
     chestGold = sessionInt(snap.chestGold, 0, 0, 1e12);
     projectiles = [];
@@ -9924,6 +10074,7 @@ const AgeOfWarGame = (() => {
     if (snap.loan && typeof snap.loan === 'object') bits.push('the lender is still collecting');
     if (sessionInt(snap.chestGold, 0, 0, 1e12) > 0) bits.push('the war chest is still locked');
     if (Array.isArray(snap.councilPending) && snap.councilPending.length) bits.push('the council is still sitting');
+    if (snap.fieldOrder === 'levy' || snap.fieldOrder === 'shield' || snap.fieldOrder === 'sapper') bits.push('the field order still stands');
     const fieldLine = bits.length
       ? `${bits.join(' · ')}. One tap continues.`
       : 'The war is held — one tap continues.';
