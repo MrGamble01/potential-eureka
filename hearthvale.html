@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hud-b" data-game="hearthvale">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,6 +14,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#3a5f43">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%233a5f43'/><path d='M14 34 L32 18 L50 34 L50 50 L14 50 Z' fill='%23c8574f'/><rect x='22' y='38' width='8' height='12' fill='%236e4a2c'/><rect x='36' y='38' width='8' height='8' fill='%23bfe4f2'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap">
   <link rel="stylesheet" href="css/arcade-chrome.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Inter:wght@400;600;700&display=swap">
   <style>
@@ -615,6 +618,7 @@
 .chain-open{background:rgba(255,255,255,.05)}
 .chain-locked{opacity:.45}
 </style>
+<link rel="stylesheet" href="css/hud-b.css?v=20261017hudb2">
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
@@ -628,6 +632,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <button id="m-moments" type="button">📷 Photo &amp; replays</button>
     <div id="hv-audio"></div>
     <button id="m-decrees">Town Decrees</button>
     <button id="m-chronicle">Town Chronicle</button>
@@ -873,6 +878,7 @@
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
+<script src="/js/moments.js"></script>
 <script src="/js/hearthvale-expedition.js"></script>
 <script src="/js/climax.js"></script>
 <script>
@@ -1810,6 +1816,7 @@
     chron('🎪', 'The town throws its ' + ordinal(state.festivalsHeld) + ' festival');
     updateHUD(); checkAchievements(); save();
     careerEmit('festival', state.festivalsHeld);
+    try { if (window.EurekaMoments) EurekaMoments.mark('Festival'); } catch (e) {}
   }
 
   // ── The Stonemason & the Monument (HVALE-16) ───────────────
@@ -2137,6 +2144,7 @@
   let ambientTime = 0;     // seconds of real time, drives smooth ambient motion
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
+  let momentHold = false;
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   // Difficulty presets chosen at the start — a relaxed build vs. a lean frontier.
@@ -8461,6 +8469,30 @@
       }
     } catch (e) { /* a bad query must not stop the valley */ }
 
+    try {
+      if (window.EurekaMoments) EurekaMoments.attach({
+        game: 'hearthvale',
+        canvas: function () { return document.getElementById('game'); },
+        pause: function () { momentHold = true; },
+        resume: function () { momentHold = false; },
+        hud: '#hud,#minimap,#goals,#speedctl,#buildtabs,#buildbar,#menu,#menu-btn,#touch-pause,#zoom-ctl,#hint,#toasts,#resumeChip,.ea-back--float',
+        blocked: function () {
+          return !!document.querySelector('#welcome.show, #trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show, #vale-talk:not([hidden]), #hvx-root:not([hidden]), #climax-root');
+        },
+        camera: {
+          modes: ['free'],
+          pan: function (dx, dy) {
+            cam.x -= dx / cam.z;
+            cam.y -= dy / cam.z;
+            clampCam();
+          },
+          zoom: function (scale) {
+            zoomAt(view.w / 2, view.h / 2, cam.z * scale);
+          },
+        },
+      });
+    } catch (e) {}
+
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); placeTalk(); });
     document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
 
@@ -8514,6 +8546,12 @@
     let dt = (ts - lastT) / 1000; lastT = ts;
     if (dt > 0.1) dt = 0.1; // clamp big gaps (tab switches)
 
+    if (momentHold) {
+      draw();
+      if (window.EurekaMoments) EurekaMoments.afterFrame();
+      return;
+    }
+
     // sim
     stepSim(dt);
     // ambient life runs on real time, so it keeps gently moving even when paused
@@ -8522,6 +8560,7 @@
     soundtrackMood(dt);
     // render
     draw();
+    if (window.EurekaMoments) EurekaMoments.afterFrame();
     // hud light refresh
     hudTick += dt;
     if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); assignBuilders(); checkTierUp(); hudTick = 0; }
