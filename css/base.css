@@ -681,3 +681,63 @@ nav.site-nav button.active {
   --color-indigo-600: #d9ab2a;
   --glow-primary: 0 0 16px rgba(247, 201, 72, 0.32);
 }
+
+/* Career cosmetics. Equipped from the trophy room. The nav cycler
+   still owns Midnight, CRT, Synthwave, and Daylight. */
+:root[data-theme="lantern"] {
+  --color-black-deep: #140c07;
+  --color-black-base: #1c100a;
+  --color-black-elevated: #2a1810;
+  --color-black-surface: #331e13;
+  --color-indigo-500: #f0a04b;
+  --color-indigo-400: #ffc27a;
+  --color-indigo-600: #d4842c;
+  --color-blue-400: #ffd7a1;
+  --color-pink-400: #ffb088;
+  --glow-primary: 0 0 18px rgba(240, 160, 75, 0.38);
+  --glow-secondary: 0 0 16px rgba(255, 194, 122, 0.25);
+  --text: #f8ead8;
+  --text-dim: #c4a07a;
+  --text-muted: #a88868;
+  --nav-bg: rgba(28, 16, 10, 0.78);
+  --drawer-bg: rgba(28, 16, 10, 0.96);
+  --theme-color: #1c100a;
+}
+:root[data-theme="glacier"] {
+  --color-black-deep: #061018;
+  --color-black-base: #0c1824;
+  --color-black-elevated: #122636;
+  --color-black-surface: #173044;
+  --color-indigo-500: #7ec8ff;
+  --color-indigo-400: #b5e2ff;
+  --color-indigo-600: #4aa4e0;
+  --color-blue-400: #d7f1ff;
+  --color-pink-400: #9ad7ff;
+  --glow-primary: 0 0 18px rgba(126, 200, 255, 0.35);
+  --glow-secondary: 0 0 16px rgba(181, 226, 255, 0.22);
+  --text: #e7f4ff;
+  --text-dim: #8eb4d0;
+  --text-muted: #7aa3c0;
+  --nav-bg: rgba(12, 24, 36, 0.78);
+  --drawer-bg: rgba(12, 24, 36, 0.96);
+  --theme-color: #0c1824;
+}
+:root[data-theme="hearth"] {
+  --color-black-deep: #0d140c;
+  --color-black-base: #141c12;
+  --color-black-elevated: #1c2818;
+  --color-black-surface: #24321e;
+  --color-indigo-500: #8fce6a;
+  --color-indigo-400: #b6e59a;
+  --color-indigo-600: #6eae4a;
+  --color-blue-400: #d5f0c0;
+  --color-pink-400: #e7d48a;
+  --glow-primary: 0 0 18px rgba(143, 206, 106, 0.32);
+  --glow-secondary: 0 0 16px rgba(231, 212, 138, 0.2);
+  --text: #eef6e6;
+  --text-dim: #a3c48f;
+  --text-muted: #8aaf78;
+  --nav-bg: rgba(20, 28, 18, 0.78);
+  --drawer-bg: rgba(20, 28, 18, 0.96);
+  --theme-color: #141c12;
+}

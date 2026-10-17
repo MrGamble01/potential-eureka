@@ -35,6 +35,7 @@ LEAD=(
   reach
   storagekeys
   persist
+  career
   audio
   saves
   hubstore

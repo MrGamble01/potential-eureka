@@ -256,6 +256,18 @@ const TARGETS = [
     },
   },
   {
+    name: 'Trophy Room',
+    view: 'trophy',
+    path: '/#trophy',
+    check: async (page) => {
+      await page.waitForSelector('#view-trophy.active .trophy-card', { timeout: 15000 });
+      const cards = await page.locator('.trophy-card').count();
+      if (cards < 20) throw new Error(`Trophy room rendered ${cards} cards`);
+      const chip = (await page.locator('#career-chip').innerText()).replace(/\s+/g, ' ').trim();
+      if (!/Lv 1/.test(chip)) throw new Error(`career chip did not render (${chip})`);
+    },
+  },
+  {
     name: '404',
     path: '/404.html',
     file: '404.html',
