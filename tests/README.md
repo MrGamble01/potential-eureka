@@ -178,6 +178,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvcan` (the Coffee Can)
 - `hvpanel` (the Fifth Panel)
 - `hvwalk` (the Walk Down)
+- `hvwalked` (HV-285: Walk a Newcomer Down ran a job when somebody already got the walk tonight)
 - `hvmark` (a Name on the Wall)
 - `hvroom` (HV-270: Make room refuses a full camp before the timer)
 - `hvleave` (HV-271: leaving the tab writes the last half-minute)
