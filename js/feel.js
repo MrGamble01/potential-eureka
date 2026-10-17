@@ -142,11 +142,15 @@
   function ensureCanvas() {
     if (canvas) return canvas;
     if (!document.body) return null;
+    const host = document.createElement('div');
+    host.id = 'feel-layer';
+    host.setAttribute('aria-hidden', 'true');
     canvas = document.createElement('canvas');
     canvas.id = 'feel-fx';
     canvas.className = 'feel-fx';
     canvas.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(canvas);
+    host.appendChild(canvas);
+    document.body.appendChild(host);
     ctx = canvas.getContext('2d');
     if (!ctx) return null;
     resize();
@@ -207,19 +211,28 @@
     return count;
   }
 
+  let shakeBase = null;
   function shake(target, mag, ms) {
     if (reduced()) return;
     const el = target && target.style ? target : null;
     if (!el) return;
     const token = ++shakeToken;
+    if (!shakeBase || shakeBase.el !== el) {
+      if (shakeBase && shakeBase.el) shakeBase.el.style.transform = shakeBase.transform;
+      shakeBase = { el: el, transform: el.style.transform || '' };
+    }
     const start = performance.now();
     const dur = ms || 180;
     const amp = mag || 6;
-    const prev = el.style.transform || '';
+    const base = shakeBase;
     function frame(now) {
       if (token !== shakeToken) return;
       const t = (now - start) / dur;
-      if (t >= 1) { el.style.transform = prev; return; }
+      if (t >= 1) {
+        el.style.transform = base.transform;
+        if (shakeBase === base) shakeBase = null;
+        return;
+      }
       const damp = 1 - t;
       const x = Math.round(Math.sin(t * 42) * amp * damp);
       const y = Math.round(Math.cos(t * 34) * amp * 0.65 * damp);

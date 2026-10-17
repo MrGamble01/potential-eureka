@@ -2,6 +2,16 @@
    Popups and particles sit above flagship modals.
    Reduced motion is also enforced in EurekaFeel. */
 
+#feel-layer {
+  position: fixed;
+  inset: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 13900;
+}
+
 .feel-fx {
   position: fixed;
   inset: 0;
