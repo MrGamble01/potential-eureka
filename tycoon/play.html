@@ -1974,6 +1974,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
@@ -2450,6 +2451,19 @@ const SFX = (() => {
     osc.start(t0); osc.stop(t0 + dur + 0.04);
   }
 
+  // Core actions use the shared score when it is loaded. The
+  // local tones stay for cash ticks and the doors that aren't
+  // one of those five cues, and as a fallback if audio.js is absent.
+  function shared(name) {
+    try {
+      if (window.EurekaAudio) {
+        window.EurekaAudio.sfx(name);
+        return !!(window.EurekaAudio.unlocked && window.EurekaAudio.unlocked());
+      }
+    } catch (e) {}
+    return false;
+  }
+
   return {
     setEnabled(on) {
       enabled = !!on;
@@ -2468,10 +2482,12 @@ const SFX = (() => {
       tone({ freq: 1320, dur: 0.10, type: 'triangle', vol: 0.10, attack: 0.012 });
     },
     hire() {
+      if (shared('buy')) return;
       tone({ freq: 523, dur: 0.10, type: 'sine', vol: 0.30 });
       setTimeout(() => tone({ freq: 784, dur: 0.16, type: 'sine', vol: 0.30 }), 80);
     },
     purchase() {
+      if (shared('build')) return;
       tone({ freq: 660, dur: 0.07, type: 'square', vol: 0.15 });
       setTimeout(() => tone({ freq: 990, dur: 0.10, type: 'square', vol: 0.13 }), 50);
     },
@@ -2479,16 +2495,24 @@ const SFX = (() => {
       tone({ freq: 220, slideTo: 880, dur: 0.30, type: 'sawtooth', vol: 0.22 });
     },
     milestone() {
+      try { if (window.EurekaAudio) window.EurekaAudio.celebrate(6); } catch (e) {}
+      if (shared('levelup')) return;
       [523, 659, 784, 1047].forEach((f, i) => setTimeout(
         () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }),
         i * 90,
       ));
     },
     win() {
+      try { if (window.EurekaAudio) window.EurekaAudio.celebrate(10); } catch (e) {}
+      if (shared('levelup')) return;
       [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
         () => tone({ freq: f, dur: 0.30, type: 'triangle', vol: 0.32 }),
         i * 110,
       ));
+    },
+    error() {
+      if (shared('fail')) return;
+      tone({ freq: 196, slideTo: 90, dur: 0.22, type: 'sawtooth', vol: 0.2 });
     },
     click() {
       tone({ freq: 1200, dur: 0.04, type: 'square', vol: 0.10 });
@@ -2590,8 +2614,10 @@ const TipUI = (() => {
 
   function hide() {
     clearTimeout(showTimer);
-    // Restore the title we stashed.
-    if (activeTarget && savedTitle !== null) {
+    // Restore the title we stashed, unless the page wrote a new one
+    // while the tip was open. The archive chip does that the moment
+    // it is built; putting the old hint back would undo the update.
+    if (activeTarget && savedTitle !== null && !activeTarget.hasAttribute('title')) {
       activeTarget.setAttribute('title', savedTitle);
     }
     savedTitle = null;
@@ -12955,6 +12981,33 @@ const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
 // logged and skipped; only a persistent fault stops the loop, and it says
 // so. Mirrors homeless-village/js/main.js's gameLoop.
 let frameErrors = 0, loopStopped = false;
+// The office score follows the company, not the frame. A milestone
+// holds Victory for a few seconds; the rest of the time morale,
+// the pager, and headcount pick the bed.
+let tycoonScoreReady = false;
+function tycoonScore() {
+  const a = window.EurekaAudio;
+  if (!a) return;
+  try {
+    if (!tycoonScoreReady) {
+      tycoonScoreReady = true;
+      a.bind({
+        muted: () => !SFX.isEnabled(),
+        musicOff: () => !SFX.isEnabled(),
+      });
+      const host = document.getElementById('tycoon-audio');
+      if (host) a.attachReadout(host);
+    }
+    a.start('calm');
+    const morale = teamMorale();
+    const crew = ideaWorkers.length;
+    const broke = state.cash < 40 && crew > 1;
+    const tense = !!outage || morale < 34 || broke;
+    const busy = !tense && (sprintActive || crew >= 3);
+    a.setMood(a.pickMood({ tense: tense, busy: busy }));
+  } catch (e) { /* the office still runs if the score cannot */ }
+}
+
 function loop(now) {
   if (loopStopped) return;
   requestAnimationFrame(loop);
@@ -13087,6 +13140,7 @@ function frameBody(now) {
     _hudAcc %= HUD_UPDATE_INTERVAL;
     updateMetricsHUD();
     updateLabels();
+    tycoonScore();
   }
 
   tickCashHud(dt);

@@ -36,6 +36,7 @@ LEAD=(
   storagekeys
   persist
   career
+  audio
   saves
   hubstore
   promises
