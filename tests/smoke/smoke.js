@@ -644,6 +644,11 @@ function assertCoverage() {
 }
 
 function attach(page, bucket) {
+  bucket.http = [];
+  page.on('response', (res) => {
+    if (res.status() < 400) return;
+    bucket.http.push({ status: res.status(), url: res.url() });
+  });
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     bucket.push({ kind: 'console', text: msg.text() });
@@ -651,6 +656,27 @@ function attach(page, bucket) {
   page.on('pageerror', (err) => {
     bucket.push({ kind: 'pageerror', text: String(err && err.stack || err) });
   });
+}
+
+// Chromium's "Failed to load resource" console line often omits the URL,
+// so a GitHub 403 looks like a same-origin failure. After the page has
+// settled, stamp the matching response URL onto that line. A same-origin
+// hit wins, so a real 403 is never excused by a cross-origin one.
+function attributeResourceErrors(bucket) {
+  const http = bucket.http || [];
+  for (const item of bucket) {
+    if (item.kind !== 'console') continue;
+    if (!/^Failed to load resource:/.test(item.text) || /https?:\/\//.test(item.text)) continue;
+    const m = item.text.match(/status of (\d+)/);
+    const status = m ? Number(m[1]) : 0;
+    const hits = http.filter((h) => h.status === status);
+    if (!hits.length) continue;
+    const same = hits.filter((h) => {
+      try { return new URL(h.url).origin === BASE_ORIGIN; } catch (e) { return true; }
+    });
+    const hit = (same.length ? same : hits)[ (same.length ? same : hits).length - 1 ];
+    item.text = item.text + ' ' + hit.url;
+  }
 }
 
 const PHONE_BOARDS = [
@@ -809,6 +835,7 @@ async function runTarget(browser, target) {
   } catch (e) {
     failure = String(e && e.message || e).split('\n')[0];
   }
+  attributeResourceErrors(bucket);
   const product = bucket.filter((i) => !isEnvironmental(i.text));
   const env = bucket.filter((i) => isEnvironmental(i.text));
   await context.close();

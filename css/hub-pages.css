@@ -1,0 +1,429 @@
+/* Hub chrome and subpages.
+   Nav, Hall of Fame, Patch Notes, How it works, Challenge, and the
+   site footer. Page-scoped so the shared token file stays the hub
+   redesign's. Sizes fall back to this scale until a shared type
+   scale (--type-kicker / --type-title / --type-body) lands. */
+
+.hub-kicker {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-kicker, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.hub-sheet-title,
+#view-halloffame .hof-title {
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-title, clamp(1.75rem, 4vw, 2.25rem));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-shadow: none;
+  color: var(--text);
+}
+
+.hub-sheet-lede,
+#view-halloffame .hof-sub {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.9375rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* ---- NAV ----
+   The two bars stick as one piece. A wrapper that is only as tall as
+   its children would clip position:sticky on the bars themselves, so
+   the header is the sticky element and the bars stay in normal flow. */
+.hub-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hub-chrome > nav,
+.hub-chrome > .nav-utils {
+  position: static;
+  top: auto;
+}
+
+.hub-chrome > nav {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.hub-chrome > nav .logo-btn,
+.hub-chrome > nav .nav-sfx-toggle,
+.hub-chrome > nav .nav-utils-toggle,
+.hub-chrome .sec-link,
+.hub-chrome .nav-utils button,
+.hub-chrome .nav-utils a[data-view] {
+  min-height: 44px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.hub-chrome > nav .logo-btn {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  padding: 0 4px;
+  color: var(--primary);
+}
+
+.hub-chrome > nav .nav-sfx-toggle,
+.hub-chrome > nav .nav-utils-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0 12px;
+}
+
+.hub-chrome .arcade-secondary-nav .sec-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--color-white-08);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.hub-chrome .arcade-secondary-nav .sec-link:hover,
+.hub-chrome .arcade-secondary-nav .sec-link.active {
+  color: var(--text);
+  background: var(--color-white-08);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  text-decoration: none;
+}
+
+.hub-chrome .arcade-secondary-nav .sec-link.active {
+  color: var(--primary-light);
+}
+
+.hub-chrome .sec-link:focus-visible,
+.hub-chrome > nav button:focus-visible,
+.hub-footer a:focus-visible,
+.hub-footer button:focus-visible,
+#view-halloffame a:focus-visible,
+#view-halloffame button:focus-visible,
+#daily-banner a:focus-visible,
+#primer-modal a:focus-visible,
+#primer-modal button:focus-visible,
+#patch-modal button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.hub-chrome .nav-utils button,
+.hub-chrome .nav-utils a[data-view] {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* ---- CHALLENGE ---- */
+#daily-banner.hub-challenge {
+  align-items: center;
+  gap: 8px 16px;
+  padding: 4px 16px;
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--border));
+  border-radius: var(--radius-lg);
+}
+
+#daily-banner .daily-title {
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--warning);
+}
+
+#daily-banner #daily-games {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  margin-left: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#daily-banner .daily-chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.8125rem);
+  text-decoration: none;
+}
+
+#daily-banner .daily-chip:hover {
+  background: color-mix(in srgb, var(--warning) 24%, transparent);
+  border-color: var(--warning);
+  color: var(--text);
+  text-decoration: none;
+}
+
+#daily-banner .daily-best {
+  color: var(--warning);
+}
+
+@media (max-width: 640px) {
+  #daily-banner #daily-games {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+/* ---- HALL OF FAME ---- */
+#view-halloffame .hof-title {
+  text-align: center;
+}
+
+#view-halloffame .hof-sub {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#view-halloffame .hub-kicker {
+  text-align: center;
+  margin-top: 12px;
+}
+
+#view-halloffame .game-back-btn,
+#view-halloffame .hof-share,
+#view-halloffame .hof-reset,
+#view-halloffame .hof-rival-x,
+#view-halloffame .shop-chip,
+#view-halloffame .hof-rival-input {
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+#view-halloffame .hof-share,
+#view-halloffame .hof-reset,
+#view-halloffame .shop-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-decoration: none;
+  color: var(--text);
+}
+
+#view-halloffame .hof-share {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+#view-halloffame .hof-share:hover {
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+#view-halloffame .hof-reset:hover {
+  color: var(--danger);
+}
+
+#view-halloffame .hof-rival-x {
+  min-width: 44px;
+  padding: 0 10px;
+  font-size: 1rem;
+}
+
+#view-halloffame a.hof-row {
+  min-height: 44px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+#view-halloffame a.hof-row:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+#view-halloffame .hof-lane-title {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: var(--type-body, 1rem);
+}
+
+/* ---- HOW IT WORKS + PATCH NOTES ---- */
+#primer-modal .hub-sheet,
+#patch-modal .hub-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.hub-sheet-body,
+#patch-list.hub-patch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+#patch-list.hub-patch-list {
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.hub-point,
+#patch-list > .hub-patch {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--color-white-05);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.9375rem);
+  line-height: 1.55;
+}
+
+.hub-patch {
+  border-left-color: var(--success);
+}
+
+.hub-patch-title {
+  margin: 2px 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.hub-patch-items {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.hub-text-link {
+  color: var(--primary-light);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  text-underline-offset: 3px;
+}
+
+.hub-text-link:hover {
+  color: var(--primary);
+  text-decoration-color: var(--primary);
+}
+
+#primer-hint {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+#primer-modal .modal-actions button,
+#patch-modal .modal-actions button,
+#primer-hint .primer-hint-open,
+#primer-hint .primer-hint-x {
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+}
+
+#primer-hint .primer-hint-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+#primer-hint .primer-hint-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- FOOTER ---- */
+.hub-footer {
+  display: none;
+  max-width: 1200px;
+  margin: 28px auto 36px;
+  padding: 20px 16px 8px;
+  border-top: 1px solid var(--border);
+}
+
+#view-arcade.active ~ .hub-footer,
+#view-halloffame.active ~ .hub-footer {
+  display: block;
+}
+
+.hub-footer-tag {
+  margin: 6px 0 0;
+  max-width: 36rem;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.9375rem);
+  line-height: 1.5;
+}
+
+.hub-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hub-footer-nav a,
+.hub-footer-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--color-white-08);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hub-footer-nav a:hover,
+.hub-footer-nav button:hover,
+.hub-footer-nav a.active {
+  background: var(--color-white-08);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--primary-light);
+  text-decoration: none;
+}
