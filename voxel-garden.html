@@ -431,6 +431,7 @@
 
 <script src="vendor/three-r128.min.js"></script>
 <script src="/js/persist.js"></script>
+<script src="/js/audio.js"></script>
 <script>
 'use strict';
 /* ============================== utils ============================== */
@@ -463,6 +464,13 @@ const SFX={ctx:null,
     g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+dur+0.03);},
   play(n){
+    const shared={place:'build',buy:'buy',harvest:'harvest',level:'levelup',error:'fail'};
+    if(shared[n]&&window.EurekaAudio){
+      try{
+        if(n==='level')EurekaAudio.celebrate(7);
+        if(EurekaAudio.sfx(shared[n])||(EurekaAudio.unlocked&&EurekaAudio.unlocked()))return;
+      }catch(e){}
+    }
     const P={
       till:()=>{this.tone(140,0.08,'square',0.10,80);this.tone(95,0.11,'square',0.08,55,0.06);},
       dig:()=>{this.tone(180,0.07,'square',0.10,90);this.tone(120,0.09,'square',0.08,60,0.05);},
@@ -6139,8 +6147,29 @@ function load(){
 // A sparse generative kalimba: soft pentatonic plucks a few seconds apart,
 // sometimes with a fifth or an octave answering. Slower and quieter at night
 // and during rain, so it never crowds the weather or the fireflies.
-const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
+const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],bound:false,
   tick(dt,dn){
+    if(window.EurekaAudio){
+      try{
+        const a=EurekaAudio;
+        if(!this.bound){
+          this.bound=true;
+          a.bind({muted:()=>!!state.muted,musicOff:()=>!!state.musicOff});
+          const host=document.getElementById('vox-audio');
+          if(host)a.attachReadout(host);
+        }
+        a.start('calm');
+        this.t+=dt;
+        if(this.t<0.5)return;
+        this.t=0;
+        const night=!!(dn&&dn.night>0.55);
+        const tense=rainAmt>0.55||(night&&state.coins<12);
+        const busy=!night&&!tense&&state.level>=2;
+        if(rainbow)a.setMood('victory');
+        else a.setMood(a.pickMood({tense:tense,busy:busy}));
+      }catch(e){}
+      return;
+    }
     if(state.muted||state.musicOff)return;
     if(!SFX.ctx)return;                      // waits for the first user gesture
     this.t+=dt;
