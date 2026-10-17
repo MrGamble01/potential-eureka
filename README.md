@@ -84,6 +84,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `drug-lab-v1`, `growop-achievements`, `growop-legacy` | Grow Op (achievements + legacy survive busts by design) |
 | `homeless_village_v1` | Homeless Village |
 | `hearthvale-v1` | Hearthvale |
+| `hearthvale-expedition-v1` | Hearthvale Wilds Expedition (best depth, best score, seed) |
 | `voxel-garden-v1` | Voxel Isle |
 | `studio-token`, `studio-chat-v1` | Eureka Studio (token stays in the browser, sent only to api.github.com) |
 | `eureka-notes`, `eureka-todos`, `eureka-bookmarks`, `eureka-pomo-sessions`, `eureka-calendar-config`, `eureka-gt-clientid`, `eureka-gt-lists` | productivity view |

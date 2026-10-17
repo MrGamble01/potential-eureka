@@ -86,8 +86,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   });
   ok(hero.flagHref === 'ageofwar/' && hero.flagCta && hero.ctaCount === 1,
     'the only hero CTA is Play Age of War, on the flagship billboard');
-  ok(!hero.quickDoor && hero.snakeHop,
-    'Snake is a text hop under the billboard, not a second primary door');
+  ok(!hero.quickDoor && !hero.snakeHop,
+    'Snake stays a catalogue card, with no second door under the billboard');
   ok(hero.twentyOne, 'the kicker still counts twenty-one games');
 
   const scan = await page.evaluate(() => {
@@ -160,7 +160,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   await page.fill('#card-search', 'snake');
   await page.waitForTimeout(200);
-  await page.click('.hero-alt-link[data-jump="long"]');
+  await page.evaluate(() => document.querySelector('.arcade-scan-link--long').click());
   await page.waitForTimeout(1600);
   const hopFromFilter = await page.evaluate(() => {
     const long = document.querySelector('[data-section="long"]');
@@ -609,7 +609,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   await page.fill('#card-search', 'snake');
   await page.waitForTimeout(200);
-  await page.click('.hero-alt-link[data-jump="studio"]');
+  await page.evaluate(() => document.querySelector('.arcade-scan-link--studio').click());
   await page.waitForTimeout(1600);
   const studioHop = await page.evaluate(() => {
     const s = document.querySelector('[data-section="studio"]');

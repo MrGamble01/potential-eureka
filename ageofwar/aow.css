@@ -1171,6 +1171,26 @@
   .aow-overlay h2 { font-size: 24px; }
 }
 
+/* 375×667: six stone-age recruits (the skirmisher and the shield)
+   have to stay on screen with the field. Cap the canvas and the cards. */
+@media (max-width: 420px) and (max-height: 740px) {
+  .aow-shell { gap: 3px; padding-top: 2px; padding-bottom: 2px; }
+  .aow-topbar { padding: 3px 6px; }
+  .aow-canvas { max-height: 108px; width: auto; margin: 0 auto; display: block; }
+  .aow-train-row { margin-top: 2px; padding: 2px 4px; }
+  .aow-train-slot { height: 26px; }
+  .aow-spawn-list {
+    margin-top: 2px;
+    gap: 4px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .aow-spawn-btn { min-height: 0; padding: 3px 2px 2px; gap: 0; }
+  .aow-spawn-sprite { width: 26px; height: 26px; }
+  .aow-spawn-icon { font-size: 16px; margin-top: 0; }
+  .aow-spawn-name { font-size: 10px; line-height: 1.1; }
+  .aow-spawn-cost { font-size: 10px; line-height: 1.1; }
+}
+
 /* ============================================
    AGE OF WAR — Heroes / Achievements / Toasts
    ============================================ */

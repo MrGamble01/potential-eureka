@@ -34,9 +34,10 @@
   // max: high-water mark (safe to emit on every boot).
   // inc: one action, one tick (emit only when it happens).
   const STATS = {
-    'tycoon.visit': 'max', 'tycoon.hire': 'inc', 'tycoon.ship': 'inc', 'tycoon.ipo': 'inc',
-    'beagle.visit': 'max', 'beagle.hire': 'inc', 'beagle.ship': 'inc', 'beagle.ipo': 'inc',
-    'hearthvale.found': 'max', 'hearthvale.build': 'max', 'hearthvale.pop': 'max', 'hearthvale.festival': 'max',
+    'tycoon.visit': 'max', 'tycoon.hire': 'inc', 'tycoon.ship': 'inc', 'tycoon.ipo': 'inc', 'tycoon.boss': 'max',
+    'beagle.visit': 'max', 'beagle.hire': 'inc', 'beagle.ship': 'inc', 'beagle.ipo': 'inc', 'beagle.boss': 'max',
+    'hearthvale.found': 'max', 'hearthvale.build': 'max', 'hearthvale.pop': 'max', 'hearthvale.festival': 'max', 'hearthvale.boss': 'max',
+    'hearthvale.expedition': 'max',
     'voxel.visit': 'max', 'voxel.harvest': 'max', 'voxel.level': 'max', 'voxel.build': 'max',
     'growop.visit': 'max', 'growop.sale': 'max', 'growop.earned': 'max', 'growop.hire': 'max',
     'clinic.visit': 'max', 'clinic.dawn': 'max', 'clinic.rest': 'max',
@@ -65,6 +66,8 @@
       desc: 'Ship a feature.', test: function (d) { return stat(d, 'tycoon.ship') >= 1; } },
     { id: 'tycoon-ipo', game: 'tycoon', icon: '🔔', name: 'Bell Rung', xp: 80,
       desc: 'Take the company public.', test: function (d) { return stat(d, 'tycoon.ipo') >= 1; } },
+    { id: 'tycoon-takeover', game: 'tycoon', icon: '⚔️', name: 'Takeover Beaten', xp: 65,
+      desc: 'Turn back a hostile takeover.', test: function (d) { return stat(d, 'tycoon.boss') >= 1; } },
 
     { id: 'beagle-open', game: 'beagle', icon: '🌅', name: 'Good Morning', xp: 20,
       desc: 'Open the kennel.', test: function (d) { return stat(d, 'beagle.visit') >= 1; } },
@@ -74,6 +77,8 @@
       desc: 'Finish a dig.', test: function (d) { return stat(d, 'beagle.ship') >= 1; } },
     { id: 'beagle-ipo', game: 'beagle', icon: '🏆', name: 'Pack IPO', xp: 80,
       desc: 'Take the pack public.', test: function (d) { return stat(d, 'beagle.ipo') >= 1; } },
+    { id: 'beagle-raid', game: 'beagle', icon: '🐾', name: 'Yard Held', xp: 65,
+      desc: 'Turn the rival pack off the yard.', test: function (d) { return stat(d, 'beagle.boss') >= 1; } },
 
     { id: 'hearth-found', game: 'hearthvale', icon: '🪵', name: 'Valley Founded', xp: 25,
       desc: 'Name the town and begin.', test: function (d) { return stat(d, 'hearthvale.found') >= 1; } },
@@ -83,6 +88,12 @@
       desc: 'House 5 villagers.', test: function (d) { return stat(d, 'hearthvale.pop') >= 5; } },
     { id: 'hearth-fair', game: 'hearthvale', icon: '🎪', name: 'Fair Day', xp: 60,
       desc: 'Throw a festival.', test: function (d) { return stat(d, 'hearthvale.festival') >= 1; } },
+    { id: 'hearth-wilds', game: 'hearthvale', icon: '🌲', name: 'Beyond the Palisade', xp: 35,
+      desc: 'Reach depth 4 on a Wilds Expedition.', test: function (d) { return stat(d, 'hearthvale.expedition') >= 4; } },
+    { id: 'hearth-far', game: 'hearthvale', icon: '🏕️', name: 'The Far Camp', xp: 70,
+      desc: 'Reach depth 10 in the wilds.', test: function (d) { return stat(d, 'hearthvale.expedition') >= 10; } },
+    { id: 'hearth-wolf', game: 'hearthvale', icon: '🐺', name: 'Hollow Wolf', xp: 65,
+      desc: 'Turn the Hollow Wolf at the gate.', test: function (d) { return stat(d, 'hearthvale.boss') >= 1; } },
 
     { id: 'voxel-land', game: 'voxel', icon: '🏝️', name: 'Feet on the Isle', xp: 20,
       desc: 'Step onto the island.', test: function (d) { return stat(d, 'voxel.visit') >= 1; } },
@@ -121,6 +132,10 @@
       desc: 'Give yourself a name.', test: function (d) { return String(d.name || '').trim().length >= 2; } },
     { id: 'cross-warm', game: 'cross', icon: '🔥', name: 'Warming Up', xp: 25,
       desc: 'Reach level 3.', test: function (d) { return levelFor(d.xp) >= 3; } },
+    { id: 'cross-boss', game: 'cross', icon: '🏆', name: 'First Boss Down', xp: 50,
+      desc: 'Beat a flagship climax.', test: function (d) {
+        return stat(d, 'hearthvale.boss') >= 1 || stat(d, 'tycoon.boss') >= 1 || stat(d, 'beagle.boss') >= 1;
+      } },
   ];
 
   function trophyCount(doc) {
@@ -561,8 +576,17 @@
         const btn = el(document, 'button', 'trophy-pick' + (on ? ' is-on' : '') + (open ? '' : ' is-locked'));
         btn.type = 'button';
         btn.disabled = !open;
-        if (isAvatar) btn.appendChild(el(document, 'span', 'trophy-pick-glyph', open ? item.glyph : '🔒'));
-        btn.appendChild(el(document, 'span', 'trophy-pick-name', open ? item.name : item.hint));
+        if (isAvatar) {
+          btn.appendChild(el(document, 'span', 'trophy-pick-glyph', item.glyph));
+          if (!open) {
+            const lock = el(document, 'span', 'trophy-lock', '🔒');
+            lock.setAttribute('aria-hidden', 'true');
+            btn.appendChild(lock);
+          }
+        }
+        const name = el(document, 'span', 'trophy-pick-name', open ? item.name : item.hint);
+        if (isAvatar) name.setAttribute('aria-hidden', 'true');
+        btn.appendChild(name);
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.setAttribute('aria-label', (open ? item.name : item.hint) + (on ? ', equipped' : ''));
         if (open) btn.addEventListener('click', function () { onPick(item.id); });
