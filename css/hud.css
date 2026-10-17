@@ -364,11 +364,19 @@ html.hud #aow-ridge {
 html.hud .aow-modal-close,
 html.hud .aow-welcome-start,
 html.hud .aow-cta-primary,
-html.hud .aow-cta-hub,
+html.hud .aow-cta-hub {
+  box-sizing: border-box;
+  min-height: var(--hud-tap);
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+}
+
+/* Field orders and the ridge already use 64–72px phone targets.
+   A 44px floor here would win the cascade and shrink them. */
 html.hud #aow-field-order button,
 html.hud .aow-ridge-actions button {
   box-sizing: border-box;
-  min-height: var(--hud-tap);
   border-radius: 12px;
   font-family: var(--hud-font-display);
   font-weight: 800;
@@ -791,10 +799,14 @@ html.hud #ipo-cancel-btn {
 html.hud #sidebar-toggle,
 html.hud #sprint-btn,
 html.hud #elevator-btn,
-html.hud #tp-toggle,
+html.hud #tp-toggle {
+  min-height: var(--hud-tap);
+}
+
+/* These controls already stand 48px. Keep that floor. */
 html.hud #annex-follow,
 html.hud #clash-btn {
-  min-height: var(--hud-tap);
+  min-height: 48px;
 }
 
 html.hud #sidebar-toggle {
