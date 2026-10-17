@@ -2605,8 +2605,10 @@ const TipUI = (() => {
 
   function hide() {
     clearTimeout(showTimer);
-    // Restore the title we stashed.
-    if (activeTarget && savedTitle !== null) {
+    // Restore the title we stashed, unless the page wrote a new one
+    // while the tip was open. The archive chip does that the moment
+    // it is built; putting the old hint back would undo the update.
+    if (activeTarget && savedTitle !== null && !activeTarget.hasAttribute('title')) {
       activeTarget.setAttribute('title', savedTitle);
     }
     savedTitle = null;

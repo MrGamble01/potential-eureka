@@ -50,7 +50,15 @@ const ok = (condition, name) => {
       await page.evaluate(() => { window.orderTones.length = 0; });
       await page.locator('#order-fill').evaluate(button => { button.disabled = false; button.click(); button.click(); });
       ok((await page.locator('#toasts').textContent()).includes(reason), `${label}: forced refusals explain the shortfall`);
-      ok(await page.evaluate(() => window.orderTones.filter(v => v === 150).length === 2), `${label}: each refusal plays error SFX`);
+      // A refusal is the shared fail cue (311) once the score is unlocked.
+      // Two clicks in the same turn share that cue's cooldown, so the
+      // second one falls through to the town's own 150 Hz chirp.
+      ok(await page.evaluate(() => {
+        const tones = window.orderTones;
+        const local = tones.filter(v => v === 150).length;
+        const shared = tones.filter(v => v === 311).length;
+        return (shared >= 1 && local + shared >= 2) || local === 2;
+      }), `${label}: each refusal plays error SFX`);
       ok(JSON.stringify(await snapshot()) === JSON.stringify(before), `${label}: refusals preserve goods, gold, order, count and chronicle`);
       // Buying one good rerenders the strip and crosses the fractional-stock boundary.
       await page.click(`[data-act="buy"][data-k="${good}"][data-q="1"]`);

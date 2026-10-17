@@ -173,6 +173,9 @@ canvas{display:block;touch-action:none;}
 /* ── Left panel ── */
 #left-panel{
   position:fixed;top:54px;left:14px;
+  /* Above a shaken world canvas (z-index auto + transform), under the
+     corner tray (30) and the sound button (72). */
+  z-index:20;
   display:flex;flex-direction:column;gap:7px;
   max-width:236px;user-select:none;
   /* fitLeftPanel() shortens this once the corner tray reaches the column. */
