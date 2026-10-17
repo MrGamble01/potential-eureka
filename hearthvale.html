@@ -805,6 +805,7 @@
 
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/audio.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script>
@@ -895,6 +896,18 @@
   }
   let _sfxScale = 1;
   function SFX(kind) {
+    // Core actions go through the shared score so build, buy, and
+    // the rest match the other flagships. Trader and birds stay local.
+    const shared = { place: 'build', upgrade: 'build', coin: 'buy', goal: 'levelup', error: 'fail' };
+    if (shared[kind] && window.EurekaAudio) {
+      try {
+        if (kind === 'goal') window.EurekaAudio.celebrate(8);
+        // A cue the score actually plays replaces the local tone. A
+        // cooldown or a score that is not unlocked yet falls through,
+        // so a second refusal in the same moment still chirps.
+        if (window.EurekaAudio.sfx(shared[kind])) return;
+      } catch (e) { /* local tone below still answers */ }
+    }
     _sfxScale = 1;
     try {
       if (typeof EurekaPersist !== 'undefined') _sfxScale = EurekaPersist.audio.sfx(typeof state !== 'undefined' && state && state.muted);
@@ -6342,6 +6355,35 @@
   // Sparse ambient audio: a birdsong chirp by day, cricket pulses at night.
   // Very quiet, respects mute, silent while paused.
   let ambSndTimer = 6;
+  let scoreAcc = 0;
+  // The town's score follows the same clock as the birds, but on its
+  // own timer so a mute doesn't freeze the mood for the next unmute.
+  function soundtrackMood(dt) {
+    const a = window.EurekaAudio;
+    if (!a || !state) return;
+    scoreAcc += dt || 0;
+    if (soundtrackMood.ready && scoreAcc < 0.45) return;
+    scoreAcc = 0;
+    try {
+      if (!soundtrackMood.ready) {
+        soundtrackMood.ready = true;
+        a.bind({
+          muted: function () { return !!(state && state.muted); },
+          musicOff: function () { return !!(state && state.muted); },
+        });
+        const host = document.getElementById('hv-audio');
+        if (host) a.attachReadout(host);
+      }
+      a.start('calm');
+      const pop = state.pop || 0;
+      const food = state.res && state.res.food || 0;
+      const hungry = pop > 2 && food < pop;
+      const tense = hungry || (state.happy || 0) < 34;
+      const busy = !tense && !isNight() && pop >= 3;
+      if (typeof festivalActive === 'function' && festivalActive()) a.setMood('victory');
+      else a.setMood(a.pickMood({ tense: tense, busy: busy }));
+    } catch (e) { /* the town still runs if the score cannot */ }
+  }
   function ambientSoundTick(rdt) {
     if (!state || state.muted || gameSpeed === 0) return;
     ambSndTimer -= rdt;
@@ -7787,6 +7829,7 @@
     // ambient life runs on real time, so it keeps gently moving even when paused
     updateAmbient(dt);
     ambientSoundTick(dt);
+    soundtrackMood(dt);
     // render
     draw();
     // hud light refresh

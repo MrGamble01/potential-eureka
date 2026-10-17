@@ -74,6 +74,7 @@ const SHELL = [
   '/homeless-village/js/player.js',
   '/homeless-village/js/gameloop.js',
   '/homeless-village/js/main.js',
+  '/js/audio.js',
   '/js/achievements.js',
   '/js/asteroids.js',
   '/js/bookmarks.js',

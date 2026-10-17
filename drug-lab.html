@@ -173,6 +173,9 @@ canvas{display:block;touch-action:none;}
 /* ── Left panel ── */
 #left-panel{
   position:fixed;top:54px;left:14px;
+  /* Above a shaken world canvas (z-index auto + transform), under the
+     corner tray (30) and the sound button (72). */
+  z-index:20;
   display:flex;flex-direction:column;gap:7px;
   max-width:236px;user-select:none;
   /* fitLeftPanel() shortens this once the corner tray reaches the column. */
@@ -1047,6 +1050,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/audio.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script type="importmap">
@@ -3869,10 +3873,54 @@ function skipTown() {
 }
 
 // ── Bust ──
+function labAudio() { return window.EurekaAudio || null; }
+function labSfx(name) {
+  // Once the shared score is unlocked it owns the five cues. Before
+  // that first tap, callers fall back to the corner's own tones.
+  try {
+    const a = labAudio();
+    if (!a) return false;
+    a.sfx(name);
+    return !!(a.unlocked && a.unlocked());
+  } catch (e) {}
+  return false;
+}
+function labFanfare() {
+  try { const a = labAudio(); if (a) a.celebrate(8); } catch (e) {}
+  labSfx('levelup');
+}
+let labScoreReady = false;
+let labMoodAt = 0;
+let labActSeen = 0;
+function labSoundtrack(now) {
+  const a = labAudio();
+  if (!a) return;
+  try {
+    if (!labScoreReady) {
+      labScoreReady = true;
+      labActSeen = currentAct();
+      const host = document.getElementById('lab-audio');
+      if (host) a.attachReadout(host);
+    }
+    a.start('calm');
+    if (now - labMoodAt < 400) return;
+    labMoodAt = now;
+    const act = currentAct();
+    if (act > labActSeen) { labActSeen = act; a.celebrate(8); labSfx('levelup'); }
+    if (busted) { a.setMood('tense', { force: true }); return; }
+    const waiting = dealers.some(function (d) { return d && d.state === 'waiting'; });
+    const tense = state.heat >= 70 || raidActive;
+    const busy = !tense && (waiting || trimQueue > 0 || (dealers.length > 0 && state.heat >= 30));
+    a.setMood(a.pickMood({ tense: tense, busy: busy }));
+  } catch (e) { /* the corner still runs if the score cannot */ }
+}
+
 function triggerBust() {
+  const sharedFail = labSfx('fail');
+  try { const a = labAudio(); if (a) a.setMood('tense', { force: true }); } catch (e) {}
   if (state.bagPacked) { skipTown(); return; }   // LAB-21: you weren't home
   busted = true;
-  sfx('bust');
+  if (!sharedFail) sfx('bust');
   addShake(1);
   juiceFlash('heat');
   // Make the loss stick: stop the sim/autosave and wipe the save so a reload
@@ -4645,6 +4693,7 @@ function updateGoals() {
     const g=GOALS[state.goalIndex];
     if(g.check()){
       state.goalIndex++;
+      labFanfare();
       if(g.reward>0) addCash(g.reward);
       showToast(`🎯 Goal complete: ${g.label}${g.reward?` (+$${fmtCash(g.reward)})`:''}`,'good');
       addFeed(`🎯 ${g.label} ✓`);
@@ -4800,6 +4849,7 @@ function buyRoom(id) {
   onRoomUnlocked(id);
   refreshHud();
   renderExpandPanel();
+  labSfx('build');
   showToast(`${def.label} unlocked!`, 'good');
   addFeed(`🏗️ ${def.label} opened`);
   // LAB-13: the front is the one room the neighbors are glad to see
@@ -5042,7 +5092,7 @@ function buyUpgrade(id) {
   }
   // The Lab room builds the chem station too — once it exists this
   // upgrade buys nothing, so refuse instead of taking the cash.
-  if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); renderUpgradesPanel(); return; }
+  if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); labSfx('fail'); renderUpgradesPanel(); return; }
   state.cash -= cost;
   state.upgrades[id] = (state.upgrades[id]||0)+1;
   if (id==='chemistry' && !chemStation) {
@@ -5057,8 +5107,8 @@ function buyUpgrade(id) {
     showToast('⚗️ Chemistry Station built! Now you\'re cooking.','good');
     addFeed('⚗️ Chemistry unlocked');
   }
+  if (!labSfx('build')) sfx('buy');
   showToast(`${u.icon} ${u.name} upgraded!`,'good');
-  sfx('buy');
   addShake(0.14);
   addFeed(`🔧 ${u.name} Lv${state.upgrades[id]}`);
   saveGame();
@@ -5070,12 +5120,13 @@ function buyUpgrade(id) {
 document.getElementById('hire-trimmer-btn').onclick = () => {
   const cost = 150*(1+state.trimmers);
   const refusal = hireRefusal('Trimmer', cost, state.trimmers||0, 3);
-  if (refusal) { showToast(refusal, 'bust'); return; }
+  if (refusal) { showToast(refusal, 'bust'); labSfx('fail'); return; }
   state.cash -= cost; state.trimmers++;
   const g = buildTrimmerNPC();
   g.position.set(trimStation.x+(Math.random()-0.5)*1.5, 0, trimStation.z+(Math.random()-0.5)*1.5);
   scene.add(g);
   trimmerNPCs.push({group:g, state:'idle', timer:0});
+  labSfx('buy');
   showToast('✂️ Trimmer hired.','good');
   addFeed('👤 Trimmer joined crew');
   refreshHud(); saveGame();
@@ -5083,12 +5134,13 @@ document.getElementById('hire-trimmer-btn').onclick = () => {
 document.getElementById('hire-lookout-btn').onclick = () => {
   const cost = 300*(1+state.lookouts);
   const refusal = hireRefusal('Lookout', cost, state.lookouts||0, 2);
-  if (refusal) { showToast(refusal, 'bust'); return; }
+  if (refusal) { showToast(refusal, 'bust'); labSfx('fail'); return; }
   state.cash -= cost; state.lookouts++;
   const g = buildLookoutNPC();
   g.position.set(6+(Math.random()-0.5)*3, 0, 7+(Math.random()-0.5)*3);
   scene.add(g);
   lookoutNPCs.push({group:g, patrolAngle:Math.random()*Math.PI*2, patrolRadius:4+Math.random()*2});
+  labSfx('buy');
   showToast('👁️ Lookout on duty.','good');
   addFeed('👤 Lookout on patrol');
   refreshHud(); saveGame();
@@ -5096,9 +5148,10 @@ document.getElementById('hire-lookout-btn').onclick = () => {
 document.getElementById('hire-runner-btn').onclick = () => {
   const cost=400*(1+(state.runners||0));
   const refusal = hireRefusal('Runner', cost, state.runners||0, 3);
-  if (refusal) { showToast(refusal, 'bust'); return; }
+  if (refusal) { showToast(refusal, 'bust'); labSfx('fail'); return; }
   state.cash-=cost; state.runners=(state.runners||0)+1;
   spawnRunnerNPC();
+  labSfx('buy');
   showToast('🏃 Runner hired — hauls product & closes deals.','good');
   addFeed('👤 Runner joined crew');
   refreshHud(); saveGame();
@@ -5106,8 +5159,9 @@ document.getElementById('hire-runner-btn').onclick = () => {
 document.getElementById('hire-cook-btn').onclick = () => {
   const cost=800*(1+(state.cooks||0));
   const refusal = hireRefusal('Cook', cost, state.cooks||0, 3);
-  if (refusal) { showToast(refusal, 'bust'); return; }
+  if (refusal) { showToast(refusal, 'bust'); labSfx('fail'); return; }
   state.cash-=cost; state.cooks=(state.cooks||0)+1;
+  labSfx('buy');
   showToast('🧪 Cook hired.','good');
   addFeed('👤 Cook on deck');
   refreshHud(); saveGame();
@@ -5795,7 +5849,7 @@ function harvestPlot(p) {
   paintNia();
   setStatus('Harvest done! Take it to the Trim Station.');
   addFeed('🌿 Harvested a plant');
-  sfx('harvest');
+  if (!labSfx('harvest')) sfx('harvest');
   addShake(0.16);
   juiceFlash('good');
   feelAt('harvest', innerWidth / 2, innerHeight * 0.42, 'Harvest', '#3FB950');
@@ -5866,7 +5920,7 @@ function depositAtChem() {
 
 function sellToDealer(d, idx) {
   if (stashCount<=0) {
-    setStatus('Stash empty!'); return;
+    setStatus('Stash empty!'); labSfx('fail'); return;
   }
   if (d.undercover) {
     // LAB-9: the sting. Product seized, no cash, heat spikes hard.
@@ -5885,12 +5939,14 @@ function sellToDealer(d, idx) {
       addHeat(LAWYER_HEAT);
       refreshLawyerBtn();
       showToast('⚖️ The badge took ' + seized + ' bag' + (seized > 1 ? 's' : '') + ' — and the lawyer took the department for $' + fmtCash(damages) + '.', 'good');
+      labSfx('buy');
       addFeed('⚖️ Sting argued down — +$' + fmtCash(damages) + ' damages (' + state.casesWon + ' case' + (state.casesWon > 1 ? 's' : '') + ' won)');
       checkGrowAchievements();
     } else {
       addHeat(15);
       showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
       addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+      labSfx('fail');
       feelAt('sting', innerWidth / 2, innerHeight * 0.4, 'Busted', '#F85149');
     }
     saveGame();
@@ -5902,6 +5958,7 @@ function sellToDealer(d, idx) {
       d.paid=true; d.state='leaving';
       state.whaleMeter = Math.floor(WHALE_EVERY / 2);   // he'll hear you're stocked again, eventually
       showToast('🐋 The Whale wanted ' + WHALE_BAGS + ' bags — the shelf is short. He walks.', 'bad');
+      labSfx('fail');
       addFeed('🐋 The Whale walked — not enough stock');
       saveGame();
       return;
@@ -5923,7 +5980,7 @@ function sellToDealer(d, idx) {
     feelAt('sell', sw.x, sw.y, '+$' + fmtCash(price), '#7ee787');
     addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
     showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list' + (whaleTax.skim > 0 ? ' (skimmed $' + fmtCash(whaleTax.skim) + ')' : '') + '.', 'good');
-    sfx('sale', price);
+    if (!labSfx('buy')) sfx('sale', price);
     addShake(0.45);
     juiceFlash('good');
     d.state='leaving';
@@ -5961,7 +6018,7 @@ function sellToDealer(d, idx) {
   if(state.heat<85) heatPop(s.x,s.y+20);
   addFeed(`💰 Sold ${qty} bag${qty === 1 ? '' : 's'}${pureUsed>0?` (${pureUsed}✨ pure)`:''}${streetTax.skim>0?` · skimmed $${fmtCash(streetTax.skim)}`:''} → +$${fmtCash(price)}`);
   showToast(saleToast(qty, price, streetTax.skim),'good');
-  sfx('sale', price);
+  if (!labSfx('buy')) sfx('sale', price);
   addShake(0.3);
   juiceFlash('good');
   d.state='leaving';
@@ -6571,6 +6628,7 @@ function animate(now_ms) {
   requestAnimationFrame(animate);
   const dt=Math.min((now_ms-lastTime)/1000, 0.1);
   lastTime=now_ms;
+  labSoundtrack(now_ms);
 
   if(busted) {
     // Game over: freeze the simulation behind the modal.
