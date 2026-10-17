@@ -118,10 +118,15 @@
     '#arcade-ai-launch[aria-expanded="true"]{background:#17140f}',
     '#arcade-ai-ticker{position:fixed;z-index:1190;left:50%;bottom:18px;transform:translateX(-50%);max-width:min(440px,calc(100vw - 24px));',
     'pointer-events:none;background:rgba(8,10,14,.88);color:#f6f1e6;border:1px solid rgba(255,255,255,.16);',
-    'border-left:3px solid var(--ai-accent,#e0c9a0);border-radius:10px;padding:8px 12px;font:13px/1.35 Georgia,Palatino,serif;',
+    'border-left:3px solid var(--ai-accent,#e0c9a0);border-radius:10px;padding:8px 36px 8px 12px;font:13px/1.35 Georgia,Palatino,serif;',
     'box-shadow:0 10px 28px rgba(0,0,0,.35)}',
     '#arcade-ai-ticker[hidden]{display:none}',
     '#arcade-ai-ticker b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:2px;color:var(--ai-accent,#e0c9a0)}',
+    '#arcade-ai-ticker-line{display:block;pointer-events:none}',
+    '#arcade-ai-ticker *{pointer-events:none}',
+    '#arcade-ai-ticker #arcade-ai-ticker-close{position:absolute;top:6px;right:6px;pointer-events:auto;width:28px;height:28px;padding:0;',
+    'background:transparent;color:#f6f1e6;border:1px solid rgba(255,255,255,.28);border-radius:8px;cursor:pointer;',
+    'font:16px/1 ui-monospace,SFMono-Regular,Menlo,monospace}',
     '#arcade-ai-panel{position:fixed;z-index:7000;top:52px;right:12px;width:min(400px,calc(100vw - 24px));',
     'max-height:min(580px,calc(100vh - 68px));overflow:auto;background:rgba(10,12,16,.96);color:#f4efe6;',
     'border:1px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.5);padding:12px 12px 14px;',
@@ -167,7 +172,20 @@
   ticker.hidden = true;
   ticker.setAttribute('role', 'status');
   ticker.setAttribute('aria-live', 'polite');
+  ticker.innerHTML = '<b>Announcer</b><span id="arcade-ai-ticker-line"></span><button type="button" id="arcade-ai-ticker-close" aria-label="Dismiss announcement">\u00d7</button>';
   document.body.appendChild(ticker);
+  const tickerLine = ticker.querySelector('#arcade-ai-ticker-line');
+  let tickerTimer = 0;
+
+  function dismissTicker() {
+    ticker.hidden = true;
+    if (tickerTimer) {
+      clearTimeout(tickerTimer);
+      tickerTimer = 0;
+    }
+  }
+
+  ticker.querySelector('#arcade-ai-ticker-close').addEventListener('click', dismissTicker);
 
   const panel = document.createElement('div');
   panel.id = 'arcade-ai-panel';
@@ -302,9 +320,12 @@
     calls.unshift(result);
     if (calls.length > 8) calls.pop();
     renderCalls();
+    tickerLine.textContent = result.line;
+    ticker.dataset.shownAt = String(Date.now());
     ticker.hidden = false;
-    ticker.innerHTML = '<b>Announcer</b>';
-    ticker.appendChild(document.createTextNode(result.line));
+    placeTicker();
+    if (tickerTimer) clearTimeout(tickerTimer);
+    tickerTimer = setTimeout(dismissTicker, 4000);
   }
 
   function speak(npcId) {
@@ -365,27 +386,70 @@
     }).catch(function () {});
   }
 
+  function shownBox(el) {
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return r;
+  }
+
+  function hits(box, rect, pad) {
+    return !(box.right + pad <= rect.left || box.left >= rect.right + pad || box.bottom + pad <= rect.top || box.top >= rect.bottom + pad);
+  }
+
+  function miniRect() {
+    return shownBox(document.getElementById('minimap'));
+  }
+
+  // Sit the announcer above the build / action bar: the offset is the
+  // bar's height plus the safe area plus 8px when the bar rests on that
+  // inset, and always at least 8px above whatever chrome is actually there.
+  function placeTicker() {
+    const bars = document.querySelectorAll('#buildbar, #buildtabs, #hotbar, #buildBar, #lab-tray');
+    let top = Infinity;
+    let barHeight = 0;
+    let safe = 0;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;bottom:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    safe = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+    probe.remove();
+    bars.forEach((el) => {
+      if (el.hidden) return;
+      const r = shownBox(el);
+      if (!r || r.top < innerHeight * 0.45) return;
+      if (r.top < top) {
+        top = r.top;
+        barHeight = r.height;
+      }
+    });
+    let offset = 18;
+    if (top < Infinity) {
+      offset = Math.max(barHeight + safe + 8, innerHeight - top + 8);
+    }
+    ticker.style.bottom = offset + 'px';
+  }
+
   function place() {
     if (!panel.hidden) return;
     const launch = document.getElementById('arcade-ai-launch');
     const width = Math.ceil(launch.offsetWidth || 92);
     const height = Math.ceil(launch.offsetHeight || 34);
     const blockers = [];
-    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, .aow-topbar, #aow-topbar, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
+    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goal-hud, #goals, #back, #lab-tray, #vox-tray, #bgl-yard, .aow-topbar, #aow-topbar, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
       if (root.contains(el) || panel.contains(el) || ticker.contains(el)) return;
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
-      const r = el.getBoundingClientRect();
-      if (r.width < 2 || r.height < 2) return;
-      blockers.push(r);
+      const r = shownBox(el);
+      if (r) blockers.push(r);
     });
+    const mini = miniRect();
     function clearOf(x, y) {
       const box = { left: x, top: y, right: x + width, bottom: y + height };
-      if (box.right > innerWidth - 4 || box.bottom > innerHeight - 4) return false;
+      if (box.left < 4 || box.top < 4 || box.right > innerWidth - 4 || box.bottom > innerHeight - 4) return false;
+      if (mini && hits(box, mini, 8)) return false;
       for (let i = 0; i < blockers.length; i++) {
-        const b = blockers[i];
-        const pad = 6;
-        if (!(box.right + pad <= b.left || box.left >= b.right + pad || box.bottom + pad <= b.top || box.top >= b.bottom + pad)) return false;
+        if (hits(box, blockers[i], 6)) return false;
       }
       return true;
     }
@@ -399,13 +463,28 @@
     spots.push({ x: Math.max(8, innerWidth - width - 8), y: 8 });
     spots.push({ x: 8, y: 64 });
     spots.push({ x: Math.max(8, innerWidth - width - 8), y: 72 });
-    for (let y = 8; y < innerHeight - height - 8; y += 36) {
+    for (let y = 8; y < innerHeight - height - 8; y += 28) {
       spots.push({ x: 8, y: y });
       spots.push({ x: Math.max(8, innerWidth - width - 8), y: y });
     }
-    let chosen = spots[spots.length - 1];
+    let chosen = null;
     for (let i = 0; i < spots.length; i++) {
       if (clearOf(spots[i].x, spots[i].y)) { chosen = spots[i]; break; }
+    }
+    if (!chosen && mini) {
+      const beside = { x: Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10))), y: Math.round(Math.max(8, mini.top)) };
+      const below = { x: Math.round(Math.max(8, mini.left)), y: Math.round(Math.min(innerHeight - height - 8, mini.bottom + 10)) };
+      if (clearOf(beside.x, beside.y)) chosen = beside;
+      else if (clearOf(below.x, below.y)) chosen = below;
+    }
+    if (!chosen) {
+      chosen = { x: Math.max(8, innerWidth - width - 8), y: Math.max(8, innerHeight - height - 16) };
+      if (mini && hits({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+        chosen.x = Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10)));
+        if (hits({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+          chosen.y = Math.round(Math.min(innerHeight - height - 8, mini.bottom + 10));
+        }
+      }
     }
     root.style.left = chosen.x + 'px';
     root.style.top = chosen.y + 'px';
@@ -452,11 +531,32 @@
     provider.announce({ game: gameId, event: { type: 'state', detail: detail } }).then(pushCall).catch(function () {});
   }
 
-  place();
-  setTimeout(place, 400);
-  setTimeout(place, 1400);
-  setTimeout(place, 2800);
-  window.addEventListener('resize', place);
+  function layoutChrome() {
+    place();
+    placeTicker();
+  }
+  layoutChrome();
+  setTimeout(layoutChrome, 400);
+  setTimeout(layoutChrome, 1400);
+  setTimeout(layoutChrome, 2800);
+  window.addEventListener('resize', layoutChrome);
+  let ro = null;
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(layoutChrome);
+    ['#minimap', '#buildbar', '#buildtabs', '#hotbar', '#lab-tray', '#hud', '#topbar', '#bgl-yard'].forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) ro.observe(el);
+    });
+  }
+  const lateChrome = new WeakSet();
+  const watchLate = new MutationObserver(() => {
+    const yard = document.getElementById('bgl-yard');
+    if (!yard || lateChrome.has(yard)) return;
+    lateChrome.add(yard);
+    if (ro) ro.observe(yard);
+    layoutChrome();
+  });
+  watchLate.observe(document.body, { childList: true, subtree: true });
   setTimeout(watch, 600);
   setTimeout(openingCall, 700);
 
