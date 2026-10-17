@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261017-folk2';  // Hearthvale townsfolk talk after Eclipse. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261017-hudb2';  // HUD pass B after townsfolk and Eclipse. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -58,6 +58,7 @@ const SHELL = [
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',
+  '/css/hud-b.css',
   '/css/base.css',
   '/css/dashboard.css',
   '/css/effects.css',
