@@ -11,6 +11,17 @@
    these tokens for paint.
    ============================================ */
 
+/* Same space face as css/hud.css. Outfit's space is too narrow
+   to read once the display tracking is applied. */
+@font-face {
+  font-family: "HUD Space";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/css/hud-space.woff2") format("woff2");
+  unicode-range: U+0020, U+00A0;
+}
+
 html.hud-b {
   --hud-bg: #0c0e14;
   --hud-bg-2: #161922;
@@ -26,8 +37,18 @@ html.hud-b {
   --space-5: 48px;
   --space-6: 64px;
   --radius: 16px;
-  --font-display: "Outfit", "Inter", sans-serif;
+  --font-display: "HUD Space", "Outfit", "Inter", sans-serif;
+  --hud-top-safe: 56px;
+  --hud-bottom-safe: 96px;
   --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Shared safe zone. js/hud-safe.js writes the variables from
+   the bars it measures. Game-specific overlap rules stay put. */
+html.hud-b #toasts,
+html.hud-b #toast-container {
+  bottom: var(--hud-bottom-safe, 96px);
+  pointer-events: none;
 }
 
 html.hud-b[data-game="hearthvale"] { --hud-accent: #8ec26b; }

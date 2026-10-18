@@ -1151,10 +1151,21 @@
   }
 }
 
+/* Outfit's space advance collapses under this tracking.
+   HUD Space restores a readable word gap. See css/hud.css. */
+@font-face {
+  font-family: "HUD Space";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/css/hud-space.woff2") format("woff2");
+  unicode-range: U+0020, U+00A0;
+}
+
 /* ---- Bold launcher: display type, art cards, segmented catalogue ---- */
 #view-arcade,
 #view-trophy {
-  --font-display: "Outfit", "Inter", sans-serif;
+  --font-display: "HUD Space", "Outfit", "Inter", sans-serif;
 }
 
 #view-arcade .arcade-flagship-name,
