@@ -1,7 +1,10 @@
 /* HUD safe zone and Outfit word spaces.
    Spaces in display type have to be wider than a missing glyph, and
    the booth, announcer, and toasts have to stay off the other HUD
-   at a phone and a desktop size for every flagship. */
+   at a phone and a desktop size for every flagship. The trophy room
+   keeps the Sparks pill, the studio tabs, the achievement toast, and
+   the shop cards off each other, and the shop stays on the dark HUD
+   tokens even when the hub theme is daylight. */
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
@@ -296,6 +299,58 @@ function box(rect) {
             if (w > 0.5 && h > 0.5) topOverlaps.push(a.box.sel + '~' + b.box.sel);
           }
         }
+        const sky = document.getElementById('aow-sky');
+        const skyLabel = sky ? sky.querySelector(':scope > .aow-sky-label') : null;
+        let field = null;
+        if (sky && skyLabel && getComputedStyle(sky).display !== 'none') {
+          const skyBox = rect('#aow-sky');
+          const labelText = (skyLabel.textContent || '').replace(/\s+/g, ' ').trim();
+          const skyText = (sky.textContent || '').replace(/\s+/g, ' ').trim();
+          const nameHits = [];
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width < 2 || b.height < 2) return;
+            const w = Math.min(skyBox.right, b.right) - Math.max(skyBox.left, b.left);
+            const h = Math.min(skyBox.bottom, b.bottom) - Math.max(skyBox.top, b.top);
+            if (w > 0.5 && h > 0.5) nameHits.push((el.textContent || '').trim());
+          });
+          const coach = document.getElementById('aow-coach');
+          const tipHits = [];
+          if (coach && !coach.hidden && getComputedStyle(coach).display !== 'none') {
+            const cr = coach.getBoundingClientRect();
+            document.querySelectorAll('#arcade-ai-launch, .ea-back, .aow-settings-btn, .aow-moments-btn, .aow-action, .ai-speaker, #aow-sky').forEach((el) => {
+              if (coach.contains(el) || el.hidden) return;
+              const cs = getComputedStyle(el);
+              if (cs.display === 'none' || cs.visibility === 'hidden') return;
+              const b = el.getBoundingClientRect();
+              if (b.width < 2 || b.height < 2) return;
+              const w = Math.min(cr.right, b.right) - Math.max(cr.left, b.left);
+              const h = Math.min(cr.bottom, b.bottom) - Math.max(cr.top, b.top);
+              if (w > 0.5 && h > 0.5) tipHits.push(el.id || el.className || el.tagName);
+            });
+          }
+          const eraName = document.getElementById('aow-era-name');
+          const eraSub = document.getElementById('aow-era-sub');
+          let nameCount = 0;
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width > 8 && b.height > 8) nameCount++;
+          });
+          field = {
+            one: sky.childElementCount === 1 && !!skyLabel && skyText === labelText && labelText.length > 0 && skyText.indexOf(labelText) === skyText.lastIndexOf(labelText),
+            fits: sky.scrollWidth <= sky.clientWidth + 1 && skyLabel.scrollWidth <= skyLabel.clientWidth + 1,
+            line: labelText,
+            names: nameHits,
+            nameCount,
+            tipOn: !!(coach && !coach.hidden && getComputedStyle(coach).display !== 'none'),
+            tips: tipHits,
+            age: !!(eraName && eraSub
+              && eraName.scrollWidth <= eraName.clientWidth + 1
+              && eraSub.scrollWidth <= eraSub.clientWidth + 1
+              && eraName.clientWidth > 40
+              && (eraName.textContent || '').indexOf(' ') !== -1),
+          };
+        }
         const chip = document.getElementById('session-chip');
         const bar = document.getElementById('status-bar');
         let session = null;
@@ -323,6 +378,7 @@ function box(rect) {
           top: vars.getPropertyValue('--hud-top-safe').trim(),
           bottom: vars.getPropertyValue('--hud-bottom-safe').trim(),
           games: spec.gamesOnCard ? hit(rect('.ea-back'), rect('#next-action-card')) : false,
+          field,
         };
       }, { bars: game.bars, toast: game.toast, gamesOnCard: !!game.gamesOnCard });
 
@@ -340,6 +396,13 @@ function box(rect) {
       ok(parseFloat(geo.top) > 0 && parseFloat(geo.bottom) > 0,
         `${where} safe zone is ${geo.top} / ${geo.bottom}`);
       if (game.gamesOnCard) ok(!geo.games, `${where} GAMES clears the first-step card`);
+      if (geo.field) {
+        ok(geo.field.one, `${where} weather pill has one label (${geo.field.line})`);
+        ok(geo.field.fits, `${where} weather label fits the pill`);
+        ok(geo.field.nameCount === 3 && geo.field.names.length === 0, `${where} hero names clear the weather pill${geo.field.names.length ? ': ' + geo.field.names.join(', ') : ''}`);
+        ok(geo.field.tipOn && geo.field.tips.length === 0, `${where} tutorial tip clears HUD buttons${geo.field.tips.length ? ': ' + geo.field.tips.join(', ') : ''}`);
+        ok(geo.field.age, `${where} age chip text fits`);
+      }
       await context.close();
     }
   }
@@ -413,6 +476,160 @@ function box(rect) {
   const careerWaited = Date.now() - careerShown;
   ok(careerWaited >= 1500 && careerWaited <= 5000, `achievement toast auto-dismisses (${careerWaited}ms)`);
   await careerDismiss.close();
+
+  function lum(rgb) {
+    const nums = String(rgb).match(/[\d.]+/g);
+    if (!nums || nums.length < 3) return 1;
+    const ch = nums.slice(0, 3).map((v) => {
+      const c = Number(v) / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  }
+  function contrast(a, b) {
+    const hi = Math.max(lum(a), lum(b));
+    const lo = Math.min(lum(a), lum(b));
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  for (const view of VIEWS) {
+    const context = await browser.newContext({
+      viewport: { width: view.width, height: view.height },
+      colorScheme: 'light',
+    });
+    const page = await context.newPage();
+    page.on('pageerror', (error) => errors.push('trophy ' + view.label + ' ' + error));
+    await page.goto(BASE + '/#trophy', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#view-trophy.active #spark-shop .spark-card', { timeout: 15000 });
+    await page.evaluate(() => document.fonts.ready);
+    if (view.width < 1100) {
+      await page.locator('#studio-menu').click();
+      await page.waitForSelector('.hub-chrome.is-menu-open .sec-link', { timeout: 4000 });
+    }
+    const geo = await page.evaluate(() => {
+      EurekaProgress.emit('hearthvale', 'found', 1);
+      document.querySelectorAll('.career-toast, #spark-toast').forEach((el) => {
+        el.style.animation = 'none';
+      });
+      if (window.HudSafe) window.HudSafe.apply();
+      function painted(el) {
+        if (!el || el.hidden) return null;
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 2 || rect.height < 2) return null;
+        let r = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+        let node = el.parentElement;
+        while (node && node !== document.documentElement) {
+          const pcs = getComputedStyle(node);
+          if (pcs.display === 'none' || pcs.visibility === 'hidden') return null;
+          const clipY = pcs.overflowY === 'hidden' || pcs.overflowY === 'clip' || pcs.overflowY === 'auto' || pcs.overflowY === 'scroll';
+          const clipX = pcs.overflowX === 'hidden' || pcs.overflowX === 'clip' || pcs.overflowX === 'auto' || pcs.overflowX === 'scroll';
+          if (clipY || clipX) {
+            const pr = node.getBoundingClientRect();
+            const top = clipY ? Math.max(r.top, pr.top) : r.top;
+            const bottom = clipY ? Math.min(r.bottom, pr.bottom) : r.bottom;
+            const left = clipX ? Math.max(r.left, pr.left) : r.left;
+            const right = clipX ? Math.min(r.right, pr.right) : r.right;
+            if (bottom - top < 2 || right - left < 2) return null;
+            r = { left, right, top, bottom };
+          }
+          node = node.parentElement;
+        }
+        if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return null;
+        return r;
+      }
+      function hit(a, b) {
+        if (!a || !b) return false;
+        const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        return w > 2 && h > 2;
+      }
+      const pill = painted(document.getElementById('spark-toast'));
+      const toast = painted(document.querySelector('.career-toast'));
+      const tabs = [...document.querySelectorAll('.arcade-secondary-nav .sec-link')].map((el) => ({
+        text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
+        box: painted(el),
+      })).filter((tab) => tab.box);
+      const cards = [...document.querySelectorAll('.spark-card')].map(painted).filter(Boolean);
+      const overlaps = [];
+      tabs.forEach((tab) => {
+        if (hit(pill, tab.box)) overlaps.push('pill~' + tab.text);
+        if (hit(toast, tab.box)) overlaps.push('toast~' + tab.text);
+        cards.forEach((card) => { if (hit(tab.box, card)) overlaps.push('tab~card'); });
+      });
+      cards.forEach((card) => {
+        if (hit(pill, card)) overlaps.push('pill~card');
+        if (hit(toast, card)) overlaps.push('toast~card');
+      });
+      if (hit(pill, toast)) overlaps.push('pill~toast');
+      const shopEl = document.querySelector('#spark-shop');
+      const cardEl = document.querySelector('.spark-card');
+      const ruleEl = document.querySelector('#spark-shop .spark-rules');
+      const filterEl = document.querySelector('.spark-filter');
+      const shopCs = getComputedStyle(shopEl);
+      const cardCs = getComputedStyle(cardEl);
+      const ruleCs = getComputedStyle(ruleEl);
+      const filterCs = getComputedStyle(filterEl);
+      const paint = {
+        shopBg: shopCs.backgroundColor,
+        shopColor: shopCs.color,
+        cardBg: cardCs.backgroundColor,
+        cardColor: cardCs.color,
+        ruleColor: ruleCs.color,
+        filterBg: filterCs.backgroundColor,
+        filterColor: filterCs.color,
+      };
+      const root = document.documentElement;
+      root.style.setProperty('--hud-card', 'rgb(1, 2, 3)');
+      root.style.setProperty('--hud-text', 'rgb(4, 5, 6)');
+      root.style.setProperty('--hud-bg', 'rgb(7, 8, 9)');
+      root.style.setProperty('--hud-font-display', 'SentinelFont, Outfit, sans-serif');
+      const bound = {
+        bg: getComputedStyle(shopEl).backgroundColor,
+        color: getComputedStyle(shopEl).color,
+        card: getComputedStyle(cardEl).backgroundColor,
+        font: getComputedStyle(shopEl).fontFamily,
+      };
+      root.style.removeProperty('--hud-card');
+      root.style.removeProperty('--hud-text');
+      root.style.removeProperty('--hud-bg');
+      root.style.removeProperty('--hud-font-display');
+      return {
+        overlaps,
+        tabs: tabs.map((tab) => tab.text),
+        cards: cards.length,
+        pill: pill ? (document.getElementById('spark-toast').textContent || '') : '',
+        toast: !!toast,
+        shopBg: paint.shopBg,
+        shopColor: paint.shopColor,
+        cardBg: paint.cardBg,
+        cardColor: paint.cardColor,
+        ruleColor: paint.ruleColor,
+        filterBg: paint.filterBg,
+        filterColor: paint.filterColor,
+        boundBg: bound.bg,
+        boundColor: bound.color,
+        boundCard: bound.card,
+        boundFont: bound.font,
+      };
+    });
+    const where = 'trophy ' + view.label;
+    ok(geo.tabs.length >= 4 && geo.tabs.some((t) => /Patch Notes/.test(t)) && geo.tabs.some((t) => /How it works/.test(t)),
+      `${where} studio tabs are on screen (${geo.tabs.length})`);
+    ok(geo.cards >= 1, `${where} shop cards are on screen (${geo.cards})`);
+    ok(/Sparks/.test(geo.pill), `${where} sparks pill says "${geo.pill}"`);
+    ok(geo.toast, `${where} achievement toast is on screen`);
+    ok(geo.overlaps.length === 0, `${where} no shop HUD overlap${geo.overlaps.length ? ': ' + [...new Set(geo.overlaps)].join(', ') : ''}`);
+    ok(geo.boundBg === 'rgb(1, 2, 3)' && geo.boundColor === 'rgb(4, 5, 6)' && geo.boundCard === 'rgb(7, 8, 9)',
+      `${where} shop paint follows the HUD tokens`);
+    ok(/SentinelFont/.test(geo.boundFont) && /Outfit/.test(geo.boundFont),
+      `${where} shop font follows the HUD display stack (${geo.boundFont})`);
+    ok(contrast(geo.shopColor, geo.shopBg) >= 4.5 && contrast(geo.cardColor, geo.cardBg) >= 4.5
+      && contrast(geo.ruleColor, geo.shopBg) >= 4.5 && contrast(geo.filterColor, geo.filterBg) >= 4.5,
+      `${where} shop text stays readable`);
+    await context.close();
+  }
 
   await browser.close();
   ok(errors.length === 0, `no page errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
