@@ -63,13 +63,19 @@ ok(!/e\.key === '\?'[\s\S]{0,200}primer-modal/.test(hub),
   // The whole reason it is a strip: an overlay here would sit on top of
   // every click the page wants. resume and theme both broke on exactly
   // that before this changed.
+  // The catalogue is taller than a 900px first visit, so the first
+  // card's centre can sit below the fold. Scroll it into view, then
+  // hit-test, and require the strip's box not to cover the card.
   const clickable = await page.evaluate(() => {
     const card = document.querySelector('.arcade-card');
+    card.scrollIntoView({ block: 'center', inline: 'nearest' });
     const r = card.getBoundingClientRect();
+    const strip = document.getElementById('primer-hint').getBoundingClientRect();
+    const overlaps = !(r.right < strip.left || r.left > strip.right || r.bottom < strip.top || r.top > strip.bottom);
     const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return !!(top && top.closest('.arcade-card'));
+    return { hit: !!(top && top.closest('.arcade-card')), overlaps };
   });
-  ok(clickable, 'the game cards are still clickable with the strip showing');
+  ok(clickable.hit && !clickable.overlaps, 'the game cards are still clickable with the strip showing — the strip is not an overlay');
 
   await page.click('#primer-hint-open');
   await page.waitForTimeout(300);

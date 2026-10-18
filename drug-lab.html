@@ -201,7 +201,7 @@ canvas{display:block;touch-action:none;}
   z-index:20;
   display:flex;flex-direction:column;gap:7px;
   max-width:236px;user-select:none;
-  /* fitLeftPanel() shortens this once the corner tray reaches the column. */
+  /* fitLeftPanel() keeps this above Help, Sound, and a tray that reaches the column. */
   max-height:calc(100vh - 68px);overflow-y:auto;
 }
 #left-panel::-webkit-scrollbar{width:4px;}
@@ -787,7 +787,10 @@ canvas{display:block;touch-action:none;}
    by each button's per-button mobile offset; those offsets are gone, so the
    tray lifts above the button instead. */
 @media (max-width:700px){
-  #lab-tray{ bottom:62px;max-height:calc(100vh - 76px); }
+  /* The walk dock (stick + Wait) owns the bottom-left. A full-bleed tray
+     wraps THE CORNER under that button, so a tap there harvests instead
+     of opening the corner. Keep the tray in the column to the right of it. */
+  #lab-tray{ bottom:62px;left:228px;max-height:calc(100vh - 76px); }
 }
 /* -- The New Kid's Tag (LAB-54) -- */
 #mark-toggle{
@@ -1244,9 +1247,22 @@ function fitLeftPanel() {
   if (innerWidth <= 700) { panel.style.maxHeight = ''; return; }
   const tr = tray.getBoundingClientRect();
   const panelRight = 14 + 236;
-  if (tr.width < 2 || tr.left >= panelRight - 4) { panel.style.maxHeight = ''; return; }
-  const limit = Math.max(160, Math.floor(tr.top - 54 - 8));
-  panel.style.maxHeight = limit + 'px';
+  // Help and Sound sit on the bottom-left of the shop. Shorten the
+  // column for them even while the tray is still over on the right,
+  // and also for the tray once it crosses into this column.
+  const help = document.getElementById('lab-help-btn');
+  const sfx = document.getElementById('sfx-btn');
+  let floor = innerHeight;
+  for (const el of [help, sfx]) {
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width >= 2 && r.height >= 2 && r.left < panelRight) floor = Math.min(floor, r.top);
+  }
+  let limit = Math.floor(floor - 54 - 8);
+  if (tr.width >= 2 && tr.left < panelRight - 4) {
+    limit = Math.min(limit, Math.floor(tr.top - 54 - 8));
+  }
+  panel.style.maxHeight = Math.max(160, limit) + 'px';
 }
 window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); fitLeftPanel(); });
 new ResizeObserver(fitLeftPanel).observe(document.getElementById('lab-tray'));
@@ -6779,6 +6795,10 @@ requestAnimationFrame(animate);
 
 function animate(now_ms) {
   requestAnimationFrame(animate);
+  // Grow, heat and movement stay capped so a backgrounded tab cannot
+  // skip the operation forward. The street-event clock is a real
+  // seconds timer, so a jumped or paused clock still reaches it.
+  const elapsed=Math.max(0,(now_ms-lastTime)/1000);
   const dt=Math.min((now_ms-lastTime)/1000, 0.1);
   lastTime=now_ms;
   labSoundtrack(now_ms);
@@ -6820,7 +6840,7 @@ function animate(now_ms) {
     updateRunnerNPCs(dt);
     updateSteam(dt);
     updateHeatDrain(dt);
-    updateEvents(dt);
+    updateEvents(elapsed);
     updateDealerSpawn(dt);
     updateMarket(dt);
     updateContract(dt);
