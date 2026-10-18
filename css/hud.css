@@ -416,15 +416,41 @@ html.hud .aow-stage {
 
 /* Win, loss, and resume sheets sit on the viewport. A full Eclipse
    roster can shrink the stage to a sliver, and an absolute sheet
-   then paints its button under the recruit row. */
+   then paints its button under the recruit row. The sheet stops at
+   the bottom safe zone so relic buttons stay inside the sheet and
+   Pause, Awards, and the recruit row keep their own taps. */
 html.hud .aow-overlay {
   position: fixed;
   top: var(--hud-top-safe, 0px);
+  bottom: var(--hud-bottom-safe, 96px);
   z-index: 80;
   /* The sheet covers the field and the recruit row. The Games bar
      and the HUD stay above it, so difficulty and Settings still
      take clicks while the war is paused. */
   padding-top: 112px;
+}
+
+/* A phone sheet is only the band between the top safe zone and the
+   command rail, about 160px. The 112px clearance then parks Resume
+   war under the action bar. The sheet already starts below the top
+   bar, so the card starts at the top of the band and the resume row
+   stays inside the scrolling sheet. */
+@media (max-width: 720px) {
+  html.hud .aow-overlay {
+    padding-top: 4px;
+  }
+  html.hud .aow-overlay h2 {
+    font-size: 24px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  html.hud .aow-overlay p {
+    margin-top: 2px;
+    line-height: 1.25;
+  }
+  html.hud .aow-overlay .aow-cta-row {
+    margin-top: 8px;
+  }
 }
 
 html.hud .aow-modal-card,
