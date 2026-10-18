@@ -406,10 +406,13 @@ html.hud .aow-stage {
 
 /* Win, loss, and resume sheets sit on the viewport. A full Eclipse
    roster can shrink the stage to a sliver, and an absolute sheet
-   then paints its button under the recruit row. */
+   then paints its button under the recruit row. The sheet stops at
+   the bottom safe zone so relic buttons stay inside the sheet and
+   Pause, Awards, and the recruit row keep their own taps. */
 html.hud .aow-overlay {
   position: fixed;
   top: var(--hud-top-safe, 0px);
+  bottom: var(--hud-bottom-safe, 96px);
   z-index: 80;
 }
 
