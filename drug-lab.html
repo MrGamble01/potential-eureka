@@ -106,12 +106,18 @@ canvas{display:block;touch-action:none;}
 #intro-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
   display:none;align-items:center;justify-content:center;z-index:282;}
 #intro-modal.open{display:flex;animation:bustIn 0.3s ease;}
-#intro-modal .diff-panel{max-width:470px;text-align:left;max-height:84vh;overflow-y:auto;}
+#intro-modal .diff-panel{
+  max-width:470px;text-align:left;max-height:84vh;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+#intro-modal #intro-head,
+#intro-modal #intro-flavor{flex:none;}
+#intro-modal #intro-body{overflow-y:auto;min-height:0;flex:1 1 auto;}
 #intro-flavor{font-size:12px;color:#7fae8c;font-style:italic;margin-bottom:14px;line-height:1.5;}
 #intro-body{font-size:12.5px;color:#a8d8b4;line-height:1.75;}
 #intro-body b{color:#44cc66;}
 #intro-body .intro-row{margin-bottom:9px;}
-#intro-go{display:block;width:100%;margin-top:18px;background:rgba(0,180,60,0.16);
+#intro-go{display:block;width:100%;margin-top:18px;flex:none;background:rgba(0,180,60,0.16);
   border:1px solid rgba(0,180,60,0.5);color:#22dd55;font-family:inherit;
   font-size:13px;font-weight:800;padding:11px;border-radius:8px;cursor:pointer;}
 #intro-go:hover{background:rgba(0,180,60,0.26);}
