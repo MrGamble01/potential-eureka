@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261018-topbar';  // Tycoon top row and announcer separators. Sorts after eureka-20261018-cosmetics. Both hud.css and hud-b.css stay in the precache. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261018-aowfield';  // Age of War field labels: one weather line, age chip, coach under the booth. Sorts after eureka-20261018-topbar. Another open branch uses eureka-20261018-sparkdark. Both hud.css and hud-b.css stay in the precache. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
