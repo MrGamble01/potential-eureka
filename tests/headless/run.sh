@@ -48,6 +48,7 @@ LEAD=(
   labintro labsheetpause primer sessiontag hubhome hublinks objective controls
   mobilefit
   hudsafe
+  hudfit
 )
 TRAIL=( pwa )
 

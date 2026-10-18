@@ -170,22 +170,43 @@ html.hud-b[data-game="hearthvale"] #resumeNewTown {
   font-family: var(--font-ui);
 }
 
-/* The town goal and minimap start at 92px. The booth looks for a
-   clear spot under the full-width HUD, so this row has to finish
-   by 74px or the booth lands on the minimap and steals its tap. */
+/* Phone chips stay short so the title row and the resource strip
+   finish above the minimap (top: 92px). The booth also refuses any
+   spot that intersects the minimap. */
 @media (max-width: 640px) {
   html.hud-b[data-game="hearthvale"] #hud {
     padding-bottom: 0;
-    gap: 4px;
+    gap: 2px;
   }
   html.hud-b[data-game="hearthvale"] :is(.res, #resumeChip) {
-    padding: 1px 8px;
+    padding: 0 4px;
     line-height: 1;
-    font-size: 12px;
+    font-size: 11px;
   }
+  html.hud-b[data-game="hearthvale"] .res {
+    gap: 2px;
+  }
+  html.hud-b[data-game="hearthvale"] .res .val { min-width: 0; }
   html.hud-b[data-game="hearthvale"] .res .ic {
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1;
+  }
+  html.hud-b[data-game="hearthvale"] #clock { font-size: 0; gap: 0; }
+  html.hud-b[data-game="hearthvale"] #clock .day { font-size: 11px; }
+  html.hud-b[data-game="hearthvale"] #resumeName {
+    flex: 1 1 auto;
+    min-width: 3.2em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  html.hud-b[data-game="hearthvale"] :is(.resume-souls, #r-season, #r-tod, #r-wx) {
+    display: none;
+  }
+  html.hud-b[data-game="hearthvale"] #resumeNewTown {
+    padding: 0 6px;
+    line-height: 16px;
+    min-height: 0;
   }
 }
 
@@ -728,5 +749,28 @@ html.hud-b[data-game="growop"] .feed-entry { color: var(--hud-dim); }
     border-top: 1px solid var(--hud-line);
     border-radius: 20px 20px 0 0;
     padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+  }
+}
+
+/* Phone top bars stay inside the viewport. A long chip ellipsizes
+   instead of painting past the right edge. */
+@media (max-width: 640px) {
+  html.hud-b[data-game="voxel"] #topbar {
+    max-width: calc(100vw - 18px);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  html.hud-b[data-game="voxel"] #topbar .chip {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html.hud-b[data-game="growop"] :is(#cash-hud, #heat-hud, #goal-hud, #market-hud, #status-bar, #act-badge) {
+    max-width: calc(100vw - 16px);
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

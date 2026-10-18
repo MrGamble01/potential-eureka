@@ -699,6 +699,13 @@
           if (i >= 0) listeners.splice(i, 1);
         };
       },
+      awardName: function (id) {
+        const key = String(id || '');
+        for (let i = 0; i < ACHIEVEMENTS.length; i++) {
+          if (ACHIEVEMENTS[i].id === key) return ACHIEVEMENTS[i].name;
+        }
+        return '';
+      },
     };
   }
 

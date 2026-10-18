@@ -193,8 +193,9 @@ function box(rect) {
         const ticker = document.getElementById('arcade-ai-ticker');
         if (ticker) {
           ticker.hidden = false;
-          ticker.innerHTML = '<b>Announcer</b>';
-          ticker.appendChild(document.createTextNode('The line holds for a moment.'));
+          const line = ticker.querySelector('#arcade-ai-ticker-line');
+          if (line) line.textContent = 'The line holds for a moment.';
+          else ticker.appendChild(document.createTextNode('The line holds for a moment.'));
         }
         if (toastSel) {
           const host = document.querySelector(toastSel);

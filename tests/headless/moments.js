@@ -1,11 +1,13 @@
 /* Photo mode + highlight replay.
  *
  * The buffer, GIF, filters, and the highlights switch run in Node.
- * The browser half opens photo mode on Voxel Isle and Hearthvale.
+ * The browser half opens photo mode on Voxel Isle and Hearthvale,
+ * checks a full-colour desktop frame, and a trophy filed by name.
  */
 const { chromium } = require('playwright');
 const { spawnSync } = require('child_process');
 const Moments = require('../../js/moments.js');
+const Progress = require('../../js/progression.js');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
@@ -198,6 +200,49 @@ function gifFrames(bytes) {
   ok(Moments.chooseExport({ file: file() }) === 'download', 'no share API means a download');
 }
 
+{
+  const desk = Moments.frameSize(1280, 720, false);
+  const phone = Moments.frameSize(1280, 720, true);
+  ok(desk.w >= 480 && desk.w <= Moments.DESKTOP_W && desk.w % 2 === 0, 'a desktop reel is 480–640px wide (' + desk.w + ')');
+  ok(phone.w <= Moments.PHONE_W && phone.w < desk.w && phone.h > 8, 'a phone reel is smaller than the desktop one (' + phone.w + ')');
+  ok(Math.abs(desk.w / desk.h - 1280 / 720) < 0.05, 'the reel keeps the picture aspect');
+  ok(Moments.storePlan(100, { indexedDB: {} }) === 'memory', 'a tiny note stays out of a database');
+  ok(Moments.storePlan(80000, { indexedDB: {} }) === 'indexeddb', 'a full-colour reel uses IndexedDB');
+  ok(Moments.storePlan(80000, {}) === 'memory', 'without IndexedDB the reel stays in memory');
+  const titled = Moments.clipTitle({ label: 'First Harvest', game: 'Voxel Isle', when: Date.UTC(2026, 9, 17) });
+  ok(titled.indexOf('First Harvest') === 0 && titled.indexOf('Voxel Isle') > 0 && titled.indexOf('2026') > 0,
+    'a gallery title is the trophy, the game, and the date (' + titled + ')');
+  ok(Moments.clipTitle({ label: 'Valley Founded', game: 'Hearthvale', when: Date.UTC(2026, 9, 17) }).indexOf('Valley Founded') === 0,
+    'Valley Founded keeps its own name');
+  const harvest = Progress.ACHIEVEMENTS.filter(function (a) { return a.name === 'First Harvest'; })[0];
+  const valley = Progress.ACHIEVEMENTS.filter(function (a) { return a.name === 'Valley Founded'; })[0];
+  ok(harvest && harvest.id === 'voxel-harvest' && valley && valley.game === 'hearthvale',
+    'First Harvest and Valley Founded are real career trophies');
+  const named = Moments.flagClip(Moments.createBuffer({ seconds: 12, fps: 4 }), [], 'First Harvest', 8, { game: 'Voxel Isle', when: Date.UTC(2026, 9, 17) });
+  ok(named === null, 'a named trophy still needs two frames before it is filed');
+}
+
+async function barClearance(page) {
+  return page.evaluate(() => {
+    const bar = document.querySelector('#moments-photo:not([hidden]) .moments-bar, #moments-replay:not([hidden]) .moments-bar');
+    if (!bar) return { ticker: false, hits: ['missing-bar'] };
+    const br = bar.getBoundingClientRect();
+    const ticker = document.getElementById('arcade-ai-ticker');
+    const tickerOn = !!(ticker && !ticker.hidden && ticker.getBoundingClientRect().height > 8);
+    function hit(sel) {
+      const el = document.querySelector(sel);
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      if (el.hidden || cs.display === 'none' || cs.visibility === 'hidden') return false;
+      const r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return false;
+      return !(br.right <= r.left + 0.5 || br.left >= r.right - 0.5 || br.bottom <= r.top + 0.5 || br.top >= r.bottom - 0.5);
+    }
+    const hits = ['#arcade-ai-ticker', '#hotbar', '#buildbar', '#buildtabs', '#lab-tray'].filter(hit);
+    return { ticker: tickerOn, hits: hits };
+  });
+}
+
 (async () => {
   const browser = await chromium.launch({
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
@@ -232,6 +277,22 @@ function gifFrames(bytes) {
       return EurekaMoments.frameCount() - before;
     });
     ok(grew >= 1, 'Voxel Isle samples the island while highlights are on');
+    const sharp = await page.evaluate(async () => {
+      await new Promise(r => setTimeout(r, 600));
+      if (window.EurekaProgress) EurekaProgress.emit('voxel', 'harvest');
+      await new Promise(r => setTimeout(r, 40));
+      const frames = EurekaMoments.frames();
+      const last = frames[frames.length - 1];
+      return {
+        w: last ? last.w : 0,
+        url: last && last.url ? last.url.slice(0, 22) : '',
+        labels: EurekaMoments.gallery().map(g => g.label + ' · ' + (g.game || '')),
+      };
+    });
+    ok(sharp.w >= 480 && sharp.w <= 640, 'Voxel Isle stores a sharp desktop frame (' + sharp.w + 'px)');
+    ok(/^data:image\/(jpeg|webp)/.test(sharp.url), 'the frame is a full-colour JPEG or WebP');
+    ok(sharp.labels.some(l => l.indexOf('First Harvest') === 0 && l.indexOf('Voxel Isle') > 0),
+      'a career unlock is filed as First Harvest · Voxel Isle, not Trophy (' + sharp.labels.join('; ') + ')');
     await page.click('#momentsBtn');
     const photo = await page.evaluate(() => ({
       view: EurekaMoments.view(),
@@ -241,6 +302,19 @@ function gifFrames(bytes) {
     }));
     ok(photo.view === 'photo' && photo.hidden && photo.stage && photo.back === 'none',
       'photo mode pauses the HUD on Voxel Isle');
+    await page.waitForFunction(() => {
+      const t = document.getElementById('arcade-ai-ticker');
+      return t && !t.hidden && t.getBoundingClientRect().height > 8;
+    }, null, { timeout: 5000 });
+    const voxelClear = await barClearance(page);
+    ok(voxelClear.ticker && voxelClear.hits.length === 0,
+      'the Voxel photo bar clears the announcer and the build bar' + (voxelClear.hits.length ? ' (' + voxelClear.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD off' }).click();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const voxelHud = await barClearance(page);
+    ok(voxelHud.hits.length === 0,
+      'the Voxel photo bar stays clear when the HUD comes back' + (voxelHud.hits.length ? ' (' + voxelHud.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD on' }).click();
     await page.click('[data-moments-filter="noir"]');
     await page.click('[data-moments-frame="film"]');
     const look = await page.evaluate(() => ({
@@ -252,6 +326,17 @@ function gifFrames(bytes) {
       'a filter and a frame can be picked from the bar');
     const box = await page.locator('#moments-photo .moments-row button').first().boundingBox();
     ok(box && box.height >= 44, 'photo controls are tall enough for a thumb');
+    await page.locator('#moments-photo button', { hasText: 'Replay' }).click();
+    await page.waitForFunction(() => {
+      const c = document.querySelector('#moments-replay canvas');
+      return c && c.dataset.smoothing === 'high' && c.width >= 480;
+    });
+    const replay = await page.evaluate(() => {
+      const c = document.querySelector('#moments-replay canvas');
+      return { w: c.width, smooth: c.dataset.smoothing, shown: !document.getElementById('moments-replay').hidden };
+    });
+    ok(replay.shown && replay.smooth === 'high' && replay.w >= 480, 'highlight replay draws the reel with smoothing (' + replay.w + 'px)');
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     const closed = await page.evaluate(() => EurekaMoments.view() === 'live' && !document.body.classList.contains('photo'));
     ok(closed, 'Escape leaves photo mode and brings the HUD back');
@@ -264,6 +349,20 @@ function gifFrames(bytes) {
     page.on('pageerror', e => errs.push('hearth ' + String(e).slice(0, 240)));
     await page.goto(BASE + '/hearthvale.html', { waitUntil: 'load' });
     await page.waitForFunction(() => window.EurekaMoments && document.getElementById('moments-root'));
+    await page.evaluate(() => EurekaMoments.openPhoto());
+    await page.waitForFunction(() => {
+      const t = document.getElementById('arcade-ai-ticker');
+      return t && !t.hidden && t.getBoundingClientRect().height > 8;
+    }, null, { timeout: 5000 });
+    const valeClear = await barClearance(page);
+    ok(valeClear.ticker && valeClear.hits.length === 0,
+      'the Hearthvale photo bar clears the announcer and the build bar' + (valeClear.hits.length ? ' (' + valeClear.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD off' }).click();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const valeHud = await barClearance(page);
+    ok(valeHud.hits.length === 0,
+      'the Hearthvale photo bar stays clear when the HUD comes back' + (valeHud.hits.length ? ' (' + valeHud.hits.join(', ') + ')' : ''));
+    await page.keyboard.press('Escape');
     const phone = await page.evaluate(async () => {
       EurekaMoments.openPhoto();
       const hud = getComputedStyle(document.getElementById('hud')).visibility;
@@ -284,6 +383,15 @@ function gifFrames(bytes) {
     });
     ok(phone.hud === 'hidden' && phone.welcome && phone.filter, 'Hearthvale photo mode hides the HUD and keeps the welcome underneath');
     ok(phone.closed && phone.welcomeStill, 'closing photo mode leaves the valley where it was');
+    const phoneReel = await page.evaluate(async () => {
+      EurekaMoments.setEnabled(true);
+      EurekaMoments.afterFrame();
+      await new Promise(r => setTimeout(r, 300));
+      EurekaMoments.afterFrame();
+      const frames = EurekaMoments.frames();
+      return frames.length ? frames[frames.length - 1].w : 0;
+    });
+    ok(phoneReel > 0 && phoneReel <= 400, 'a phone stores a smaller reel (' + phoneReel + 'px)');
     await page.evaluate(() => EurekaMoments.setEnabled(false));
     await page.reload({ waitUntil: 'load' });
     await page.waitForFunction(() => window.EurekaMoments);

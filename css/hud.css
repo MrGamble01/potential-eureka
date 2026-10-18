@@ -283,7 +283,8 @@ html.hud .aow-diff button.active {
 }
 
 html.hud .aow-endless-btn,
-html.hud .aow-settings-btn {
+html.hud .aow-settings-btn,
+html.hud .aow-moments-btn {
   border-radius: 12px;
   border-color: var(--hud-border-strong);
   background: color-mix(in srgb, var(--hud-card) 70%, transparent);
@@ -292,6 +293,12 @@ html.hud .aow-settings-btn {
   font-weight: 800;
   letter-spacing: -0.02em;
   text-transform: none;
+}
+
+html.hud .aow-moments-btn:hover {
+  background: color-mix(in srgb, var(--hud-gold) 18%, var(--hud-card));
+  border-color: color-mix(in srgb, var(--hud-gold) 55%, var(--hud-border));
+  color: var(--hud-gold-bright);
 }
 
 html.hud .aow-endless-btn.active {
@@ -465,6 +472,7 @@ html.hud .aow-coach-kicker {
 @media (min-height: 800px) {
   html.hud .ea-back,
   html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
   html.hud .aow-endless-btn,
   html.hud .aow-diff button,
   html.hud .aow-tab,
@@ -473,24 +481,29 @@ html.hud .aow-coach-kicker {
     box-sizing: border-box;
     min-height: var(--hud-tap);
   }
-  html.hud .aow-settings-btn {
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
     width: var(--hud-tap);
     min-width: var(--hud-tap);
+    height: var(--hud-tap);
   }
 }
 
 @media (max-width: 720px) and (min-height: 700px) {
   html.hud .ea-back,
   html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
   html.hud .aow-tab,
   html.hud .aow-action,
   html.hud .aow-setting-action {
     box-sizing: border-box;
     min-height: var(--hud-tap);
   }
-  html.hud .aow-settings-btn {
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
     width: var(--hud-tap);
     min-width: var(--hud-tap);
+    height: var(--hud-tap);
   }
   html.hud .aow-shell {
     margin-bottom: var(--hud-safe-b);
@@ -501,11 +514,13 @@ html.hud .aow-coach-kicker {
   html.hud .aow-action,
   html.hud .aow-tab,
   html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
   html.hud .aow-setting-action,
   html.hud .ea-back {
     min-height: 0;
   }
-  html.hud .aow-settings-btn {
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
     width: 32px;
     height: 32px;
     min-width: 0;

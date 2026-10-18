@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261017huda2">
-  <link rel="stylesheet" href="/css/feel.css?v=20261017huda2">
+  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261017moments4">
+  <link rel="stylesheet" href="/css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
     /* Page-level styles (these were inherited from base.css in the
@@ -83,6 +83,7 @@
         <div class="aow-brand">
           <span class="aow-brand-mark">⚔</span>
           <span class="aow-brand-name">Age of War</span>
+          <button class="aow-moments-btn" id="aow-moments" type="button" aria-label="Photo mode" title="Photo mode (Shift+P). P still pauses.">📷</button>
         </div>
         <div class="aow-resource aow-resource-gold" title="Gold — click coins on the battlefield to collect">
           <span class="aow-resource-icon">$</span>
@@ -214,7 +215,7 @@
         <div id="aow-turret-list" class="aow-turret-list"></div>
       </div>
 
-      <div class="aow-hint"><strong>1–9</strong> send a unit · click coins for gold · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> hero</div>
+      <div class="aow-hint"><strong>1–9</strong> send a unit · click coins for gold · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> hero · <strong>P</strong> pause · <strong>Shift+P</strong> photo</div>
     </div>
   </section>
 
@@ -332,9 +333,11 @@
     };
   </script>
   <script src="/js/persist.js"></script>
+  <script src="/js/progression.js"></script>
+  <script src="/js/moments.js?v=20261017moments4"></script>
   <script src="/js/feel.js"></script>
   <script src="/js/audio.js"></script>
-  <script src="/ageofwar/ageofwar.js?v=20261017huda2"></script>
+  <script src="/ageofwar/ageofwar.js?v=20261017moments4"></script>
   <script>AgeOfWarGame.init();</script>
 </body>
 </html>
