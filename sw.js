@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261017-moments2';  // Age of War photo mode, sharper highlight reels, named gallery. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261017-moments3';  // Photo mode on the HUD pass. Both hud.css and hud-b.css stay in the precache. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -55,6 +55,7 @@ const SHELL = [
   '/vendor/three.module.js',
   '/vendor/three-r128.min.js',
   '/css/arcade-chrome.css',
+  '/css/hud.css',
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',

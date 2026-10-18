@@ -25,16 +25,42 @@ ok(src.includes("hotkey: { key: 'p', shift: true }"), 'photo mode takes Shift+P 
   });
   const errs = [];
 
-  async function boot(viewport) {
+  async function layout(page, width) {
+    return page.evaluate((width) => {
+      const btn = document.getElementById('aow-moments').getBoundingClientRect();
+      const bar = document.querySelector('.aow-topbar').getBoundingClientRect();
+      function hit(el) {
+        if (!el) return false;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return false;
+        return !(btn.right <= r.left + 0.5 || btn.left >= r.right - 0.5 || btn.bottom <= r.top + 0.5 || btn.top >= r.bottom - 0.5);
+      }
+      const sels = ['#aow-canvas', '#aow-special-btn', '#aow-era-pill', '#aow-settings-btn', '.aow-battle-strip', '.aow-actionbar', '#aow-spawn-list'];
+      const hits = sels.filter((sel) => hit(document.querySelector(sel)));
+      const ridge = document.getElementById('aow-ridge-btn');
+      if (ridge && ridge.classList.contains('aow-show') && hit(ridge)) hits.push('#aow-ridge-btn');
+      return {
+        inside: btn.left >= bar.left - 1 && btn.right <= bar.right + 1 && btn.top >= bar.top - 1 && btn.bottom <= bar.bottom + 1,
+        hits: hits,
+        w: btn.width,
+        h: btn.height,
+        inView: btn.top >= 0 && btn.left >= 0 && btn.right <= width + 1 && btn.bottom <= 900,
+      };
+    }, width);
+  }
+
+  async function boot(viewport, era) {
     const ctx = await browser.newContext({ viewport });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(String(e).slice(0, 240)));
-    await page.addInitScript(() => {
+    await page.addInitScript((era) => {
       localStorage.setItem('aow-welcome-seen', '1');
       localStorage.setItem('aow-session', JSON.stringify({
-        v: 2, waveNum: 1, gold: 800, xp: 500, playerEra: 0, specialReadyT: 0,
+        v: 2, waveNum: 1, gold: 800, xp: 500, playerEra: era || 0, specialReadyT: 0,
       }));
-    });
+    }, era || 0);
     await page.goto(BASE + '/ageofwar/', { waitUntil: 'load' });
     await page.waitForFunction(() => window.EurekaMoments && document.getElementById('aow-moments'));
     await page.click('#aow-resume-cta');
@@ -44,16 +70,9 @@ ok(src.includes("hotkey: { key: 'p', shift: true }"), 'photo mode takes Shift+P 
 
   {
     const { ctx, page } = await boot({ width: 1280, height: 800 });
-    const placed = await page.evaluate(() => {
-      const btn = document.getElementById('aow-moments').getBoundingClientRect();
-      const canvas = document.getElementById('aow-canvas').getBoundingClientRect();
-      const settings = document.getElementById('aow-settings-btn').getBoundingClientRect();
-      const overlap = !(btn.right < canvas.left || btn.left > canvas.right || btn.bottom < canvas.top || btn.top > canvas.bottom);
-      const crowd = !(btn.right <= settings.left || btn.left >= settings.right || btn.bottom <= settings.top || btn.top >= settings.bottom);
-      return { overlap, crowd, w: btn.width, h: btn.height, inView: btn.top >= 0 && btn.left >= 0 && btn.right <= 1280 };
-    });
-    ok(!placed.overlap && !placed.crowd && placed.w >= 32 && placed.h >= 32 && placed.inView,
-      'the camera button sits in the top bar, clear of the battlefield and the settings gear');
+    const placed = await layout(page, 1280);
+    ok(placed.inside && placed.hits.length === 0 && placed.w >= 32 && placed.h >= 32 && placed.inView,
+      'the camera button sits in the HUD bar, clear of the field and Eclipse controls' + (placed.hits.length ? ' (' + placed.hits.join(', ') + ')' : ''));
     await page.keyboard.press('p');
     const paused = await page.locator('#aow-pause-btn .aow-action-lbl').innerText();
     const stillLive = await page.evaluate(() => EurekaMoments.view());
@@ -115,11 +134,9 @@ ok(src.includes("hotkey: { key: 'p', shift: true }"), 'photo mode takes Shift+P 
 
   {
     const { ctx, page } = await boot({ width: 390, height: 844 });
-    const phone = await page.evaluate(() => {
-      const btn = document.getElementById('aow-moments').getBoundingClientRect();
-      return { top: btn.top, h: btn.height, right: btn.right, w: btn.width };
-    });
-    ok(phone.top >= 0 && phone.h >= 32 && phone.w >= 32 && phone.right <= 390, 'the camera button fits on a phone');
+    const phone = await layout(page, 390);
+    ok(phone.inside && phone.hits.length === 0 && phone.h >= 32 && phone.w >= 32 && phone.inView,
+      'the camera button fits the phone HUD without covering Eclipse controls' + (phone.hits.length ? ' (' + phone.hits.join(', ') + ')' : ''));
     await page.click('#aow-moments');
     ok(await page.evaluate(() => EurekaMoments.view()) === 'photo', 'a thumb can open photo mode');
     const reel = await page.evaluate(() => {
@@ -127,6 +144,15 @@ ok(src.includes("hotkey: { key: 'p', shift: true }"), 'photo mode takes Shift+P 
       return frames.length ? frames[frames.length - 1].w : 0;
     });
     ok(reel > 0 && reel <= 400, 'Age of War downscales the reel on a phone (' + reel + 'px)');
+    await ctx.close();
+  }
+
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    const { ctx, page } = await boot(viewport, 6);
+    const eclipse = await page.evaluate(() => document.getElementById('aow-special-btn').getAttribute('aria-label') || '');
+    const fit = await layout(page, viewport.width);
+    ok(eclipse.indexOf('Corona') === 0 && fit.inside && fit.hits.length === 0,
+      viewport.width + ': the camera stays off the Corona control and inside the HUD bar' + (fit.hits.length ? ' (' + fit.hits.join(', ') + ')' : ''));
     await ctx.close();
   }
 

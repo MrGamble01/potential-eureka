@@ -1,0 +1,965 @@
+/* ============================================
+   IN-GAME HUD
+   Shared skin for flagship play screens.
+   A page opts in with class="hud" on <html>
+   and a link to this sheet after its own CSS.
+
+   Matches the hub launcher: Outfit display
+   headings, a dark rich palette, an 8px
+   spacing scale, rounded cards, chips, and
+   segmented controls. Tap targets are 44px
+   where the playfield still fits. Phone
+   first. Safe areas are padded, not covered.
+
+   Visual only. Display, grid, and the caps
+   that keep the battlefield on screen stay
+   with each game's own sheet.
+   ============================================ */
+
+html.hud {
+  --hud-font-display: "Outfit", "Inter", sans-serif;
+  --hud-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --hud-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --hud-space-1: 8px;
+  --hud-space-2: 16px;
+  --hud-space-3: 24px;
+  --hud-space-4: 32px;
+  --hud-space-5: 48px;
+  --hud-bg: #060608;
+  --hud-bg-deep: #020203;
+  --hud-surface: rgba(10, 10, 15, 0.94);
+  --hud-card: #0c0e14;
+  --hud-ink: #060608;
+  --hud-text: #f7f4ee;
+  --hud-dim: #8b949e;
+  --hud-gold: #e3b341;
+  --hud-gold-bright: #f0c552;
+  --hud-primary: #6c63ff;
+  --hud-primary-light: #8b83ff;
+  --hud-border: rgba(255, 255, 255, 0.12);
+  --hud-border-strong: rgba(255, 255, 255, 0.18);
+  --hud-radius-card: 16px;
+  --hud-radius-sheet: 20px;
+  --hud-radius-seg: 14px;
+  --hud-radius-chip: 999px;
+  --hud-tap: 44px;
+  --hud-safe-t: env(safe-area-inset-top, 0px);
+  --hud-safe-r: env(safe-area-inset-right, 0px);
+  --hud-safe-b: env(safe-area-inset-bottom, 0px);
+  --hud-safe-l: env(safe-area-inset-left, 0px);
+  color-scheme: dark;
+}
+
+/* Shared pieces a page can hang on its own markup. */
+html.hud .hud-heading {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--hud-text);
+}
+
+html.hud .hud-kicker {
+  font-family: var(--hud-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-dim);
+}
+
+html.hud .hud-card {
+  background: var(--hud-surface);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--hud-radius-card);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+html.hud .hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hud-space-1);
+  min-height: 32px;
+  padding: 0 var(--hud-space-1);
+  border-radius: var(--hud-radius-chip);
+  border: 1px solid color-mix(in srgb, var(--hud-gold) 45%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-gold) 14%, var(--hud-card));
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+  font-weight: 700;
+}
+
+html.hud .hud-seg {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 4px;
+  border: 1px solid var(--hud-border);
+  border-radius: var(--hud-radius-seg);
+  background: color-mix(in srgb, var(--hud-card) 88%, transparent);
+}
+
+html.hud .hud-seg > button {
+  min-height: var(--hud-tap);
+  padding: 0 var(--hud-space-1);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--hud-dim);
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud .hud-seg > button[aria-pressed="true"],
+html.hud .hud-seg > button.active {
+  background: var(--hud-text);
+  color: var(--hud-ink);
+}
+
+html.hud .hud-btn {
+  box-sizing: border-box;
+  min-height: var(--hud-tap);
+  min-width: var(--hud-tap);
+  padding: 0 var(--hud-space-2);
+  border-radius: 12px;
+  border: 1px solid var(--hud-border-strong);
+  background: var(--hud-surface);
+  color: var(--hud-text);
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud :focus-visible {
+  outline: 2px solid var(--hud-primary-light);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   AGE OF WAR
+   ============================================================ */
+
+html.hud body {
+  background:
+    radial-gradient(80% 42% at 50% -8%, color-mix(in srgb, var(--hud-primary) 22%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--hud-bg-deep) 0%, var(--hud-bg) 48%, #0a0a0f 100%);
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+}
+
+html.hud .ea-back {
+  box-sizing: border-box;
+  min-height: 36px;
+  border-radius: var(--hud-radius-chip);
+  background: var(--hud-surface);
+  border-color: var(--hud-border-strong);
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Safe area sits outside the game's own padding so a notch
+   does not change the measured chrome when the inset is 0. */
+html.hud .ea-topbar,
+html.hud .aow-shell {
+  margin-left: var(--hud-safe-l);
+  margin-right: var(--hud-safe-r);
+}
+
+html.hud .ea-topbar {
+  margin-top: var(--hud-safe-t);
+}
+
+html.hud .aow-topbar {
+  border-radius: var(--hud-radius-card);
+  border-color: var(--hud-border);
+  background: var(--hud-surface);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+html.hud .aow-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--hud-gold-bright);
+  color: var(--hud-ink);
+  box-shadow: none;
+}
+
+html.hud .aow-brand-name,
+html.hud .aow-era-name,
+html.hud .aow-wave-num,
+html.hud .aow-modal-title,
+html.hud .aow-welcome-title,
+html.hud .aow-ridge-title,
+html.hud .aow-overlay h2 {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: none;
+}
+
+html.hud .aow-brand-name {
+  font-size: 1.05rem;
+  color: var(--hud-text);
+}
+
+html.hud .aow-resource {
+  border-radius: var(--hud-radius-chip);
+  background: color-mix(in srgb, var(--hud-gold) 16%, var(--hud-card));
+  border-color: color-mix(in srgb, var(--hud-gold) 55%, var(--hud-border));
+  color: var(--hud-gold-bright);
+  font-family: var(--hud-font-display);
+  box-shadow: none;
+}
+
+html.hud .aow-resource-icon {
+  background: var(--hud-gold-bright);
+  color: var(--hud-ink);
+}
+
+html.hud .aow-era-pill,
+html.hud .aow-wave,
+html.hud .aow-side {
+  border-radius: 12px;
+  border-color: var(--hud-border);
+  background: color-mix(in srgb, var(--hud-card) 80%, transparent);
+}
+
+html.hud .aow-era-name,
+html.hud .aow-wave-num {
+  color: var(--hud-text);
+}
+
+html.hud .aow-era-fill {
+  background: linear-gradient(90deg, var(--hud-primary-light), var(--hud-gold-bright));
+}
+
+html.hud .aow-diff {
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--hud-radius-seg);
+  border-color: var(--hud-border);
+  background: color-mix(in srgb, var(--hud-card) 88%, transparent);
+}
+
+html.hud .aow-diff button {
+  border-radius: 10px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--hud-dim);
+}
+
+html.hud .aow-diff button:hover {
+  background: color-mix(in srgb, var(--hud-text) 14%, transparent);
+  color: var(--hud-text);
+}
+
+html.hud .aow-diff button.active {
+  background: var(--hud-text);
+  color: var(--hud-ink);
+  box-shadow: none;
+}
+
+html.hud .aow-endless-btn,
+html.hud .aow-settings-btn,
+html.hud .aow-moments-btn {
+  border-radius: 12px;
+  border-color: var(--hud-border-strong);
+  background: color-mix(in srgb, var(--hud-card) 70%, transparent);
+  color: var(--hud-text);
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+html.hud .aow-moments-btn:hover {
+  background: color-mix(in srgb, var(--hud-gold) 18%, var(--hud-card));
+  border-color: color-mix(in srgb, var(--hud-gold) 55%, var(--hud-border));
+  color: var(--hud-gold-bright);
+}
+
+html.hud .aow-endless-btn.active {
+  background: var(--hud-gold-bright);
+  color: var(--hud-ink);
+  border-color: transparent;
+}
+
+html.hud .aow-tabs {
+  gap: 0;
+  border-radius: var(--hud-radius-seg);
+  background: color-mix(in srgb, var(--hud-card) 88%, transparent);
+}
+
+html.hud .aow-tab {
+  border-radius: 10px;
+  border-bottom-color: transparent;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--hud-dim);
+}
+
+html.hud .aow-tab.active {
+  background: var(--hud-text);
+  color: var(--hud-ink);
+  border-bottom-color: transparent;
+}
+
+html.hud .aow-action,
+html.hud .aow-spawn-btn,
+html.hud .aow-turret-slot,
+html.hud .aow-turret-buy {
+  border-radius: 12px;
+  border-color: var(--hud-border);
+  background: color-mix(in srgb, var(--hud-text) 6%, var(--hud-card));
+  font-family: var(--hud-font-display);
+}
+
+html.hud .aow-action-lbl,
+html.hud .aow-spawn-name {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud .aow-action-age {
+  background: color-mix(in srgb, var(--hud-gold) 18%, var(--hud-card));
+  border-color: color-mix(in srgb, var(--hud-gold) 55%, var(--hud-border));
+  color: var(--hud-gold-bright);
+}
+
+html.hud .aow-action-special,
+html.hud .aow-action-hero {
+  background: color-mix(in srgb, var(--hud-primary) 16%, var(--hud-card));
+  border-color: color-mix(in srgb, var(--hud-primary-light) 45%, var(--hud-border));
+  color: var(--hud-text);
+}
+
+/* Eclipse. The age badge and Corona share the amber of that sky.
+   The cue is set on the age-up; a resumed war is recognized by Corona's label. */
+html.hud #aow-era-name[data-age-cue="eclipse"],
+html.hud .aow-shell:has(#aow-special-btn[aria-label^="Corona"]) #aow-era-name {
+  color: var(--hud-gold-bright);
+}
+
+html.hud .aow-era-pill:has(#aow-era-name[data-age-cue="eclipse"]),
+html.hud .aow-shell:has(#aow-special-btn[aria-label^="Corona"]) .aow-era-pill {
+  border-color: color-mix(in srgb, #ffb45a 70%, var(--hud-border));
+  background: color-mix(in srgb, #ffb45a 16%, var(--hud-card));
+}
+
+html.hud #aow-special-btn[aria-label^="Corona"] {
+  background: color-mix(in srgb, #ffb45a 22%, var(--hud-card));
+  border-color: color-mix(in srgb, #ffb45a 70%, var(--hud-border));
+  color: var(--hud-gold-bright);
+}
+
+/* Skirmisher and shielded tank, every age. Color only, so the
+   compact phone row keeps the height the battlefield already budgeted. */
+html.hud .aow-spawn-btn[title*="Fast skirmisher"] {
+  border-color: color-mix(in srgb, #ffb45a 55%, var(--hud-border));
+  background: color-mix(in srgb, #ffb45a 12%, var(--hud-card));
+}
+
+html.hud .aow-spawn-btn[title*="Shielded tank"] {
+  border-color: color-mix(in srgb, var(--hud-primary-light) 55%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-primary) 14%, var(--hud-card));
+}
+
+html.hud .aow-setting-action {
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud .aow-stage {
+  border-radius: var(--hud-radius-card);
+}
+
+/* Win, loss, and resume sheets sit on the viewport. A full Eclipse
+   roster can shrink the stage to a sliver, and an absolute sheet
+   then paints its button under the recruit row. */
+html.hud .aow-overlay {
+  position: fixed;
+  z-index: 80;
+}
+
+html.hud .aow-modal-card,
+html.hud .aow-welcome-card,
+html.hud .aow-settings-card,
+html.hud .aow-ridge-card,
+html.hud #aow-field-order {
+  border-radius: var(--hud-radius-sheet);
+  border: 1px solid var(--hud-border);
+  background: var(--hud-surface);
+  color: var(--hud-text);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+html.hud .aow-modal,
+html.hud .aow-welcome-modal,
+html.hud #aow-welcome-modal,
+html.hud #aow-settings-modal,
+html.hud #aow-ach-modal,
+html.hud #aow-chain-modal,
+html.hud #aow-ridge {
+  background: rgba(2, 2, 3, 0.8);
+}
+
+html.hud .aow-modal-close,
+html.hud .aow-welcome-start,
+html.hud .aow-cta-primary,
+html.hud .aow-cta-hub {
+  box-sizing: border-box;
+  min-height: var(--hud-tap);
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+}
+
+/* Field orders and the ridge already use 64–72px phone targets.
+   A 44px floor here would win the cascade and shrink them. */
+html.hud #aow-field-order button,
+html.hud .aow-ridge-actions button {
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+}
+
+html.hud .aow-coach {
+  border-radius: var(--hud-radius-card);
+  border: 1px solid var(--hud-border);
+  background: var(--hud-surface);
+}
+
+html.hud .aow-coach-kicker {
+  font-family: var(--hud-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-gold-bright);
+}
+
+/* 44px targets once the viewport can spare a row.
+   Short landscape keeps the game's own tight chrome. */
+@media (min-height: 800px) {
+  html.hud .ea-back,
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
+  html.hud .aow-endless-btn,
+  html.hud .aow-diff button,
+  html.hud .aow-tab,
+  html.hud .aow-action,
+  html.hud .aow-setting-action {
+    box-sizing: border-box;
+    min-height: var(--hud-tap);
+  }
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
+    width: var(--hud-tap);
+    min-width: var(--hud-tap);
+    height: var(--hud-tap);
+  }
+}
+
+@media (max-width: 720px) and (min-height: 700px) {
+  html.hud .ea-back,
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
+  html.hud .aow-tab,
+  html.hud .aow-action,
+  html.hud .aow-setting-action {
+    box-sizing: border-box;
+    min-height: var(--hud-tap);
+  }
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
+    width: var(--hud-tap);
+    min-width: var(--hud-tap);
+    height: var(--hud-tap);
+  }
+  html.hud .aow-shell {
+    margin-bottom: var(--hud-safe-b);
+  }
+}
+
+@media (max-height: 520px) {
+  html.hud .aow-action,
+  html.hud .aow-tab,
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn,
+  html.hud .aow-setting-action,
+  html.hud .ea-back {
+    min-height: 0;
+  }
+  html.hud .aow-settings-btn,
+  html.hud .aow-moments-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 0;
+  }
+}
+
+/* ============================================================
+   HOMELESS VILLAGE
+   Edge chrome only. The camp stays in the middle.
+   ============================================================ */
+
+html.hud #hud {
+  font-family: var(--hud-font-sans);
+}
+
+html.hud #top-bar {
+  gap: var(--hud-space-1);
+  padding: calc(var(--hud-space-1) + var(--hud-safe-t)) max(var(--hud-space-1), var(--hud-safe-r)) var(--hud-space-1) max(var(--hud-space-1), var(--hud-safe-l));
+  background: linear-gradient(180deg, rgba(6, 6, 8, 0.94) 0%, rgba(6, 6, 8, 0.72) 70%, transparent 100%);
+}
+
+html.hud #top-bar .left,
+html.hud #top-bar .right {
+  gap: var(--hud-space-1);
+}
+
+html.hud #days-counter,
+html.hud #craft-panel h3,
+html.hud #action-panel h3,
+html.hud #workers-panel h3,
+html.hud #intro-title,
+html.hud #chain-title,
+html.hud #ledger-title,
+html.hud #storm-title {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  color: var(--hud-text);
+}
+
+html.hud #days-counter {
+  font-size: 0.95rem;
+  text-shadow: none;
+}
+
+html.hud .stat-pill,
+html.hud #goal-pill,
+html.hud #season-badge {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 4px var(--hud-space-1);
+  border-radius: var(--hud-radius-chip);
+  border: 1px solid var(--hud-border);
+  background: rgba(12, 14, 20, 0.82);
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+}
+
+html.hud #goal-pill,
+html.hud #season-badge {
+  border-color: color-mix(in srgb, var(--hud-gold) 45%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-gold) 14%, #0c0e14);
+}
+
+html.hud #health-pill {
+  border-color: color-mix(in srgb, #f85149 45%, var(--hud-border));
+}
+
+html.hud #warmth-pill {
+  border-color: color-mix(in srgb, #58a6ff 40%, var(--hud-border));
+}
+
+html.hud #chain-btn,
+html.hud #help-btn,
+html.hud #sound-btn,
+html.hud #craft-toggle,
+html.hud #pack-up-btn,
+html.hud #storm-call,
+html.hud #storm-hold,
+html.hud #intro-go,
+html.hud #intro-close,
+html.hud #chain-close,
+html.hud #ledger-close,
+html.hud #ledger-sign,
+html.hud #ledger-claim,
+html.hud .action-btn,
+html.hud .craft-item,
+html.hud .worker-row .w-hire,
+html.hud #walk-pad button,
+html.hud #event-banner .ev-close {
+  box-sizing: border-box;
+  min-height: var(--hud-tap);
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud #chain-btn,
+html.hud #help-btn,
+html.hud #sound-btn,
+html.hud #craft-toggle {
+  border: 1px solid var(--hud-border-strong);
+  background: rgba(12, 14, 20, 0.9);
+  color: var(--hud-text);
+}
+
+html.hud #help-btn,
+html.hud #sound-btn,
+html.hud #intro-close,
+html.hud #chain-close,
+html.hud #ledger-close,
+html.hud #event-banner .ev-close {
+  min-width: var(--hud-tap);
+}
+
+html.hud .action-btn,
+html.hud .craft-item {
+  border-color: color-mix(in srgb, var(--hud-primary-light) 40%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-primary) 12%, #0c0e14);
+  color: var(--hud-text);
+}
+
+html.hud .craft-item .ci-name,
+html.hud .worker-row .w-name {
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+}
+
+html.hud #craft-panel,
+html.hud #action-panel,
+html.hud #workers-panel,
+html.hud #event-banner,
+html.hud #sweep-warning,
+html.hud #log-feed,
+html.hud #storm-banner {
+  border-radius: var(--hud-radius-card);
+  border-color: var(--hud-border);
+  background: var(--hud-surface);
+  color: var(--hud-text);
+}
+
+html.hud #intro-panel,
+html.hud #chain-panel,
+html.hud #ledger-panel {
+  border-radius: var(--hud-radius-sheet);
+  border: 1px solid var(--hud-border);
+  background: rgba(10, 10, 15, 0.97);
+  color: var(--hud-text);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  font-family: var(--hud-font-sans);
+}
+
+html.hud #intro-body,
+html.hud .intro-flavor,
+html.hud #ledger-challenge {
+  font-family: var(--hud-font-sans);
+  color: var(--hud-dim);
+}
+
+html.hud #intro-go,
+html.hud #ledger-sign,
+html.hud #storm-hold {
+  background: var(--hud-text);
+  color: var(--hud-ink);
+  border-color: transparent;
+}
+
+html.hud #walk-pad button {
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--hud-gold) 55%, var(--hud-border));
+  background: rgba(12, 14, 20, 0.88);
+  color: var(--hud-text);
+}
+
+html.hud #storm-kicker,
+html.hud #event-banner .ev-title {
+  font-family: var(--hud-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-gold-bright);
+}
+
+html.hud #bottom-bar {
+  padding-bottom: calc(var(--hud-space-1) + var(--hud-safe-b));
+  padding-left: max(var(--hud-space-1), var(--hud-safe-l));
+  padding-right: max(var(--hud-space-1), var(--hud-safe-r));
+}
+
+/* Phone: keep the strip on the edges. Do not grow it over the camp. */
+@media (max-width: 700px) {
+  html.hud #top-bar {
+    padding-top: calc(4px + var(--hud-safe-t));
+    padding-bottom: 4px;
+  }
+  html.hud #chain-btn,
+  html.hud #help-btn,
+  html.hud #sound-btn {
+    padding: 0 var(--hud-space-1);
+  }
+  html.hud #craft-panel,
+  html.hud #action-panel {
+    border-radius: 16px 16px 0 0;
+  }
+  html.hud #log-feed {
+    border-radius: 12px;
+  }
+}
+
+/* ============================================================
+   STARTUP TYCOON
+   Drawer and counters stay on the edges of the floor.
+   ============================================================ */
+
+html.hud #cash-hud,
+html.hud #status-bar,
+html.hud #metrics-hud,
+html.hud #goal-hud,
+html.hud #activity-feed,
+html.hud .panel,
+html.hud #upgrades,
+html.hud #investor-banner,
+html.hud .toast {
+  border-radius: var(--hud-radius-card);
+  border: 1px solid var(--hud-border);
+  background: var(--hud-surface);
+  color: var(--hud-text);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+html.hud #cash-hud,
+html.hud #status-bar {
+  box-sizing: border-box;
+  border-radius: var(--hud-radius-chip);
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+html.hud #cash-hud {
+  min-height: var(--hud-tap);
+  gap: var(--hud-space-1);
+  padding: 0 var(--hud-space-2);
+  border-color: color-mix(in srgb, #3fb950 55%, var(--hud-border));
+  background: color-mix(in srgb, #3fb950 16%, var(--hud-card));
+  color: #7ee787;
+}
+
+html.hud #status-bar {
+  font-family: var(--hud-font-sans);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+html.hud #metrics-hud .m-lbl,
+html.hud .panel-title,
+html.hud .feed-title,
+html.hud .upg-cat,
+html.hud .goal-header {
+  font-family: var(--hud-font-sans);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--hud-dim);
+}
+
+html.hud .m-val,
+html.hud #goal-label,
+html.hud #goal-pct {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--hud-text);
+}
+
+html.hud #goal-pct {
+  color: var(--hud-gold-bright);
+}
+
+html.hud .goal-fill {
+  background: linear-gradient(90deg, var(--hud-gold), var(--hud-gold-bright));
+}
+
+html.hud .panel-title {
+  font-size: 1rem;
+  line-height: 1.1;
+  margin-bottom: var(--hud-space-1);
+}
+
+html.hud .hire-btn,
+html.hud .room-btn,
+html.hud .fund-btn,
+html.hud .upg-btn,
+html.hud .amenity-btn {
+  min-height: var(--hud-tap);
+}
+
+html.hud .panel-title,
+html.hud #next-action-card .na-title,
+html.hud .ach-title,
+html.hud .win-title,
+html.hud .dash-title,
+html.hud .ipo-title,
+html.hud .tip-title,
+html.hud .elev-title,
+html.hud #season-card .sc-title,
+html.hud #season-card .sc-num,
+html.hud .dash-hero .h-val {
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: none;
+  color: var(--hud-text);
+  background: none;
+  -webkit-text-fill-color: var(--hud-text);
+}
+
+html.hud .hire-btn,
+html.hud .room-btn,
+html.hud .fund-btn,
+html.hud .upg-btn,
+html.hud .amenity-btn,
+html.hud .tip-ok,
+html.hud .ipo-confirm,
+html.hud .ipo-cancel,
+html.hud #sprint-btn,
+html.hud #elevator-btn,
+html.hud #ipo-btn,
+html.hud #tp-toggle,
+html.hud #sidebar-toggle,
+html.hud #annex-btn,
+html.hud #clash-btn,
+html.hud #annex-follow,
+html.hud #annex-close,
+html.hud #partner-yes,
+html.hud #partner-no,
+html.hud #board-yes,
+html.hud #board-no,
+html.hud .elev-close,
+html.hud #welcome-start-btn,
+html.hud #help-close-btn,
+html.hud #offline-claim-btn,
+html.hud #ach-close,
+html.hud #wall-close,
+html.hud #dash-close,
+html.hud #theme-close,
+html.hud #founder-close,
+html.hud #win-continue-btn,
+html.hud #win-share-btn,
+html.hud #ipo-confirm-btn,
+html.hud #ipo-cancel-btn {
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-family: var(--hud-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.hud #sidebar-toggle,
+html.hud #sprint-btn,
+html.hud #elevator-btn,
+html.hud #tp-toggle {
+  min-height: var(--hud-tap);
+}
+
+/* These controls already stand 48px. Keep that floor. */
+html.hud #annex-follow,
+html.hud #clash-btn {
+  min-height: 48px;
+}
+
+html.hud #sidebar-toggle {
+  min-width: var(--hud-tap);
+  border-radius: 12px;
+  background: var(--hud-surface);
+  border-color: var(--hud-border-strong);
+}
+
+html.hud .ach-panel,
+html.hud .win-panel,
+html.hud .dash-panel,
+html.hud .ipo-panel,
+html.hud .tip-panel,
+html.hud .elev-panel {
+  border-radius: var(--hud-radius-sheet);
+  border: 1px solid var(--hud-border);
+  background: rgba(10, 10, 15, 0.97);
+  color: var(--hud-text);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+html.hud #achievements-modal,
+html.hud #theme-modal,
+html.hud #welcome-modal,
+html.hud #offline-modal,
+html.hud #help-modal,
+html.hud #dash-modal,
+html.hud #wall-modal,
+html.hud #tip-modal,
+html.hud #ipo-modal,
+html.hud #win-modal,
+html.hud #board-modal,
+html.hud #annex-modal,
+html.hud #partner-modal,
+html.hud #founder-modal,
+html.hud #elevator-modal {
+  background: rgba(2, 2, 3, 0.8);
+}
+
+html.hud .ach-row,
+html.hud .ipo-col,
+html.hud .annex-card,
+html.hud .wall-row {
+  border-radius: 12px;
+  border-color: var(--hud-border);
+  background: color-mix(in srgb, var(--hud-text) 5%, transparent);
+}
+
+html.hud #next-action-card {
+  border-radius: var(--hud-radius-card);
+  border-color: color-mix(in srgb, var(--hud-primary-light) 45%, var(--hud-border));
+  background: color-mix(in srgb, var(--hud-primary) 14%, var(--hud-card));
+}
+
+html.hud #left-panel {
+  gap: var(--hud-space-1);
+}
+
+/* Phone: the floor stays open. Counters hug the safe edges. */
+@media (max-width: 900px) {
+  html.hud #cash-hud {
+    top: calc(var(--hud-space-1) + var(--hud-safe-t));
+    right: calc(var(--hud-space-1) + var(--hud-safe-r));
+  }
+  html.hud #status-bar {
+    top: calc(var(--hud-space-1) + var(--hud-safe-t));
+  }
+  html.hud #sidebar-toggle {
+    top: calc(var(--hud-space-1) + var(--hud-safe-t));
+  }
+  html.hud .hire-btn,
+  html.hud .room-btn,
+  html.hud .fund-btn,
+  html.hud .upg-btn,
+  html.hud .amenity-btn,
+  html.hud .tip-ok,
+  html.hud .ipo-confirm,
+  html.hud .ipo-cancel,
+  html.hud #sprint-btn,
+  html.hud #tp-toggle,
+  html.hud #elevator-btn {
+    min-height: var(--hud-tap);
+  }
+  /* Keep the metric card and the goal card the size the floor
+     already reserved. A wider chip would cover the office. */
+  html.hud #metrics-hud,
+  html.hud #goal-hud {
+    border-radius: 12px;
+  }
+}
