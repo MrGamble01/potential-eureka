@@ -37,6 +37,7 @@ LEAD=(
   persist
   career
   audio
+  world
   saves
   hubstore
   promises
@@ -47,6 +48,9 @@ LEAD=(
   escdialogs sticky insightsvis reset
   labintro labsheetpause primer sessiontag hubhome hublinks objective controls
   mobilefit
+  hudsafe
+  hudfit
+  announcerscope
 )
 TRAIL=( pwa )
 

@@ -179,6 +179,8 @@ const AgeOfWarGame = (() => {
   // ---- State ----
   let canvas, ctx;
   let dpr = 1; // logical-to-backing scale. Render draws in WIDTH/HEIGHT,
+  let momentCam = { x: 0, y: 0, z: 1 };
+  let momentHold = false;
                // so every ctx.setTransform must reapply this (see draw()'s shake).
                // It is the on-screen size, not the raw device ratio: a phone
                // showing a ~370px field must not allocate 1280×560×dpr.
@@ -976,6 +978,45 @@ const AgeOfWarGame = (() => {
   // already honors below).
   let reducedMotion = false;
   const juice = { flash: 0, knock: 0, number: 0, puff: 0, impact: 0, shake: 0 };
+  let aowWorld = null;
+  try {
+    if (window.EurekaWorld) {
+      aowWorld = window.EurekaWorld.create({
+        profile: 'ageofwar',
+        query: window.location ? window.location.search : '',
+        seed: (Date.now() >>> 0) || 1,
+      });
+      window.AOW_WORLD = aowWorld;
+    }
+  } catch (e) { /* the battle still marches under a clear sky */ }
+
+  function skySnap() {
+    return aowWorld ? aowWorld.snapshot() : null;
+  }
+
+  function paintSkyReadout(changed) {
+    const snap = skySnap();
+    if (!snap) return;
+    const el = document.getElementById('aow-sky');
+    if (el && el.textContent !== snap.label) el.textContent = snap.label;
+    if (canvas && canvas.dataset) {
+      canvas.dataset.world = snap.key;
+      canvas.dataset.worldMove = String(snap.mods.move);
+      canvas.dataset.worldFoe = String(snap.mods.foe);
+      canvas.dataset.worldVision = String(snap.mods.vision);
+      canvas.dataset.worldHeavy = String(snap.mods.heavy);
+      canvas.dataset.worldRanged = String(snap.mods.ranged);
+    }
+    if (!changed) return;
+    try {
+      const audio = window.EurekaAudio;
+      if (!audio) return;
+      audio.bind({ muted: () => soundMuted, musicOff: () => false });
+      if (!audio.playing()) audio.start(snap.mood);
+      else audio.setMood(snap.mood);
+    } catch (e) { /* a sky change is still on the field if the score is quiet */ }
+  }
+
   function motionReduced() {
     try {
       if (window.EurekaFeel && typeof EurekaFeel.reduced === 'function') return !!EurekaFeel.reduced();
@@ -1531,6 +1572,46 @@ const AgeOfWarGame = (() => {
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
+    attachMoments();
+  }
+
+  function noteMoment(label) {
+    try {
+      if (window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+    } catch (e) {}
+  }
+
+  function attachMoments() {
+    if (!window.EurekaMoments || !canvas) return;
+    EurekaMoments.attach({
+      game: 'aow',
+      gameTitle: 'Age of War',
+      canvas: function () { return canvas; },
+      hud: '.aow-topbar,.aow-battle-strip,.aow-actionbar,.aow-tabs,.aow-tabpanel,.aow-hint,.ea-topbar,#aow-coach,#aow-achievement-toasts',
+      button: 'aow-moments',
+      hotkey: { key: 'p', shift: true },
+      blocked: function () {
+        return modalPaused || !!resumePrompt || ridgeOpen || fieldOrderOpen || !!councilPending;
+      },
+      pause: function () { momentHold = true; },
+      resume: function () { momentHold = false; },
+      onClose: function () { momentCam.x = 0; momentCam.y = 0; momentCam.z = 1; },
+      camera: {
+        modes: ['free'],
+        pan: function (dx, dy) {
+          const scale = WIDTH / (canvas.clientWidth || WIDTH);
+          momentCam.x += dx * scale / momentCam.z;
+          momentCam.y += dy * scale / momentCam.z;
+          const limX = WIDTH * 0.35;
+          const limY = HEIGHT * 0.28;
+          momentCam.x = Math.max(-limX, Math.min(limX, momentCam.x));
+          momentCam.y = Math.max(-limY, Math.min(limY, momentCam.y));
+        },
+        zoom: function (scale) {
+          momentCam.z = Math.max(0.7, Math.min(2.2, momentCam.z * scale));
+        },
+      },
+    });
   }
 
   function seedClouds() {
@@ -1916,7 +1997,8 @@ const AgeOfWarGame = (() => {
   function vetDmg(u) {
     const t = vetTier(u);
     const steel = u.side === 'player' && councilBoons.steel ? 1.1 : 1;   // AOW-10
-    return Math.round(u.dmg * (1 + 0.1 * t) * steel);
+    const base = u.dmg * (1 + 0.1 * t) * steel;
+    return aowWorld ? aowWorld.unitDamage(base, u) : Math.round(base);
   }
 
   function queueFullMessage() {
@@ -2030,6 +2112,7 @@ const AgeOfWarGame = (() => {
       ageBannerT = 3.2;
       cueEclipse();
     }
+    noteMoment('Reached ' + ERAS[playerEra].name);
     // New era → new hero costs/CD baseline. GAME-1f: don't touch the
     // player's actual remaining cooldown here -- clamping it to <=10s let
     // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
@@ -3510,6 +3593,7 @@ const AgeOfWarGame = (() => {
       return;
     }
     launchSpecial('player', playerEra);
+    noteMoment(ERAS[playerEra].special.name);
     runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
     renderHud();
@@ -4233,7 +4317,9 @@ const AgeOfWarGame = (() => {
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
-    enemySpawnT = (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
+    enemySpawnT = aowWorld
+      ? aowWorld.spawnGap((1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult)
+      : (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -4386,6 +4472,7 @@ const AgeOfWarGame = (() => {
       for (const e of foeBucket) {
         if (e.hp <= 0) continue;
         const d = Math.abs(e.x - u.x);
+        if (aowWorld && !aowWorld.unitSees(d, u.range)) continue;
         if (d < bestDist) { bestDist = d; target = e; }
       }
       const baseTargetX = u.side === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X + BASE_W;
@@ -4409,7 +4496,7 @@ const AgeOfWarGame = (() => {
       u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
         if (!ahead) {
-          let step = u.speed;
+          let step = aowWorld ? aowWorld.moveStep(u.speed) : u.speed;
           // AOW-20: enemies wading the trench move at half speed
           if (u.side === 'enemy' && trenchT > 0 && Math.abs(u.x - trenchX) < TRENCH_W) {
             step *= TRENCH_SLOW;
@@ -4599,6 +4686,7 @@ const AgeOfWarGame = (() => {
           bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
+            noteMoment(u.warlord ? (u.warlord.name + ' fallen') : 'Boss wave cleared');
             openWarChest(u.x, GROUND_Y - u.h - 56);   // AOW-31: the lid only lifts for a boss
             if (u.warlord) {
               runStats.warlordsSlain = (runStats.warlordsSlain || 0) + 1;
@@ -4730,6 +4818,7 @@ const AgeOfWarGame = (() => {
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
+      noteMoment('Base destroyed');
       if (endlessMode) recordBestRun();
       SFX.defeat();
       showOverlay(false);
@@ -4741,12 +4830,14 @@ const AgeOfWarGame = (() => {
       if (difficulty === 'insane') unlock('win_insane');
       if (!endlessMode) {
         gameOver = true; running = false; outcome = 'win';
+        noteMoment('Victory');
         SFX.victory();
         showOverlay(true);
       } else {
         // Endless: the enemy rebuilds tougher, pays out a razing bounty,
         // and the waves keep coming.
         strongholdsRazed++;
+        noteMoment('Stronghold razed');
         const bounty = Math.round(300 * Math.pow(1.5, strongholdsRazed - 1));
         gold += bounty;
         runStats.gold += bounty;
@@ -4785,7 +4876,8 @@ const AgeOfWarGame = (() => {
       for (const u of enemies) {
         if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
-        if (d > t.range) continue;
+        const sight = aowWorld ? aowWorld.limitRange(t.range) : t.range;
+        if (d > sight) continue;
         const score = mode === 'weak' ? u.hp : mode === 'strong' ? -u.hp : d;
         if (score < bestScore || (score === bestScore && d < bestDist)) {
           bestScore = score; bestDist = d; target = u;
@@ -4980,11 +5072,19 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Rendering ----
+  let skyDt = 0;
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
-    update(dt);
+    skyDt = momentHold ? 0 : dt;
+    if (aowWorld) {
+      const live = running && !modalPaused && !userPaused && !momentHold;
+      const changed = live ? aowWorld.tick(dt) : false;
+      paintSkyReadout(changed);
+    }
+    if (!momentHold) update(dt);
     draw();
+    try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
     rafId = requestAnimationFrame(loop);
   }
 
@@ -5009,19 +5109,21 @@ const AgeOfWarGame = (() => {
     fitCanvas();
     const era = ERAS[playerEra];
     // Screen shake — applied as a small canvas translate. shakeMag
-    // decays after the timed pulse expires.
-    if (shakeMag > 0.1) {
+    // decays after the timed pulse expires. Photo mode adds a pan and
+    // zoom on the same transform and holds the shake still.
+    let ox = 0, oy = 0;
+    if (!momentHold && shakeMag > 0.1) {
       const k = shakeT > 0 ? 1 : 0.6;
-      const ox = (Math.random() - 0.5) * shakeMag * k * 2;
-      const oy = (Math.random() - 0.5) * shakeMag * k * 2;
-      // Reapply dpr on every setTransform — the shake offset (ox, oy) is in
-      // logical units, but setTransform's translate is in device pixels, so
-      // it must be scaled by dpr too; otherwise HiDPI screens would either
-      // lose the backing-store scale (blurry/tiny render) or shake too little.
-      ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
-    } else {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ox = (Math.random() - 0.5) * shakeMag * k * 2;
+      oy = (Math.random() - 0.5) * shakeMag * k * 2;
     }
+    const z = momentCam.z;
+    const tx = ox + momentCam.x + WIDTH * (1 - z) / 2;
+    const ty = oy + momentCam.y + HEIGHT * (1 - z) / 2;
+    // Reapply dpr on every setTransform — the shake offset is in logical
+    // units, but setTransform's translate is in device pixels, so it must
+    // be scaled by dpr too.
+    ctx.setTransform(dpr * z, 0, 0, dpr * z, tx * dpr, ty * dpr);
     // ---- Atmosphere ----
     // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.
     const [skyTop, skyHorizon] = OG_SKY[playerEra] || ['#120818', '#3a2410'];
@@ -5320,6 +5422,8 @@ const AgeOfWarGame = (() => {
       ctx.fillText(f.text, WIDTH - 14, 24 + i * 16 - f.y);
     }
     ctx.globalAlpha = 1;
+
+    if (aowWorld) aowWorld.paint(ctx, WIDTH, HEIGHT, skyDt, reducedMotion);
 
     // Age flash overlay
     if (ageFlash > 0 && !reducedMotion) {
@@ -9266,6 +9370,122 @@ const AgeOfWarGame = (() => {
   // recognizable at a glance, not just colored rectangles. All
   // drawers accept (u, x, y, facing, walkSwing, bodyColor) where
   // y is the top of the unit and (x, y, u.w, u.h) is the bounding box.
+  function careerLook() {
+    try {
+      if (typeof EurekaCosmetics !== 'undefined' && EurekaCosmetics.look) return EurekaCosmetics.look();
+    } catch (e) { /* cosmetics are optional */ }
+    return null;
+  }
+
+  // Hub shop looks. Drawn on friendly units only: a cloak ring, a
+  // pennant on the trailing side, and a short wake of sparks.
+  function paintAowCosmetic(u, feetY, drawW, drawH, facing) {
+    if (!u || u.side !== 'player' || u.isBoss) return;
+    const look = careerLook();
+    if (!look || (!look.skin && !look.trail && !look.palette)) return;
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    ctx.save();
+    if (look.palette) {
+      ctx.fillStyle = look.palette.color;
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(u.x, feetY - 2, drawW * 0.62, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = look.palette.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(u.x, feetY - 2, drawW * 0.5, 5.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (look.skin) {
+      const wave = Math.sin(now / 180) * 3;
+      const poleX = u.x - facing * drawW * 0.2;
+      const top = feetY - drawH * 0.96;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = look.skin.accent || '#5a3a12';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(poleX, feetY - 4);
+      ctx.lineTo(poleX, top);
+      ctx.stroke();
+      ctx.fillStyle = look.skin.color;
+      ctx.beginPath();
+      ctx.moveTo(poleX, top);
+      ctx.lineTo(poleX - facing * drawW * 0.7, top + drawH * 0.18 + wave);
+      ctx.lineTo(poleX, top + drawH * 0.36);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (look.trail) {
+      if (!u._spark) u._spark = [];
+      const last = u._spark[u._spark.length - 1];
+      if (!last || Math.abs(last.x - u.x) > 10) {
+        u._spark.push({ x: u.x - facing * 10, y: feetY - drawH * 0.35, t: now });
+        if (u._spark.length > 14) u._spark.shift();
+      }
+      const color = look.trail.color || '#ff7a00';
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      let moved = false;
+      for (let i = 0; i < u._spark.length; i++) {
+        const p = u._spark[i];
+        if (now - p.t > 800) continue;
+        if (!moved) { ctx.moveTo(p.x, p.y); moved = true; }
+        else ctx.lineTo(p.x, p.y);
+      }
+      if (moved) {
+        ctx.lineTo(u.x - facing * 4, feetY - drawH * 0.35);
+        ctx.stroke();
+      }
+      for (let i = 0; i < u._spark.length; i++) {
+        const p = u._spark[i];
+        const age = (now - p.t) / 800;
+        if (age < 0 || age >= 1) continue;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 11 * (1 - age * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff6c8';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const poleX = u.x;
+      const top = feetY - drawH - 46;
+      const wave = Math.sin(now / 160) * 6;
+      ctx.strokeStyle = '#4a2208';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(poleX, feetY - drawH + 4);
+      ctx.lineTo(poleX, top);
+      ctx.stroke();
+      ctx.fillStyle = '#ff5a00';
+      ctx.beginPath();
+      ctx.moveTo(poleX, top);
+      ctx.lineTo(poleX + facing * 56, top + 14 + wave);
+      ctx.lineTo(poleX, top + 28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fff6c8';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#fff6c8';
+      ctx.beginPath();
+      ctx.arc(poleX, top - 5, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a00';
+      ctx.beginPath();
+      ctx.arc(poleX, top - 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawUnit(u) {
     ctx.save();
     if (u.knock) ctx.translate(u.knock, 0);
@@ -9429,6 +9649,7 @@ const AgeOfWarGame = (() => {
       ctx.fillRect(u.x - drawW * 0.42, feetY - drawH, drawW * 0.84, drawH);
       ctx.globalAlpha = 1;
     }
+    paintAowCosmetic(u, feetY, drawW, drawH, facing);
     ctx.restore();
   }
 

@@ -368,10 +368,37 @@
       return out;
     }
 
+    function cleanLedger(raw) {
+      const xp = raw && Number(raw.xp);
+      return {
+        xp: Number.isFinite(xp) ? Math.min(1e7, Math.max(0, Math.floor(xp))) : 0,
+        ach: cleanCountMap(raw && raw.ach, /^[a-z0-9-]{1,32}$/, 80, 1),
+        boss: cleanCountMap(raw && raw.boss, /^[a-z][a-z0-9.-]{0,40}$/, 12, 1e6),
+        daily: cleanCountMap(raw && raw.daily, /^[a-z0-9:-]{1,48}$/, 64, 1),
+      };
+    }
+
+    function cleanEquipped(raw) {
+      const slots = { skin: 1, trail: 1, palette: 1, cards: 1, title: 1, badge: 1 };
+      const out = {};
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+      const keys = Object.keys(raw);
+      for (let i = 0; i < keys.length; i++) {
+        if (!slots[keys[i]]) continue;
+        const id = cleanId(raw[keys[i]]);
+        if (id) out[keys[i]] = id;
+      }
+      return out;
+    }
+
     function cleanCareer(raw) {
-      const empty = { name: '', avatar: '', title: '', theme: '', xp: 0, unlocked: {}, stats: {} };
+      const empty = {
+        name: '', avatar: '', title: '', theme: '', xp: 0, unlocked: {}, stats: {},
+        sparks: 0, ledger: cleanLedger(null), owned: {}, equipped: {},
+      };
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return empty;
       const xp = Number(raw.xp);
+      const sparks = Number(raw.sparks);
       return {
         name: cleanName(raw.name),
         avatar: cleanId(raw.avatar),
@@ -381,6 +408,11 @@
         // Unlock times are epoch milliseconds. Counts stay small.
         unlocked: cleanCountMap(raw.unlocked, /^[a-z0-9-]{1,32}$/, 80, 1e13),
         stats: cleanCountMap(raw.stats, /^[a-z][a-z0-9.-]{0,40}$/, 80, 1e9),
+        // Hub Sparks and the cosmetics they buy. Missing on older saves.
+        sparks: Number.isFinite(sparks) ? Math.min(1e7, Math.max(0, Math.floor(sparks))) : 0,
+        ledger: cleanLedger(raw.ledger),
+        owned: cleanCountMap(raw.owned, /^[a-z0-9-]{1,24}$/, 40, 1e13),
+        equipped: cleanEquipped(raw.equipped),
       };
     }
 
@@ -581,6 +613,13 @@
 // untouched. Node never sees document, so the require() tests do not.
 (function () {
   if (typeof document === 'undefined' || !document.head) return;
+  if (!document.querySelector('script[data-hud-safe]')) {
+    var safe = document.createElement('script');
+    safe.src = '/js/hud-safe.js';
+    safe.async = false;
+    safe.setAttribute('data-hud-safe', '1');
+    document.head.appendChild(safe);
+  }
   if (document.querySelector('script[data-arcade-ai]')) return;
   var core = document.createElement('script');
   core.src = '/js/ai/arcade-ai.js';

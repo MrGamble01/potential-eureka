@@ -170,6 +170,20 @@ canvas{display:block;touch-action:none;}
   background:rgba(30,5,5,0.95)!important;
   animation:statusPulse 0.6s ease-in-out infinite;
 }
+#lab-sky{
+  position:fixed;top:78px;left:50%;transform:translateX(-50%);
+  z-index:24;pointer-events:none;
+  max-width:min(480px,calc(100vw - 300px));
+  padding:6px 12px;border-radius:999px;
+  background:rgba(8,12,10,.84);color:#e7f6ea;
+  border:1px solid rgba(63,185,80,.5);
+  font:700 12px/1.35 ui-monospace,monospace;text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.65);
+}
+#lab-sky-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;}
+@media (max-width:700px){
+  #lab-sky{top:auto;bottom:132px;max-width:min(480px,calc(100vw - 24px));}
+}
 @keyframes statusPulse{0%,100%{box-shadow:0 0 6px rgba(239,68,68,0.2);}
   50%{box-shadow:0 0 18px rgba(239,68,68,0.6);}}
 
@@ -849,12 +863,13 @@ canvas{display:block;touch-action:none;}
   #heat-hud,#goal-hud{min-width:0;max-width:46vw;}
 }
 </style>
-<link rel="stylesheet" href="/css/hud-b.css?v=20261017hudb2">
+<link rel="stylesheet" href="/css/hud-b.css?v=20261018topbar">
 </head>
 <body>
 <div id="raid-overlay"></div>
 <div id="act-badge">ACT I — THE GARAGE</div>
 <div id="status-bar">Tending the plants...</div>
+<div id="lab-sky" role="status" aria-live="polite"></div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="market-hud" title="Street demand — prices drift, surge and crash. Sell high.">📊 <span id="market-val">1.00×</span></div>
@@ -1058,6 +1073,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
+<script src="/js/living-world.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -1241,6 +1257,100 @@ sun.shadow.camera.left = -50; sun.shadow.camera.right = 50;
 sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50;
 sun.shadow.bias = -0.001;
 scene.add(sun);
+
+let labWorld = null;
+const labSkyCanvas = document.createElement('canvas');
+labSkyCanvas.id = 'lab-sky-canvas';
+document.body.appendChild(labSkyCanvas);
+const labSkyCtx = labSkyCanvas.getContext('2d');
+try {
+  if (window.EurekaWorld) {
+    labWorld = window.EurekaWorld.create({
+      profile: 'growop',
+      query: window.location ? window.location.search : '',
+      seed: (Date.now() >>> 0) || 1,
+    });
+    window.LAB_WORLD = labWorld;
+  }
+} catch (e) { /* the corner still runs under a clear morning */ }
+
+function skyMove(speed) {
+  return labWorld ? labWorld.moveStep(speed) : speed;
+}
+function labSkyReduced() {
+  try { return !!(window.EurekaFeel && EurekaFeel.reduced()); } catch (e) { return false; }
+}
+const LAB_SKY_BASE = { bg: 0x0d1108, amb: 0.8, sun: 0.6, sunColor: 0x88aa66, near: 30, far: 55 };
+function applyLabAtmosphere(snap) {
+  const clear = !snap || (snap.phase === 'day' && snap.weather === 'clear');
+  if (clear) {
+    scene.background.setHex(LAB_SKY_BASE.bg);
+    scene.fog.color.setHex(LAB_SKY_BASE.bg);
+    scene.fog.near = LAB_SKY_BASE.near;
+    scene.fog.far = LAB_SKY_BASE.far;
+    ambLight.intensity = LAB_SKY_BASE.amb;
+    sun.intensity = LAB_SKY_BASE.sun;
+    sun.color.setHex(LAB_SKY_BASE.sunColor);
+    return;
+  }
+  const night = snap.phase === 'night';
+  const dusk = snap.phase === 'dusk' || snap.phase === 'dawn';
+  let bg = night ? 0x070b14 : dusk ? 0x1a120c : 0x101820;
+  let amb = night ? 0.32 : dusk ? 0.55 : 0.62;
+  let sunI = night ? 0.16 : dusk ? 0.34 : 0.4;
+  let sunC = night ? 0x6688cc : dusk ? 0xffb060 : 0x88aa66;
+  let near = 30, far = 48;
+  if (snap.weather === 'fog') { far = 18; near = 6; amb *= 0.85; }
+  else if (snap.weather === 'storm') { bg = 0x0a1018; amb = Math.min(amb, 0.28); sunI = 0.1; far = 36; }
+  else if (snap.weather === 'rain') { bg = night ? 0x0a121c : 0x121c28; sunI *= 0.7; far = 40; }
+  else if (snap.weather === 'snow') { bg = 0x141c28; sunC = 0xd0e4ff; amb = Math.max(amb, 0.5); far = 42; }
+  if (snap.flash > 0.4) { amb += snap.flash * 0.45; sunI += snap.flash * 0.3; }
+  scene.background.setHex(bg);
+  scene.fog.color.setHex(bg);
+  scene.fog.near = near;
+  scene.fog.far = far;
+  ambLight.intensity = amb;
+  sun.intensity = sunI;
+  sun.color.setHex(sunC);
+}
+function syncLabSky(changed) {
+  if (!labWorld) return null;
+  const snap = labWorld.snapshot();
+  const el = document.getElementById('lab-sky');
+  if (el && el.textContent !== snap.label) el.textContent = snap.label;
+  if (el && el.dataset) {
+    el.dataset.world = snap.key;
+    el.dataset.growth = String(snap.mods.growth);
+    el.dataset.move = String(snap.mods.move);
+    el.dataset.price = String(snap.mods.price);
+    el.dataset.heat = String(snap.mods.heatGain);
+    el.dataset.bg = scene.background.getHexString();
+  }
+  applyLabAtmosphere(snap);
+  if (labSkyCtx) {
+    const cap = Math.min(1.5, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(innerWidth * cap));
+    const h = Math.max(1, Math.round(innerHeight * cap));
+    if (labSkyCanvas.width !== w || labSkyCanvas.height !== h) {
+      labSkyCanvas.width = w;
+      labSkyCanvas.height = h;
+    }
+    labSkyCtx.setTransform(1, 0, 0, 1, 0, 0);
+    labSkyCtx.clearRect(0, 0, w, h);
+    labWorld.paint(labSkyCtx, w, h, 0.016, labSkyReduced());
+  }
+  if (changed) {
+    try { setStatus(snap.label, 5); } catch (e) {}
+    try {
+      const audio = typeof labAudio === 'function' ? labAudio() : null;
+      if (audio) {
+        if (!audio.playing()) audio.start(snap.mood);
+        else audio.setMood(snap.mood);
+      }
+    } catch (e) {}
+  }
+  return snap;
+}
 
 // ── Screen-space utility ──
 const _pv = new THREE.Vector3();
@@ -1452,7 +1562,8 @@ function growTime() {
   // Kush with no drip matches the classic lights / night-shift formula.
   // The strain multiplier and the drip divisor are both 1 until bought.
   const tuned = GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1);   // LAB-12
-  return tuned * activeStrain().grow / (1 + upgLv('drip') * 0.15);
+  const classic = tuned * activeStrain().grow / (1 + upgLv('drip') * 0.15);
+  return labWorld ? labWorld.growSeconds(classic) : classic;
 }
 
 function buildGrowPlot(x, z, roomId) {
@@ -1918,7 +2029,7 @@ player.position.set(0, 0, 0);
 scene.add(player);
 
 const PLAYER_SPEED_BASE = 3.5;
-function playerSpeed() { return PLAYER_SPEED_BASE * (1 + upgLv('lights1')*0.05); }
+function playerSpeed() { return skyMove(PLAYER_SPEED_BASE * (1 + upgLv('lights1')*0.05)); }
 
 // Player state machine
 let pState = 'idle'; // idle | walkTo | pickupPlant | walkToTrim | dropTrim | walkToStash | dropStash | walkToDealer | collectCash
@@ -1950,7 +2061,8 @@ function clientTick() {
 }
 function dealerArrivalTime() {
   // LAB-20: buyers come half as often while a crackdown sweep runs
-  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1) * clienteleMult();   // LAB-27: repeat business
+  const classic = 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1) * clienteleMult();   // LAB-27: repeat business
+  return labWorld ? classic * labWorld.snapshot().mods.buyers : classic;
 }
 
 function buildDealer() {
@@ -3799,6 +3911,7 @@ function addHeat(amount) {
   // LAB-13: the Laundry Front gives the whole block a clean story —
   // every heat GAIN lands a quarter lighter (stacks with the crunch tax).
   if (amount > 0 && ownedRoomSet.has('front')) amount *= 0.75;
+  if (amount > 0 && labWorld) amount = labWorld.heatGain(amount);
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
   if (amount >= 8 && state.heat < 100) { sfx('heat'); addShake(0.22); juiceFlash('heat'); }
   if (state.heat >= 100) triggerBust();
@@ -3830,9 +3943,10 @@ function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('secu
 function heatDrainPerSec() {
   // LAB-13: an open laundromat out front cools things off on its own —
   // customers coming and going are the best cover there is.
-  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2
+  const classic = (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + upgLv('filter')*0.2
     + (ownedRoomSet.has('front') ? 0.35 : 0)
     + (ownedRoomSet.has('lot') ? LOT_DRAIN : 0)) * DIFF().drain;
+  return labWorld ? classic * labWorld.snapshot().mods.heatDrain : classic;
 }
 
 // ── The Getaway Bag (LAB-21) ──────────────────────────────
@@ -3920,8 +4034,9 @@ function labSoundtrack(now) {
     if (act > labActSeen) { labActSeen = act; a.celebrate(8); labSfx('levelup'); }
     if (busted) { a.setMood('tense', { force: true }); return; }
     const waiting = dealers.some(function (d) { return d && d.state === 'waiting'; });
-    const tense = state.heat >= 70 || raidActive;
-    const busy = !tense && (waiting || trimQueue > 0 || (dealers.length > 0 && state.heat >= 30));
+    const sky = labWorld ? labWorld.snapshot() : null;
+    const tense = state.heat >= 70 || raidActive || (sky && sky.mood === 'tense');
+    const busy = !tense && (waiting || trimQueue > 0 || (dealers.length > 0 && state.heat >= 30) || (sky && sky.mood === 'busy'));
     a.setMood(a.pickMood({ tense: tense, busy: busy }));
   } catch (e) { /* the corner still runs if the score cannot */ }
 }
@@ -4040,7 +4155,8 @@ function salePrice() {
   const chemiBonus = chemStation ? 1.8 : 1;
   // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
   const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
-  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult() * activeStrain().price);
+  const classic = Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult() * activeStrain().price);
+  return labWorld ? labWorld.saleValue(classic) : classic;
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -6056,11 +6172,11 @@ function updateDealers(dt) {
   for(let i=dealers.length-1;i>=0;i--) {
     const d=dealers[i];
     if(d.state==='walking') {
-      const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, 2.2, dt);
+      const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, skyMove(2.2), dt);
       if(arrived) { d.state='waiting'; setLabel('deal_'+d.id, d.whale ? '🐋 The Whale' : '💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
     } else if(d.state==='leaving') {
       removeLabel('deal_'+d.id);
-      const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,2.5,dt);
+      const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,skyMove(2.5),dt);
       if(gone||d.group.position.z>12){ scene.remove(d.group); dealers.splice(i,1); }
     } else if(d.state==='waiting') {
       // If no stash, leave
@@ -6089,9 +6205,9 @@ function updateDealerSpawn(dt) {
 function updateTrimmerNPCs(dt) {
   for(const t of trimmerNPCs) {
     if(trimQueue>0) {
-      stepToward(t.group, trimStation.x+(Math.random()-0.5)*0.6, trimStation.z+1.2, 2.5, dt);
+      stepToward(t.group, trimStation.x+(Math.random()-0.5)*0.6, trimStation.z+1.2, skyMove(2.5), dt);
     } else {
-      stepToward(t.group, trimStation.x+(Math.random()-0.5)*3, trimStation.z+(Math.random()-0.5)*2, 1.0, dt);
+      stepToward(t.group, trimStation.x+(Math.random()-0.5)*3, trimStation.z+(Math.random()-0.5)*2, skyMove(1.0), dt);
     }
   }
 }
@@ -6102,7 +6218,7 @@ function updateLookoutNPCs(dt) {
     l.patrolAngle += dt*0.5;
     const tx = l.patrolRadius*Math.cos(l.patrolAngle);
     const tz = l.patrolRadius*Math.sin(l.patrolAngle) + 5;
-    stepToward(l.group, tx, tz, 2.0, dt);
+    stepToward(l.group, tx, tz, skyMove(2.0), dt);
   }
 }
 
@@ -6128,17 +6244,17 @@ function updateRunnerNPCs(dt) {
       if(r.state==='idle') {
         // Loiter near the stash between jobs
         r.idleAngle+=dt*0.4;
-        stepToward(r.group, stashNode.x+Math.cos(r.idleAngle)*2.2, stashNode.z+2.5+Math.sin(r.idleAngle)*1.2, 1.0, dt);
+        stepToward(r.group, stashNode.x+Math.cos(r.idleAngle)*2.2, stashNode.z+2.5+Math.sin(r.idleAngle)*1.2, skyMove(1.0), dt);
       }
     } else if(r.state==='toTrim') {
-      if(stepToward(r.group, trimStation.x, trimStation.z+1.1, 3.0, dt)) {
+      if(stepToward(r.group, trimStation.x, trimStation.z+1.1, skyMove(3.0), dt)) {
         // Grab whatever's still on the table (the player may have beaten us here)
         if(trimBags>0) { r.carry=trimBags; trimBags=0; r.group.userData.carryMesh.visible=true; r.state='toStash'; }
         else r.state='idle';
       }
     } else if(r.state==='toChem') {
       if(!chemStation || chemProduct<=0) { r.state='idle'; continue; }
-      if(stepToward(r.group, chemStation.x, chemStation.z+1.2, 3.0, dt)) {
+      if(stepToward(r.group, chemStation.x, chemStation.z+1.2, skyMove(3.0), dt)) {
         if(chemProduct>0) {
           r.carry=chemProduct; chemProduct=0;
           r.carryPure=chemPure; chemPure=0;   // LAB-10
@@ -6147,7 +6263,7 @@ function updateRunnerNPCs(dt) {
         } else r.state='idle';
       }
     } else if(r.state==='toStash') {
-      if(stepToward(r.group, stashNode.x, stashNode.z+1.5, 3.0, dt)) {
+      if(stepToward(r.group, stashNode.x, stashNode.z+1.5, skyMove(3.0), dt)) {
         r.carry=preSaleIntercept(r.carry);   // LAB-32: the van feeds first
         const room=Math.max(0, stashMax()-stashCount);
         const added=Math.min(r.carry, room);
@@ -6166,7 +6282,7 @@ function updateRunnerNPCs(dt) {
         if(d) d.runnerClaim=false;
         r.dealer=null; r.state='idle'; continue;
       }
-      if(stepToward(r.group, d.group.position.x+0.8, d.group.position.z, 3.0, dt)) {
+      if(stepToward(r.group, d.group.position.x+0.8, d.group.position.z, skyMove(3.0), dt)) {
         sellToDealer(d, dealers.indexOf(d));
         addFeed('🏃 Runner closed a deal');
         d.runnerClaim=false; r.dealer=null; r.state='idle';
@@ -6643,6 +6759,14 @@ function bindJuiceUi() {
 bindJuiceUi();
 bindNia();
 syncAlley(false);
+window.LAB_SKY = {
+  growTime: function () { return growTime(); },
+  salePrice: function () { return salePrice(); },
+  playerSpeed: function () { return playerSpeed(); },
+  heatDrain: function () { return heatDrainPerSec(); },
+  buyers: function () { return dealerArrivalTime(); },
+};
+syncLabSky(false);
 
 // ── Start ──
 requestAnimationFrame(animate);
@@ -6652,6 +6776,13 @@ function animate(now_ms) {
   const dt=Math.min((now_ms-lastTime)/1000, 0.1);
   lastTime=now_ms;
   labSoundtrack(now_ms);
+  const readingSheet = document.querySelector(
+    '#chain-modal.open, #intro-modal.open, #diff-modal.open');
+  if (labWorld) {
+    const live = !busted && !raidActive && !activeEvent && !raidNightOpen && !readingSheet;
+    const changed = live ? labWorld.tick(dt) : false;
+    syncLabSky(changed);
+  }
 
   if(busted) {
     // Game over: freeze the simulation behind the modal.
@@ -6662,8 +6793,6 @@ function animate(now_ms) {
 
   // Reading a sheet holds the operation too: production, movement and
   // deadlines must not advance behind The Corner or the crash course.
-  const readingSheet = document.querySelector(
-    '#chain-modal.open, #intro-modal.open, #diff-modal.open');
 
   // Pause the whole sim while an event modal is open: clicks were
   // already blocked, but WASD movement kept working — a sale made

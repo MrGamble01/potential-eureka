@@ -28,6 +28,13 @@ const BASE='http://127.0.0.1:8099';
     return (await c.keys()).length;
   });
   ck(`shell precached (${cached} entries)`, cached>=55);
+  const hudSheets = await p.evaluate(async () => {
+    const keys = await caches.keys();
+    const c = await caches.open(keys.find(k => k.includes('shell')));
+    const urls = (await c.keys()).map(r => new URL(r.url).pathname);
+    return urls.includes('/css/hud.css') && urls.includes('/css/hud-b.css');
+  });
+  ck('both HUD stylesheets are precached', hudSheets);
   const manifest=await p.evaluate(()=>fetch('/manifest.json').then(r=>r.json()));
   ck('manifest served + parsable', manifest.name==='Eureka Games' && manifest.icons.length===2);
 

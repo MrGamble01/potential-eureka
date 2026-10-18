@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261017-huda2';  // HUD passes A and B. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261018-topbar';  // Tycoon top row and announcer separators. Sorts after eureka-20261018-cosmetics. Both hud.css and hud-b.css stay in the precache. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -56,6 +56,8 @@ const SHELL = [
   '/vendor/three-r128.min.js',
   '/css/arcade-chrome.css',
   '/css/hud.css',
+  '/css/hud-space.woff2',
+  '/js/hud-safe.js',
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',
@@ -83,6 +85,7 @@ const SHELL = [
   '/js/breakout.js',
   '/js/calendar.js',
   '/js/coins.js',
+  '/js/cosmetics.js',
   '/js/connect4.js',
   '/js/daily.js',
   '/js/dashboard.js',
@@ -93,6 +96,7 @@ const SHELL = [
   '/js/gamepad.js',
   '/js/hub-routes.js',
   '/js/life.js',
+  '/js/living-world.js',
   '/js/lightcycles.js',
   '/js/maze.js',
   '/js/memorymatrix.js',

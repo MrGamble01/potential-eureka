@@ -75,8 +75,25 @@
     .res.stone .ic { color: var(--stone); }
     .res.food .ic { color: var(--food); }
     .res.gold .ic { color: var(--gold); }
-    #clock { margin-left: auto; }
+    #clock { margin-left: 0; }
     #clock .day { color: var(--gold); }
+    /* Day chip and the time buttons are one row, so the chip cannot
+       paint over the buttons when the resource line wraps. */
+    #dayrail {
+      display: flex; align-items: center; gap: 8px;
+      margin-left: auto; flex: 0 0 auto; pointer-events: none;
+    }
+    /* The gear sits at the right of this same band once the resource
+       line wraps. Keep the day rail short of it. */
+    @media (min-width: 1025px) {
+      #hud { padding-right: 72px; }
+    }
+    #hudstrip { display: contents; }
+    #resumeName {
+      display: inline-block; max-width: 16em; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      vertical-align: bottom;
+    }
 
     /* ---- Build bar ---- */
     #buildbar {
@@ -137,7 +154,8 @@
 
     /* ---- Speed controls ---- */
     #speedctl {
-      position: fixed; top: 54px; right: 54px; z-index: 390; display: flex; gap: 4px;
+      position: static; z-index: auto; display: flex; gap: 4px;
+      pointer-events: auto; flex: 0 0 auto;
     }
     #speedctl button {
       width: 34px; height: 36px; border-radius: 9px;
@@ -151,7 +169,7 @@
 
     /* Resume chip — names a kept valley the way Voxel names a kept isle. */
     #resumeChip {
-      display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0;
       background: linear-gradient(180deg, #3d4a32, #2c3826);
       border: 1px solid #6b8a4e; border-top-color: #8eaf68;
       border-radius: 9px; padding: 6px 11px;
@@ -489,26 +507,32 @@
       #goals { bottom: 104px; width: 160px; padding: 7px 10px; }
     }
     @media (max-width: 640px) {
-      /* One scrolling resource row. Wrapped chips used to stack ~235px
-         tall and eat the map; the goal then sat under the build tabs. */
+      /* Title on the first line, resources in a scroll strip under it.
+         A single nowrap row cut the town name and the later chips off
+         the right edge; a tall wrap covered the map. The strip stays
+         inside the viewport, the name ends in an ellipsis, and the
+         rates tuck away so the values fit. */
       #hud {
-        flex-wrap: nowrap; overflow-x: auto; pointer-events: none;
-        padding: 48px 8px 4px 8px; font-size: 12px; gap: 4px;
-        scrollbar-width: none;
+        flex-wrap: wrap; overflow: visible; align-items: center;
+        padding: 48px 8px 0 8px; font-size: 12px; gap: 2px;
+        max-width: 100vw;
       }
-      #hud::-webkit-scrollbar { display: none; }
-      .res, #resumeChip { pointer-events: auto; flex: 0 0 auto; }
-      .res { padding: 4px 7px; }
-      /* A kept-town chip used to shrink to one word and stack ~200px,
-         which covered the town goal. Keep it one line, short of the
-         pause and gear buttons, and scroll the rest of the sentence. */
+      #resumeChip { pointer-events: auto; flex: 1 1 100%; }
+      #hudstrip {
+        display: flex; flex: 1 1 100%; flex-wrap: nowrap; align-items: center;
+        gap: 4px; min-width: 0; max-width: 100%;
+        overflow-x: auto; overflow-y: hidden; pointer-events: auto;
+        scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+      }
+      .res { pointer-events: auto; flex: 0 0 auto; padding: 2px 6px; }
+      .res .rate, .res .net { display: none; }
       #resumeChip {
-        flex-wrap: nowrap; white-space: nowrap;
-        max-width: calc(100vw - 160px); overflow-x: auto;
-        scrollbar-width: none;
+        flex-wrap: nowrap; white-space: nowrap; align-items: center;
+        max-width: calc(100vw - 168px); overflow: hidden; gap: 4px;
       }
-      #resumeChip::-webkit-scrollbar { display: none; }
-      #clock { margin-left: 0; }
+      #resumeName { flex: 1 1 auto; min-width: 3.2em; max-width: 9em; }
+      .resume-long, #resumeHolds { display: none; }
+      #dayrail { margin-left: 0; }
       #minimap { top: 92px; bottom: auto; left: 8px; right: auto; width: 104px; height: 78px; }
       #goals { top: 92px; bottom: auto; left: auto; right: 8px; width: 168px; }
       #zoom-ctl {
@@ -618,7 +642,7 @@
 .chain-open{background:rgba(255,255,255,.05)}
 .chain-locked{opacity:.45}
 </style>
-<link rel="stylesheet" href="css/hud-b.css?v=20261017hudb2">
+<link rel="stylesheet" href="css/hud-b.css?v=20261018topbar">
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
@@ -679,16 +703,26 @@
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div id="resumeChip" hidden>↩ the valley kept · <span id="resumeName">Hearthvale</span> · Day <span id="resumeDay">1</span> · <span id="resumePop">0</span> villagers<span id="resumeHolds"></span>
+    <div id="resumeChip" hidden><span id="resumeLead">↩ <span class="resume-long">the valley kept · </span></span><span id="resumeName">Hearthvale</span><span id="resumeMeta"> · Day <span id="resumeDay">1</span> · <span id="resumePop">0</span><span class="resume-souls"> villagers</span></span><span id="resumeHolds"></span>
       <button type="button" id="resumeNewTown" hidden>New town</button>
     </div>
+    <div id="hudstrip">
     <div class="res wood" title="Wood — from woodcutters. Builds almost everything."><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span><span class="net" id="r-woodnet"></span></div>
     <div class="res stone" title="Stone — from quarries. For sturdier buildings."><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span><span class="net" id="r-stonenet"></span></div>
     <div class="res food" title="Food — from farms, orchards & fishing. Villagers eat it each cycle."><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span><span class="net" id="r-foodnet"></span></div>
     <div class="res gold" title="Coin — from workshops & the market. Spend it building & trading."><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span><span class="net" id="r-goldnet"></span></div>
     <div class="res" title="Population — grows when the town is happy, fed and housed."><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
     <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span><span class="net" id="r-moralemk"></span></div>
-    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
+    <div id="dayrail">
+      <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
+      <div id="speedctl">
+        <button data-sp="0" title="Pause (Space)">&#9208;</button>
+        <button data-sp="1" title="Normal speed">1&times;</button>
+        <button data-sp="2" title="Double speed">2&times;</button>
+        <button data-sp="3" title="Triple speed">3&times;</button>
+      </div>
+    </div>
+    </div>
   </div>
 
   <div id="goals">
@@ -698,13 +732,6 @@
   </div>
 
   <div id="hint">Drag to look around &middot; pick a building below &middot; click the ground to place it</div>
-
-  <div id="speedctl">
-    <button data-sp="0" title="Pause (Space)">&#9208;</button>
-    <button data-sp="1" title="Normal speed">1&times;</button>
-    <button data-sp="2" title="Double speed">2&times;</button>
-    <button data-sp="3" title="Triple speed">3&times;</button>
-  </div>
 
   <div id="buildtabs"></div>
   <div id="buildbar"></div>
@@ -876,6 +903,7 @@
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/moments.js"></script>
@@ -6465,6 +6493,100 @@
     VSPR[key] = c; return c;
   }
 
+  function careerLook() {
+    try {
+      if (typeof EurekaCosmetics !== 'undefined' && EurekaCosmetics.look) return EurekaCosmetics.look();
+    } catch (e) { return null; }
+    return null;
+  }
+  // Hub shop looks. A cloak and ribbon sit on every villager, and a
+  // short spark wake follows them while they walk.
+  function paintVillagerCosmetic(v, sx, sy, z, px, py, H) {
+    const look = careerLook();
+    if (!look || (!look.palette && !look.skin && !look.trail)) return;
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    ctx.save();
+    if (look.palette) {
+      ctx.fillStyle = look.palette.color;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.ellipse(px, py + 1 * z, 5.4 * z, 2.3 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(px - 4 * z, py - (H + 2) * z, 8 * z, 2.4 * z);
+      ctx.globalAlpha = 1;
+    }
+    if (look.skin) {
+      const wave = Math.sin(now / 200 + v.x) * z;
+      const pole = px - 5 * z;
+      ctx.strokeStyle = look.skin.accent || '#5a3a12';
+      ctx.lineWidth = Math.max(1, z * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(pole, py);
+      ctx.lineTo(pole, py - (H + 3) * z);
+      ctx.stroke();
+      ctx.fillStyle = look.skin.color;
+      ctx.beginPath();
+      ctx.moveTo(pole, py - (H + 3) * z);
+      ctx.lineTo(pole - 7 * z, py - (H - 1) * z + wave);
+      ctx.lineTo(pole, py - (H - 3) * z);
+      ctx.fill();
+    }
+    if (look.trail) {
+      if (!v._spark) v._spark = [];
+      const moving = v.path && v.path.length > 0;
+      const last = v._spark[v._spark.length - 1];
+      if (moving && (!last || Math.abs(v.x - last.x) + Math.abs(v.y - last.y) > 1.2)) {
+        v._spark.push({ x: v.x, y: v.y, t: now });
+        if (v._spark.length > 12) v._spark.shift();
+      }
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = look.trail.color;
+      ctx.lineWidth = Math.max(2, 1.6 * z);
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      let moved = false;
+      for (let i = 0; i < v._spark.length; i++) {
+        const p = v._spark[i];
+        if ((now - p.t) > 900) continue;
+        const tx = sx + p.x * z;
+        const ty = sy + p.y * z - 6 * z;
+        if (!moved) { ctx.moveTo(tx, ty); moved = true; }
+        else ctx.lineTo(tx, ty);
+      }
+      if (moved) {
+        ctx.lineTo(px, py - 6 * z);
+        ctx.stroke();
+      }
+      for (let i = 0; i < v._spark.length; i++) {
+        const p = v._spark[i];
+        const age = (now - p.t) / 900;
+        if (age < 0 || age >= 1) continue;
+        ctx.globalAlpha = (1 - age) * 0.95;
+        ctx.fillStyle = look.trail.color;
+        ctx.beginPath();
+        ctx.arc(sx + p.x * z, sy + p.y * z - 6 * z, (2.4 - age) * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowColor = look.trail.color;
+      ctx.shadowBlur = 10 * Math.max(1, z * 0.4);
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = '#fff3c4';
+      ctx.beginPath();
+      ctx.arc(px, py - 7 * z, 2.6 * z, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      for (let i = 0; i < 3; i++) {
+        const a = now / 280 + i * 2.1 + v.x;
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = look.trail.color;
+        ctx.beginPath();
+        ctx.arc(px + Math.cos(a) * 7 * z, py - 9 * z + Math.sin(a) * 5 * z, 1.7 * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
   function drawVillager(v, sx, sy, z) {
     if (v.sleeping) return;   // tucked in at home for the night
     const moving = v.path && v.path.length > 0;
@@ -6482,6 +6604,7 @@
     } else {
       ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
     }
+    paintVillagerCosmetic(v, sx, sy, z, px, py, H);
     // soft speech/thought bubble — fades in and out smoothly, never pops
     if (v.emote && v.emote.life > 0) {
       const e = v.emote, k = e.life / e.maxLife;

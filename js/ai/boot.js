@@ -51,6 +51,7 @@
       { sel: '#aow-wave-num', type: 'wave' },
       { sel: '#aow-overlay', type: 'banner' },
       { sel: '#aow-era-name', type: 'era' },
+      { sel: '#aow-sky', type: 'weather' },
     ],
     tycoon: [
       { sel: '#feed-list', type: 'feed' },
@@ -64,6 +65,7 @@
       { sel: '#feed-list', type: 'feed' },
       { sel: '#ev-title', type: 'event' },
       { sel: '#wave-val', type: 'crackdown' },
+      { sel: '#lab-sky', type: 'weather' },
     ],
     homeless: [
       { sel: '#log-feed', type: 'log' },
@@ -88,6 +90,31 @@
     return (el.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
+  // Feed rows keep a clock ("5s", "now") for the panel. The announcer
+  // speaks the messages only, with a separator between them.
+  function announcerDetail(el) {
+    if (!el) return '';
+    const rows = el.querySelectorAll('.feed-entry');
+    if (!rows.length) return (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const parts = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.classList.contains('feed-empty')) continue;
+      const bits = [];
+      const spans = row.querySelectorAll('span');
+      if (spans.length) {
+        spans.forEach(function (span) {
+          if (span.classList.contains('feed-age')) return;
+          const bit = (span.textContent || '').replace(/\s+/g, ' ').trim();
+          if (bit) bits.push(bit);
+        });
+      }
+      const text = (bits.length ? bits.join(' ') : (row.textContent || '')).replace(/\s+/g, ' ').trim();
+      if (text) parts.push(text);
+    }
+    return parts.join(' · ').slice(0, 160);
+  }
+
   function scrape() {
     switch (gameId) {
       case 'ageofwar':
@@ -110,18 +137,23 @@
 
   const style = document.createElement('style');
   style.textContent = [
-    '#arcade-ai-root{position:fixed;z-index:1200;left:8px;top:8px}',
+    '#arcade-ai-root{position:fixed;z-index:1200;left:8px;top:var(--hud-top-safe,8px)}',
     '#arcade-ai-launch{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;',
     'color:#f6f1e6;background:rgba(10,12,16,.9);border:1px solid var(--ai-accent,#e0c9a0);border-radius:999px;',
     'padding:8px 12px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.35)}',
     '#arcade-ai-launch:focus-visible{outline:2px solid var(--ai-accent,#e0c9a0);outline-offset:2px}',
     '#arcade-ai-launch[aria-expanded="true"]{background:#17140f}',
-    '#arcade-ai-ticker{position:fixed;z-index:1190;left:50%;bottom:18px;transform:translateX(-50%);max-width:min(440px,calc(100vw - 24px));',
+    '#arcade-ai-ticker{position:fixed;z-index:1190;left:50%;bottom:calc(var(--hud-bottom-safe,18px) + 8px);transform:translateX(-50%);max-width:min(440px,calc(100vw - 24px));',
     'pointer-events:none;background:rgba(8,10,14,.88);color:#f6f1e6;border:1px solid rgba(255,255,255,.16);',
-    'border-left:3px solid var(--ai-accent,#e0c9a0);border-radius:10px;padding:8px 12px;font:13px/1.35 Georgia,Palatino,serif;',
+    'border-left:3px solid var(--ai-accent,#e0c9a0);border-radius:10px;padding:8px 36px 8px 12px;font:13px/1.35 Georgia,Palatino,serif;',
     'box-shadow:0 10px 28px rgba(0,0,0,.35)}',
     '#arcade-ai-ticker[hidden]{display:none}',
     '#arcade-ai-ticker b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:2px;color:var(--ai-accent,#e0c9a0)}',
+    '#arcade-ai-ticker-line{display:block;pointer-events:none}',
+    '#arcade-ai-ticker *{pointer-events:none}',
+    '#arcade-ai-ticker #arcade-ai-ticker-close{position:absolute;top:6px;right:6px;pointer-events:auto;width:28px;height:28px;padding:0;',
+    'background:transparent;color:#f6f1e6;border:1px solid rgba(255,255,255,.28);border-radius:8px;cursor:pointer;',
+    'font:16px/1 ui-monospace,SFMono-Regular,Menlo,monospace}',
     '#arcade-ai-panel{position:fixed;z-index:7000;top:52px;right:12px;width:min(400px,calc(100vw - 24px));',
     'max-height:min(580px,calc(100vh - 68px));overflow:auto;background:rgba(10,12,16,.96);color:#f4efe6;',
     'border:1px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.5);padding:12px 12px 14px;',
@@ -167,7 +199,20 @@
   ticker.hidden = true;
   ticker.setAttribute('role', 'status');
   ticker.setAttribute('aria-live', 'polite');
+  ticker.innerHTML = '<b>Announcer</b><span id="arcade-ai-ticker-line"></span><button type="button" id="arcade-ai-ticker-close" aria-label="Dismiss announcement">\u00d7</button>';
   document.body.appendChild(ticker);
+  const tickerLine = ticker.querySelector('#arcade-ai-ticker-line');
+  let tickerTimer = 0;
+
+  function dismissTicker() {
+    ticker.hidden = true;
+    if (tickerTimer) {
+      clearTimeout(tickerTimer);
+      tickerTimer = 0;
+    }
+  }
+
+  ticker.querySelector('#arcade-ai-ticker-close').addEventListener('click', dismissTicker);
 
   const panel = document.createElement('div');
   panel.id = 'arcade-ai-panel';
@@ -297,14 +342,23 @@
     });
   }
 
+  function accepts(result) {
+    if (!result || !result.line) return false;
+    if (result.game === gameId) return true;
+    return !result.game && AI.systemLines && AI.systemLines.indexOf(result.line) !== -1;
+  }
+
   function pushCall(result) {
-    if (!result || !result.line) return;
+    if (!accepts(result)) return;
     calls.unshift(result);
     if (calls.length > 8) calls.pop();
     renderCalls();
+    tickerLine.textContent = result.line;
+    ticker.dataset.shownAt = String(Date.now());
     ticker.hidden = false;
-    ticker.innerHTML = '<b>Announcer</b>';
-    ticker.appendChild(document.createTextNode(result.line));
+    placeTicker();
+    if (tickerTimer) clearTimeout(tickerTimer);
+    tickerTimer = setTimeout(dismissTicker, 4000);
   }
 
   function speak(npcId) {
@@ -365,47 +419,148 @@
     }).catch(function () {});
   }
 
+  function safePx(name, fallback) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function shownBox(el) {
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    if (r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
+    if (r.height > innerHeight * 0.7 && r.width > innerWidth * 0.7) return null;
+    return r;
+  }
+
+  function overlapsRect(box, rect, pad) {
+    return !(box.right + pad <= rect.left || box.left >= rect.right + pad || box.bottom + pad <= rect.top || box.top >= rect.bottom + pad);
+  }
+
+  function miniRect() {
+    return shownBox(document.getElementById('minimap'));
+  }
+
+  function readSafeBand(height) {
+    if (window.HudSafe && typeof window.HudSafe.apply === 'function') window.HudSafe.apply();
+    let topSafe = Math.max(8, safePx('--hud-top-safe', 8));
+    const bottomSafe = Math.max(8, safePx('--hud-bottom-safe', 18));
+    let maxBottom = innerHeight - bottomSafe;
+    if (topSafe + height + 8 > maxBottom) {
+      const slack = topSafe + height + 8 - maxBottom;
+      topSafe = Math.max(8, topSafe - Math.ceil(slack / 2));
+      maxBottom = Math.min(innerHeight - 8, maxBottom + Math.ceil(slack / 2));
+    }
+    return { topSafe: topSafe, bottomSafe: bottomSafe, maxBottom: maxBottom };
+  }
+
+  // Sit the announcer in the shared bottom band, and never on a build
+  // or action bar. The inline offset wins over the stylesheet, so the
+  // measured bar and --hud-bottom-safe both have to be honored here.
+  function placeTicker() {
+    const band = readSafeBand(48);
+    const bars = document.querySelectorAll('#buildbar, #buildtabs, #hotbar, #buildBar, #lab-tray, .aow-actionbar, .aow-tabs, #aow-spawn-list, #bottom-bar, #next-action-card');
+    let top = Infinity;
+    let barHeight = 0;
+    let safe = 0;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;bottom:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    safe = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+    probe.remove();
+    bars.forEach((el) => {
+      if (el.hidden) return;
+      const r = shownBox(el);
+      if (!r || r.top < innerHeight * 0.45) return;
+      if (r.top < top) {
+        top = r.top;
+        barHeight = r.height;
+      }
+    });
+    let offset = band.bottomSafe;
+    if (top < Infinity) {
+      offset = Math.max(offset, barHeight + safe + 8, innerHeight - top + 8);
+    }
+    ticker.style.bottom = offset + 'px';
+    if (window.HudSafe && typeof window.HudSafe.liftToasts === 'function') window.HudSafe.liftToasts();
+  }
+
   function place() {
     if (!panel.hidden) return;
     const launch = document.getElementById('arcade-ai-launch');
     const width = Math.ceil(launch.offsetWidth || 92);
     const height = Math.ceil(launch.offsetHeight || 34);
+    const band = readSafeBand(height);
+    const topSafe = band.topSafe;
+    const maxBottom = band.maxBottom;
     const blockers = [];
-    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, .aow-topbar, #aow-topbar, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
+    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #metrics-hud, #goal-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, #bottom-bar, #left-panel, #next-action-card, #bgl-yard, .aow-topbar, #aow-topbar, .aow-battle-strip, .aow-actionbar, .aow-tabs, .aow-spawn-list, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
       if (root.contains(el) || panel.contains(el) || ticker.contains(el)) return;
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
-      const r = el.getBoundingClientRect();
-      if (r.width < 2 || r.height < 2) return;
-      blockers.push(r);
+      const r = shownBox(el);
+      if (r) blockers.push(r);
     });
-    function clearOf(x, y) {
+    const mini = miniRect();
+    function overlapArea(x, y) {
       const box = { left: x, top: y, right: x + width, bottom: y + height };
-      if (box.right > innerWidth - 4 || box.bottom > innerHeight - 4) return false;
+      if (box.left < 4 || box.top < topSafe - 1 || box.right > innerWidth - 4 || box.bottom > maxBottom + 1) return Infinity;
+      if (mini && overlapsRect(box, mini, 8)) return Infinity;
+      let area = 0;
       for (let i = 0; i < blockers.length; i++) {
         const b = blockers[i];
         const pad = 6;
-        if (!(box.right + pad <= b.left || box.left >= b.right + pad || box.bottom + pad <= b.top || box.top >= b.bottom + pad)) return false;
+        const w = Math.min(box.right + pad, b.right) - Math.max(box.left - pad, b.left);
+        const h = Math.min(box.bottom + pad, b.bottom) - Math.max(box.top - pad, b.top);
+        if (w > 0 && h > 0) area += w * h;
       }
-      return true;
+      return area;
     }
     const spots = [];
     const back = document.querySelector('.ea-back');
     if (back) {
       const r = back.getBoundingClientRect();
-      if (r.width > 2) spots.push({ x: Math.round(r.right + 10), y: Math.round(Math.max(8, r.top)) });
+      if (r.width > 2 && r.right > 0 && r.left < innerWidth) {
+        spots.push({ x: Math.round(r.right + 10), y: Math.round(Math.max(topSafe, r.top)) });
+      }
     }
-    spots.push({ x: 8, y: 8 });
-    spots.push({ x: Math.max(8, innerWidth - width - 8), y: 8 });
-    spots.push({ x: 8, y: 64 });
-    spots.push({ x: Math.max(8, innerWidth - width - 8), y: 72 });
-    for (let y = 8; y < innerHeight - height - 8; y += 36) {
+    spots.push({ x: 8, y: Math.round(topSafe) });
+    spots.push({ x: Math.max(8, innerWidth - width - 8), y: Math.round(topSafe) });
+    spots.push({ x: 8, y: Math.round(topSafe + 56) });
+    spots.push({ x: Math.max(8, innerWidth - width - 8), y: Math.round(topSafe + 64) });
+    for (let y = Math.round(topSafe); y < maxBottom - height; y += 28) {
       spots.push({ x: 8, y: y });
       spots.push({ x: Math.max(8, innerWidth - width - 8), y: y });
     }
-    let chosen = spots[spots.length - 1];
+    let chosen = null;
+    let best = Infinity;
     for (let i = 0; i < spots.length; i++) {
-      if (clearOf(spots[i].x, spots[i].y)) { chosen = spots[i]; break; }
+      const area = overlapArea(spots[i].x, spots[i].y);
+      if (area < best) {
+        best = area;
+        chosen = spots[i];
+        if (area === 0) break;
+      }
+    }
+    if ((!chosen || best === Infinity) && mini) {
+      const beside = { x: Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10))), y: Math.round(Math.max(topSafe, mini.top)) };
+      const below = { x: Math.round(Math.max(8, mini.left)), y: Math.round(Math.min(maxBottom - height, Math.max(topSafe, mini.bottom + 10))) };
+      const besideArea = overlapArea(beside.x, beside.y);
+      const belowArea = overlapArea(below.x, below.y);
+      if (besideArea === 0) chosen = beside;
+      else if (belowArea === 0) chosen = below;
+      else if (besideArea < belowArea) chosen = beside;
+      else chosen = below;
+    }
+    if (!chosen) {
+      chosen = { x: Math.max(8, innerWidth - width - 8), y: Math.max(topSafe, Math.min(maxBottom - height, innerHeight - height - 16)) };
+      if (mini && overlapsRect({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+        chosen.x = Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10)));
+        if (overlapsRect({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+          chosen.y = Math.round(Math.min(maxBottom - height, Math.max(topSafe, mini.bottom + 10)));
+        }
+      }
     }
     root.style.left = chosen.x + 'px';
     root.style.top = chosen.y + 'px';
@@ -420,9 +575,9 @@
       const el = document.querySelector(spec.sel);
       if (!el || watched.has(el)) return;
       watched.add(el);
-      let seen = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      let seen = announcerDetail(el);
       const obs = new MutationObserver(function () {
-        const next = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+        const next = announcerDetail(el);
         if (!next || next === seen) return;
         seen = next;
         const now = Date.now();
@@ -452,11 +607,32 @@
     provider.announce({ game: gameId, event: { type: 'state', detail: detail } }).then(pushCall).catch(function () {});
   }
 
-  place();
-  setTimeout(place, 400);
-  setTimeout(place, 1400);
-  setTimeout(place, 2800);
-  window.addEventListener('resize', place);
+  function layoutChrome() {
+    place();
+    placeTicker();
+  }
+  layoutChrome();
+  setTimeout(layoutChrome, 400);
+  setTimeout(layoutChrome, 1400);
+  setTimeout(layoutChrome, 2800);
+  window.addEventListener('resize', layoutChrome);
+  let ro = null;
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(layoutChrome);
+    ['#minimap', '#buildbar', '#buildtabs', '#hotbar', '#lab-tray', '#hud', '#topbar', '#bgl-yard', '.aow-actionbar', '#aow-spawn-list', '#next-action-card', '#metrics-hud', '#bottom-bar'].forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) ro.observe(el);
+    });
+  }
+  const lateChrome = new WeakSet();
+  const watchLate = new MutationObserver(() => {
+    const yard = document.getElementById('bgl-yard');
+    if (!yard || lateChrome.has(yard)) return;
+    lateChrome.add(yard);
+    if (ro) ro.observe(yard);
+    layoutChrome();
+  });
+  watchLate.observe(document.body, { childList: true, subtree: true });
   setTimeout(watch, 600);
   setTimeout(openingCall, 700);
 
