@@ -1009,11 +1009,23 @@ html.hud .career-toast {
     top: calc(var(--hud-space-1) + var(--hud-safe-t));
     right: calc(var(--hud-space-1) + var(--hud-safe-r));
   }
-  html.hud #status-bar {
-    top: calc(var(--hud-space-1) + var(--hud-safe-t));
-  }
+  /* GAMES, the menu, and the session pill share one row. The pill
+     starts after the menu and stops before the cash chip. */
   html.hud #sidebar-toggle {
-    top: calc(var(--hud-space-1) + var(--hud-safe-t));
+    top: calc(8px + var(--hud-safe-t)) !important;
+    left: calc(104px + env(safe-area-inset-left, 0px)) !important;
+  }
+  html.hud #status-bar {
+    top: calc(15px + var(--hud-safe-t));
+    left: calc(156px + env(safe-area-inset-left, 0px));
+    transform: none;
+    max-width: calc(100vw - 260px);
+  }
+  html.hud #tp-toggle {
+    bottom: calc(194px + env(safe-area-inset-bottom, 0px));
+  }
+  html.hud #sprint-btn.sprint-unavailable {
+    display: none;
   }
   html.hud .hire-btn,
   html.hud .room-btn,
