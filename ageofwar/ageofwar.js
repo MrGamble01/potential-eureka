@@ -978,6 +978,45 @@ const AgeOfWarGame = (() => {
   // already honors below).
   let reducedMotion = false;
   const juice = { flash: 0, knock: 0, number: 0, puff: 0, impact: 0, shake: 0 };
+  let aowWorld = null;
+  try {
+    if (window.EurekaWorld) {
+      aowWorld = window.EurekaWorld.create({
+        profile: 'ageofwar',
+        query: window.location ? window.location.search : '',
+        seed: (Date.now() >>> 0) || 1,
+      });
+      window.AOW_WORLD = aowWorld;
+    }
+  } catch (e) { /* the battle still marches under a clear sky */ }
+
+  function skySnap() {
+    return aowWorld ? aowWorld.snapshot() : null;
+  }
+
+  function paintSkyReadout(changed) {
+    const snap = skySnap();
+    if (!snap) return;
+    const el = document.getElementById('aow-sky');
+    if (el && el.textContent !== snap.label) el.textContent = snap.label;
+    if (canvas && canvas.dataset) {
+      canvas.dataset.world = snap.key;
+      canvas.dataset.worldMove = String(snap.mods.move);
+      canvas.dataset.worldFoe = String(snap.mods.foe);
+      canvas.dataset.worldVision = String(snap.mods.vision);
+      canvas.dataset.worldHeavy = String(snap.mods.heavy);
+      canvas.dataset.worldRanged = String(snap.mods.ranged);
+    }
+    if (!changed) return;
+    try {
+      const audio = window.EurekaAudio;
+      if (!audio) return;
+      audio.bind({ muted: () => soundMuted, musicOff: () => false });
+      if (!audio.playing()) audio.start(snap.mood);
+      else audio.setMood(snap.mood);
+    } catch (e) { /* a sky change is still on the field if the score is quiet */ }
+  }
+
   function motionReduced() {
     try {
       if (window.EurekaFeel && typeof EurekaFeel.reduced === 'function') return !!EurekaFeel.reduced();
@@ -1958,7 +1997,8 @@ const AgeOfWarGame = (() => {
   function vetDmg(u) {
     const t = vetTier(u);
     const steel = u.side === 'player' && councilBoons.steel ? 1.1 : 1;   // AOW-10
-    return Math.round(u.dmg * (1 + 0.1 * t) * steel);
+    const base = u.dmg * (1 + 0.1 * t) * steel;
+    return aowWorld ? aowWorld.unitDamage(base, u) : Math.round(base);
   }
 
   function queueFullMessage() {
@@ -4277,7 +4317,9 @@ const AgeOfWarGame = (() => {
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
-    enemySpawnT = (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
+    enemySpawnT = aowWorld
+      ? aowWorld.spawnGap((1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult)
+      : (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -4430,6 +4472,7 @@ const AgeOfWarGame = (() => {
       for (const e of foeBucket) {
         if (e.hp <= 0) continue;
         const d = Math.abs(e.x - u.x);
+        if (aowWorld && !aowWorld.unitSees(d, u.range)) continue;
         if (d < bestDist) { bestDist = d; target = e; }
       }
       const baseTargetX = u.side === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X + BASE_W;
@@ -4453,7 +4496,7 @@ const AgeOfWarGame = (() => {
       u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
         if (!ahead) {
-          let step = u.speed;
+          let step = aowWorld ? aowWorld.moveStep(u.speed) : u.speed;
           // AOW-20: enemies wading the trench move at half speed
           if (u.side === 'enemy' && trenchT > 0 && Math.abs(u.x - trenchX) < TRENCH_W) {
             step *= TRENCH_SLOW;
@@ -4833,7 +4876,8 @@ const AgeOfWarGame = (() => {
       for (const u of enemies) {
         if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
-        if (d > t.range) continue;
+        const sight = aowWorld ? aowWorld.limitRange(t.range) : t.range;
+        if (d > sight) continue;
         const score = mode === 'weak' ? u.hp : mode === 'strong' ? -u.hp : d;
         if (score < bestScore || (score === bestScore && d < bestDist)) {
           bestScore = score; bestDist = d; target = u;
@@ -5028,9 +5072,16 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Rendering ----
+  let skyDt = 0;
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
+    skyDt = momentHold ? 0 : dt;
+    if (aowWorld) {
+      const live = running && !modalPaused && !userPaused && !momentHold;
+      const changed = live ? aowWorld.tick(dt) : false;
+      paintSkyReadout(changed);
+    }
     if (!momentHold) update(dt);
     draw();
     try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
@@ -5371,6 +5422,8 @@ const AgeOfWarGame = (() => {
       ctx.fillText(f.text, WIDTH - 14, 24 + i * 16 - f.y);
     }
     ctx.globalAlpha = 1;
+
+    if (aowWorld) aowWorld.paint(ctx, WIDTH, HEIGHT, skyDt, reducedMotion);
 
     // Age flash overlay
     if (ageFlash > 0 && !reducedMotion) {
