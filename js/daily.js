@@ -95,6 +95,11 @@ const Daily = (() => {
       best = Utils.highScore.save(key, score, prev);
     }
     refreshBanner();
+    try {
+      if (typeof EurekaCosmetics !== 'undefined' && EurekaCosmetics.grantDaily) {
+        EurekaCosmetics.grantDaily('arcade', Utils.todayKey());
+      }
+    } catch (e) { /* sparks are a bonus, not the score */ }
     return improved
       ? `📅 Daily: ${score} — new best for today!`
       : `📅 Daily: ${score} · today's best ${best}`;

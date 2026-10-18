@@ -9370,6 +9370,122 @@ const AgeOfWarGame = (() => {
   // recognizable at a glance, not just colored rectangles. All
   // drawers accept (u, x, y, facing, walkSwing, bodyColor) where
   // y is the top of the unit and (x, y, u.w, u.h) is the bounding box.
+  function careerLook() {
+    try {
+      if (typeof EurekaCosmetics !== 'undefined' && EurekaCosmetics.look) return EurekaCosmetics.look();
+    } catch (e) { /* cosmetics are optional */ }
+    return null;
+  }
+
+  // Hub shop looks. Drawn on friendly units only: a cloak ring, a
+  // pennant on the trailing side, and a short wake of sparks.
+  function paintAowCosmetic(u, feetY, drawW, drawH, facing) {
+    if (!u || u.side !== 'player' || u.isBoss) return;
+    const look = careerLook();
+    if (!look || (!look.skin && !look.trail && !look.palette)) return;
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    ctx.save();
+    if (look.palette) {
+      ctx.fillStyle = look.palette.color;
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(u.x, feetY - 2, drawW * 0.62, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = look.palette.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(u.x, feetY - 2, drawW * 0.5, 5.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (look.skin) {
+      const wave = Math.sin(now / 180) * 3;
+      const poleX = u.x - facing * drawW * 0.2;
+      const top = feetY - drawH * 0.96;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = look.skin.accent || '#5a3a12';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(poleX, feetY - 4);
+      ctx.lineTo(poleX, top);
+      ctx.stroke();
+      ctx.fillStyle = look.skin.color;
+      ctx.beginPath();
+      ctx.moveTo(poleX, top);
+      ctx.lineTo(poleX - facing * drawW * 0.7, top + drawH * 0.18 + wave);
+      ctx.lineTo(poleX, top + drawH * 0.36);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (look.trail) {
+      if (!u._spark) u._spark = [];
+      const last = u._spark[u._spark.length - 1];
+      if (!last || Math.abs(last.x - u.x) > 10) {
+        u._spark.push({ x: u.x - facing * 10, y: feetY - drawH * 0.35, t: now });
+        if (u._spark.length > 14) u._spark.shift();
+      }
+      const color = look.trail.color || '#ff7a00';
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      let moved = false;
+      for (let i = 0; i < u._spark.length; i++) {
+        const p = u._spark[i];
+        if (now - p.t > 800) continue;
+        if (!moved) { ctx.moveTo(p.x, p.y); moved = true; }
+        else ctx.lineTo(p.x, p.y);
+      }
+      if (moved) {
+        ctx.lineTo(u.x - facing * 4, feetY - drawH * 0.35);
+        ctx.stroke();
+      }
+      for (let i = 0; i < u._spark.length; i++) {
+        const p = u._spark[i];
+        const age = (now - p.t) / 800;
+        if (age < 0 || age >= 1) continue;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 11 * (1 - age * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff6c8';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const poleX = u.x;
+      const top = feetY - drawH - 46;
+      const wave = Math.sin(now / 160) * 6;
+      ctx.strokeStyle = '#4a2208';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(poleX, feetY - drawH + 4);
+      ctx.lineTo(poleX, top);
+      ctx.stroke();
+      ctx.fillStyle = '#ff5a00';
+      ctx.beginPath();
+      ctx.moveTo(poleX, top);
+      ctx.lineTo(poleX + facing * 56, top + 14 + wave);
+      ctx.lineTo(poleX, top + 28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fff6c8';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#fff6c8';
+      ctx.beginPath();
+      ctx.arc(poleX, top - 5, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a00';
+      ctx.beginPath();
+      ctx.arc(poleX, top - 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawUnit(u) {
     ctx.save();
     if (u.knock) ctx.translate(u.knock, 0);
@@ -9533,6 +9649,7 @@ const AgeOfWarGame = (() => {
       ctx.fillRect(u.x - drawW * 0.42, feetY - drawH, drawW * 0.84, drawH);
       ctx.globalAlpha = 1;
     }
+    paintAowCosmetic(u, feetY, drawW, drawH, facing);
     ctx.restore();
   }
 
