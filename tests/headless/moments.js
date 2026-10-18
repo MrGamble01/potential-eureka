@@ -222,6 +222,27 @@ function gifFrames(bytes) {
   ok(named === null, 'a named trophy still needs two frames before it is filed');
 }
 
+async function barClearance(page) {
+  return page.evaluate(() => {
+    const bar = document.querySelector('#moments-photo:not([hidden]) .moments-bar, #moments-replay:not([hidden]) .moments-bar');
+    if (!bar) return { ticker: false, hits: ['missing-bar'] };
+    const br = bar.getBoundingClientRect();
+    const ticker = document.getElementById('arcade-ai-ticker');
+    const tickerOn = !!(ticker && !ticker.hidden && ticker.getBoundingClientRect().height > 8);
+    function hit(sel) {
+      const el = document.querySelector(sel);
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      if (el.hidden || cs.display === 'none' || cs.visibility === 'hidden') return false;
+      const r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return false;
+      return !(br.right <= r.left + 0.5 || br.left >= r.right - 0.5 || br.bottom <= r.top + 0.5 || br.top >= r.bottom - 0.5);
+    }
+    const hits = ['#arcade-ai-ticker', '#hotbar', '#buildbar', '#buildtabs', '#lab-tray'].filter(hit);
+    return { ticker: tickerOn, hits: hits };
+  });
+}
+
 (async () => {
   const browser = await chromium.launch({
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
@@ -281,6 +302,19 @@ function gifFrames(bytes) {
     }));
     ok(photo.view === 'photo' && photo.hidden && photo.stage && photo.back === 'none',
       'photo mode pauses the HUD on Voxel Isle');
+    await page.waitForFunction(() => {
+      const t = document.getElementById('arcade-ai-ticker');
+      return t && !t.hidden && t.getBoundingClientRect().height > 8;
+    }, null, { timeout: 5000 });
+    const voxelClear = await barClearance(page);
+    ok(voxelClear.ticker && voxelClear.hits.length === 0,
+      'the Voxel photo bar clears the announcer and the build bar' + (voxelClear.hits.length ? ' (' + voxelClear.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD off' }).click();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const voxelHud = await barClearance(page);
+    ok(voxelHud.hits.length === 0,
+      'the Voxel photo bar stays clear when the HUD comes back' + (voxelHud.hits.length ? ' (' + voxelHud.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD on' }).click();
     await page.click('[data-moments-filter="noir"]');
     await page.click('[data-moments-frame="film"]');
     const look = await page.evaluate(() => ({
@@ -315,6 +349,20 @@ function gifFrames(bytes) {
     page.on('pageerror', e => errs.push('hearth ' + String(e).slice(0, 240)));
     await page.goto(BASE + '/hearthvale.html', { waitUntil: 'load' });
     await page.waitForFunction(() => window.EurekaMoments && document.getElementById('moments-root'));
+    await page.evaluate(() => EurekaMoments.openPhoto());
+    await page.waitForFunction(() => {
+      const t = document.getElementById('arcade-ai-ticker');
+      return t && !t.hidden && t.getBoundingClientRect().height > 8;
+    }, null, { timeout: 5000 });
+    const valeClear = await barClearance(page);
+    ok(valeClear.ticker && valeClear.hits.length === 0,
+      'the Hearthvale photo bar clears the announcer and the build bar' + (valeClear.hits.length ? ' (' + valeClear.hits.join(', ') + ')' : ''));
+    await page.locator('#moments-photo button', { hasText: 'HUD off' }).click();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const valeHud = await barClearance(page);
+    ok(valeHud.hits.length === 0,
+      'the Hearthvale photo bar stays clear when the HUD comes back' + (valeHud.hits.length ? ' (' + valeHud.hits.join(', ') + ')' : ''));
+    await page.keyboard.press('Escape');
     const phone = await page.evaluate(async () => {
       EurekaMoments.openPhoto();
       const hud = getComputedStyle(document.getElementById('hud')).visibility;

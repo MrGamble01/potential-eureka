@@ -412,7 +412,7 @@
       '#moments-stage[data-frame="polaroid"]{box-shadow:inset 0 0 0 16px #f4f1ea, inset 0 -42px 0 #f4f1ea}',
       '#moments-stage[data-frame="film"]{box-shadow:inset 0 26px 0 #141414, inset 0 -26px 0 #141414}',
       '#moments-stage[data-frame="arcade"]{box-shadow:inset 0 0 0 8px #141018, inset 0 0 0 12px #7ec8ff}',
-      '.moments-bar{pointer-events:auto;background:rgba(12,14,18,.92);color:#eef3ea;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;max-height:48vh;overflow:auto}',
+      '.moments-bar{pointer-events:auto;flex-shrink:0;background:rgba(12,14,18,.92);color:#eef3ea;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;max-height:48vh;overflow:auto}',
       '.moments-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}',
       '.moments-row button,.moments-gate button{min-height:44px;min-width:44px;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:#24303a;color:#eef3ea;font:600 14px/1.2 system-ui,sans-serif;flex:0 0 auto;touch-action:manipulation;cursor:pointer}',
       '.moments-row button[aria-pressed="true"]{border-color:#7ec8ff;color:#d7f1ff;background:#1c3a4a}',
@@ -578,12 +578,48 @@
       if (o.hideClass) doc.body.classList.toggle(o.hideClass, !!on);
       hudBtn.textContent = on ? 'HUD off' : 'HUD on';
       hudBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      placeMomentsBars();
     }
     function hold(on) {
       try {
         if (on) { if (o.pause) o.pause(); }
         else if (o.resume) o.resume();
       } catch (e) { /* a camera pause cannot take the game down */ }
+    }
+    // The announcer sits just above the build bar. A photo bar that
+    // stays glued to the bottom covers that toast, and covers the bar
+    // again when the player turns the HUD back on. Lift the open bar
+    // clear of both, and leave the toast where the HUD pass put it.
+    function chromeTop() {
+      let top = Infinity;
+      const ticker = doc.getElementById('arcade-ai-ticker');
+      if (ticker && !ticker.hidden) {
+        const r = ticker.getBoundingClientRect();
+        if (r.height > 8 && r.top > innerHeight * 0.3) top = r.top;
+      }
+      const nodes = doc.querySelectorAll('#buildbar, #buildtabs, #hotbar, #buildBar, #lab-tray');
+      for (let i = 0; i < nodes.length; i++) {
+        const cs = getComputedStyle(nodes[i]);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+        const r = nodes[i].getBoundingClientRect();
+        if (r.height < 8 || r.width < 8 || r.top < innerHeight * 0.4) continue;
+        if (r.top < top) top = r.top;
+      }
+      return top;
+    }
+    function placeMomentsBars() {
+      const bars = rootEl.querySelectorAll('.moments-bar');
+      for (let i = 0; i < bars.length; i++) bars[i].style.marginBottom = '';
+      if (view === 'live') return;
+      const active = rootEl.querySelector('#moments-photo:not([hidden]) .moments-bar, #moments-replay:not([hidden]) .moments-bar, #moments-gallery:not([hidden]) .moments-bar');
+      if (!active) return;
+      const limit = chromeTop();
+      if (limit === Infinity) return;
+      const r = active.getBoundingClientRect();
+      if (r.bottom <= limit - 8) return;
+      const lift = Math.ceil(r.bottom - limit + 8);
+      const maxLift = Math.max(0, innerHeight - r.height - 8);
+      active.style.marginBottom = Math.min(lift, maxLift) + 'px';
     }
     function show(which) {
       photo.hidden = which !== 'photo';
@@ -592,6 +628,30 @@
       gate.hidden = which !== 'gate';
       rootEl.hidden = which === 'live';
       view = which;
+      placeMomentsBars();
+    }
+    window.addEventListener('resize', placeMomentsBars);
+    const chromeWatch = new MutationObserver(placeMomentsBars);
+    function watchChrome(el) {
+      if (!el || el.dataset.momentsWatch === '1') return;
+      el.dataset.momentsWatch = '1';
+      chromeWatch.observe(el, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
+    }
+    ['#buildbar', '#buildtabs', '#hotbar', '#buildBar', '#lab-tray'].forEach(function (sel) {
+      watchChrome(doc.querySelector(sel));
+    });
+    function watchTicker() {
+      const ticker = doc.getElementById('arcade-ai-ticker');
+      if (!ticker) return false;
+      watchChrome(ticker);
+      placeMomentsBars();
+      return true;
+    }
+    if (!watchTicker()) {
+      const findTicker = new MutationObserver(function () {
+        if (watchTicker()) findTicker.disconnect();
+      });
+      findTicker.observe(doc.body, { childList: true, subtree: true });
     }
     function openPhoto() {
       if (!enabled) { openGate(); return; }

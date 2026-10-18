@@ -26,7 +26,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 
 ## What's covered
 
-`moments` covers the shared photo mode and highlight reel. The buffer, GIF encoder, filters, frame size, clip titles, and the on/off switch run in Node. The browser half opens photo mode on Voxel Isle and Hearthvale, checks the HUD hide, the highlights switch, a full-colour desktop frame, a named career unlock, and that a phone-sized capture does not throw. `aowmoments` covers Age of War: the camera button, Shift+P beside pause, an age-up and a special filed by name, and the camera staying inside the HUD bar at 1280 and 390, including Eclipse.
+`moments` covers the shared photo mode and highlight reel. The buffer, GIF encoder, filters, frame size, clip titles, and the on/off switch run in Node. The browser half opens photo mode on Voxel Isle and Hearthvale, checks the HUD hide, the highlights switch, a full-colour desktop frame, a named career unlock, that the photo bar stays clear of the announcer and the build bar, and that a phone-sized capture does not throw. `aowmoments` covers Age of War: the camera button, Shift+P beside pause, an age-up and a special filed by name, and the camera staying inside the HUD bar at 1280 and 390, including Eclipse.
 
 `labsheetpause` is hook-free: Grow Op holds production, heat, market and
 contract deadlines behind The Corner, the crash course and the initial
