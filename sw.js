@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261018-fix-corner';  // Phone tray stays to the right of the walk dock so THE CORNER can be tapped. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261018-fix-sidebar';  // Desktop upgrade column stops above Help and Sound. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
