@@ -179,6 +179,8 @@ const AgeOfWarGame = (() => {
   // ---- State ----
   let canvas, ctx;
   let dpr = 1; // logical-to-backing scale. Render draws in WIDTH/HEIGHT,
+  let momentCam = { x: 0, y: 0, z: 1 };
+  let momentHold = false;
                // so every ctx.setTransform must reapply this (see draw()'s shake).
                // It is the on-screen size, not the raw device ratio: a phone
                // showing a ~370px field must not allocate 1280×560×dpr.
@@ -1531,6 +1533,46 @@ const AgeOfWarGame = (() => {
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
+    attachMoments();
+  }
+
+  function noteMoment(label) {
+    try {
+      if (window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+    } catch (e) {}
+  }
+
+  function attachMoments() {
+    if (!window.EurekaMoments || !canvas) return;
+    EurekaMoments.attach({
+      game: 'aow',
+      gameTitle: 'Age of War',
+      canvas: function () { return canvas; },
+      hud: '.aow-topbar,.aow-battle-strip,.aow-actionbar,.aow-tabs,.aow-tabpanel,.aow-hint,.ea-topbar,#aow-coach,#aow-achievement-toasts',
+      button: 'aow-moments',
+      hotkey: { key: 'p', shift: true },
+      blocked: function () {
+        return modalPaused || !!resumePrompt || ridgeOpen || fieldOrderOpen || !!councilPending;
+      },
+      pause: function () { momentHold = true; },
+      resume: function () { momentHold = false; },
+      onClose: function () { momentCam.x = 0; momentCam.y = 0; momentCam.z = 1; },
+      camera: {
+        modes: ['free'],
+        pan: function (dx, dy) {
+          const scale = WIDTH / (canvas.clientWidth || WIDTH);
+          momentCam.x += dx * scale / momentCam.z;
+          momentCam.y += dy * scale / momentCam.z;
+          const limX = WIDTH * 0.35;
+          const limY = HEIGHT * 0.28;
+          momentCam.x = Math.max(-limX, Math.min(limX, momentCam.x));
+          momentCam.y = Math.max(-limY, Math.min(limY, momentCam.y));
+        },
+        zoom: function (scale) {
+          momentCam.z = Math.max(0.7, Math.min(2.2, momentCam.z * scale));
+        },
+      },
+    });
   }
 
   function seedClouds() {
@@ -2030,6 +2072,7 @@ const AgeOfWarGame = (() => {
       ageBannerT = 3.2;
       cueEclipse();
     }
+    noteMoment('Reached ' + ERAS[playerEra].name);
     // New era → new hero costs/CD baseline. GAME-1f: don't touch the
     // player's actual remaining cooldown here -- clamping it to <=10s let
     // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
@@ -3510,6 +3553,7 @@ const AgeOfWarGame = (() => {
       return;
     }
     launchSpecial('player', playerEra);
+    noteMoment(ERAS[playerEra].special.name);
     runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
     renderHud();
@@ -4599,6 +4643,7 @@ const AgeOfWarGame = (() => {
           bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
+            noteMoment(u.warlord ? (u.warlord.name + ' fallen') : 'Boss wave cleared');
             openWarChest(u.x, GROUND_Y - u.h - 56);   // AOW-31: the lid only lifts for a boss
             if (u.warlord) {
               runStats.warlordsSlain = (runStats.warlordsSlain || 0) + 1;
@@ -4730,6 +4775,7 @@ const AgeOfWarGame = (() => {
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
+      noteMoment('Base destroyed');
       if (endlessMode) recordBestRun();
       SFX.defeat();
       showOverlay(false);
@@ -4741,12 +4787,14 @@ const AgeOfWarGame = (() => {
       if (difficulty === 'insane') unlock('win_insane');
       if (!endlessMode) {
         gameOver = true; running = false; outcome = 'win';
+        noteMoment('Victory');
         SFX.victory();
         showOverlay(true);
       } else {
         // Endless: the enemy rebuilds tougher, pays out a razing bounty,
         // and the waves keep coming.
         strongholdsRazed++;
+        noteMoment('Stronghold razed');
         const bounty = Math.round(300 * Math.pow(1.5, strongholdsRazed - 1));
         gold += bounty;
         runStats.gold += bounty;
@@ -4983,8 +5031,9 @@ const AgeOfWarGame = (() => {
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
-    update(dt);
+    if (!momentHold) update(dt);
     draw();
+    try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
     rafId = requestAnimationFrame(loop);
   }
 
@@ -5009,19 +5058,21 @@ const AgeOfWarGame = (() => {
     fitCanvas();
     const era = ERAS[playerEra];
     // Screen shake — applied as a small canvas translate. shakeMag
-    // decays after the timed pulse expires.
-    if (shakeMag > 0.1) {
+    // decays after the timed pulse expires. Photo mode adds a pan and
+    // zoom on the same transform and holds the shake still.
+    let ox = 0, oy = 0;
+    if (!momentHold && shakeMag > 0.1) {
       const k = shakeT > 0 ? 1 : 0.6;
-      const ox = (Math.random() - 0.5) * shakeMag * k * 2;
-      const oy = (Math.random() - 0.5) * shakeMag * k * 2;
-      // Reapply dpr on every setTransform — the shake offset (ox, oy) is in
-      // logical units, but setTransform's translate is in device pixels, so
-      // it must be scaled by dpr too; otherwise HiDPI screens would either
-      // lose the backing-store scale (blurry/tiny render) or shake too little.
-      ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
-    } else {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ox = (Math.random() - 0.5) * shakeMag * k * 2;
+      oy = (Math.random() - 0.5) * shakeMag * k * 2;
     }
+    const z = momentCam.z;
+    const tx = ox + momentCam.x + WIDTH * (1 - z) / 2;
+    const ty = oy + momentCam.y + HEIGHT * (1 - z) / 2;
+    // Reapply dpr on every setTransform — the shake offset is in logical
+    // units, but setTransform's translate is in device pixels, so it must
+    // be scaled by dpr too.
+    ctx.setTransform(dpr * z, 0, 0, dpr * z, tx * dpr, ty * dpr);
     // ---- Atmosphere ----
     // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.
     const [skyTop, skyHorizon] = OG_SKY[playerEra] || ['#120818', '#3a2410'];
