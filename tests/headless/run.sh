@@ -37,6 +37,7 @@ LEAD=(
   persist
   career
   audio
+  world
   saves
   hubstore
   promises

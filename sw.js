@@ -95,6 +95,7 @@ const SHELL = [
   '/js/gamepad.js',
   '/js/hub-routes.js',
   '/js/life.js',
+  '/js/living-world.js',
   '/js/lightcycles.js',
   '/js/maze.js',
   '/js/memorymatrix.js',
