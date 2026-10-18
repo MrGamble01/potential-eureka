@@ -36,6 +36,15 @@ const GAMES = {
   'Hub':               ['index.html'],
 };
 
+// A flagship may READ a hub key it does not write, when the write lives
+// in the hub module that owns the key. Grow Op's alley slip prints the
+// player's chosen nickname; js/rivals.js is the only writer. The corner
+// must not start claiming the key, and a typo in the read still fails
+// because the owner file has to contain the write.
+const FOREIGN_READS = {
+  'Grow Op': { 'rival-name': 'js/rivals.js' },
+};
+
 // Keys reached either as string literals or through a *_KEY constant.
 function keysOf(files) {
   const blob = files.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
@@ -53,15 +62,23 @@ function keysOf(files) {
 const owners = new Map();
 for (const [game, files] of Object.entries(GAMES)) {
   const { reads, writes } = keysOf(files);
+  const borrowed = FOREIGN_READS[game] || {};
   const writeOnly = [...writes].filter(k => !reads.has(k)).sort();
-  const readOnly  = [...reads].filter(k => !writes.has(k)).sort();
+  const readOnly  = [...reads].filter(k => !writes.has(k) && !borrowed[k]).sort();
+  const borrowMiss = Object.entries(borrowed).filter(([k, file]) => {
+    if (!reads.has(k)) return true;
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    return !src.includes(k);
+  }).map(([k]) => k);
   ok(writeOnly.length === 0,
     `${game}: every key it writes, it also reads back`
     + (writeOnly.length ? ` — written but never read: ${writeOnly.join(', ')}` : ''));
-  ok(readOnly.length === 0,
+  ok(readOnly.length === 0 && borrowMiss.length === 0,
     `${game}: every key it reads, it also writes`
-    + (readOnly.length ? ` — read but never written: ${readOnly.join(', ')}` : ''));
+    + (readOnly.length ? ` — read but never written: ${readOnly.join(', ')}` : '')
+    + (borrowMiss.length ? ` — borrowed key missing from its owner: ${borrowMiss.join(', ')}` : ''));
   for (const k of new Set([...reads, ...writes])) {
+    if (borrowed[k] && !writes.has(k)) continue;
     if (!owners.has(k)) owners.set(k, new Set());
     owners.get(k).add(game);
   }

@@ -40,8 +40,8 @@ ok(/deeOnRoute|timeOfDay/.test(body),
   'HV-187: panhandle success reads Dee\'s night-shift route');
 ok(body && /bumpRegular\('dee'\)/.test(body),
   'a successful panhandle on her route still bumps Dee');
-ok(!/deeOnRoute/.test(ui) && !/night shift/.test(ui),
-  'ui.js untouched — the route gate lives on the action');
+ok(!/deeOnRoute/.test(ui) && !/Dee is still on the night shift/.test(ui),
+  'ui.js untouched — the route gate lives on the action (the Night Clinic may name June\'s night shift)');
 
 (async () => {
   const browser = await chromium.launch({

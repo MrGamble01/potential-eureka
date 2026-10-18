@@ -25,8 +25,10 @@
  *  C. Live: the same shift on heat paid the cool-day take
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
- *  D. Rain and cold do not steal the cut. Depot and the
- *     scrapyard still pay their #942 / #941 scorcher cuts.
+ *  D. HV-177 / #867 later calls a rainy flyer walk off inside
+ *     this same finisher — rain pays nothing. Cold still pays
+ *     the posted take. Depot and the scrapyard still pay their
+ *     #942 / #941 scorcher cuts.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -60,8 +62,8 @@ ok(/j\.id==='depot' && G\.weather==='heat'/.test(body),
   'the depot still has its HV-247 / #942 scorcher cut — not this ticket');
 ok(/j\.id==='scrapyd' && G\.weather==='heat'/.test(body),
   'the scrapyard still has its HV-246 / #941 scorcher cut — not this ticket');
-ok(!/j\.id==='flyers' && G\.weather==='rain'/.test(body) && !/j\.id==='flyers' && G\.weather==='cold'/.test(body),
-  'rain and cold are not this ticket — flyers-vs-rain is #867');
+ok(/j\.id==='flyers' && G\.weather==='rain'/.test(body) && !/j\.id==='flyers' && G\.weather==='cold'/.test(body),
+  'HV-177: rain calls the flyer walk off; cold is still not this ticket');
 ok(!/G\.weather==='heat'/.test(ui),
   'ui.js untouched — the heat cut lives on the odd-job walk');
 
@@ -128,8 +130,8 @@ ok(!/G\.weather==='heat'/.test(ui),
     `the log names the scorcher — not a silent cut (${heat.log.slice(-90)})`);
 
   const rain = await shift('rain', 1);
-  ok(rain.goodwill === 3 && rain.morale === 54,
-    `rain without heat still pays the posted take — flyers-vs-rain is #867 (${rain.goodwill} / ${rain.morale})`);
+  ok(rain.goodwill === 0 && rain.morale === 50 && /pulped|called it off/i.test(rain.log),
+    `HV-177: rain calls the shop walk off — no posted take (${rain.goodwill} / ${rain.morale})`);
 
   const cold = await shift('cold', 1);
   ok(cold.goodwill === 3 && cold.morale === 54,

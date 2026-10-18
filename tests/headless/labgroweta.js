@@ -68,7 +68,10 @@ const ok = (value, name) => { value ? pass++ : fail++; console.log(`${value ? 'P
     ok(!day.save.crunch && matches(day, 0) && seconds(day.save, 0) > seconds(lights.save, 0),
       'turning night shifts off restores the longer live ETA');
     await load({ plots: [{ r: 'garage', g: 0.999 }, { r: 'garage', g: 0.2 }] });
-    await page.clock.runFor(32);
+    // 0.001 of an 18s grow is ~18ms. Playwright's clock sometimes
+    // delivers that as a single ~16ms frame, so 32ms stops one frame
+    // short of READY. 80ms still finishes only the ripe plot.
+    await page.clock.runFor(80);
     const ready = await read();
     ok(ready.save.plots[0].g === 1 && ready.labels[0]?.text === '🌿 READY!' && ready.labels[0]?.cls === 'ready',
       'production completion replaces seconds with Ready labeling');

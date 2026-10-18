@@ -50,8 +50,8 @@ ok(/every rainy dawn stores a day of water/.test(cfg)
   'the barrel still stores a rainfall; the snap is still two brutal days');
 ok(body && /snapActive\s*\(\s*\)/.test(body),
   'HV-205: the stored-rainfall spend reads whether a snap is gripping the block');
-ok(!/froze the drum/.test(ui) && !/barrelWater/.test(ui) && !/snapActive/.test(ui),
-  'ui.js untouched — the ice lives on the watering');
+ok(!/froze the drum/.test(ui) && !/snapActive/.test(ui),
+  'ui.js untouched — the ice lives on the watering (the barrel craft row may show stored water)');
 
 (async () => {
   const launch = {
