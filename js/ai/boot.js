@@ -90,6 +90,31 @@
     return (el.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
+  // Feed rows keep a clock ("5s", "now") for the panel. The announcer
+  // speaks the messages only, with a separator between them.
+  function announcerDetail(el) {
+    if (!el) return '';
+    const rows = el.querySelectorAll('.feed-entry');
+    if (!rows.length) return (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const parts = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.classList.contains('feed-empty')) continue;
+      const bits = [];
+      const spans = row.querySelectorAll('span');
+      if (spans.length) {
+        spans.forEach(function (span) {
+          if (span.classList.contains('feed-age')) return;
+          const bit = (span.textContent || '').replace(/\s+/g, ' ').trim();
+          if (bit) bits.push(bit);
+        });
+      }
+      const text = (bits.length ? bits.join(' ') : (row.textContent || '')).replace(/\s+/g, ' ').trim();
+      if (text) parts.push(text);
+    }
+    return parts.join(' · ').slice(0, 160);
+  }
+
   function scrape() {
     switch (gameId) {
       case 'ageofwar':
@@ -550,9 +575,9 @@
       const el = document.querySelector(spec.sel);
       if (!el || watched.has(el)) return;
       watched.add(el);
-      let seen = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      let seen = announcerDetail(el);
       const obs = new MutationObserver(function () {
-        const next = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+        const next = announcerDetail(el);
         if (!next || next === seen) return;
         seen = next;
         const now = Date.now();

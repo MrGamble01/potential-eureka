@@ -1209,7 +1209,7 @@ a.arcade-card {
   #view-arcade #primer-hint { order: 7; }
   #view-arcade #daily-banner { order: 8; }
   .arcade-hero {
-    margin: 14px auto 14px;
+    margin: 14px auto 6px;
   }
   .arcade-hero-title {
     letter-spacing: 0.04em;

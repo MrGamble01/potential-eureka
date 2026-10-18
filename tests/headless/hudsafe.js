@@ -277,8 +277,96 @@ function box(rect) {
         const careerCs = careerEl ? getComputedStyle(careerEl) : null;
         const vars = getComputedStyle(document.documentElement);
         const stacked = !!(career && ticker && career.bottom <= ticker.top + 2);
+        const sprint = document.getElementById('sprint-btn');
+        if (sprint) {
+          sprint.classList.remove('sprint-unavailable');
+          sprint.style.display = 'flex';
+        }
+        const topSels = ['.ea-back', '#sidebar-toggle', '#session-chip', '#menu-btn', '#arcade-ai-launch', '#tp-toggle', '#sprint-btn', '#cash-hud', '#alley-btn'];
+        const topBoxes = topSels.map((sel) => {
+          const el = document.querySelector(sel);
+          const box = rect(sel);
+          return box && el ? { el, box } : null;
+        }).filter(Boolean);
+        const topOverlaps = [];
+        for (let i = 0; i < topBoxes.length; i++) {
+          for (let j = i + 1; j < topBoxes.length; j++) {
+            const a = topBoxes[i];
+            const b = topBoxes[j];
+            if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+            const w = Math.min(a.box.right, b.box.right) - Math.max(a.box.left, b.box.left);
+            const h = Math.min(a.box.bottom, b.box.bottom) - Math.max(a.box.top, b.box.top);
+            if (w > 0.5 && h > 0.5) topOverlaps.push(a.box.sel + '~' + b.box.sel);
+          }
+        }
+        const sky = document.getElementById('aow-sky');
+        const skyLabel = sky ? sky.querySelector(':scope > .aow-sky-label') : null;
+        let field = null;
+        if (sky && skyLabel && getComputedStyle(sky).display !== 'none') {
+          const skyBox = rect('#aow-sky');
+          const labelText = (skyLabel.textContent || '').replace(/\s+/g, ' ').trim();
+          const skyText = (sky.textContent || '').replace(/\s+/g, ' ').trim();
+          const nameHits = [];
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width < 2 || b.height < 2) return;
+            const w = Math.min(skyBox.right, b.right) - Math.max(skyBox.left, b.left);
+            const h = Math.min(skyBox.bottom, b.bottom) - Math.max(skyBox.top, b.top);
+            if (w > 0.5 && h > 0.5) nameHits.push((el.textContent || '').trim());
+          });
+          const coach = document.getElementById('aow-coach');
+          const tipHits = [];
+          if (coach && !coach.hidden && getComputedStyle(coach).display !== 'none') {
+            const cr = coach.getBoundingClientRect();
+            document.querySelectorAll('#arcade-ai-launch, .ea-back, .aow-settings-btn, .aow-moments-btn, .aow-action, .ai-speaker, #aow-sky').forEach((el) => {
+              if (coach.contains(el) || el.hidden) return;
+              const cs = getComputedStyle(el);
+              if (cs.display === 'none' || cs.visibility === 'hidden') return;
+              const b = el.getBoundingClientRect();
+              if (b.width < 2 || b.height < 2) return;
+              const w = Math.min(cr.right, b.right) - Math.max(cr.left, b.left);
+              const h = Math.min(cr.bottom, b.bottom) - Math.max(cr.top, b.top);
+              if (w > 0.5 && h > 0.5) tipHits.push(el.id || el.className || el.tagName);
+            });
+          }
+          const eraName = document.getElementById('aow-era-name');
+          const eraSub = document.getElementById('aow-era-sub');
+          let nameCount = 0;
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width > 8 && b.height > 8) nameCount++;
+          });
+          field = {
+            one: sky.childElementCount === 1 && !!skyLabel && skyText === labelText && labelText.length > 0 && skyText.indexOf(labelText) === skyText.lastIndexOf(labelText),
+            fits: sky.scrollWidth <= sky.clientWidth + 1 && skyLabel.scrollWidth <= skyLabel.clientWidth + 1,
+            line: labelText,
+            names: nameHits,
+            nameCount,
+            tipOn: !!(coach && !coach.hidden && getComputedStyle(coach).display !== 'none'),
+            tips: tipHits,
+            age: !!(eraName && eraSub
+              && eraName.scrollWidth <= eraName.clientWidth + 1
+              && eraSub.scrollWidth <= eraSub.clientWidth + 1
+              && eraName.clientWidth > 40
+              && (eraName.textContent || '').indexOf(' ') !== -1),
+          };
+        }
+        const chip = document.getElementById('session-chip');
+        const bar = document.getElementById('status-bar');
+        let session = null;
+        if (chip && bar && getComputedStyle(bar).display !== 'none') {
+          const text = (chip.textContent || '').replace(/\s+/g, ' ').trim();
+          const cr = chip.getBoundingClientRect();
+          const br = bar.getBoundingClientRect();
+          session = {
+            text,
+            fits: text.indexOf('Session') !== -1 && cr.width > 40 && cr.left >= br.left - 1 && cr.right <= br.right + 1 && bar.scrollWidth <= bar.clientWidth + 2,
+          };
+        }
         return {
           overlaps,
+          topOverlaps,
+          session,
           booth: !!booth,
           ticker: !!ticker,
           toast: !!toast,
@@ -290,6 +378,7 @@ function box(rect) {
           top: vars.getPropertyValue('--hud-top-safe').trim(),
           bottom: vars.getPropertyValue('--hud-bottom-safe').trim(),
           games: spec.gamesOnCard ? hit(rect('.ea-back'), rect('#next-action-card')) : false,
+          field,
         };
       }, { bars: game.bars, toast: game.toast, gamesOnCard: !!game.gamesOnCard });
 
@@ -297,6 +386,8 @@ function box(rect) {
       ok(geo.ticker, `${where} announcer is on screen`);
       ok(!game.toast || geo.toast, `${where} toast is on screen`);
       ok(geo.overlaps.length === 0, `${where} no HUD overlap${geo.overlaps.length ? ': ' + geo.overlaps.join(', ') : ''}`);
+      ok(geo.topOverlaps.length === 0, `${where} top bar is clear${geo.topOverlaps.length ? ': ' + geo.topOverlaps.join(', ') : ''}`);
+      if (geo.session) ok(geo.session.fits, `${where} session text is readable (${geo.session.text})`);
       ok(geo.tickerPe === 'none', `${where} announcer ignores pointer events`);
       if (game.toast) ok(geo.toastPe === 'none', `${where} toast ignores pointer events`);
       ok(geo.career, `${where} achievement toast is on screen`);
@@ -305,9 +396,50 @@ function box(rect) {
       ok(parseFloat(geo.top) > 0 && parseFloat(geo.bottom) > 0,
         `${where} safe zone is ${geo.top} / ${geo.bottom}`);
       if (game.gamesOnCard) ok(!geo.games, `${where} GAMES clears the first-step card`);
+      if (geo.field) {
+        ok(geo.field.one, `${where} weather pill has one label (${geo.field.line})`);
+        ok(geo.field.fits, `${where} weather label fits the pill`);
+        ok(geo.field.nameCount === 3 && geo.field.names.length === 0, `${where} hero names clear the weather pill${geo.field.names.length ? ': ' + geo.field.names.join(', ') : ''}`);
+        ok(geo.field.tipOn && geo.field.tips.length === 0, `${where} tutorial tip clears HUD buttons${geo.field.tips.length ? ': ' + geo.field.tips.join(', ') : ''}`);
+        ok(geo.field.age, `${where} age chip text fits`);
+      }
       await context.close();
     }
   }
+
+  const wire = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const wirePage = await wire.newPage();
+  wirePage.on('pageerror', (error) => errors.push('wire ' + error));
+  await wirePage.addInitScript(() => {
+    localStorage.setItem('tycoon:welcomeSeen-v1', '1');
+    localStorage.setItem('tycoon:tipsEnabled', '0');
+  });
+  await wirePage.goto(BASE + '/tycoon/play.html', { waitUntil: 'domcontentloaded' });
+  await wirePage.waitForSelector('#hire-btn', { timeout: 8000 });
+  await wirePage.waitForSelector('#arcade-ai-launch', { timeout: 8000 });
+  await wirePage.waitForTimeout(800);
+  await wirePage.evaluate(() => {
+    const list = document.getElementById('feed-list');
+    list.textContent = '';
+    ['First Steps — $50!', 'Bootstrapped — $250!'].forEach((text) => {
+      const row = document.createElement('div');
+      row.className = 'feed-entry';
+      row.innerHTML = '<span></span><span class="feed-age">5s</span>';
+      row.firstChild.textContent = text;
+      list.appendChild(row);
+    });
+  });
+  await wirePage.waitForFunction(() => {
+    const line = document.querySelector('#arcade-ai-ticker-line');
+    return line && /On the wire:/.test(line.textContent || '') && /·/.test(line.textContent || '');
+  }, { timeout: 6000 });
+  const wireLine = await wirePage.evaluate(() => document.querySelector('#arcade-ai-ticker-line').textContent.replace(/\s+/g, ' ').trim());
+  ok(/On the wire:/.test(wireLine) && wireLine.indexOf(' · ') !== -1
+    && wireLine.indexOf('Bootstrapped — $250!') !== -1
+    && wireLine.indexOf('First Steps — $50!') !== -1
+    && !/\d+s/.test(wireLine) && wireLine.indexOf('now') === -1,
+    `tycoon ticker separates items and drops the ttl (${wireLine})`);
+  await wire.close();
 
   const dismiss = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const dismissPage = await dismiss.newPage();

@@ -220,17 +220,16 @@ ok(/Number\.isFinite\(Number\(sv\.cash\)\)/.test(src), 'a $0 balance is not trea
           'a bought cut survives a reload');
 
         await load({ cash: 8000, totalEarned: 500, heat: 10, stashCount: 0, strain: 'kush', strainsOwned: ['kush'] });
-        let opened = false;
-        let title = '';
-        for (let i = 0; i < 90 && !opened; i++) {
-          await page.clock.runFor(10000);
-          const ev = await page.evaluate(() => {
-            const m = document.getElementById('event-modal');
-            return { open: !!(m && m.classList.contains('open')), title: document.getElementById('ev-title').textContent };
-          });
-          opened = ev.open;
-          title = ev.title;
-        }
+        // One jumped clock gap has to cross the 60s cooldown. The 40%
+        // roll is pinned for this gap so the suite does not depend on luck.
+        await page.evaluate(() => { Math.random = () => 0.01; });
+        await page.clock.fastForward(70000);
+        const ev = await page.evaluate(() => {
+          const m = document.getElementById('event-modal');
+          return { open: !!(m && m.classList.contains('open')), title: document.getElementById('ev-title').textContent };
+        });
+        const opened = ev.open;
+        const title = ev.title;
         ok(opened, `a street event opened (${title || 'none'})`);
         if (opened) {
           const choice = page.locator('#ev-choices button:not([disabled])').last();

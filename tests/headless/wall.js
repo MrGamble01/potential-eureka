@@ -50,8 +50,10 @@ const GAMES = [
     extraClear: ['growop-frame'],
     // A fresh corner opens on the difficulty picker, which sits over
     // the whole page; pick one so the test measures the wall.
+    // The crash course opens after that pick. Arrive as someone who
+    // has already read it, the same way HV skips its intro.
     dismiss: '#diff-careful',
-    pre: () => ({}) },
+    pre: () => ({ 'growop-intro-seen': '1' }) },
   { name: 'Age of War', file: 'ageofwar/ageofwar.js', table: 'AOW_CHAIN',
     url: '/ageofwar/index.html', btn: '#aow-chain-btn', modal: '#aow-chain-modal',
     list: '#aow-chain-list', prog: '#aow-chain-progress', row: '.aow-chain-row',

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261017moments4">
+  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261018aowfield">
   <link rel="stylesheet" href="/css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
@@ -72,7 +72,7 @@
       .aow-page-bar { display: none; }
     }
   </style>
-  <link rel="stylesheet" href="/css/hud.css?v=20261017huda3">
+  <link rel="stylesheet" href="/css/hud.css?v=20261018aowfield">
 </head>
 <body>
   <div class="ea-topbar"><a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a></div>
@@ -147,7 +147,7 @@
 
       <div class="aow-stage">
         <canvas id="aow-canvas" class="aow-canvas"></canvas>
-        <div id="aow-sky" role="status" aria-live="polite" style="position:absolute;left:10px;bottom:10px;z-index:6;pointer-events:none;max-width:min(460px,calc(100% - 20px));padding:6px 10px;border-radius:999px;background:rgba(8,10,14,.78);color:#f4efe4;font:700 12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border:1px solid rgba(255,255,255,.2);text-shadow:0 1px 2px rgba(0,0,0,.65)"></div>
+        <div id="aow-sky" class="aow-sky" role="status" aria-live="polite"><span class="aow-sky-label"></span></div>
         <div id="aow-coach" class="aow-coach" hidden role="status">
           <div class="aow-coach-copy">
             <div class="aow-coach-kicker">Start here</div>

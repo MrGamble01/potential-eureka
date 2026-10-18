@@ -11,7 +11,8 @@
  *
  *  A. Source: the odd-job payout names rain on the scrapyard.
  *  B. A clear day still pays the posted haul.
- *  C. Rain cuts the yard. Depot and flyers stay dry-day.
+ *  C. Rain cuts the yard. Depot stays the posted wet-morning
+ *     lift. HV-177 / #867 later calls flyers off in the rain.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives finishAction(oddJobAction()) on the production row.
@@ -107,8 +108,8 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
     finishAction(oddJobAction());
     return { id: todaysJob().id, gw: G.goodwill, morale: G.morale };
   });
-  ok(flyers.id === 'flyers' && flyers.gw === 3 && flyers.morale === 54,
-    `flyers on a wet day still pay the posted shop take (${flyers.gw} gw, morale ${flyers.morale})`);
+  ok(flyers.id === 'flyers' && flyers.gw === 0 && flyers.morale === 50,
+    `HV-177: flyers on a wet day are called off — the shop does not pay (${flyers.gw} gw, morale ${flyers.morale})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);

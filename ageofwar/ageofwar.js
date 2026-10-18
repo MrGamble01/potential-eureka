@@ -994,11 +994,40 @@ const AgeOfWarGame = (() => {
     return aowWorld ? aowWorld.snapshot() : null;
   }
 
+  // One weather line. A second node in the pill (an old readout, a
+  // wrapped duplicate) is removed, not painted over.
+  function skyLabelEl(el) {
+    let label = el.querySelector(':scope > .aow-sky-label');
+    if (!label) {
+      label = document.createElement('span');
+      label.className = 'aow-sky-label';
+      el.appendChild(label);
+    }
+    const kids = el.childNodes;
+    for (let i = kids.length - 1; i >= 0; i--) {
+      if (kids[i] !== label) kids[i].remove();
+    }
+    return label;
+  }
+  function fitSkyLabel(el) {
+    const label = el.querySelector(':scope > .aow-sky-label');
+    if (!label) return;
+    label.style.fontSize = '12px';
+    let size = 12;
+    while (size > 8 && el.scrollWidth > el.clientWidth + 1) {
+      size -= 0.5;
+      label.style.fontSize = size + 'px';
+    }
+  }
   function paintSkyReadout(changed) {
     const snap = skySnap();
     if (!snap) return;
     const el = document.getElementById('aow-sky');
-    if (el && el.textContent !== snap.label) el.textContent = snap.label;
+    if (el) {
+      const label = skyLabelEl(el);
+      if (label.textContent !== snap.label) label.textContent = snap.label;
+      fitSkyLabel(el);
+    }
     if (canvas && canvas.dataset) {
       canvas.dataset.world = snap.key;
       canvas.dataset.worldMove = String(snap.mods.move);
