@@ -345,43 +345,53 @@
       const st = doc.createElement('style');
       st.id = 'spark-shop-css';
       st.textContent = [
-        '#spark-shop{margin:4px 0 18px;padding:14px;border-radius:16px;border:1px solid rgba(247,201,72,.45);',
-        'max-width:100%;min-width:0;box-sizing:border-box;',
-        'background:linear-gradient(180deg,rgba(247,201,72,.08),transparent 48%),var(--color-black-elevated,#14141c)}',
+        '#spark-shop{margin:4px 0 18px;padding:14px;border-radius:var(--hud-radius-card,16px);',
+        'max-width:100%;min-width:0;box-sizing:border-box;color:var(--hud-text,#f7f4ee);',
+        'font-family:var(--hud-font-display, "Outfit", "Inter", sans-serif);',
+        'border:1px solid color-mix(in srgb,var(--hud-gold,#e3b341) 45%,var(--hud-border,rgba(255,255,255,.12)));',
+        'background-color:var(--hud-card,#0c0e14);',
+        'background-image:linear-gradient(180deg,color-mix(in srgb,var(--hud-gold,#e3b341) 14%,transparent),transparent 48%)}',
         '#spark-shop .spark-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}',
-        '#spark-shop .spark-balance{font-weight:800;color:#f7c948;font-variant-numeric:tabular-nums}',
-        '.spark-rules{margin:8px 0 0;color:var(--text-dim,#9aa);font-size:13px;line-height:1.45}',
+        '#spark-shop .spark-balance{font-weight:800;color:var(--hud-gold-bright,#f0c552);font-variant-numeric:tabular-nums}',
+        '#spark-shop .trophy-h,#spark-shop h2,#spark-shop h3{color:var(--hud-text,#f7f4ee);font-family:inherit}',
+        '.spark-rules{margin:8px 0 0;color:var(--hud-dim,#8b949e);font-size:13px;line-height:1.45}',
         '.spark-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}',
         '.spark-filter,.spark-preview,.spark-buy,.spark-actions button{min-height:44px;min-width:44px;touch-action:manipulation;',
-        'border-radius:10px;border:1px solid var(--border,#333);background:var(--color-white-05,rgba(255,255,255,.06));',
-        'color:var(--text,#f4f1ea);font-weight:700;font-size:16px;line-height:1.2;font-family:inherit;padding:8px 12px;cursor:pointer}',
-        '.spark-filter.is-on{border-color:#f7c948;box-shadow:inset 0 0 0 1px #f7c948}',
+        'border-radius:10px;border:1px solid var(--hud-border-strong,rgba(255,255,255,.18));',
+        'background:color-mix(in srgb,var(--hud-text,#f7f4ee) 8%,var(--hud-bg,#060608));',
+        'color:var(--hud-text,#f7f4ee);font-weight:700;font-size:16px;line-height:1.2;font-family:inherit;padding:8px 12px;cursor:pointer}',
+        '.spark-filter.is-on{background:var(--hud-text,#f7f4ee);color:var(--hud-ink,#060608);border-color:var(--hud-text,#f7f4ee);box-shadow:none}',
         '.spark-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:10px;margin-top:12px;min-width:0}',
-        '.spark-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border-radius:14px;border:1px solid var(--border-subtle,#2a2a2a);background:rgba(0,0,0,.2);overflow:hidden}',
-        '.spark-card.is-on{border-color:#f7c948}',
-        '.spark-thumb{width:100%;height:84px;border-radius:10px;background:#120e0a;display:block}',
-        '.spark-card h3{margin:0;font-size:16px}',
-        '.spark-card p{margin:0;color:var(--text-dim,#9aa);font-size:13px;line-height:1.35}',
+        '.spark-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border-radius:14px;',
+        'border:1px solid var(--hud-border,rgba(255,255,255,.12));background-color:var(--hud-bg,#060608);color:var(--hud-text,#f7f4ee);overflow:hidden}',
+        '.spark-card.is-on{border-color:var(--hud-gold,#e3b341)}',
+        '.spark-thumb{width:100%;height:84px;border-radius:10px;background:var(--hud-bg-deep,#020203);display:block}',
+        '.spark-card h3{margin:0;font-size:16px;color:var(--hud-text,#f7f4ee)}',
+        '.spark-card p{margin:0;color:var(--hud-dim,#8b949e);font-size:13px;line-height:1.35}',
         '.spark-card-actions{display:flex;gap:8px;margin-top:auto}',
         '.spark-card-actions button{flex:1}',
-        '.spark-buy:disabled{opacity:.55;cursor:default}',
+        '.spark-buy:disabled{opacity:1;color:var(--hud-dim,#8b949e);cursor:default}',
         '.trophy-face{position:relative}',
         '.trophy-badge{position:absolute;right:-6px;bottom:-6px;font-size:18px;line-height:1;',
-        'background:#14141c;border-radius:999px;padding:2px;border:1px solid rgba(247,201,72,.7)}',
+        'background:var(--hud-card,#0c0e14);color:var(--hud-gold-bright,#f0c552);border-radius:999px;padding:2px;',
+        'border:1px solid color-mix(in srgb,var(--hud-gold,#e3b341) 55%,var(--hud-border,rgba(255,255,255,.12)))}',
         '.spark-reveal{position:fixed;inset:0;z-index:100002;display:flex;align-items:flex-end;justify-content:center;',
         'background:rgba(4,4,8,.72);padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}',
-        '.spark-sheet{width:min(460px,100%);background:#14141c;color:#f4f1ea;border:1px solid rgba(247,201,72,.7);',
-        'border-radius:18px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.55)}',
+        '.spark-sheet{width:min(460px,100%);background:var(--hud-surface,rgba(10,10,15,.94));color:var(--hud-text,#f7f4ee);',
+        'font-family:var(--hud-font-display, "Outfit", "Inter", sans-serif);',
+        'border:1px solid color-mix(in srgb,var(--hud-gold,#e3b341) 55%,var(--hud-border,rgba(255,255,255,.12)));',
+        'border-radius:var(--hud-radius-sheet,18px);padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.55)}',
         '.spark-sheet.is-reveal{animation:sparkPop .48s cubic-bezier(.2,1.35,.36,1)}',
         '@keyframes sparkPop{0%{transform:scale(.72) translateY(28px);opacity:0}100%{transform:none;opacity:1}}',
-        '.spark-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#f7c948}',
-        '.spark-sheet h2{margin:4px 0 8px;font-size:28px;line-height:1.1}',
-        '#spark-reveal-stage{width:100%;height:200px;border-radius:12px;background:#120e0a;display:block}',
+        '.spark-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hud-gold-bright,#f0c552)}',
+        '.spark-sheet h2{margin:4px 0 8px;font-size:28px;line-height:1.1;color:var(--hud-text,#f7f4ee);font-family:inherit}',
+        '#spark-reveal-stage{width:100%;height:200px;border-radius:12px;background:var(--hud-bg-deep,#020203);display:block}',
         '.spark-actions{display:flex;gap:8px;margin-top:12px}',
         '.spark-actions button{flex:1}',
-        '.spark-toast{position:fixed;z-index:100001;top:max(12px,env(safe-area-inset-top));left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 24px);text-align:center;',
-        'background:rgba(12,12,16,.94);color:#f7c948;border:1px solid rgba(247,201,72,.7);border-radius:999px;',
-        'padding:10px 16px;font:800 14px/1 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4)}',
+        '.spark-toast{position:fixed;z-index:100001;top:var(--hud-top-safe,72px);left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 24px);text-align:center;pointer-events:none;',
+        'background:var(--hud-surface,rgba(10,10,15,.94));color:var(--hud-gold-bright,#f0c552);',
+        'border:1px solid color-mix(in srgb,var(--hud-gold,#e3b341) 55%,var(--hud-border,rgba(255,255,255,.12)));border-radius:999px;',
+        'padding:10px 16px;font:800 14px/1.2 var(--hud-font-display, "Outfit", sans-serif);box-shadow:0 10px 30px rgba(0,0,0,.45)}',
         'html[data-card-theme="cards-lantern"] .arcade-card,html[data-card-theme="cards-lantern"] a.arcade-flagship{',
         'box-shadow:0 0 0 2px rgba(240,160,75,.8),0 12px 28px rgba(240,140,40,.18)}',
         'html[data-card-theme="cards-ink"] .arcade-card,html[data-card-theme="cards-ink"] a.arcade-flagship{',
@@ -406,8 +416,18 @@
         doc.body.appendChild(el);
       }
       el.textContent = '✦ +' + gained + ' Sparks';
+      try {
+        const view = doc.defaultView;
+        if (view && view.HudSafe && view.HudSafe.apply) view.HudSafe.apply();
+      } catch (e) { /* the pill still shows if the safe zone is late */ }
       clearTimeout(toast._t);
-      toast._t = setTimeout(function () { if (el.parentNode) el.remove(); }, 2400);
+      toast._t = setTimeout(function () {
+        if (el.parentNode) el.remove();
+        try {
+          const view = doc.defaultView;
+          if (view && view.HudSafe && view.HudSafe.schedule) view.HudSafe.schedule();
+        } catch (e) { /* the shelf returns when the next measure runs */ }
+      }, 2400);
     }
 
     function el(doc, tag, className, text) {
@@ -654,6 +674,10 @@
       }
       decorate(rootEl);
       apply();
+      try {
+        const view = doc.defaultView;
+        if (view && view.HudSafe && view.HudSafe.schedule) view.HudSafe.schedule();
+      } catch (e) { /* the shop still paints if the safe zone is late */ }
     }
 
     function decorate(rootEl) {

@@ -345,11 +345,22 @@
       el.appendChild(text);
       document.body.appendChild(el);
       try {
+        const view = document.defaultView;
+        if (view && view.HudSafe && view.HudSafe.apply) view.HudSafe.apply();
+      } catch (e) { /* the banner still shows if the safe zone is late */ }
+      try {
         const sfx = env.sfx && env.sfx();
         if (sfx && sfx.play) sfx.play('bonus');
       } catch (e) { /* sound is optional */ }
       setTimeout(function () { el.classList.add('career-toast-out'); }, 2600);
-      setTimeout(function () { el.remove(); pump(); }, 3200);
+      setTimeout(function () {
+        el.remove();
+        try {
+          const view = document.defaultView;
+          if (view && view.HudSafe && view.HudSafe.schedule) view.HudSafe.schedule();
+        } catch (e) { /* the shelf returns when the next measure runs */ }
+        pump();
+      }, 3200);
     }
 
     function announce(ach) {

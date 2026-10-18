@@ -216,8 +216,9 @@ function careerApi(store) {
       return {
         overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         font: parseFloat(getComputedStyle(input).fontSize),
-        btn: btn.getBoundingClientRect().height,
-        play: play.getBoundingClientRect().height,
+        // Chromium reports a 44px border box as 43.99998 or 44.00002.
+        btn: Math.round(btn.getBoundingClientRect().height),
+        play: Math.round(play.getBoundingClientRect().height),
         name: (document.querySelector('.trophy-name-input') || {}).value,
       };
     });
