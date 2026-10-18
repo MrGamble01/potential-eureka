@@ -48,6 +48,7 @@ const ok = (condition, name) => {
       self: !!(top && (top === el || el.contains(top))),
       relic: !!(top && top.closest && top.closest('.relic-perk')),
       sheet: !!(top && top.closest && top.closest('#aow-overlay')),
+      inside: !!(sr && r.top >= sr.top - 1 && r.bottom <= sr.bottom + 1),
       sheetAboveBar: !!(sr && br && sr.bottom <= br.top + 1),
       sheetAboveSpawn: !!(sr && pr && sr.bottom <= pr.top + 1),
     };
@@ -71,8 +72,8 @@ const ok = (condition, name) => {
         `${label}: Awards stays on the action bar`);
       ok(spawn.self && !spawn.relic && !spawn.sheet && spawn.sheetAboveSpawn,
         `${label}: a recruit button stays on the spawn row`);
-      ok(resume.self && !resume.relic,
-        `${label}: Resume war is the thing under its own tap`);
+      ok(resume.self && !resume.relic && resume.inside,
+        `${label}: Resume war is inside the sheet and takes its own tap`);
 
       const relic = page.locator('#aow-overlay .relic-perk').first();
       await relic.scrollIntoViewIfNeeded();
