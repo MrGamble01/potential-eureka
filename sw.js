@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261018-world';  // Living world on Age of War and Grow Op, after photo mode. Cache-first shells refresh when this moves.
+const SW_VERSION = 'eureka-20261017-huda4';  // HUD safe zones after photo mode (moments4) and the living-world shell. Both hud.css and hud-b.css stay in the precache. Cache-first CSS ignores ?v= until this moves.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -56,6 +56,8 @@ const SHELL = [
   '/vendor/three-r128.min.js',
   '/css/arcade-chrome.css',
   '/css/hud.css',
+  '/css/hud-space.woff2',
+  '/js/hud-safe.js',
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',

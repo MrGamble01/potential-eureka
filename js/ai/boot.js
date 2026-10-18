@@ -112,13 +112,13 @@
 
   const style = document.createElement('style');
   style.textContent = [
-    '#arcade-ai-root{position:fixed;z-index:1200;left:8px;top:8px}',
+    '#arcade-ai-root{position:fixed;z-index:1200;left:8px;top:var(--hud-top-safe,8px)}',
     '#arcade-ai-launch{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;',
     'color:#f6f1e6;background:rgba(10,12,16,.9);border:1px solid var(--ai-accent,#e0c9a0);border-radius:999px;',
     'padding:8px 12px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.35)}',
     '#arcade-ai-launch:focus-visible{outline:2px solid var(--ai-accent,#e0c9a0);outline-offset:2px}',
     '#arcade-ai-launch[aria-expanded="true"]{background:#17140f}',
-    '#arcade-ai-ticker{position:fixed;z-index:1190;left:50%;bottom:18px;transform:translateX(-50%);max-width:min(440px,calc(100vw - 24px));',
+    '#arcade-ai-ticker{position:fixed;z-index:1190;left:50%;bottom:calc(var(--hud-bottom-safe,18px) + 8px);transform:translateX(-50%);max-width:min(440px,calc(100vw - 24px));',
     'pointer-events:none;background:rgba(8,10,14,.88);color:#f6f1e6;border:1px solid rgba(255,255,255,.16);',
     'border-left:3px solid var(--ai-accent,#e0c9a0);border-radius:10px;padding:8px 36px 8px 12px;font:13px/1.35 Georgia,Palatino,serif;',
     'box-shadow:0 10px 28px rgba(0,0,0,.35)}',
@@ -388,16 +388,24 @@
     }).catch(function () {});
   }
 
+  function safePx(name, fallback) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function shownBox(el) {
     if (!el) return null;
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return null;
+    if (r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
+    if (r.height > innerHeight * 0.7 && r.width > innerWidth * 0.7) return null;
     return r;
   }
 
-  function hits(box, rect, pad) {
+  function overlapsRect(box, rect, pad) {
     return !(box.right + pad <= rect.left || box.left >= rect.right + pad || box.bottom + pad <= rect.top || box.top >= rect.bottom + pad);
   }
 
@@ -405,11 +413,25 @@
     return shownBox(document.getElementById('minimap'));
   }
 
-  // Sit the announcer above the build / action bar: the offset is the
-  // bar's height plus the safe area plus 8px when the bar rests on that
-  // inset, and always at least 8px above whatever chrome is actually there.
+  function readSafeBand(height) {
+    if (window.HudSafe && typeof window.HudSafe.apply === 'function') window.HudSafe.apply();
+    let topSafe = Math.max(8, safePx('--hud-top-safe', 8));
+    const bottomSafe = Math.max(8, safePx('--hud-bottom-safe', 18));
+    let maxBottom = innerHeight - bottomSafe;
+    if (topSafe + height + 8 > maxBottom) {
+      const slack = topSafe + height + 8 - maxBottom;
+      topSafe = Math.max(8, topSafe - Math.ceil(slack / 2));
+      maxBottom = Math.min(innerHeight - 8, maxBottom + Math.ceil(slack / 2));
+    }
+    return { topSafe: topSafe, bottomSafe: bottomSafe, maxBottom: maxBottom };
+  }
+
+  // Sit the announcer in the shared bottom band, and never on a build
+  // or action bar. The inline offset wins over the stylesheet, so the
+  // measured bar and --hud-bottom-safe both have to be honored here.
   function placeTicker() {
-    const bars = document.querySelectorAll('#buildbar, #buildtabs, #hotbar, #buildBar, #lab-tray');
+    const band = readSafeBand(48);
+    const bars = document.querySelectorAll('#buildbar, #buildtabs, #hotbar, #buildBar, #lab-tray, .aow-actionbar, .aow-tabs, #aow-spawn-list, #bottom-bar, #next-action-card');
     let top = Infinity;
     let barHeight = 0;
     let safe = 0;
@@ -427,11 +449,12 @@
         barHeight = r.height;
       }
     });
-    let offset = 18;
+    let offset = band.bottomSafe;
     if (top < Infinity) {
-      offset = Math.max(barHeight + safe + 8, innerHeight - top + 8);
+      offset = Math.max(offset, barHeight + safe + 8, innerHeight - top + 8);
     }
     ticker.style.bottom = offset + 'px';
+    if (window.HudSafe && typeof window.HudSafe.liftToasts === 'function') window.HudSafe.liftToasts();
   }
 
   function place() {
@@ -439,52 +462,72 @@
     const launch = document.getElementById('arcade-ai-launch');
     const width = Math.ceil(launch.offsetWidth || 92);
     const height = Math.ceil(launch.offsetHeight || 34);
+    const band = readSafeBand(height);
+    const topSafe = band.topSafe;
+    const maxBottom = band.maxBottom;
     const blockers = [];
-    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #heat-hud, #goal-hud, #goals, #back, #lab-tray, #vox-tray, #bgl-yard, .aow-topbar, #aow-topbar, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
+    document.querySelectorAll('button, a, input, select, [role="button"], #hud, #top-bar, #topbar, #status-bar, #cash-hud, #metrics-hud, #goal-hud, #heat-hud, #goals, #back, #lab-tray, #vox-tray, #bottom-bar, #left-panel, #next-action-card, #bgl-yard, .aow-topbar, #aow-topbar, .aow-battle-strip, .aow-actionbar, .aow-tabs, .aow-spawn-list, #minimap, #zoom-ctl, #buildbar, #buildtabs, #menu, #panel, #speedctl, #vale-talk').forEach((el) => {
       if (root.contains(el) || panel.contains(el) || ticker.contains(el)) return;
       const r = shownBox(el);
       if (r) blockers.push(r);
     });
     const mini = miniRect();
-    function clearOf(x, y) {
+    function overlapArea(x, y) {
       const box = { left: x, top: y, right: x + width, bottom: y + height };
-      if (box.left < 4 || box.top < 4 || box.right > innerWidth - 4 || box.bottom > innerHeight - 4) return false;
-      if (mini && hits(box, mini, 8)) return false;
+      if (box.left < 4 || box.top < topSafe - 1 || box.right > innerWidth - 4 || box.bottom > maxBottom + 1) return Infinity;
+      if (mini && overlapsRect(box, mini, 8)) return Infinity;
+      let area = 0;
       for (let i = 0; i < blockers.length; i++) {
-        if (hits(box, blockers[i], 6)) return false;
+        const b = blockers[i];
+        const pad = 6;
+        const w = Math.min(box.right + pad, b.right) - Math.max(box.left - pad, b.left);
+        const h = Math.min(box.bottom + pad, b.bottom) - Math.max(box.top - pad, b.top);
+        if (w > 0 && h > 0) area += w * h;
       }
-      return true;
+      return area;
     }
     const spots = [];
     const back = document.querySelector('.ea-back');
     if (back) {
       const r = back.getBoundingClientRect();
-      if (r.width > 2) spots.push({ x: Math.round(r.right + 10), y: Math.round(Math.max(8, r.top)) });
+      if (r.width > 2 && r.right > 0 && r.left < innerWidth) {
+        spots.push({ x: Math.round(r.right + 10), y: Math.round(Math.max(topSafe, r.top)) });
+      }
     }
-    spots.push({ x: 8, y: 8 });
-    spots.push({ x: Math.max(8, innerWidth - width - 8), y: 8 });
-    spots.push({ x: 8, y: 64 });
-    spots.push({ x: Math.max(8, innerWidth - width - 8), y: 72 });
-    for (let y = 8; y < innerHeight - height - 8; y += 28) {
+    spots.push({ x: 8, y: Math.round(topSafe) });
+    spots.push({ x: Math.max(8, innerWidth - width - 8), y: Math.round(topSafe) });
+    spots.push({ x: 8, y: Math.round(topSafe + 56) });
+    spots.push({ x: Math.max(8, innerWidth - width - 8), y: Math.round(topSafe + 64) });
+    for (let y = Math.round(topSafe); y < maxBottom - height; y += 28) {
       spots.push({ x: 8, y: y });
       spots.push({ x: Math.max(8, innerWidth - width - 8), y: y });
     }
     let chosen = null;
+    let best = Infinity;
     for (let i = 0; i < spots.length; i++) {
-      if (clearOf(spots[i].x, spots[i].y)) { chosen = spots[i]; break; }
+      const area = overlapArea(spots[i].x, spots[i].y);
+      if (area < best) {
+        best = area;
+        chosen = spots[i];
+        if (area === 0) break;
+      }
     }
-    if (!chosen && mini) {
-      const beside = { x: Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10))), y: Math.round(Math.max(8, mini.top)) };
-      const below = { x: Math.round(Math.max(8, mini.left)), y: Math.round(Math.min(innerHeight - height - 8, mini.bottom + 10)) };
-      if (clearOf(beside.x, beside.y)) chosen = beside;
-      else if (clearOf(below.x, below.y)) chosen = below;
+    if ((!chosen || best === Infinity) && mini) {
+      const beside = { x: Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10))), y: Math.round(Math.max(topSafe, mini.top)) };
+      const below = { x: Math.round(Math.max(8, mini.left)), y: Math.round(Math.min(maxBottom - height, Math.max(topSafe, mini.bottom + 10))) };
+      const besideArea = overlapArea(beside.x, beside.y);
+      const belowArea = overlapArea(below.x, below.y);
+      if (besideArea === 0) chosen = beside;
+      else if (belowArea === 0) chosen = below;
+      else if (besideArea < belowArea) chosen = beside;
+      else chosen = below;
     }
     if (!chosen) {
-      chosen = { x: Math.max(8, innerWidth - width - 8), y: Math.max(8, innerHeight - height - 16) };
-      if (mini && hits({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+      chosen = { x: Math.max(8, innerWidth - width - 8), y: Math.max(topSafe, Math.min(maxBottom - height, innerHeight - height - 16)) };
+      if (mini && overlapsRect({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
         chosen.x = Math.round(Math.min(innerWidth - width - 8, Math.max(8, mini.right + 10)));
-        if (hits({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
-          chosen.y = Math.round(Math.min(innerHeight - height - 8, mini.bottom + 10));
+        if (overlapsRect({ left: chosen.x, top: chosen.y, right: chosen.x + width, bottom: chosen.y + height }, mini, 8)) {
+          chosen.y = Math.round(Math.min(maxBottom - height, Math.max(topSafe, mini.bottom + 10)));
         }
       }
     }
@@ -545,7 +588,7 @@
   let ro = null;
   if (window.ResizeObserver) {
     ro = new ResizeObserver(layoutChrome);
-    ['#minimap', '#buildbar', '#buildtabs', '#hotbar', '#lab-tray', '#hud', '#topbar', '#bgl-yard'].forEach((sel) => {
+    ['#minimap', '#buildbar', '#buildtabs', '#hotbar', '#lab-tray', '#hud', '#topbar', '#bgl-yard', '.aow-actionbar', '#aow-spawn-list', '#next-action-card', '#metrics-hud', '#bottom-bar'].forEach((sel) => {
       const el = document.querySelector(sel);
       if (el) ro.observe(el);
     });

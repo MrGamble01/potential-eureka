@@ -581,6 +581,13 @@
 // untouched. Node never sees document, so the require() tests do not.
 (function () {
   if (typeof document === 'undefined' || !document.head) return;
+  if (!document.querySelector('script[data-hud-safe]')) {
+    var safe = document.createElement('script');
+    safe.src = '/js/hud-safe.js';
+    safe.async = false;
+    safe.setAttribute('data-hud-safe', '1');
+    document.head.appendChild(safe);
+  }
   if (document.querySelector('script[data-arcade-ai]')) return;
   var core = document.createElement('script');
   core.src = '/js/ai/arcade-ai.js';
