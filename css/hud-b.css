@@ -758,6 +758,12 @@ html.hud-b[data-game="growop"] #activity-feed { font-family: var(--font-ui); }
 html.hud-b[data-game="growop"] .feed-entry { color: var(--hud-dim); }
 
 @media (max-width: 700px) {
+  html.hud-b[data-game="growop"] a.ea-back {
+    box-sizing: border-box;
+  }
+  html.hud-b[data-game="growop"] #alley-hud {
+    top: 74px;
+  }
   html.hud-b[data-game="growop"] #left-panel {
     background: #0c0e14;
     border-top: 1px solid var(--hud-line);

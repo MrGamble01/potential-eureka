@@ -274,8 +274,44 @@ function box(rect) {
         const careerCs = careerEl ? getComputedStyle(careerEl) : null;
         const vars = getComputedStyle(document.documentElement);
         const stacked = !!(career && ticker && career.bottom <= ticker.top + 2);
+        const sprint = document.getElementById('sprint-btn');
+        if (sprint) {
+          sprint.classList.remove('sprint-unavailable');
+          sprint.style.display = 'flex';
+        }
+        const topSels = ['.ea-back', '#sidebar-toggle', '#session-chip', '#menu-btn', '#arcade-ai-launch', '#tp-toggle', '#sprint-btn', '#cash-hud', '#alley-btn'];
+        const topBoxes = topSels.map((sel) => {
+          const el = document.querySelector(sel);
+          const box = rect(sel);
+          return box && el ? { el, box } : null;
+        }).filter(Boolean);
+        const topOverlaps = [];
+        for (let i = 0; i < topBoxes.length; i++) {
+          for (let j = i + 1; j < topBoxes.length; j++) {
+            const a = topBoxes[i];
+            const b = topBoxes[j];
+            if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+            const w = Math.min(a.box.right, b.box.right) - Math.max(a.box.left, b.box.left);
+            const h = Math.min(a.box.bottom, b.box.bottom) - Math.max(a.box.top, b.box.top);
+            if (w > 0.5 && h > 0.5) topOverlaps.push(a.box.sel + '~' + b.box.sel);
+          }
+        }
+        const chip = document.getElementById('session-chip');
+        const bar = document.getElementById('status-bar');
+        let session = null;
+        if (chip && bar && getComputedStyle(bar).display !== 'none') {
+          const text = (chip.textContent || '').replace(/\s+/g, ' ').trim();
+          const cr = chip.getBoundingClientRect();
+          const br = bar.getBoundingClientRect();
+          session = {
+            text,
+            fits: text.indexOf('Session') !== -1 && cr.width > 40 && cr.left >= br.left - 1 && cr.right <= br.right + 1 && bar.scrollWidth <= bar.clientWidth + 2,
+          };
+        }
         return {
           overlaps,
+          topOverlaps,
+          session,
           booth: !!booth,
           ticker: !!ticker,
           toast: !!toast,
@@ -294,6 +330,8 @@ function box(rect) {
       ok(geo.ticker, `${where} announcer is on screen`);
       ok(!game.toast || geo.toast, `${where} toast is on screen`);
       ok(geo.overlaps.length === 0, `${where} no HUD overlap${geo.overlaps.length ? ': ' + geo.overlaps.join(', ') : ''}`);
+      ok(geo.topOverlaps.length === 0, `${where} top bar is clear${geo.topOverlaps.length ? ': ' + geo.topOverlaps.join(', ') : ''}`);
+      if (geo.session) ok(geo.session.fits, `${where} session text is readable (${geo.session.text})`);
       ok(geo.tickerPe === 'none', `${where} announcer ignores pointer events`);
       if (game.toast) ok(geo.toastPe === 'none', `${where} toast ignores pointer events`);
       ok(geo.career, `${where} achievement toast is on screen`);
@@ -305,6 +343,40 @@ function box(rect) {
       await context.close();
     }
   }
+
+  const wire = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const wirePage = await wire.newPage();
+  wirePage.on('pageerror', (error) => errors.push('wire ' + error));
+  await wirePage.addInitScript(() => {
+    localStorage.setItem('tycoon:welcomeSeen-v1', '1');
+    localStorage.setItem('tycoon:tipsEnabled', '0');
+  });
+  await wirePage.goto(BASE + '/tycoon/play.html', { waitUntil: 'domcontentloaded' });
+  await wirePage.waitForSelector('#hire-btn', { timeout: 8000 });
+  await wirePage.waitForSelector('#arcade-ai-launch', { timeout: 8000 });
+  await wirePage.waitForTimeout(800);
+  await wirePage.evaluate(() => {
+    const list = document.getElementById('feed-list');
+    list.textContent = '';
+    ['First Steps — $50!', 'Bootstrapped — $250!'].forEach((text) => {
+      const row = document.createElement('div');
+      row.className = 'feed-entry';
+      row.innerHTML = '<span></span><span class="feed-age">5s</span>';
+      row.firstChild.textContent = text;
+      list.appendChild(row);
+    });
+  });
+  await wirePage.waitForFunction(() => {
+    const line = document.querySelector('#arcade-ai-ticker-line');
+    return line && /On the wire:/.test(line.textContent || '') && /·/.test(line.textContent || '');
+  }, { timeout: 6000 });
+  const wireLine = await wirePage.evaluate(() => document.querySelector('#arcade-ai-ticker-line').textContent.replace(/\s+/g, ' ').trim());
+  ok(/On the wire:/.test(wireLine) && wireLine.indexOf(' · ') !== -1
+    && wireLine.indexOf('Bootstrapped — $250!') !== -1
+    && wireLine.indexOf('First Steps — $50!') !== -1
+    && !/\d+s/.test(wireLine) && wireLine.indexOf('now') === -1,
+    `tycoon ticker separates items and drops the ttl (${wireLine})`);
+  await wire.close();
 
   const dismiss = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const dismissPage = await dismiss.newPage();
