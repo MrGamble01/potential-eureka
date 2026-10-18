@@ -36,6 +36,7 @@ LEAD=(
   storagekeys
   persist
   career
+  cosmetics
   audio
   world
   saves
