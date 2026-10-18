@@ -305,8 +305,17 @@
     return null;
   }
 
+  function bank(game) {
+    const src = LINES[game];
+    if (!src) return null;
+    const out = {};
+    Object.keys(src).forEach(function (key) { out[key] = src[key].slice(); });
+    return out;
+  }
+
   function line(game, kind, salt, extra) {
-    const bank = LINES[game] || LINES.hearthvale;
+    const bank = LINES[game];
+    if (!bank) return 'Hold.';
     const phaseKey = kind === 'phase' && extra ? ('phase:' + extra) : '';
     const list = (phaseKey && bank[phaseKey]) || bank[kind] || bank.hit || ['Hold.'];
     const n = list.length || 1;
@@ -341,6 +350,11 @@
       })
       .then(function (res) {
         if (!res || !res.line) return null;
+        if (res.game !== game) {
+          const AI = root && root.ArcadeAI;
+          const generic = !res.game && AI && AI.systemLines && AI.systemLines.indexOf(res.line) !== -1;
+          if (!generic) return null;
+        }
         return String(res.line).replace(/\s+/g, ' ').trim().slice(0, 170);
       })
       .catch(function () { return null; });
@@ -919,6 +933,7 @@
     SPECS: SPECS,
     create: create,
     line: line,
+    bank: bank,
     flavor: flavor,
     keyLane: keyLane,
     mount: mount,
