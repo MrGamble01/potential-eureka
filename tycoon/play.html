@@ -288,7 +288,7 @@
         right: calc(160px + env(safe-area-inset-right, 0px));
         bottom: calc(18px + env(safe-area-inset-bottom, 0px));
         width: auto;
-        z-index: 95;
+        z-index: 130;
         padding: 8px 12px;
         background: linear-gradient(135deg, rgba(88,166,255,0.22), rgba(108,99,255,0.16));
         border: 1px solid rgba(88,166,255,0.55);
@@ -1423,7 +1423,7 @@
       #left-panel {
         width: 85vw; max-width: 320px;
         top: 0; left: 0; bottom: 0;
-        padding: calc(64px + env(safe-area-inset-top, 0px)) 10px calc(10px + env(safe-area-inset-bottom, 0px)) 10px;
+        padding: calc(64px + env(safe-area-inset-top, 0px)) 10px calc(168px + env(safe-area-inset-bottom, 0px)) 10px;
         background: rgba(8,10,18,0.96);
         backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
         border-right: 1px solid rgba(255,255,255,0.08);
@@ -1437,6 +1437,7 @@
         top: calc(12px + env(safe-area-inset-top, 0px));
         right: calc(12px + env(safe-area-inset-right, 0px));
         font-size: 16px; padding: 7px 11px;
+        z-index: 130;
       }
       #cash-hud .bill { width: 18px; height: 11px; }
 
@@ -1444,6 +1445,7 @@
         top: calc(62px + env(safe-area-inset-top, 0px));
         right: calc(12px + env(safe-area-inset-right, 0px));
         padding: 6px 9px; min-width: 0;
+        z-index: 130;
       }
       #metrics-hud .m-row { gap: 10px; padding: 1px 0; }
       #metrics-hud .m-lbl { font-size: 9px; letter-spacing: 0.6px; }
@@ -1460,6 +1462,7 @@
         font-size: 11px; padding: 5px 10px;
         max-width: calc(100vw - 260px);
         overflow: hidden; text-overflow: ellipsis;
+        z-index: 130;
       }
 
       #elevator-btn {

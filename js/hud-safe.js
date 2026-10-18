@@ -1,8 +1,10 @@
 /* Shared HUD safe zone.
    Measures the bars that already own the edges and writes
    --hud-top-safe and --hud-bottom-safe on the document.
-   The booth tab, the announcer, and the toast stacks read
-   those variables. Game logic stays where it is. */
+   The booth tab, the announcer, the toast stacks, and the
+   Sparks pill read those variables. On the trophy room the
+   achievement toast sits under the pill and above the shop.
+   Game logic stays where it is. */
 (function () {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
@@ -17,6 +19,37 @@
     '#next-action-card', '#sprint-btn', '#ipo-btn', '#tp-toggle',
     '#elevator-btn', '#menu', '#speedctl', '#bottom-bar'
   ];
+
+  // Painted box. A closed phone menu keeps its links in the layout
+  // tree inside a zero-height overflow clip, so a raw rect would
+  // claim the middle of the trophy room. Ignore that clipped box.
+  function painted(el) {
+    if (!el || el.hidden) return null;
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    var rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return null;
+    var r = { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+    var node = el.parentElement;
+    while (node && node !== document.documentElement) {
+      var pcs = getComputedStyle(node);
+      if (pcs.display === 'none' || pcs.visibility === 'hidden') return null;
+      var clipY = pcs.overflowY === 'hidden' || pcs.overflowY === 'clip' || pcs.overflowY === 'auto' || pcs.overflowY === 'scroll';
+      var clipX = pcs.overflowX === 'hidden' || pcs.overflowX === 'clip' || pcs.overflowX === 'auto' || pcs.overflowX === 'scroll';
+      if (clipY || clipX) {
+        var pr = node.getBoundingClientRect();
+        var top = clipY ? Math.max(r.top, pr.top) : r.top;
+        var bottom = clipY ? Math.min(r.bottom, pr.bottom) : r.bottom;
+        var left = clipX ? Math.max(r.left, pr.left) : r.left;
+        var right = clipX ? Math.min(r.right, pr.right) : r.right;
+        if (bottom - top < 2 || right - left < 2) return null;
+        r = { top: top, bottom: bottom, left: left, right: right, width: right - left, height: bottom - top };
+      }
+      node = node.parentElement;
+    }
+    if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return null;
+    return r;
+  }
 
   function shown(el) {
     if (!el || el.hidden) return null;
@@ -54,10 +87,56 @@
     var ceiling = Math.round(innerHeight * 0.72);
     if (bottom > ceiling) bottom = ceiling;
     if (top > innerHeight * 0.45) top = Math.round(innerHeight * 0.45);
+
+    // Hub nav, including the centered studio tabs and an open phone menu.
+    ['.hub-chrome', '.site-nav', '.arcade-secondary-nav', '.arcade-secondary-nav .sec-link'].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) {
+        var r = painted(el);
+        if (!r) return;
+        if (r.top > innerHeight * 0.5) return;
+        if (r.height > innerHeight * 0.7) return;
+        if (r.bottom + pad > top) top = Math.round(r.bottom + pad);
+      });
+    });
+    if (top > innerHeight * 0.72) top = Math.round(innerHeight * 0.72);
+
     var root = document.documentElement;
     root.style.setProperty('--hud-top-safe', top + 'px');
+
+    // Trophy room: the achievement toast stacks under the sparks pill,
+    // and the shelf pads down when that stack would land on the shop.
+    var shop = document.getElementById('spark-shop');
+    var sr = shop && painted(shop);
+    if (sr) {
+      var bandTop = top;
+      var pill = painted(document.getElementById('spark-toast'));
+      if (pill && pill.bottom + pad > bandTop) bandTop = Math.round(pill.bottom + pad);
+      var toastEl = document.querySelector('.career-toast');
+      var toastH = 0;
+      if (toastEl) {
+        var th = toastEl.getBoundingClientRect().height;
+        toastH = (th > 24 && th < innerHeight * 0.5) ? Math.round(th) : 72;
+      }
+      var currentPad = parseFloat(root.style.getPropertyValue('--hud-trophy-pad')) || 0;
+      var coveredUntil = toastH ? bandTop + toastH : (pill ? Math.round(pill.bottom) : top);
+      var naturalShopTop = sr.top - currentPad;
+      var need = Math.round(coveredUntil + pad - naturalShopTop);
+      if (need < 0) need = 0;
+      root.style.setProperty('--hud-trophy-pad', need + 'px');
+      if (toastH) {
+        var inset = Math.round(innerHeight - (bandTop + toastH));
+        if (inset < 18) inset = 18;
+        var room = Math.round(innerHeight - bandTop - 8);
+        if (inset > room) inset = room;
+        if (inset > bottom) bottom = inset;
+      }
+    } else if (root.style.getPropertyValue('--hud-trophy-pad')) {
+      root.style.setProperty('--hud-trophy-pad', '0px');
+    }
+
     root.style.setProperty('--hud-bottom-safe', bottom + 'px');
     liftToasts();
+    watchHub();
   }
 
   function shownToast(el) {
@@ -97,6 +176,15 @@
     var career = bottom + extra;
     if (ceiling > 18 && career > ceiling) career = Math.max(bottom, ceiling);
     root.style.setProperty('--hud-career-bottom', Math.round(career) + 'px');
+  }
+
+  function watchHub() {
+    var header = document.querySelector('.hub-chrome');
+    if (!header || header.getAttribute('data-hud-watch')) return;
+    header.setAttribute('data-hud-watch', '1');
+    if (window.MutationObserver) {
+      new MutationObserver(schedule).observe(header, { attributes: true, attributeFilter: ['class'] });
+    }
   }
 
   var queued = false;

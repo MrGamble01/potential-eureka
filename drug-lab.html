@@ -6776,6 +6776,10 @@ requestAnimationFrame(animate);
 
 function animate(now_ms) {
   requestAnimationFrame(animate);
+  // Grow, heat and movement stay capped so a backgrounded tab cannot
+  // skip the operation forward. The street-event clock is a real
+  // seconds timer, so a jumped or paused clock still reaches it.
+  const elapsed=Math.max(0,(now_ms-lastTime)/1000);
   const dt=Math.min((now_ms-lastTime)/1000, 0.1);
   lastTime=now_ms;
   labSoundtrack(now_ms);
@@ -6817,7 +6821,7 @@ function animate(now_ms) {
     updateRunnerNPCs(dt);
     updateSteam(dt);
     updateHeatDrain(dt);
-    updateEvents(dt);
+    updateEvents(elapsed);
     updateDealerSpawn(dt);
     updateMarket(dt);
     updateContract(dt);
