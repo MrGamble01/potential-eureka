@@ -50,6 +50,7 @@ LEAD=(
   mobilefit
   hudsafe
   hudfit
+  announcerscope
 )
 TRAIL=( pwa )
 

@@ -317,8 +317,14 @@
     });
   }
 
+  function accepts(result) {
+    if (!result || !result.line) return false;
+    if (result.game === gameId) return true;
+    return !result.game && AI.systemLines && AI.systemLines.indexOf(result.line) !== -1;
+  }
+
   function pushCall(result) {
-    if (!result || !result.line) return;
+    if (!accepts(result)) return;
     calls.unshift(result);
     if (calls.length > 8) calls.pop();
     renderCalls();

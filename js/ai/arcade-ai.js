@@ -344,6 +344,37 @@
     return GAMES[id] || null;
   }
 
+  // A missing or unknown id is not another game. Callers that omit
+  // the id get this system line and nothing from a foreign bank.
+  const SYSTEM_LINE = 'Saved.';
+  const SYSTEM_LINES = [SYSTEM_LINE, 'Hold.'];
+
+  function systemCall(provider, req) {
+    const event = (req && req.event) || {};
+    return {
+      provider: provider,
+      game: '',
+      event: {
+        type: String(event.type || 'system'),
+        detail: '',
+      },
+      line: SYSTEM_LINE,
+    };
+  }
+
+  function callBank(gameId) {
+    const game = GAMES[gameId];
+    if (!game) return null;
+    const calls = {};
+    Object.keys(game.calls).forEach(function (key) { calls[key] = game.calls[key]; });
+    return {
+      id: gameId,
+      label: game.label,
+      calls: calls,
+      quiet: game.label + ' is quiet. The booth is listening.',
+    };
+  }
+
   function wordHit(prompt, word) {
     const re = new RegExp('(^|[^a-z0-9])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)', 'i');
     return re.test(prompt);
@@ -451,7 +482,9 @@
   }
 
   function announceStub(req) {
-    const id = req.game && GAMES[req.game] ? req.game : 'hearthvale';
+    req = req || {};
+    const id = req.game && GAMES[req.game] ? req.game : '';
+    if (!id) return systemCall('stub', req);
     const game = GAMES[id];
     const event = req.event || {};
     const type = String(event.type || 'default');
@@ -587,7 +620,8 @@
         };
       },
       announce: async function (req) {
-        const id = req && req.game && GAMES[req.game] ? req.game : 'hearthvale';
+        const id = req && req.game && GAMES[req.game] ? req.game : '';
+        if (!id) return systemCall('remote', req);
         const data = await complete(
           'You are the announcer of a fictional browser game. Reply with JSON only: {"line":"..."}. One sentence, at most 140 characters, calling the event. No real-world instructions.',
           JSON.stringify({ game: GAMES[id].label, event: (req && req.event) || {} })
@@ -710,6 +744,9 @@
     withStubFallback: withStubFallback,
     dispatchAi: dispatchAi,
     games: GAME_IDS,
+    callBank: callBank,
+    systemLine: SYSTEM_LINE,
+    systemLines: SYSTEM_LINES,
     npcs: npcs,
     describe: describe,
     speakers: speakers,
