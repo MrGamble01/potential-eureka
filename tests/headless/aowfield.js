@@ -43,7 +43,11 @@ const SPAWNS = () => {
     if (seed) await page.addInitScript(seed);
     else await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch (e) {} });
     await page.goto(BASE + '/ageofwar/index.html', { waitUntil: 'load' });
-    await page.waitForTimeout(500);
+    await page.waitForSelector('.aow-spawn-btn');
+    await page.waitForFunction(() => {
+      const c = document.getElementById('aow-canvas');
+      return !!(c && c.getBoundingClientRect().height > 40);
+    });
     return { ctx, page };
   }
 
@@ -83,7 +87,15 @@ const SPAWNS = () => {
 
   // B — Stone Age hides Age II orders; Age Up, Pause and Clubman stay clickable
   {
-    const { ctx, page } = await open({ width: 1280, height: 800 });
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(String(e).slice(0, 240)));
+    // Freeze the sim so the paymaster's once-a-second trickle cannot land
+    // between the two gold reads. The recruit click itself is synchronous.
+    await page.clock.install({ time: new Date('2026-09-25T12:00:00Z') });
+    await page.clock.pauseAt(new Date('2026-09-25T12:00:01Z'));
+    await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch (e) {} });
+    await page.goto(BASE + '/ageofwar/index.html', { waitUntil: 'load' });
     const gated = await page.evaluate(() => {
       const shown = id => {
         const el = document.getElementById(id);
@@ -104,11 +116,16 @@ const SPAWNS = () => {
     ok(!gated.warcry && !gated.merc, 'Stone Age does not show Warcry or Mercs');
     ok(gated.duel, 'Duel stays on the rail so a click can explain an empty field');
     ok(gated.age && gated.pause, 'Age Up and Pause stay on the rail');
-    const before = await page.locator('#aow-gold').innerText();
-    await page.locator('.aow-spawn-btn').filter({ hasText: 'Clubman' }).click();
-    await page.waitForTimeout(200);
-    const after = await page.locator('#aow-gold').innerText();
-    const status = await page.locator('#aow-train-status').innerText();
+    const hired = await page.evaluate(() => {
+      const gold = () => document.getElementById('aow-gold').textContent;
+      const before = gold();
+      const btn = [...document.querySelectorAll('.aow-spawn-btn')].find(el => /Clubman/.test(el.innerText));
+      btn.click();
+      return { before, after: gold(), status: document.getElementById('aow-train-status').textContent };
+    });
+    const before = hired.before;
+    const after = hired.after;
+    const status = hired.status;
     ok(Number(before) - Number(after) === 25, `Clubman costs 25 gold (${before} → ${after})`);
     ok(/1\/5 queued/.test(status), 'the click actually queues a recruit (' + status + ')');
     await ctx.close();
@@ -124,7 +141,13 @@ const SPAWNS = () => {
       }));
     });
     await page.click('#aow-resume-cta');
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => {
+      const el = document.getElementById('aow-warcry-btn');
+      if (!el) return false;
+      const s = getComputedStyle(el);
+      const b = el.getBoundingClientRect();
+      return s.display !== 'none' && b.width > 2 && b.bottom <= innerHeight + 1 && b.top >= -1;
+    });
     const warcry = await page.evaluate(() => {
       const el = document.getElementById('aow-warcry-btn');
       if (!el) return false;

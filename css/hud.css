@@ -31,6 +31,7 @@
   unicode-range: U+0020, U+00A0;
 }
 
+:root,
 html.hud {
   --hud-font-display: "HUD Space", "Outfit", "Inter", sans-serif;
   --hud-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -66,6 +67,9 @@ html.hud {
   --hud-bottom-safe: 96px;
   --hud-toast-bottom: 96px;
   --hud-career-bottom: 96px;
+}
+
+html.hud {
   color-scheme: dark;
 }
 
@@ -189,6 +193,12 @@ html.hud .aow-shell {
 
 html.hud .ea-topbar {
   margin-top: var(--hud-safe-t);
+}
+
+html.hud .ea-topbar,
+html.hud .aow-topbar {
+  position: relative;
+  z-index: 90;
 }
 
 html.hud .aow-topbar {
@@ -414,6 +424,10 @@ html.hud .aow-overlay {
   top: var(--hud-top-safe, 0px);
   bottom: var(--hud-bottom-safe, 96px);
   z-index: 80;
+  /* The sheet covers the field and the recruit row. The Games bar
+     and the HUD stay above it, so difficulty and Settings still
+     take clicks while the war is paused. */
+  padding-top: 112px;
 }
 
 html.hud .aow-modal-card,
@@ -463,6 +477,58 @@ html.hud .aow-coach {
   border-radius: var(--hud-radius-card);
   border: 1px solid var(--hud-border);
   background: var(--hud-surface);
+}
+
+/* Phone: the booth hangs just under the safe line, and the
+   tutorial used to start at the top of the stage, under that
+   button. The weather pill takes the next band, and the tip
+   starts below both. The age chip stacks its two lines so
+   neither one wraps into the other. */
+@media (max-width: 720px) {
+  html.hud .aow-coach {
+    position: fixed;
+    top: calc(var(--hud-top-safe, 56px) + 78px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    transform: none;
+    z-index: 40;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  html.hud .aow-coach p {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  html.hud .aow-era-pill {
+    flex: 1 1 auto;
+    min-width: max-content;
+    width: auto;
+    padding: 3px 8px;
+  }
+  html.hud .aow-era-text {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: max-content;
+  }
+  html.hud .aow-era-name,
+  html.hud .aow-era-sub {
+    display: block;
+    white-space: nowrap;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+  html.hud .aow-wave {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  html.hud #aow-sky {
+    top: 40px;
+    bottom: auto;
+    left: 8px;
+    max-width: calc(100% - 16px);
+  }
 }
 
 html.hud .aow-coach-kicker {

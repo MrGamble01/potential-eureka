@@ -41,9 +41,13 @@ const SKIP_DIRS = new Set(['tests', 'node_modules', '.git', '.github', 'vendor']
 //     not the same class of thing as a leaked hook: it grants no
 //     resources, it only clears the local save and reloads, which the
 //     game's own New Game already does.
+//   __beagle — Beagle Sim's yard probe. The smoke suite drives the
+//     dog park through it (digs, the fight, a bone grant). It ships
+//     with the yard on purpose; adding it here is the record of that
+//     decision. It is not a strip-before-commit leftover.
 // (vendor/ is skipped wholesale above: three.js sets its own
 //  window.__THREE__ and that is not ours to police.)
-const ALLOWED_GLOBALS = new Set(['__hvReset']);
+const ALLOWED_GLOBALS = new Set(['__hvReset', '__beagle']);
 function sources(dir = ROOT, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (e.name.startsWith('.') && e.name !== '.github') continue;

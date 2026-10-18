@@ -288,15 +288,20 @@ const PROBE = (sel) => {
     await page.goto(BASE + '/' + pg, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
     const text = await page.evaluate(u => fetch(u).then(r => r.text()), BASE + '/' + src);
-    // variable -> element id
-    const var2id = new Map();
+    // Bind each reveal to the nearest preceding getElementById of that
+    // name. A later `const el = getElementById(...)` must not steal an
+    // earlier `el.style.display = ''` (that false-blamed #aow-coach).
+    const decls = [];
     for (const m of text.matchAll(/(?:const|let|var)\s+(\w+)\s*=\s*document\.getElementById\(\s*['"]([\w-]+)['"]/g)) {
-      var2id.set(m[1], m[2]);
+      decls.push({ name: m[1], id: m[2], at: m.index });
     }
     const targets = new Set();
     for (const m of text.matchAll(/document\.getElementById\(\s*['"]([\w-]+)['"]\s*\)\.style\.display\s*=\s*''/g)) targets.add(m[1]);
     for (const m of text.matchAll(/(\w+)\.style\.display\s*=\s*''/g)) {
-      const id = var2id.get(m[1]);
+      let id = null;
+      for (let i = decls.length - 1; i >= 0; i--) {
+        if (decls[i].name === m[1] && decls[i].at < m.index) { id = decls[i].id; break; }
+      }
       if (id) targets.add(id);
     }
     const dead = await page.evaluate(ids => ids.filter(id => {
