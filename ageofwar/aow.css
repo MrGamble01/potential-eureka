@@ -1628,7 +1628,7 @@
    recruit row that sits under a short landscape field. */
 #aow-field-order {
   position: fixed;
-  z-index: 70;
+  z-index: 95;
   display: none;
   background: rgba(8,12,20,0.96);
   border: 1px solid rgba(88,166,255,0.55);
@@ -1697,9 +1697,9 @@
 #aow-ridge-btn {
   display: none;
   position: fixed;
-  /* Above the HUD pause sheet (z-index 80) so the offer stays
-     reachable while the war is held. Settings and welcome stay higher. */
-  z-index: 86;
+  /* Above the HUD pause sheet (z-index 80) and the HUD bar (90) so the
+     offer stays reachable while the war is held. Settings and welcome stay higher. */
+  z-index: 95;
   top: 72px;
   right: 16px;
   min-height: 44px;
@@ -1725,7 +1725,7 @@
 #aow-ridge {
   display: none;
   position: fixed;
-  z-index: 90;
+  z-index: 100;
   inset: 0;
   background: rgba(4, 8, 14, 0.72);
   align-items: flex-start;

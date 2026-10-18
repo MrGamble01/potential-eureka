@@ -143,6 +143,8 @@
 
 /* ---- CHALLENGE ---- */
 #daily-banner.hub-challenge {
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px 16px;
   padding: 4px 16px;

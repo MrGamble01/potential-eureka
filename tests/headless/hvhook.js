@@ -121,6 +121,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvHook({ up: false });
     drySat = false;
     G.food = 10;
+    G.weather = 'rain';
     finishAction({ id: 'dry' });
     G.season = 3;
     return { sits: loadHvDry().sits, up: hookUp(), winter: seasonDrain() };
