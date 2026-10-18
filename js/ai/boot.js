@@ -51,6 +51,7 @@
       { sel: '#aow-wave-num', type: 'wave' },
       { sel: '#aow-overlay', type: 'banner' },
       { sel: '#aow-era-name', type: 'era' },
+      { sel: '#aow-sky', type: 'weather' },
     ],
     tycoon: [
       { sel: '#feed-list', type: 'feed' },
@@ -64,6 +65,7 @@
       { sel: '#feed-list', type: 'feed' },
       { sel: '#ev-title', type: 'event' },
       { sel: '#wave-val', type: 'crackdown' },
+      { sel: '#lab-sky', type: 'weather' },
     ],
     homeless: [
       { sel: '#log-feed', type: 'log' },
