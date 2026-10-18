@@ -296,6 +296,58 @@ function box(rect) {
             if (w > 0.5 && h > 0.5) topOverlaps.push(a.box.sel + '~' + b.box.sel);
           }
         }
+        const sky = document.getElementById('aow-sky');
+        const skyLabel = sky ? sky.querySelector(':scope > .aow-sky-label') : null;
+        let field = null;
+        if (sky && skyLabel && getComputedStyle(sky).display !== 'none') {
+          const skyBox = rect('#aow-sky');
+          const labelText = (skyLabel.textContent || '').replace(/\s+/g, ' ').trim();
+          const skyText = (sky.textContent || '').replace(/\s+/g, ' ').trim();
+          const nameHits = [];
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width < 2 || b.height < 2) return;
+            const w = Math.min(skyBox.right, b.right) - Math.max(skyBox.left, b.left);
+            const h = Math.min(skyBox.bottom, b.bottom) - Math.max(skyBox.top, b.top);
+            if (w > 0.5 && h > 0.5) nameHits.push((el.textContent || '').trim());
+          });
+          const coach = document.getElementById('aow-coach');
+          const tipHits = [];
+          if (coach && !coach.hidden && getComputedStyle(coach).display !== 'none') {
+            const cr = coach.getBoundingClientRect();
+            document.querySelectorAll('#arcade-ai-launch, .ea-back, .aow-settings-btn, .aow-moments-btn, .aow-action, .ai-speaker, #aow-sky').forEach((el) => {
+              if (coach.contains(el) || el.hidden) return;
+              const cs = getComputedStyle(el);
+              if (cs.display === 'none' || cs.visibility === 'hidden') return;
+              const b = el.getBoundingClientRect();
+              if (b.width < 2 || b.height < 2) return;
+              const w = Math.min(cr.right, b.right) - Math.max(cr.left, b.left);
+              const h = Math.min(cr.bottom, b.bottom) - Math.max(cr.top, b.top);
+              if (w > 0.5 && h > 0.5) tipHits.push(el.id || el.className || el.tagName);
+            });
+          }
+          const eraName = document.getElementById('aow-era-name');
+          const eraSub = document.getElementById('aow-era-sub');
+          let nameCount = 0;
+          document.querySelectorAll('.ai-speaker-name').forEach((el) => {
+            const b = el.getBoundingClientRect();
+            if (b.width > 8 && b.height > 8) nameCount++;
+          });
+          field = {
+            one: sky.childElementCount === 1 && !!skyLabel && skyText === labelText && labelText.length > 0 && skyText.indexOf(labelText) === skyText.lastIndexOf(labelText),
+            fits: sky.scrollWidth <= sky.clientWidth + 1 && skyLabel.scrollWidth <= skyLabel.clientWidth + 1,
+            line: labelText,
+            names: nameHits,
+            nameCount,
+            tipOn: !!(coach && !coach.hidden && getComputedStyle(coach).display !== 'none'),
+            tips: tipHits,
+            age: !!(eraName && eraSub
+              && eraName.scrollWidth <= eraName.clientWidth + 1
+              && eraSub.scrollWidth <= eraSub.clientWidth + 1
+              && eraName.clientWidth > 40
+              && (eraName.textContent || '').indexOf(' ') !== -1),
+          };
+        }
         const chip = document.getElementById('session-chip');
         const bar = document.getElementById('status-bar');
         let session = null;
@@ -323,6 +375,7 @@ function box(rect) {
           top: vars.getPropertyValue('--hud-top-safe').trim(),
           bottom: vars.getPropertyValue('--hud-bottom-safe').trim(),
           games: spec.gamesOnCard ? hit(rect('.ea-back'), rect('#next-action-card')) : false,
+          field,
         };
       }, { bars: game.bars, toast: game.toast, gamesOnCard: !!game.gamesOnCard });
 
@@ -340,6 +393,13 @@ function box(rect) {
       ok(parseFloat(geo.top) > 0 && parseFloat(geo.bottom) > 0,
         `${where} safe zone is ${geo.top} / ${geo.bottom}`);
       if (game.gamesOnCard) ok(!geo.games, `${where} GAMES clears the first-step card`);
+      if (geo.field) {
+        ok(geo.field.one, `${where} weather pill has one label (${geo.field.line})`);
+        ok(geo.field.fits, `${where} weather label fits the pill`);
+        ok(geo.field.nameCount === 3 && geo.field.names.length === 0, `${where} hero names clear the weather pill${geo.field.names.length ? ': ' + geo.field.names.join(', ') : ''}`);
+        ok(geo.field.tipOn && geo.field.tips.length === 0, `${where} tutorial tip clears HUD buttons${geo.field.tips.length ? ': ' + geo.field.tips.join(', ') : ''}`);
+        ok(geo.field.age, `${where} age chip text fits`);
+      }
       await context.close();
     }
   }
