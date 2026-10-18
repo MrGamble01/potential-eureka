@@ -195,8 +195,15 @@
     return { level: level, xp: xp | 0, start: start, next: next, pct: Math.max(0, Math.min(1, ((xp | 0) - start) / span)) };
   }
 
+  function emptyLedger() {
+    return { xp: 0, ach: {}, boss: {}, daily: {} };
+  }
+
   function emptyDoc() {
-    return { name: '', avatar: '', title: '', theme: '', xp: 0, unlocked: {}, stats: {} };
+    return {
+      name: '', avatar: '', title: '', theme: '', xp: 0, unlocked: {}, stats: {},
+      sparks: 0, ledger: emptyLedger(), owned: {}, equipped: {},
+    };
   }
 
   function cloneDoc(raw) {
@@ -209,6 +216,17 @@
     doc.xp = raw.xp || 0;
     doc.unlocked = Object.assign({}, raw.unlocked || {});
     doc.stats = Object.assign({}, raw.stats || {});
+    const sparks = Number(raw.sparks);
+    doc.sparks = Number.isFinite(sparks) && sparks > 0 ? Math.floor(sparks) : 0;
+    const ledger = raw.ledger && typeof raw.ledger === 'object' ? raw.ledger : {};
+    doc.ledger = {
+      xp: ledger.xp > 0 ? Math.floor(ledger.xp) : 0,
+      ach: Object.assign({}, ledger.ach || {}),
+      boss: Object.assign({}, ledger.boss || {}),
+      daily: Object.assign({}, ledger.daily || {}),
+    };
+    doc.owned = Object.assign({}, raw.owned || {});
+    doc.equipped = Object.assign({}, raw.equipped || {});
     return doc;
   }
 
@@ -345,6 +363,9 @@
     }
 
     function commit(doc, prevLevel) {
+      try {
+        if (env.cosmetics) env.cosmetics(doc);
+      } catch (e) { /* a spark purse cannot block a trophy */ }
       const saved = save(doc);
       const nextLevel = levelFor(saved.xp);
       if (nextLevel > prevLevel) announceLevel(nextLevel);
@@ -471,6 +492,7 @@
         title: title.id,
         titleName: title.name,
         theme: doc.theme || '',
+        sparks: doc.sparks | 0,
         xp: doc.xp,
         level: span.level,
         levelStart: span.start,
@@ -517,6 +539,7 @@
       face.setAttribute('aria-hidden', 'true');
       const ident = el(document, 'div', 'trophy-ident');
       const kicker = el(document, 'div', 'trophy-kicker', snap.titleName);
+      kicker.dataset.careerTitle = snap.titleName;
       const title = el(document, 'h1', 'trophy-title', 'Trophy Room');
       const nameRow = el(document, 'form', 'trophy-name-row');
       nameRow.setAttribute('autocomplete', 'off');
@@ -546,7 +569,7 @@
       fill.style.width = Math.round(snap.pct * 100) + '%';
       bar.appendChild(fill);
       const meta = el(document, 'p', 'trophy-meta',
-        'Level ' + snap.level + '  ·  ' + snap.xp + ' / ' + snap.nextXp + ' XP  ·  ' + snap.trophies + ' / ' + snap.trophyTotal + ' trophies');
+        'Level ' + snap.level + '  ·  ' + snap.xp + ' / ' + snap.nextXp + ' XP  ·  ✦ ' + (snap.sparks | 0) + ' Sparks  ·  ' + snap.trophies + ' / ' + snap.trophyTotal + ' trophies');
       ident.appendChild(kicker);
       ident.appendChild(title);
       ident.appendChild(nameRow);
@@ -562,6 +585,10 @@
 
       for (let i = 0; i < GAMES.length; i++) rootEl.appendChild(shelf(document, doc, GAMES[i]));
       rootEl.appendChild(shelf(document, doc, { id: 'cross', name: 'Around the Arcade', icon: '✨', blurb: 'The nights you came back.', accent: '#F7C948' }));
+      try {
+        const host = env.root;
+        if (host && host.EurekaCosmetics && host.EurekaCosmetics.mount) host.EurekaCosmetics.mount(rootEl);
+      } catch (e) { /* the shop is optional */ }
       paintChip();
     }
 
@@ -691,6 +718,7 @@
       noteTheme: noteTheme,
       render: render,
       paintChip: paintChip,
+      achievementIds: function () { return ACHIEVEMENTS.map(function (a) { return a.id; }); },
       onChange: function (fn) {
         if (typeof fn !== 'function') return function () {};
         listeners.push(fn);
@@ -713,7 +741,14 @@
     return create(root.EurekaPersist, {
       document: root.document,
       localStorage: root.localStorage,
+      root: root,
       sfx: function () { return root.SFX; },
+      cosmetics: function (doc) {
+        try {
+          if (root.EurekaCosmetics && root.EurekaCosmetics.fold) return root.EurekaCosmetics.fold(doc) || 0;
+        } catch (e) { /* sparks settle on the next visit */ }
+        return 0;
+      },
     });
   }
 
