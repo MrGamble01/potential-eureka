@@ -106,12 +106,18 @@ canvas{display:block;touch-action:none;}
 #intro-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
   display:none;align-items:center;justify-content:center;z-index:282;}
 #intro-modal.open{display:flex;animation:bustIn 0.3s ease;}
-#intro-modal .diff-panel{max-width:470px;text-align:left;max-height:84vh;overflow-y:auto;}
+#intro-modal .diff-panel{
+  max-width:470px;text-align:left;max-height:84vh;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+#intro-modal #intro-head,
+#intro-modal #intro-flavor{flex:none;}
+#intro-modal #intro-body{overflow-y:auto;min-height:0;flex:1 1 auto;}
 #intro-flavor{font-size:12px;color:#7fae8c;font-style:italic;margin-bottom:14px;line-height:1.5;}
 #intro-body{font-size:12.5px;color:#a8d8b4;line-height:1.75;}
 #intro-body b{color:#44cc66;}
 #intro-body .intro-row{margin-bottom:9px;}
-#intro-go{display:block;width:100%;margin-top:18px;background:rgba(0,180,60,0.16);
+#intro-go{display:block;width:100%;margin-top:18px;flex:none;background:rgba(0,180,60,0.16);
   border:1px solid rgba(0,180,60,0.5);color:#22dd55;font-family:inherit;
   font-size:13px;font-weight:800;padding:11px;border-radius:8px;cursor:pointer;}
 #intro-go:hover{background:rgba(0,180,60,0.26);}
@@ -195,7 +201,7 @@ canvas{display:block;touch-action:none;}
   z-index:20;
   display:flex;flex-direction:column;gap:7px;
   max-width:236px;user-select:none;
-  /* fitLeftPanel() shortens this once the corner tray reaches the column. */
+  /* fitLeftPanel() keeps this above Help, Sound, and a tray that reaches the column. */
   max-height:calc(100vh - 68px);overflow-y:auto;
 }
 #left-panel::-webkit-scrollbar{width:4px;}
@@ -781,7 +787,10 @@ canvas{display:block;touch-action:none;}
    by each button's per-button mobile offset; those offsets are gone, so the
    tray lifts above the button instead. */
 @media (max-width:700px){
-  #lab-tray{ bottom:62px;max-height:calc(100vh - 76px); }
+  /* The walk dock (stick + Wait) owns the bottom-left. A full-bleed tray
+     wraps THE CORNER under that button, so a tap there harvests instead
+     of opening the corner. Keep the tray in the column to the right of it. */
+  #lab-tray{ bottom:62px;left:228px;max-height:calc(100vh - 76px); }
 }
 /* -- The New Kid's Tag (LAB-54) -- */
 #mark-toggle{
@@ -1238,9 +1247,22 @@ function fitLeftPanel() {
   if (innerWidth <= 700) { panel.style.maxHeight = ''; return; }
   const tr = tray.getBoundingClientRect();
   const panelRight = 14 + 236;
-  if (tr.width < 2 || tr.left >= panelRight - 4) { panel.style.maxHeight = ''; return; }
-  const limit = Math.max(160, Math.floor(tr.top - 54 - 8));
-  panel.style.maxHeight = limit + 'px';
+  // Help and Sound sit on the bottom-left of the shop. Shorten the
+  // column for them even while the tray is still over on the right,
+  // and also for the tray once it crosses into this column.
+  const help = document.getElementById('lab-help-btn');
+  const sfx = document.getElementById('sfx-btn');
+  let floor = innerHeight;
+  for (const el of [help, sfx]) {
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width >= 2 && r.height >= 2 && r.left < panelRight) floor = Math.min(floor, r.top);
+  }
+  let limit = Math.floor(floor - 54 - 8);
+  if (tr.width >= 2 && tr.left < panelRight - 4) {
+    limit = Math.min(limit, Math.floor(tr.top - 54 - 8));
+  }
+  panel.style.maxHeight = Math.max(160, limit) + 'px';
 }
 window.addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); fitLeftPanel(); });
 new ResizeObserver(fitLeftPanel).observe(document.getElementById('lab-tray'));
