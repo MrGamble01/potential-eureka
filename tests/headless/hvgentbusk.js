@@ -21,8 +21,9 @@
  *     the new neighbors.
  *  C. Heat still doubles, then the stamp halves (6 → 3).
  *  D. A new dawn lifts the stamp — the same roll pays +3 again.
- *  E. Rain and a named snap do not steal the cut. Panhandle
- *     still uses the quiet 0.55 threshold (HV-76).
+ *  E. HV-179 / #869 later halves an unawned rainy busk (3 → 1).
+ *     A named snap still does not steal the cut. Panhandle still
+ *     uses the quiet 0.55 threshold (HV-76).
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production gentrify effect + buskPay.
@@ -154,6 +155,7 @@ ok(!/gentrifyDay/.test(ui) && !/gentrifyHostile/.test(ui),
   const otherSky = await t(() => {
     G.gentrifyDay = -1;
     G.morale = 50;
+    G.structures.awning = false;
     G.weather = 'rain';
     G.snapUntil = G.days + 2;
     const rainSnap = buskPay();
@@ -162,8 +164,8 @@ ok(!/gentrifyDay/.test(ui) && !/gentrifyHostile/.test(ui),
     const clear = buskPay();
     return { rainSnap, clear, snap: snapActive() };
   });
-  ok(otherSky.rainSnap === 3 && otherSky.clear === 3,
-    `rain and a named snap do not steal the cut — those are #869 / #823 (${otherSky.rainSnap} / ${otherSky.clear})`);
+  ok(otherSky.rainSnap === 1 && otherSky.clear === 3,
+    `HV-179: rain halves an unawned busk (3 → 1); a named snap does not steal the cut (${otherSky.rainSnap} / ${otherSky.clear})`);
 
   const corner = await t(() => {
     const real = Math.random;

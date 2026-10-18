@@ -161,6 +161,52 @@
     if (coversControl(btn)) btn.hidden = true;
   }
 
+  function bandOf(el) {
+    if (!el || el.hidden) return null;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return r;
+  }
+
+  function footprint(btn) {
+    const r = btn.getBoundingClientRect();
+    const name = btn.querySelector('.ai-speaker-name');
+    const n = name ? name.getBoundingClientRect() : r;
+    return {
+      left: Math.min(r.left, n.left),
+      right: Math.max(r.right, n.right),
+      top: Math.min(r.top, n.top),
+      bottom: Math.max(r.bottom, n.bottom),
+    };
+  }
+
+  function hitsBand(foot, band, pad) {
+    return foot.left < band.right + pad && foot.right > band.left - pad
+      && foot.top < band.bottom + pad && foot.bottom > band.top - pad;
+  }
+
+  // The weather pill keeps the bottom (or top) of the field. Name tags
+  // move off that band instead of drawing through the label.
+  function clearBands(btn, bands) {
+    const pad = 8;
+    for (let n = 0; n < 6; n++) {
+      const foot = footprint(btn);
+      let block = null;
+      for (let i = 0; i < bands.length; i++) {
+        if (bands[i] && hitsBand(foot, bands[i], pad)) { block = bands[i]; break; }
+      }
+      if (!block) return;
+      const top = parseFloat(btn.style.top) || 0;
+      const down = block.bottom + pad - foot.top;
+      const up = foot.bottom - block.top + pad;
+      const preferDown = block.top < foot.top;
+      const shift = preferDown && down < up * 1.4 ? down : -up;
+      btn.style.top = (top + shift) + 'px';
+    }
+  }
+
   const project = window.THREE ? new THREE.Vector3() : null;
 
   function layout() {
@@ -173,6 +219,13 @@
         if (!btn) return;
         if (r.width < 40) { btn.hidden = true; return; }
         pin(btn, r.left + (spot.x / 1280) * r.width, r.top + (spot.y / 560) * r.height, r.width);
+        if (!btn.hidden) {
+          clearBands(btn, [
+            bandOf(document.getElementById('aow-sky')),
+            bandOf(document.getElementById('aow-coach')),
+          ]);
+          if (coversControl(btn)) btn.hidden = true;
+        }
       });
       return;
     }

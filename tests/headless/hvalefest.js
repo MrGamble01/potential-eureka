@@ -15,6 +15,11 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
         const context = await browser.newContext({ viewport: { width, height: 900 } });
         const page = await context.newPage();
         page.on('pageerror', error => errors.push(String(error)));
+        // The town clock stays paused except while a case is waiting on a
+        // real dawn or a real harvest, so a later toast cannot replace the
+        // one the click just wrote.
+        await page.clock.install({ time: new Date('2026-09-25T12:00:00Z') });
+        await page.clock.pauseAt(new Date('2026-09-25T12:00:01Z'));
         await page.addInitScript(saved => {
           localStorage.setItem('hearthvale-v1', JSON.stringify({
             seed: 12345, time: 8, seenIntro: true, muted: true, happy: 50,
@@ -31,7 +36,22 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
         await page.mouse.click(mini.x + mini.width * 28.5 / 56, mini.y + mini.height * 21.5 / 42);
         await page.mouse.click(width / 2, 450);
         const button = page.locator('#p-festival');
-        await button.waitFor();
+        const until = async (pred, budgetMs) => {
+          let last = '';
+          for (let spent = 0; spent <= budgetMs; spent += 250) {
+            last = await page.evaluate(() => {
+              const b = document.getElementById('p-festival');
+              return b ? b.textContent : '';
+            });
+            if (await page.evaluate(pred)) return;
+            await page.clock.runFor(250);
+          }
+          throw new Error('festival state did not arrive (button: ' + last + ')');
+        };
+        await until(() => {
+          const b = document.getElementById('p-festival');
+          return !!(b && b.textContent);
+        }, 2000);
         const read = () => page.evaluate(() => {
           const b = document.getElementById('p-festival');
           const toasts = [...document.querySelectorAll('#toasts .toast')].map(t => t.textContent);
@@ -44,7 +64,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
             save: JSON.parse(localStorage.getItem('hearthvale-v1')),
           };
         });
-        await check(page, button, read);
+        await check(page, button, read, until);
         console.log(`PASS ${width}: ${name}`);
         await context.close();
       };
@@ -151,11 +171,11 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
       await run('live dawn', {
         day: 5, time: 23, lastFestivalDay: 3,
         res: { wood: 40, stone: 20, food: 40, gold: 40 },
-      }, async (page, button, read) => {
+      }, async (page, button, read, until) => {
         const waiting = await read();
         assert.equal(waiting.text, '🎪 Resting · ready in 1 day');
         const remove = await page.locator('#p-demolish').elementHandle();
-        await page.waitForFunction(() => document.getElementById('p-festival')?.textContent.includes('Hold a Festival'));
+        await until(() => document.getElementById('p-festival')?.textContent.includes('Hold a Festival'), 20000);
         const ready = await read();
         assert.equal(ready.day, '6');
         assert.match(ready.text, /6🍎/);
@@ -174,10 +194,10 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
       await run('live fair', {
         day: 5, time: 23, lastFestivalDay: 5, festival: { endDay: 7, x: 472, y: 352 },
         res: { wood: 40, stone: 20, food: 40, gold: 40 },
-      }, async (page, button, read) => {
+      }, async (page, button, read, until) => {
         assert.equal((await read()).text, '🎪 Festival underway · 2 days left');
         const remove = await page.locator('#p-demolish').elementHandle();
-        await page.waitForFunction(() => document.getElementById('p-festival')?.textContent.includes('1 day left'));
+        await until(() => document.getElementById('p-festival')?.textContent.includes('1 day left'), 20000);
         const later = await read();
         assert.equal(later.day, '6');
         assert.equal(later.text, '🎪 Festival underway · 1 day left');
@@ -198,12 +218,12 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
           { id: 1, type: 'tavern', tx: 28, ty: 21, done: true, level: 1 },
           { id: 2, type: 'orchard', tx: 4, ty: 4, done: true, level: 1 },
         ],
-      }, async (page, button, read) => {
+      }, async (page, button, read, until) => {
         const broke = await read();
         assert.equal(broke.text, '🎪 Need 2🍎 more');
         assert.equal(broke.food, '4');
         const remove = await page.locator('#p-demolish').elementHandle();
-        await page.waitForFunction(() => document.getElementById('p-festival')?.textContent.includes('Hold a Festival'), null, { timeout: 20000 });
+        await until(() => document.getElementById('p-festival')?.textContent.includes('Hold a Festival'), 30000);
         const ready = await read();
         assert.equal(ready.food, '9');
         assert.match(ready.text, /6🍎/);

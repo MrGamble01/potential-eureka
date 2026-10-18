@@ -81,7 +81,7 @@ ok(!!lives && new RegExp(`one of your ${WORD[lives[1]] || lives[1]} lives`).test
     'clear', 'clears', 'win', 'wins', 'survive', 'reach', 'reaches', 'reveal',
     'spell', 'guess', 'connect', 'hold', 'stop', 'trap', 'grow', 'stack',
     'first to', 'beat', 'escape', 'solve', 'avoid', 'without',
-    'push every', 'as high as', 'run ends', 'ends the run',
+    'push every', 'as high as', 'run ends', 'ends the run', 'end the run',
     "don't", 'never', 'before', 'until',
   ].join('|') + ')\\b', 'i');
   const missing = subs.filter(s => !s.text || !GOAL.test(s.text));
