@@ -57,6 +57,46 @@
     var root = document.documentElement;
     root.style.setProperty('--hud-top-safe', top + 'px');
     root.style.setProperty('--hud-bottom-safe', bottom + 'px');
+    liftToasts();
+  }
+
+  function shownToast(el) {
+    if (!el || el.hidden) return null;
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    var r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return r;
+  }
+
+  // Achievement toasts sit above the bars. When the announcer is up
+  // they sit above that line too, and a career banner sits above any
+  // game toast already in the band. Pointer events stay off.
+  function liftToasts() {
+    var root = document.documentElement;
+    var pad = 8;
+    var bottom = parseFloat(getComputedStyle(root).getPropertyValue('--hud-bottom-safe')) || 96;
+    var ticker = document.getElementById('arcade-ai-ticker');
+    var tr = shownToast(ticker);
+    if (tr && tr.top > innerHeight * 0.2 && tr.bottom > innerHeight * 0.35) {
+      var above = Math.round(innerHeight - tr.top + pad);
+      if (above > bottom) bottom = above;
+    }
+    var topSafe = parseFloat(getComputedStyle(root).getPropertyValue('--hud-top-safe')) || 56;
+    var ceiling = Math.round(innerHeight - topSafe - 56);
+    if (ceiling > 18 && bottom > ceiling) bottom = ceiling;
+    root.style.setProperty('--hud-toast-bottom', Math.round(bottom) + 'px');
+    var extra = 0;
+    ['#toasts', '#toast-container', '.aow-achievement-toasts'].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) {
+        if (!el.querySelector('.toast, .aow-ach-toast')) return;
+        var r = shownToast(el);
+        if (r && r.height + pad > extra) extra = Math.round(r.height + pad);
+      });
+    });
+    var career = bottom + extra;
+    if (ceiling > 18 && career > ceiling) career = Math.max(bottom, ceiling);
+    root.style.setProperty('--hud-career-bottom', Math.round(career) + 'px');
   }
 
   var queued = false;
@@ -69,7 +109,7 @@
     });
   }
 
-  window.HudSafe = { apply: apply, schedule: schedule };
+  window.HudSafe = { apply: apply, schedule: schedule, liftToasts: liftToasts };
 
   function start() {
     schedule();

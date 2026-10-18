@@ -279,7 +279,7 @@
       const st = document.createElement('style');
       st.id = 'career-toast-css';
       st.textContent = [
-        '.career-toast{position:fixed;z-index:100000;left:50%;bottom:max(16px,env(safe-area-inset-bottom));',
+        '.career-toast{position:fixed;z-index:100000;left:50%;bottom:var(--hud-career-bottom, var(--hud-toast-bottom, var(--hud-bottom-safe, 96px)));',
         'transform:translateX(-50%) translateY(0);width:min(420px,calc(100vw - 24px));',
         'display:flex;align-items:center;gap:12px;pointer-events:none;',
         'background:rgba(12,12,16,.94);color:#f4f1ea;border:1px solid rgba(247,201,72,.7);',

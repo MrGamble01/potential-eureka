@@ -204,11 +204,20 @@ function box(rect) {
             if (getComputedStyle(host).display === 'none') host.style.display = 'flex';
             const el = document.createElement('div');
             el.className = toastSel === '#aow-achievement-toasts' ? 'aow-ach-toast' : 'toast';
+            el.style.animation = 'none';
             el.textContent = 'Achievement Unlocked  First Blood';
             host.appendChild(el);
           }
         }
+        document.querySelectorAll('.career-toast').forEach((el) => el.remove());
+        const career = document.createElement('div');
+        career.className = 'career-toast';
+        career.setAttribute('role', 'status');
+        career.style.animation = 'none';
+        career.innerHTML = '<span class="career-toast-icon">🪵</span><span><strong>Achievement unlocked</strong><span class="career-toast-name">Valley Founded</span><span class="career-toast-xp">+25 XP</span></span>';
+        document.body.appendChild(career);
         window.dispatchEvent(new Event('resize'));
+        if (window.HudSafe) window.HudSafe.liftToasts();
       }, game.toast);
       await page.waitForTimeout(250);
 
@@ -234,6 +243,8 @@ function box(rect) {
         const toastHost = spec.toast ? document.querySelector(spec.toast) : null;
         const toastEl = toastHost && (toastHost.querySelector('.aow-ach-toast, .toast') || toastHost);
         const toast = toastEl ? rectish(toastEl) : null;
+        const careerEl = document.querySelector('.career-toast');
+        const career = careerEl ? rectish(careerEl) : null;
         function rectish(el) {
           const r = el.getBoundingClientRect();
           if (r.width < 2 || r.height < 2) return null;
@@ -245,17 +256,34 @@ function box(rect) {
           if (hit(booth, bar)) overlaps.push('booth~' + bar.sel);
           if (hit(ticker, bar)) overlaps.push('announcer~' + bar.sel);
           if (hit(toast, bar)) overlaps.push('toast~' + bar.sel);
+          if (hit(career, bar)) overlaps.push('achievement~' + bar.sel);
         });
+        if (hit(toast, ticker)) overlaps.push('toast~announcer');
+        if (hit(career, ticker)) overlaps.push('achievement~announcer');
+        if (hit(career, toast) && ticker) {
+          // Age of War's phone band, between the top bar and the unit
+          // cards, cannot hold the announcer plus two toasts. When the
+          // gap can hold both, they still have to miss each other.
+          const topSafe = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hud-top-safe')) || 0;
+          const free = ticker.top - topSafe;
+          const need = (career.bottom - career.top) + (toast.bottom - toast.top) + 8;
+          if (free >= need) overlaps.push('achievement~toast');
+        }
         const tickerCs = ticker ? getComputedStyle(document.getElementById('arcade-ai-ticker')) : null;
         const toastCs = toastEl ? getComputedStyle(toastEl) : null;
+        const careerCs = careerEl ? getComputedStyle(careerEl) : null;
         const vars = getComputedStyle(document.documentElement);
+        const stacked = !!(career && ticker && career.bottom <= ticker.top + 2);
         return {
           overlaps,
           booth: !!booth,
           ticker: !!ticker,
           toast: !!toast,
+          career: !!career,
+          stacked,
           tickerPe: tickerCs ? tickerCs.pointerEvents : '',
           toastPe: toastCs ? toastCs.pointerEvents : '',
+          careerPe: careerCs ? careerCs.pointerEvents : '',
           top: vars.getPropertyValue('--hud-top-safe').trim(),
           bottom: vars.getPropertyValue('--hud-bottom-safe').trim(),
           games: spec.gamesOnCard ? hit(rect('.ea-back'), rect('#next-action-card')) : false,
@@ -268,6 +296,9 @@ function box(rect) {
       ok(geo.overlaps.length === 0, `${where} no HUD overlap${geo.overlaps.length ? ': ' + geo.overlaps.join(', ') : ''}`);
       ok(geo.tickerPe === 'none', `${where} announcer ignores pointer events`);
       if (game.toast) ok(geo.toastPe === 'none', `${where} toast ignores pointer events`);
+      ok(geo.career, `${where} achievement toast is on screen`);
+      ok(geo.careerPe === 'none', `${where} achievement toast ignores pointer events`);
+      ok(geo.stacked, `${where} achievement toast stacks above the announcer`);
       ok(parseFloat(geo.top) > 0 && parseFloat(geo.bottom) > 0,
         `${where} safe zone is ${geo.top} / ${geo.bottom}`);
       if (game.gamesOnCard) ok(!geo.games, `${where} GAMES clears the first-step card`);
@@ -294,6 +325,22 @@ function box(rect) {
   const waited = Date.now() - shownAt;
   ok(waited >= 2500 && waited <= 6500, `announcer auto-dismisses (${waited}ms)`);
   await dismiss.close();
+
+  const careerDismiss = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const careerPage = await careerDismiss.newPage();
+  careerPage.on('pageerror', (error) => errors.push('career ' + error));
+  await careerPage.goto(BASE + '/hearthvale.html', { waitUntil: 'domcontentloaded' });
+  const begin = careerPage.locator('#welcome-close');
+  if (await begin.count() && await begin.isVisible()) await begin.click();
+  await careerPage.waitForSelector('.career-toast', { timeout: 8000 });
+  const careerShown = Date.now();
+  await careerPage.waitForFunction(() => {
+    const t = document.querySelector('.career-toast');
+    return !t || t.classList.contains('career-toast-out');
+  }, { timeout: 7000 });
+  const careerWaited = Date.now() - careerShown;
+  ok(careerWaited >= 1500 && careerWaited <= 5000, `achievement toast auto-dismisses (${careerWaited}ms)`);
+  await careerDismiss.close();
 
   await browser.close();
   ok(errors.length === 0, `no page errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

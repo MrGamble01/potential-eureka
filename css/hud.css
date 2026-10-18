@@ -64,6 +64,8 @@ html.hud {
   --hud-safe-l: env(safe-area-inset-left, 0px);
   --hud-top-safe: 56px;
   --hud-bottom-safe: 96px;
+  --hud-toast-bottom: 96px;
+  --hud-career-bottom: 96px;
   color-scheme: dark;
 }
 
@@ -968,23 +970,37 @@ html.hud #left-panel {
    measures. Pointer events stay off so a toast never eats a
    tap meant for a unit card. */
 html.hud .aow-achievement-toasts {
-  top: var(--hud-top-safe, 56px);
+  top: auto;
   right: max(16px, var(--hud-safe-r));
-  bottom: auto;
+  bottom: var(--hud-toast-bottom, var(--hud-bottom-safe, 96px));
   pointer-events: none;
-  max-height: calc(100vh - var(--hud-top-safe, 56px) - var(--hud-bottom-safe, 96px));
+  max-height: calc(100vh - var(--hud-top-safe, 56px) - var(--hud-toast-bottom, 96px));
   overflow: hidden;
 }
 
 html.hud .aow-ach-toast,
 html.hud #toast-container,
-html.hud #toast-container .toast {
+html.hud #toast-container .toast,
+html.hud .career-toast,
+html.hud .ach-toast {
   pointer-events: none;
 }
 
-html.hud #toast-container {
-  bottom: var(--hud-bottom-safe, 96px);
+html.hud #toast-container,
+html.hud .ach-toast {
+  bottom: var(--hud-toast-bottom, var(--hud-bottom-safe, 96px));
   top: auto;
+}
+
+html.hud .career-toast {
+  position: fixed;
+  z-index: 100000;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  bottom: var(--hud-career-bottom, var(--hud-toast-bottom, 96px));
+  top: auto;
+  pointer-events: none;
 }
 
 /* Phone: the floor stays open. Counters hug the safe edges. */

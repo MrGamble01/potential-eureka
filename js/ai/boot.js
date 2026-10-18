@@ -454,6 +454,7 @@
       offset = Math.max(offset, barHeight + safe + 8, innerHeight - top + 8);
     }
     ticker.style.bottom = offset + 'px';
+    if (window.HudSafe && typeof window.HudSafe.liftToasts === 'function') window.HudSafe.liftToasts();
   }
 
   function place() {

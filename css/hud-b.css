@@ -40,14 +40,28 @@ html.hud-b {
   --font-display: "HUD Space", "Outfit", "Inter", sans-serif;
   --hud-top-safe: 56px;
   --hud-bottom-safe: 96px;
+  --hud-toast-bottom: 96px;
+  --hud-career-bottom: 96px;
   --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Shared safe zone. js/hud-safe.js writes the variables from
    the bars it measures. Game-specific overlap rules stay put. */
 html.hud-b #toasts,
-html.hud-b #toast-container {
-  bottom: var(--hud-bottom-safe, 96px);
+html.hud-b #toast-container,
+html.hud-b .ach-toast {
+  bottom: var(--hud-toast-bottom, var(--hud-bottom-safe, 96px));
+  pointer-events: none;
+}
+
+html.hud-b .career-toast {
+  position: fixed;
+  z-index: 100000;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  bottom: var(--hud-career-bottom, var(--hud-toast-bottom, 96px));
+  top: auto;
   pointer-events: none;
 }
 
