@@ -903,6 +903,7 @@
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/moments.js"></script>
@@ -6492,6 +6493,100 @@
     VSPR[key] = c; return c;
   }
 
+  function careerLook() {
+    try {
+      if (typeof EurekaCosmetics !== 'undefined' && EurekaCosmetics.look) return EurekaCosmetics.look();
+    } catch (e) { return null; }
+    return null;
+  }
+  // Hub shop looks. A cloak and ribbon sit on every villager, and a
+  // short spark wake follows them while they walk.
+  function paintVillagerCosmetic(v, sx, sy, z, px, py, H) {
+    const look = careerLook();
+    if (!look || (!look.palette && !look.skin && !look.trail)) return;
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    ctx.save();
+    if (look.palette) {
+      ctx.fillStyle = look.palette.color;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.ellipse(px, py + 1 * z, 5.4 * z, 2.3 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(px - 4 * z, py - (H + 2) * z, 8 * z, 2.4 * z);
+      ctx.globalAlpha = 1;
+    }
+    if (look.skin) {
+      const wave = Math.sin(now / 200 + v.x) * z;
+      const pole = px - 5 * z;
+      ctx.strokeStyle = look.skin.accent || '#5a3a12';
+      ctx.lineWidth = Math.max(1, z * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(pole, py);
+      ctx.lineTo(pole, py - (H + 3) * z);
+      ctx.stroke();
+      ctx.fillStyle = look.skin.color;
+      ctx.beginPath();
+      ctx.moveTo(pole, py - (H + 3) * z);
+      ctx.lineTo(pole - 7 * z, py - (H - 1) * z + wave);
+      ctx.lineTo(pole, py - (H - 3) * z);
+      ctx.fill();
+    }
+    if (look.trail) {
+      if (!v._spark) v._spark = [];
+      const moving = v.path && v.path.length > 0;
+      const last = v._spark[v._spark.length - 1];
+      if (moving && (!last || Math.abs(v.x - last.x) + Math.abs(v.y - last.y) > 1.2)) {
+        v._spark.push({ x: v.x, y: v.y, t: now });
+        if (v._spark.length > 12) v._spark.shift();
+      }
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = look.trail.color;
+      ctx.lineWidth = Math.max(2, 1.6 * z);
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      let moved = false;
+      for (let i = 0; i < v._spark.length; i++) {
+        const p = v._spark[i];
+        if ((now - p.t) > 900) continue;
+        const tx = sx + p.x * z;
+        const ty = sy + p.y * z - 6 * z;
+        if (!moved) { ctx.moveTo(tx, ty); moved = true; }
+        else ctx.lineTo(tx, ty);
+      }
+      if (moved) {
+        ctx.lineTo(px, py - 6 * z);
+        ctx.stroke();
+      }
+      for (let i = 0; i < v._spark.length; i++) {
+        const p = v._spark[i];
+        const age = (now - p.t) / 900;
+        if (age < 0 || age >= 1) continue;
+        ctx.globalAlpha = (1 - age) * 0.95;
+        ctx.fillStyle = look.trail.color;
+        ctx.beginPath();
+        ctx.arc(sx + p.x * z, sy + p.y * z - 6 * z, (2.4 - age) * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowColor = look.trail.color;
+      ctx.shadowBlur = 10 * Math.max(1, z * 0.4);
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = '#fff3c4';
+      ctx.beginPath();
+      ctx.arc(px, py - 7 * z, 2.6 * z, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      for (let i = 0; i < 3; i++) {
+        const a = now / 280 + i * 2.1 + v.x;
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = look.trail.color;
+        ctx.beginPath();
+        ctx.arc(px + Math.cos(a) * 7 * z, py - 9 * z + Math.sin(a) * 5 * z, 1.7 * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
   function drawVillager(v, sx, sy, z) {
     if (v.sleeping) return;   // tucked in at home for the night
     const moving = v.path && v.path.length > 0;
@@ -6509,6 +6604,7 @@
     } else {
       ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
     }
+    paintVillagerCosmetic(v, sx, sy, z, px, py, H);
     // soft speech/thought bubble — fades in and out smoothly, never pops
     if (v.emote && v.emote.life > 0) {
       const e = v.emote, k = e.life / e.maxLife;

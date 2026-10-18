@@ -201,6 +201,11 @@
     const keys = Object.keys(data.days).sort();
     while (keys.length > 21) delete data.days[keys.shift()];
     save(data);
+    if (met && !(prev && prev.met)) {
+      try {
+        if (root.EurekaCosmetics && root.EurekaCosmetics.grantDaily) root.EurekaCosmetics.grantDaily('flag', date);
+      } catch (e) { /* a spark purse cannot blank the daily */ }
+    }
     return {
       date: date,
       best: best,
