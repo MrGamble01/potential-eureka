@@ -1,0 +1,213 @@
+/* ============================================
+   STUDIO FACE — hub pass
+   Cards first, one type scale, motion that
+   stays still when the visitor asks it to.
+   Loaded last so it wins the cascade.
+   ============================================ */
+
+#view-arcade {
+  --font-display: "HUD Space", "Outfit", "Inter", system-ui, sans-serif;
+  --type-kicker: 0.75rem;
+  --type-body: 1rem;
+  --type-title: clamp(1.75rem, 3vw, 2.25rem);
+}
+
+.hub-chrome > nav.site-nav .logo {
+  font-family: var(--font-display, "Outfit", "Inter", system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 0.95rem;
+}
+
+#view-arcade .arcade-hero-kicker {
+  font-family: var(--font-display, "Outfit", "Inter", system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e3b341;
+  text-shadow: none;
+}
+
+#view-arcade .arcade-hero-title,
+#view-arcade .arcade-section-title,
+#view-arcade .arcade-flagship-name,
+#view-arcade .arcade-card-title {
+  font-family: var(--font-display, "Outfit", "Inter", system-ui, sans-serif);
+}
+
+/* Catalogue before the daily strip on every width. The Challenge
+   control still scrolls to the banner. A nowrap chip row was also
+   growing past the viewport: body clips overflow-x, so the last
+   games were painted and then cut off on iPad. */
+#view-arcade.view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+#view-arcade.view.active > * {
+  width: 100%;
+  min-width: 0;
+}
+
+#view-arcade .arcade-hero { order: 0; }
+#view-arcade .card-search-wrap { order: 1; }
+#view-arcade .jump-back-in { order: 2; }
+#view-arcade #arcade-empty { order: 3; }
+#view-arcade .arcade-section--long { order: 4; }
+#view-arcade .arcade-section--studio { order: 5; }
+#view-arcade .arcade-section--quick { order: 6; }
+#view-arcade #primer-hint { order: 7; }
+#view-arcade #daily-banner { order: 8; }
+#view-arcade #flag-daily { order: 9; }
+
+#daily-banner.hub-challenge {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The chip row is a nowrap flex item. min-width:auto let it grow past
+   the iPad and body{overflow-x:hidden} cut the last games off. A full
+   width basis plus min-width:0 makes this the scrollport instead. */
+#daily-banner #daily-games {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 840px) {
+  #daily-banner #daily-games {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+/* iPad mini portrait is 744px — just past the 720 two-column
+   break — so the catalogue was three cramped columns. Two columns
+   until the landscape width, where three fit. */
+@media (min-width: 641px) and (max-width: 840px) {
+  #view-arcade .arcade-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #view-arcade .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: calc((100% - 12px) / 2);
+  }
+}
+
+/* Wide desktop hero was a 248px billboard. Shorten it so a row of
+   cards sits on a 900px-tall screen. */
+@media (min-width: 1100px) {
+  #view-arcade .arcade-flagship,
+  #view-arcade .arcade-flagship-art {
+    min-height: 168px;
+  }
+  #view-arcade .arcade-hero {
+    margin-bottom: 16px;
+  }
+  #view-arcade .card-search-wrap {
+    margin-bottom: 16px;
+  }
+  #view-arcade .arcade-section {
+    margin-bottom: 28px;
+  }
+}
+
+/* iPad mini landscape is 1133×744. Width clears the 1100 desktop
+   rule, height does not, and the billboard pushed Long games to
+   y≈800 — below the screen. */
+@media (min-width: 1021px) and (max-height: 820px) {
+  #view-arcade.view.active {
+    padding-top: 12px;
+    padding-bottom: 16px;
+  }
+  #view-arcade .arcade-hero {
+    margin-bottom: 8px;
+  }
+  #view-arcade .arcade-hero-sub,
+  #view-arcade .arcade-section-lede {
+    display: none;
+  }
+  #view-arcade .arcade-flagship {
+    grid-template-columns: 180px minmax(0, 1fr);
+    min-height: 112px;
+    margin-top: 0;
+  }
+  #view-arcade .arcade-flagship-art {
+    min-height: 112px;
+  }
+  #view-arcade .arcade-flagship-copy {
+    padding: 10px 14px;
+    gap: 4px;
+  }
+  #view-arcade .arcade-flagship-name {
+    font-size: 1.35rem;
+  }
+  #view-arcade .card-search-wrap {
+    margin-bottom: 8px;
+  }
+  #view-arcade .card-search,
+  #view-arcade .arcade-scan-link {
+    min-height: 44px;
+  }
+  #view-arcade .arcade-section-head {
+    margin-bottom: 8px;
+  }
+  #view-arcade .arcade-card-screen {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* iPad mini landscape is 1133×744. The phone cabinet stops at 700px
+   wide, so Tetris kept a 600px-tall well and the touch pad sat
+   below the screen. Fit the cabinet to the viewport and scale the
+   board into whatever is left above the pad. */
+@media (min-width: 701px) and (min-height: 521px) and (max-height: 820px) {
+  /* Cap the well itself. A flex height of 100% collapsed Tetris to a
+     stamp because the bitmap size and the wrapper were waiting on
+     each other. dvh leaves room for the nav, the header, and a pad. */
+  canvas.game-canvas {
+    max-height: calc(100dvh - 340px);
+    max-width: 100%;
+    width: auto !important;
+    height: auto !important;
+  }
+  .tetris-touch,
+  .ast-touch {
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #view-arcade .arcade-card {
+    animation: studioCardIn 0.45s var(--ease-out-expo, ease) both;
+  }
+  #view-arcade .arcade-card:nth-child(2) { animation-delay: 0.04s; }
+  #view-arcade .arcade-card:nth-child(3) { animation-delay: 0.08s; }
+  #view-arcade .arcade-card:nth-child(4) { animation-delay: 0.12s; }
+  #view-arcade .arcade-card:nth-child(5) { animation-delay: 0.16s; }
+  #view-arcade .arcade-card:nth-child(6) { animation-delay: 0.2s; }
+  #view-arcade .arcade-flagship {
+    animation: studioCardIn 0.4s var(--ease-out-expo, ease) both;
+  }
+}
+
+@keyframes studioCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-arcade .arcade-card,
+  #view-arcade .arcade-flagship,
+  .ambient-blob {
+    animation: none;
+  }
+  .ambient-blob { display: none; }
+  html { scroll-behavior: auto; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}

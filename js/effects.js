@@ -14,6 +14,27 @@ const Effects = (() => {
   let particleCanvas, pCtx;
   let particles = [];
   let mouseX = -1000, mouseY = -1000;
+  let particleRaf = 0;
+  let particlesOn = false;
+  let linkParticles = true;
+
+  function arcadeVisible() {
+    const view = document.getElementById('view-arcade');
+    return !!(view && view.classList.contains('active'));
+  }
+
+  function stopParticles() {
+    particlesOn = false;
+    if (particleRaf) cancelAnimationFrame(particleRaf);
+    particleRaf = 0;
+  }
+
+  function startParticles() {
+    if (!pCtx || particlesOn) return;
+    if (!arcadeVisible() || document.hidden) return;
+    particlesOn = true;
+    particleRaf = requestAnimationFrame(tickParticles);
+  }
 
   function initParticles() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -28,7 +49,11 @@ const Effects = (() => {
     resize();
     window.addEventListener('resize', resize);
 
-    const count = Math.min(80, Math.floor(window.innerWidth * window.innerHeight / 15000));
+    // The old budget was ~80 dots with a full pair loop on every frame,
+    // including while a game was open. That is a steady cost on an iPad.
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    linkParticles = !coarse;
+    const count = coarse ? 16 : 28;
     const colors = ['#6C63FF', '#58A6FF', '#F778BA'];
     for (let i = 0; i < count; i++) {
       particles.push({
@@ -42,10 +67,21 @@ const Effects = (() => {
     }
 
     document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-    requestAnimationFrame(tickParticles);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopParticles();
+      else startParticles();
+    });
+    window.addEventListener('hashchange', () => {
+      requestAnimationFrame(() => {
+        if (arcadeVisible()) startParticles();
+        else stopParticles();
+      });
+    });
+    startParticles();
   }
 
   function tickParticles() {
+    if (!particlesOn) return;
     const W = particleCanvas.width, H = particleCanvas.height;
     pCtx.clearRect(0, 0, W, H);
 
@@ -69,25 +105,26 @@ const Effects = (() => {
       pCtx.fill();
     }
 
-    // Connections
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const d = dx * dx + dy * dy;
-        if (d < 14400) { // 120^2
-          pCtx.beginPath();
-          pCtx.moveTo(particles[i].x, particles[i].y);
-          pCtx.lineTo(particles[j].x, particles[j].y);
-          pCtx.strokeStyle = particles[i].color;
-          pCtx.globalAlpha = (1 - Math.sqrt(d) / 120) * 0.12;
-          pCtx.lineWidth = 0.5;
-          pCtx.stroke();
+    if (linkParticles) {
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const d = dx * dx + dy * dy;
+          if (d < 10000) {
+            pCtx.beginPath();
+            pCtx.moveTo(particles[i].x, particles[i].y);
+            pCtx.lineTo(particles[j].x, particles[j].y);
+            pCtx.strokeStyle = particles[i].color;
+            pCtx.globalAlpha = (1 - Math.sqrt(d) / 100) * 0.12;
+            pCtx.lineWidth = 0.5;
+            pCtx.stroke();
+          }
         }
       }
     }
     pCtx.globalAlpha = 1;
-    requestAnimationFrame(tickParticles);
+    particleRaf = requestAnimationFrame(tickParticles);
   }
 
   // ---- 3D CARD TILT ----

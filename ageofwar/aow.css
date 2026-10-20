@@ -2021,3 +2021,19 @@
   .aow-action-ico { font-size: 14px; }
   .aow-action-lbl { font-size: 11px; }
 }
+
+/* iPad mini portrait is 744px wide, so it takes the desktop column
+   (min-width 721) and misses the phone rail. The 76px command cap
+   then clips Pause and Restart — the last two buttons — and the page
+   is locked to the viewport, so they cannot be scrolled into view. */
+@media (min-width: 721px) and (max-width: 900px) {
+  .aow-hint { display: none; }
+  .aow-actionbar {
+    max-height: 128px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .aow-action {
+    min-height: 44px;
+  }
+}
