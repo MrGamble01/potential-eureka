@@ -385,6 +385,51 @@ const TARGETS = [
       if (!/^\d+$/.test(coins)) throw new Error(`Voxel Isle coins did not render (${coins})`);
     },
   },
+  {
+    name: 'Ashmarch',
+    path: '/games/ashmarch/index.html',
+    file: 'games/ashmarch/index.html',
+    check: async (page) => {
+      await page.waitForSelector('#ash-choices button', { timeout: 15000 });
+      const before = (await page.locator('#ash-text').innerText()).trim();
+      if (before.length < 40) throw new Error('Ashmarch did not narrate (' + before.length + ' chars)');
+      await page.locator('#ash-choices button').first().click();
+      await page.waitForFunction((text) => {
+        const el = document.getElementById('ash-text');
+        return el && el.textContent && el.textContent.trim() !== text;
+      }, before);
+      await page.waitForFunction(() => {
+        const stats = window.__smokePaint('#ash-stage');
+        return !!(stats && stats.colors >= 2);
+      }, null, { timeout: 8000 });
+    },
+  },
+  {
+    name: 'Sentence to Game',
+    path: '/games/sentence-to-game/index.html',
+    file: 'games/sentence-to-game/index.html',
+    check: async (page) => {
+      await page.locator('[data-prompt="Dodge the falling ash"]').click();
+      await page.waitForFunction(() => {
+        const title = document.getElementById('stg-title');
+        return title && /ash/i.test(title.textContent || '');
+      });
+      await page.waitForFunction(() => {
+        const stats = window.__smokePaint('#stg-canvas');
+        return !!(stats && stats.colors >= 2);
+      }, null, { timeout: 8000 });
+      const first = await page.evaluate(() => window.__smokePaint('#stg-canvas'));
+      await page.waitForFunction((hash) => {
+        const stats = window.__smokePaint('#stg-canvas');
+        return !!(stats && stats.hash !== hash);
+      }, first.hash, { timeout: 4000 });
+      await page.keyboard.down('ArrowLeft');
+      await page.waitForTimeout(120);
+      await page.keyboard.up('ArrowLeft');
+      const status = (await page.locator('#stg-status').innerText()).trim();
+      if (!/\/\s*8/.test(status)) throw new Error('Sentence to Game did not start (' + status + ')');
+    },
+  },
   phoneTarget('Phone 390×844', { width: 390, height: 844 }),
   phoneTarget('Phone 375×667', { width: 375, height: 667 }),
   phoneTarget('Phone 844×390', { width: 844, height: 390 }),

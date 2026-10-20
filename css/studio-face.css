@@ -54,8 +54,9 @@
 #view-arcade .jump-back-in { order: 2; }
 #view-arcade #arcade-empty { order: 3; }
 #view-arcade .arcade-section--long { order: 4; }
-#view-arcade .arcade-section--studio { order: 5; }
-#view-arcade .arcade-section--quick { order: 6; }
+#view-arcade .arcade-section--workshop { order: 5; }
+#view-arcade .arcade-section--studio { order: 6; }
+#view-arcade .arcade-section--quick { order: 7; }
 #view-arcade #primer-hint { order: 7; }
 #view-arcade #daily-banner { order: 8; }
 #view-arcade #flag-daily { order: 9; }
