@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261020-studio-polish';  // Studio hub pass. Install fetches with cache:'reload' so a year-long immutable CSS/JS header cannot reinstall a stale shell.
+const SW_VERSION = 'eureka-20261020-chronicle';  // Real Ashmarch Chronicle (Vellum and Lumenferry) replaces the stub march. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -65,6 +65,15 @@ const SHELL = [
   '/js/ai/boot.js',
   '/js/ai/inworld.js',
   '/tycoon/beagle-pack.js',
+  '/games/ashmarch/index.html',
+  '/games/ashmarch/ashmarch.css',
+  '/games/ashmarch/ashmarch.js',
+  '/games/sentence-to-game/index.html',
+  '/games/sentence-to-game/stg.css',
+  '/games/sentence-to-game/play.js',
+  '/games/sentence-to-game/compile.js',
+  '/assets/covers/ashmarch.svg',
+  '/assets/covers/sentence.svg',
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',

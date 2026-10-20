@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sentence to Game — Eureka Studio</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
+  <link rel="stylesheet" href="stg.css">
+</head>
+<body>
+  <header class="stg-top">
+    <a class="stg-back" href="/">Arcade</a>
+    <div class="stg-mark">Sentence to Game<small>Local stub</small></div>
+  </header>
+  <main class="stg-wrap">
+    <p class="stg-note">Type a prompt — zombie pickleball on Mars is fair game. The local language and picture stubs turn it into a cabinet you can play here: collect, dodge, break, hop, or snake. No key, no network.</p>
+    <form class="stg-form" id="stg-form">
+      <input id="stg-prompt" name="prompt" type="text" maxlength="140" placeholder="A gold snake that eats through the ash" aria-label="Game prompt" required>
+      <button type="submit">Make it</button>
+    </form>
+    <div class="stg-chips">
+      <button type="button" data-prompt="Dodge the falling ash">Dodge the ash</button>
+      <button type="button" data-prompt="Break the neon bricks">Break bricks</button>
+      <button type="button" data-prompt="A green snake that eats">Snake</button>
+      <button type="button" data-prompt="Hop over the gold coins and collect them">Hop and collect</button>
+    </div>
+    <div class="stg-stage">
+      <canvas id="stg-canvas" width="640" height="360" aria-label="The game the sentence became"></canvas>
+    </div>
+    <div class="stg-meta">
+      <h1 class="stg-title" id="stg-title">Waiting on a sentence</h1>
+      <p id="stg-status">Arrow keys or the pad. Reach the goal.</p>
+    </div>
+    <div class="stg-pad">
+      <button type="button" data-hold="left" aria-label="Left">Left</button>
+      <button type="button" data-hold="action" aria-label="Action">Action</button>
+      <button type="button" data-hold="right" aria-label="Right">Right</button>
+    </div>
+  </main>
+  <script type="module" src="play.js"></script>
+</body>
+</html>
