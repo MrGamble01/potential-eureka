@@ -390,18 +390,35 @@ const TARGETS = [
     path: '/games/ashmarch/index.html',
     file: 'games/ashmarch/index.html',
     check: async (page) => {
-      await page.waitForSelector('#ash-choices button', { timeout: 15000 });
-      const before = (await page.locator('#ash-text').innerText()).trim();
+      await page.waitForSelector('#player-name', { timeout: 15000 });
+      await page.locator('[data-book="lumenferry"]').click();
+      const ferry = (await page.locator('.party-intro').innerText());
+      if (!/Bram Holt/.test(ferry) || !/Ness Kite/.test(ferry) || !/Pell/.test(ferry)) {
+        throw new Error('Lumenferry party did not render');
+      }
+      await page.locator('[data-book="ashmarch"]').click();
+      const ashParty = (await page.locator('.party-intro').innerText());
+      if (!/Mara Voss/.test(ashParty) || !/Ivo Quill/.test(ashParty) || !/Sable/.test(ashParty)) {
+        throw new Error('Ashmarch party did not render');
+      }
+      await page.locator('#player-name').fill('Nim');
+      await page.locator('#motive').fill('To pay a debt');
+      await page.locator('#ash-begin button[type="submit"]').click();
+      await page.waitForSelector('#ash-transcript .narration p', { timeout: 15000 });
+      const before = (await page.locator('#ash-transcript .narration').innerText()).trim();
       if (before.length < 40) throw new Error('Ashmarch did not narrate (' + before.length + ' chars)');
+      if (!/Chronicle/i.test(await page.locator('.brand').innerText())) throw new Error('Chronicle is missing');
+      const journal = (await page.locator('#ash-journal').innerText()).trim();
+      if (journal.length < 8) throw new Error('Journal did not open');
+      const plate = await page.locator('#ash-plate').getAttribute('src');
+      if (!plate || !plate.startsWith('data:image/svg+xml')) throw new Error('Scene plate is not an SVG');
+      const colors = new Set((decodeURIComponent(plate).match(/#[0-9a-fA-F]{3,8}/g) || []));
+      if (colors.size < 2) throw new Error('Scene plate has ' + colors.size + ' colors');
       await page.locator('#ash-choices button').first().click();
       await page.waitForFunction((text) => {
-        const el = document.getElementById('ash-text');
+        const el = document.querySelector('#ash-transcript .narration');
         return el && el.textContent && el.textContent.trim() !== text;
       }, before);
-      await page.waitForFunction(() => {
-        const stats = window.__smokePaint('#ash-stage');
-        return !!(stats && stats.colors >= 2);
-      }, null, { timeout: 8000 });
     },
   },
   {

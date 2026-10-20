@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261020-fold-games';  // Ashmarch and Sentence to Game join the shell. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261020-chronicle';  // Real Ashmarch Chronicle (Vellum and Lumenferry) replaces the stub march. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -68,7 +68,6 @@ const SHELL = [
   '/games/ashmarch/index.html',
   '/games/ashmarch/ashmarch.css',
   '/games/ashmarch/ashmarch.js',
-  '/games/ashmarch/providers.js',
   '/games/sentence-to-game/index.html',
   '/games/sentence-to-game/stg.css',
   '/games/sentence-to-game/play.js',

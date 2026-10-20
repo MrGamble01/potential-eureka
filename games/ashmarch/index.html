@@ -8,23 +8,7 @@
   <link rel="stylesheet" href="ashmarch.css">
 </head>
 <body>
-  <header class="ash-top">
-    <a class="ash-back" href="/">Arcade</a>
-    <div class="ash-mark">Ashmarch<small>A local storyteller</small></div>
-    <button type="button" class="ash-ghost" id="ash-reset">Start over</button>
-  </header>
-  <main class="ash-layout">
-    <div class="ash-stage-wrap">
-      <canvas id="ash-stage" class="ash-stage" width="640" height="400" aria-label="The road, drawn for this scene"></canvas>
-    </div>
-    <section class="ash-panel" aria-live="polite">
-      <p class="ash-kicker" id="ash-kicker">Ashmarch</p>
-      <p class="ash-text" id="ash-text">The ash is settling.</p>
-      <p class="ash-items" id="ash-items"></p>
-      <div class="ash-choices" id="ash-choices"></div>
-      <p class="ash-note">Told by the local stub. No key, no network. A cloud storyteller can use the same turn later.</p>
-    </section>
-  </main>
+  <div id="app" class="app"></div>
   <script type="module" src="ashmarch.js"></script>
 </body>
 </html>

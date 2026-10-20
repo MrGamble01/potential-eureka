@@ -1,11 +1,54 @@
 /* Compilers turn a sentence into a playable spec.
-   createCompiler() with no argument is the local stub and does not
-   call the network. A later model compiler must return the same shape:
-   { title, kind, accent, goal }. Kinds the cabinet knows: collect,
-   dodge, break, hop, snake. */
+   createLlmProvider() and createImageProvider() with no argument are
+   the local stubs. They do not read a key and they do not call the
+   network. openai, anthropic, and http stay on the same interfaces
+   and refuse to run until a later host configures them.
+   Kinds the cabinet knows: collect, dodge, break, hop, snake. */
+
+export function createLlmProvider(id) {
+  if (id === 'openai' || id === 'anthropic') return unconfiguredLlm(id);
+  return stubLlm;
+}
+
+export function createImageProvider(id) {
+  if (id === 'http') return unconfiguredImage();
+  return stubImage;
+}
+
+export const stubLlm = {
+  id: 'stub',
+  async complete(prompt) {
+    return stubSpec(prompt);
+  },
+};
+
+export const stubImage = {
+  id: 'stub',
+  async illustrate(spec) {
+    return { accent: spec.accent, mime: 'image/svg+xml' };
+  },
+};
+
+function unconfiguredLlm(id) {
+  return {
+    id,
+    async complete() {
+      throw new Error(id + ' is not configured. Sentence to Game is using the local stub.');
+    },
+  };
+}
+
+function unconfiguredImage() {
+  return {
+    id: 'http',
+    async illustrate() {
+      throw new Error('Image provider is not configured. Sentence to Game draws locally.');
+    },
+  };
+}
 
 export function createCompiler(id) {
-  if (id === 'model') return modelCompiler;
+  if (id === 'model' || id === 'openai' || id === 'anthropic') return modelCompiler;
   return stubCompiler;
 }
 
@@ -19,7 +62,7 @@ export const stubCompiler = {
 export const modelCompiler = {
   id: 'model',
   async compile(prompt) {
-    return stubSpec(prompt);
+    return stubLlm.complete(prompt);
   },
 };
 

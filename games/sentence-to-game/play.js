@@ -1,6 +1,7 @@
-import { createCompiler } from './compile.js';
+import { createImageProvider, createLlmProvider } from './compile.js';
 
-const compiler = createCompiler();
+const llm = createLlmProvider();
+const images = createImageProvider();
 const canvas = document.getElementById('stg-canvas');
 const ctx = canvas.getContext('2d');
 const titleEl = document.getElementById('stg-title');
@@ -188,7 +189,9 @@ function frame() {
 }
 
 async function build(prompt) {
-  const next = await compiler.compile(prompt);
+  const next = await llm.complete(prompt);
+  const plate = await images.illustrate(next);
+  if (plate && plate.accent) next.accent = plate.accent;
   titleEl.textContent = next.title;
   fresh(next);
   running = true;
