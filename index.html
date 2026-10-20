@@ -11,7 +11,7 @@
     } catch (e) {}
   </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
   <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-one games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
@@ -26,7 +26,8 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap"></noscript>
   <!-- Linked individually, in the order css/style.css used to @import them.
        As @imports the browser couldn't discover these until style.css had been
        fetched AND parsed, so they cost a second serial round trip before any
@@ -50,6 +51,7 @@
   <link rel="stylesheet" href="css/orgchart.css?v=20261017moments4">
   <link rel="stylesheet" href="css/hub-pages.css?v=20261018sparkdark">
   <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
+  <link rel="stylesheet" href="css/studio-face.css?v=20261020studio">
 </head>
 <body>
 
@@ -65,7 +67,7 @@
   <!-- NAVIGATION -->
   <header class="hub-chrome">
   <nav class="site-nav">
-    <button class="logo logo-btn" data-view="arcade">&gt;_ EUREKA GAMES</button>
+    <button class="logo logo-btn" data-view="arcade">EUREKA</button>
     <div class="nav-spacer"></div>
     <a class="career-chip" href="#trophy" data-view="trophy" id="career-chip" aria-label="Your profile and trophy room">
       <span class="career-chip-face" aria-hidden="true">&#127918;</span>
@@ -102,9 +104,9 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; FREE &mdash; TWENTY-ONE GAMES &mdash; NO SIGN-UP</div>
-      <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
-      <p class="arcade-hero-sub">The flagship is Age of War. Everything else is a hop down the page.</p>
+      <div class="arcade-hero-kicker">Eureka Studio</div>
+      <div class="arcade-hero-title glitch" data-text="EUREKA">EUREKA</div>
+      <p class="arcade-hero-sub">A house of browser games. Pick a card and play — nothing to install, nothing to sign.</p>
 
       <a class="arcade-flagship" href="ageofwar/" aria-label="Play Age of War">
         <div class="arcade-flagship-art" aria-hidden="true">

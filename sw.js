@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261018-fix-aowsheet';  // Pause sheet stops above the Age of War command rail. Cache-first CSS ignores ?v= until this moves.
+const SW_VERSION = 'eureka-20261020-studio-polish';  // Studio hub pass. Install fetches with cache:'reload' so a year-long immutable CSS/JS header cannot reinstall a stale shell.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -57,7 +57,14 @@ const SHELL = [
   '/css/arcade-chrome.css',
   '/css/hud.css',
   '/css/hud-space.woff2',
+  '/css/studio-face.css',
   '/js/hud-safe.js',
+  '/js/climax.js',
+  '/js/hearthvale-expedition.js',
+  '/js/ai/arcade-ai.js',
+  '/js/ai/boot.js',
+  '/js/ai/inworld.js',
+  '/tycoon/beagle-pack.js',
   '/css/arcade.css',
   '/css/game-cards.css',
   '/css/hub-pages.css',
@@ -127,10 +134,20 @@ const SHELL = [
   '/js/wordcascade.js',
 ];
 
+// cache.addAll() honors the HTTP cache. /css and /js are immutable for a
+// year, and this worker matches them with ignoreSearch, so a version
+// bump used to precache whatever the browser had stored for the bare
+// path. Reload bypasses that and stores the response this install saw.
+async function precacheFresh(cache, url) {
+  const res = await fetch(url, { cache: 'reload', credentials: 'same-origin' });
+  if (!res.ok) throw new Error('precache ' + res.status + ' ' + url);
+  await cache.put(url, res);
+}
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(PRECACHE)
-      .then(cache => cache.addAll(SHELL))
+      .then(cache => Promise.all(SHELL.map(url => precacheFresh(cache, url))))
       .then(() => self.skipWaiting())
   );
 });
@@ -190,7 +207,13 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then(cached => {
       if (cached) return cached;
-      return fetch(req).then(res => {
+      // Same trap as install: a cache-first miss that fills from the
+      // HTTP cache pins the immutable file until the next serial.
+      const versioned = /\.(css|js)$/.test(url.pathname);
+      const incoming = versioned
+        ? fetch(url.pathname + url.search, { cache: 'reload', credentials: 'same-origin' })
+        : fetch(req);
+      return incoming.then(res => {
         // Only cache real successes; opaque/error responses would wedge.
         if (res.ok && (res.type === 'basic' || res.type === 'default')) {
           const copy = res.clone();
