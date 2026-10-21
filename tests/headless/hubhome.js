@@ -97,7 +97,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const jumps = [...document.querySelectorAll('[data-jump]')].map(b => b.dataset.jump);
     return {
       longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /15/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /17/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
       studio: !!(studio && /Studio/.test((studio.querySelector('.arcade-section-title') || {}).textContent || '')),
       jumps: ['long', 'quick', 'studio'].every(k => jumps.includes(k)),
       longCards: long ? long.querySelectorAll('.arcade-card').length : 0,
@@ -105,7 +105,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     };
   });
   ok(scan.longTitle && scan.longCards === 6, 'Long games is labeled, counted, and holds the six flagships');
-  ok(scan.quickTitle && scan.quickCards === 15, 'Quick games is labeled, counted, and holds the fifteen arcade titles');
+  ok(scan.quickTitle && scan.quickCards === 17, 'Quick games is labeled, counted, and holds the seventeen arcade titles');
   ok(scan.studio && scan.jumps, 'Studio is labeled and the scan hops reach long, quick and studio');
 
   await page.click('.arcade-scan-link--quick');
@@ -663,7 +663,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       names,
       vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
       longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /15/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /17/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
       quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
       longRanks: long ? [...long.querySelectorAll('.hof-rank')].map(el => el.textContent.trim()) : [],
@@ -671,12 +671,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       quickFirst: quick && ((quick.querySelector('.hof-row .hof-name') || {}).textContent || ''),
     };
   });
-  ok(hofBoard.rows === 21 && hofBoard.longRows === 6 && hofBoard.quickRows === 15 && hofBoard.longTitle && hofBoard.quickTitle,
-    `HoF board is 6 Long + 15 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
+  ok(hofBoard.rows === 23 && hofBoard.longRows === 6 && hofBoard.quickRows === 17 && hofBoard.longTitle && hofBoard.quickTitle,
+    `HoF board is 6 Long + 17 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
   ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
     `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
   ok(hofBoard.longRanks.join() === '01,02,03,04,05,06'
-    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[14] === '15'
+    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[16] === '17'
     && /Snake/.test(hofBoard.quickFirst),
     `HoF ranks restart per lane (Quick ${hofBoard.quickRanks[0]}–${hofBoard.quickRanks[14]}, first ${hofBoard.quickFirst})`);
 

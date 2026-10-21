@@ -147,6 +147,8 @@ const TARGETS = [
   hubCanvas({ name: 'Vector Defense', view: 'vectordefense', canvas: '#vd-canvas', start: clickSel('#vd-canvas') }),
   hubCanvas({ name: 'Word Cascade', view: 'wordcascade', canvas: '#wc-canvas', start: clickSel('#wc-canvas') }),
   hubCanvas({ name: 'Memory Matrix', view: 'memorymatrix', canvas: '#mm-canvas', start: clickSel('#mm-canvas') }),
+  hubCanvas({ name: 'Inkflip', view: 'inkflip', canvas: '#inkflip-canvas', start: press('ArrowRight') }),
+  hubCanvas({ name: 'Gutterlight', view: 'gutterlight', canvas: '#gutter-canvas', start: press('ArrowRight') }),
   hubCanvas({
     name: 'Maze Runner',
     view: 'maze',
@@ -770,6 +772,8 @@ const PHONE_BOARDS = [
   ['minesweeper', '#mines-canvas'],
   ['asteroids', '#asteroids-canvas'],
   ['life', '#life-canvas'],
+  ['inkflip', '#inkflip-canvas'],
+  ['gutterlight', '#gutter-canvas'],
 ];
 
 function phoneTarget(name, viewport) {

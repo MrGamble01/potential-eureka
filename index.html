@@ -4,6 +4,7 @@
   <script>
     // Theme boot (SITE-6): applied before first paint so there's no flash.
     // Stored pick wins; otherwise light-preferring systems get daylight.
+    document.documentElement.classList.add('eureka-booting');
     try {
       var t = localStorage.getItem('eureka-theme');
       if (t === null && matchMedia('(prefers-color-scheme: light)').matches) t = 'daylight';
@@ -14,12 +15,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-one games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-five games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
-  <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and 16 more, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
+  <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and 20 more, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
   <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
   <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/">
   <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/">
@@ -45,13 +46,13 @@
   <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="css/game-cards.css?v=20261017moments4">
   <link rel="stylesheet" href="css/dashboard.css?v=20261017moments4">
-  <link rel="stylesheet" href="css/games.css?v=20261017moments4">
+  <link rel="stylesheet" href="css/games.css?v=20261021cabinet">
   <link rel="stylesheet" href="css/productivity.css?v=20261017moments4">
   <link rel="stylesheet" href="css/personal.css?v=20261017moments4">
   <link rel="stylesheet" href="css/orgchart.css?v=20261017moments4">
   <link rel="stylesheet" href="css/hub-pages.css?v=20261018sparkdark">
   <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
-  <link rel="stylesheet" href="css/studio-face.css?v=20261020fold">
+  <link rel="stylesheet" href="css/studio-face.css?v=20261021cabinet">
 </head>
 <body>
 
@@ -319,7 +320,7 @@
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">15</span>
+          <span class="arcade-section-count">17</span>
           <span class="arcade-section-chip">Few minutes</span>
         </div>
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
@@ -536,6 +537,34 @@
           <div class="arcade-card-title">WORD FIVE</div>
           <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Words</span></div>
           <div class="arcade-card-desc">Guess the five-letter word in six tries.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card" href="#inkflip" data-view="inkflip" style="--accent:#e3b341">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/covers/inkflip.svg" alt="Inkflip cover" width="640" height="400" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="inkflip"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">INKFLIP</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Reversi</span><span>vs House</span></div>
+          <div class="arcade-card-desc">Flip the board. Corners belong to you.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card" href="#gutterlight" data-view="gutterlight" style="--accent:#3fb950">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/covers/gutterlight.svg" alt="Gutterlight cover" width="640" height="400" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="gutterlight"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">GUTTERLIGHT</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Putting</span><span>Nine holes</span></div>
+          <div class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -838,6 +867,8 @@
       <div class="game-controls" style="margin-top:12px">
         <button id="cycles-mode-btn" onclick="LightCyclesGame.toggleMode()">Mode: VS AI</button>
         <button id="cycles-third-btn" onclick="LightCyclesGame.toggleThird()" title="Add a third, gold AI rider to the grid">Riders: 2</button>
+        <button type="button" id="cycles-pause" onclick="LightCyclesGame.togglePause()">Pause</button>
+        <button type="button" onclick="LightCyclesGame.restart()">Restart</button>
       </div>
     </div>
   </section>
@@ -861,6 +892,8 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button id="pong-mode-btn" onclick="PongGame.toggleMode()">Mode: VS AI</button>
+        <button type="button" id="pong-pause" onclick="PongGame.togglePause()">Pause</button>
+        <button type="button" onclick="PongGame.restart()">Restart</button>
       </div>
     </div>
   </section>
@@ -880,6 +913,10 @@
       <div class="canvas-wrapper">
         <canvas id="stacker-canvas" class="game-canvas" role="img" aria-label="Stacker tower"></canvas>
         <div id="stacker-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button type="button" id="stacker-pause" onclick="StackerGame.togglePause()">Pause</button>
+        <button type="button" onclick="StackerGame.restart()">Restart</button>
       </div>
     </div>
   </section>
@@ -954,6 +991,10 @@
         <div id="wc-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
       <div id="wc-lastwords" class="wc-lastwords" aria-live="polite"></div>
+      <div class="game-controls" style="margin-top:12px">
+        <button type="button" id="wc-pause" onclick="WordCascadeGame.togglePause()">Pause</button>
+        <button type="button" onclick="WordCascadeGame.restart()">Restart</button>
+      </div>
     </div>
   </section>
 
@@ -1113,6 +1154,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="BreakoutGame.start()">New Game</button>
+        <button type="button" id="breakout-pause" onclick="BreakoutGame.togglePause()">Pause</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
         Power-ups: <span style="color:#58A6FF">×3 multiball</span> &nbsp;·&nbsp;
@@ -1360,9 +1402,59 @@
     </div>
   </section>
 
+  <section id="view-inkflip" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">INKFLIP</div>
+        <div class="game-subtitle">Dark discs are yours. Arrows move the cursor, Enter or tap places a disc, P pauses, R restarts.</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>You: <strong id="inkflip-you">2</strong></span>
+        <span>House: <strong id="inkflip-them">2</strong></span>
+        <span>Turn: <strong id="inkflip-turn">You</strong></span>
+        <span>Best: <strong id="inkflip-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="inkflip-canvas" class="game-canvas" role="img" aria-label="Inkflip board"></canvas>
+        <div id="inkflip-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" type="button" onclick="InkflipGame.start()">New Game</button>
+        <button type="button" id="inkflip-pause" onclick="InkflipGame.togglePause()">Pause</button>
+        <button type="button" onclick="InkflipGame.restart()">Restart</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-gutterlight" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">GUTTERLIGHT</div>
+        <div class="game-subtitle">Nine holes of table golf. Drag from the ball to putt, or aim with the arrows and putt with Space. P pauses. R restarts the hole.</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Hole: <strong id="gutter-hole">1</strong></span>
+        <span>Strokes: <strong id="gutter-strokes">0</strong></span>
+        <span>Round: <strong id="gutter-total">0</strong></span>
+        <span>Best: <strong id="gutter-best">—</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="gutter-canvas" class="game-canvas" role="img" aria-label="Gutterlight green"></canvas>
+        <div id="gutter-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" type="button" onclick="GutterlightGame.start()">New Round</button>
+        <button type="button" id="gutter-pause" onclick="GutterlightGame.togglePause()">Pause</button>
+        <button type="button" onclick="GutterlightGame.restart()">Restart hole</button>
+      </div>
+    </div>
+  </section>
+
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Twenty-three browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Twenty-five browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
@@ -1407,7 +1499,7 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Twenty-one games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+        Twenty-five games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
         <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
@@ -1518,6 +1610,8 @@
   <script src="js/vectordefense.js" defer></script>
   <script src="js/wordcascade.js" defer></script>
   <script src="js/memorymatrix.js" defer></script>
+  <script src="js/inkflip.js" defer></script>
+  <script src="js/gutterlight.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
   <script src="js/feel.js" defer></script>
@@ -1545,6 +1639,7 @@
   // DOMContentLoaded listener to guarantee it runs after every deferred
   // script has executed.
   document.addEventListener('DOMContentLoaded', () => {
+    document.documentElement.classList.remove('eureka-booting');
     const navButtons = document.querySelectorAll('[data-view]');
     let applyingHash = false;
     const views = document.querySelectorAll('.view');
@@ -1573,6 +1668,8 @@
       vectordefense: () => VectorDefenseGame.destroy(),
       wordcascade: () => WordCascadeGame.destroy(),
       memorymatrix: () => MemoryMatrixGame.destroy(),
+      inkflip: () => InkflipGame.destroy(),
+      gutterlight: () => GutterlightGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
       // which view was on screen.
@@ -1587,7 +1684,7 @@
     const RETURN_KEY = 'eureka-arcade-return';
     const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
       'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
-      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix']);
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight']);
     function sectionForEl(el) {
       const sec = el && el.closest && el.closest('[data-section]');
       return (sec && sec.dataset.section) || '';
@@ -1729,6 +1826,8 @@
           case 'vectordefense': VectorDefenseGame.init(); break;
           case 'wordcascade':  WordCascadeGame.init(); break;
           case 'memorymatrix': MemoryMatrixGame.init(); break;
+          case 'inkflip':      InkflipGame.init(); break;
+          case 'gutterlight':  GutterlightGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -1736,6 +1835,8 @@
       // exit need their loop/timers restarted when the visitor comes back.
       // Both resume() calls are no-ops if already running, so this is safe on
       // the first visit too.
+      if (name === 'inkflip') InkflipGame.resume();
+      if (name === 'gutterlight') GutterlightGame.resume();
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (typeof Achievements !== 'undefined') Achievements.check();
@@ -1827,6 +1928,10 @@
         best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', href: '#memorymatrix', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
+      { name: 'Inkflip',          accent: '#e3b341', rid: 'inkflip-best', href: '#inkflip', go: () => { rememberLaunch('quick'); switchView('inkflip'); },
+        best: () => { const v = Scores.num('inkflip-best'); return v > 0 ? v + ' discs' : null; } },
+      { name: 'Gutterlight',      accent: '#3fb950', rid: 'gutter-best', href: '#gutterlight', go: () => { rememberLaunch('quick'); switchView('gutterlight'); },
+        best: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : null; } },
     ];
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to
@@ -2200,6 +2305,8 @@
         vectordefense: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves' : ''; },
         wordcascade: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : ''; },
         memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
+        inkflip: () => { const v = Scores.num('inkflip-best'); return v > 0 ? v + ' discs' : ''; },
+        gutterlight: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];

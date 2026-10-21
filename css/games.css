@@ -135,8 +135,15 @@ canvas.game-canvas {
    so at HiDPI they look sharper without the browser's nearest-neighbor
    pixelated upscaling — override the shared game-canvas default above. */
 #tetris-canvas,
-#g2048-canvas {
+#g2048-canvas,
+#inkflip-canvas,
+#gutter-canvas {
   image-rendering: auto;
+}
+
+#view-inkflip .game-controls button,
+#view-gutterlight .game-controls button {
+  min-height: 44px;
 }
 
 /* Game over overlay */

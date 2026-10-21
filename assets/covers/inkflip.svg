@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
+  <title id="title">Inkflip cover</title>
+  <rect width="640" height="400" fill="#10140f"/>
+  <g transform="translate(168 48)">
+    <rect width="304" height="304" rx="12" fill="#163226"/>
+    <g fill="#1a3a2a">
+      <rect x="8" y="8" width="68" height="68"/>
+      <rect x="84" y="84" width="68" height="68"/>
+      <rect x="160" y="8" width="68" height="68"/>
+      <rect x="236" y="84" width="68" height="68"/>
+      <rect x="8" y="160" width="68" height="68"/>
+      <rect x="84" y="236" width="68" height="68"/>
+      <rect x="160" y="160" width="68" height="68"/>
+      <rect x="236" y="236" width="68" height="68"/>
+    </g>
+    <circle cx="118" cy="118" r="22" fill="#14181f" stroke="#3a4454" stroke-width="3"/>
+    <circle cx="186" cy="118" r="22" fill="#f4efe4" stroke="#e3b341" stroke-width="3"/>
+    <circle cx="118" cy="186" r="22" fill="#f4efe4" stroke="#e3b341" stroke-width="3"/>
+    <circle cx="186" cy="186" r="22" fill="#14181f" stroke="#3a4454" stroke-width="3"/>
+    <circle cx="254" cy="118" r="6" fill="#e3b341" opacity="0.7"/>
+  </g>
+</svg>

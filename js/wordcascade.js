@@ -53,7 +53,7 @@ const WordCascadeGame = (() => {
   const BAG = 'eeeeeeeeeeaaaaaaaaiiiiiiiioooooonnnnnnrrrrrrttttttllllssssuuuuddddgggbbccmmppffhhvvwwyykjxqz';
 
   let canvas, ctx, loop;
-  let grid, cur, score, wordsCleared, best, running, over;
+  let grid, cur, score, wordsCleared, best, running, over, paused;
   let dropT, dropEvery, flashCells, flashT, lastWords, chainPeak;
   const sfx = Utils.sfx;
 
@@ -80,7 +80,10 @@ const WordCascadeGame = (() => {
     updateInfo();
 
     document.addEventListener('keydown', Utils.whenViewActive('view-wordcascade', e => {
-      if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) e.preventDefault();
+      if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowDown', 'p', 'P', 'r', 'R'].includes(e.key)) e.preventDefault();
+      if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
+      if (e.key === 'r' || e.key === 'R') { if (!e.repeat) restart(); return; }
+      if (paused) return;
       if (!running || over) {
         if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start();
         return;
@@ -93,6 +96,7 @@ const WordCascadeGame = (() => {
       draw();
     }));
     canvas.addEventListener('pointerdown', e => {
+      if (paused) return;
       if (!running || over) { start(); return; }
       if (!cur) return;
       const r = canvas.getBoundingClientRect();
@@ -128,7 +132,9 @@ const WordCascadeGame = (() => {
     flashT = 0;
     lastWords = [];
     over = false;
+    paused = false;
     running = !!run;
+    syncPause();
   }
 
   function start() {
@@ -150,7 +156,7 @@ const WordCascadeGame = (() => {
   const canBe = (c, r) => c >= 0 && c < COLS && r < ROWS && r >= 0 && !grid[r][c];
 
   function tick(dt) {
-    if (!running || over) return;
+    if (!running || over || paused) return;
     if (flashT > 0) {
       flashT -= dt;
       if (flashT <= 0) resolveFlash();
@@ -312,6 +318,16 @@ const WordCascadeGame = (() => {
     }
     if (cur) drawTile(cur.col, cur.row, cur.letter, false, false);
 
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '600 28px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
+
     if (!running && !over) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -326,11 +342,26 @@ const WordCascadeGame = (() => {
     }
   }
 
+  function syncPause() {
+    const btn = document.getElementById('wc-pause');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  function togglePause() {
+    if (!running || over) return;
+    paused = !paused;
+    syncPause();
+    draw();
+  }
+
+  function restart() { start(); }
+
   function destroy() {
     if (loop) loop.stop();
     dailyRun = false;
     if (typeof Daily !== 'undefined') Daily.disarm('wordcascade');
-    running = false; over = false;
+    running = false; over = false; paused = false;
+    syncPause();
     const ov = document.getElementById('wc-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
     // reset() zeroes score/words and empties the last-words strip — repaint the
@@ -339,5 +370,5 @@ const WordCascadeGame = (() => {
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause, restart };
 })();
