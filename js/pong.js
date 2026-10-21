@@ -18,7 +18,7 @@ const PongGame = (() => {
 
   let canvas, ctx, loop;
   let paddles, balls, powers, scores, particles;
-  let running, matchOver, serveTimer, powerTimer, frameCount;
+  let running, matchOver, paused, serveTimer, powerTimer, frameCount;
   let twoPlayer = false;
   let wins = 0, losses = 0, streak = 0, best = 0;
   const keys = {};
@@ -46,7 +46,10 @@ const PongGame = (() => {
     updateInfo();
 
     document.addEventListener('keydown', Utils.whenViewActive('view-pong', e => {
-      if ([' ', 'ArrowUp', 'ArrowDown', 'w', 's', 'W', 'S'].includes(e.key)) e.preventDefault();
+      if ([' ', 'ArrowUp', 'ArrowDown', 'w', 's', 'W', 'S', 'p', 'P', 'r', 'R'].includes(e.key)) e.preventDefault();
+      if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
+      if (e.key === 'r' || e.key === 'R') { restart(); return; }
+      if (paused) return;
       if (e.key === ' ' && (!running || matchOver)) { start(); return; }
       keys[e.key.toLowerCase()] = true;
       if (e.key === 'ArrowUp') keys.up = true;
@@ -66,7 +69,7 @@ const PongGame = (() => {
     // pointerdown places it on the first contact — a tap with no move
     // still has to answer the ball.
     const placePaddle = e => {
-      if (!running || !paddles) return;
+      if (!running || !paddles || paused) return;
       const r = canvas.getBoundingClientRect();
       if (r.width < 2 || r.height < 2) return;
       const y = (e.clientY - r.top) / r.height * HEIGHT;
@@ -99,6 +102,7 @@ const PongGame = (() => {
     particles = [];
     scores = [0, 0];
     matchOver = false;
+    paused = false;
     serveTimer = 40;
     powerTimer = POWER_EVERY;
     frameCount = 0;
@@ -107,6 +111,7 @@ const PongGame = (() => {
 
   function start() {
     resetMatch(true);
+    syncPause();
     sfx('start');
     const ov = document.getElementById('pong-overlay');
     if (ov) ov.style.display = 'none';
@@ -132,6 +137,7 @@ const PongGame = (() => {
 
   function tick(dt) {
     if (!running) return;
+    if (paused) { draw(); return; }
     frameCount += dt;
 
     // Serve pause between points
@@ -406,6 +412,16 @@ const PongGame = (() => {
     }
     ctx.globalAlpha = 1;
 
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '600 28px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
+
     if (!running && !matchOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -421,14 +437,29 @@ const PongGame = (() => {
     }
   }
 
+  function syncPause() {
+    const btn = document.getElementById('pong-pause');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  function togglePause() {
+    if (!running || matchOver) return;
+    paused = !paused;
+    syncPause();
+    draw();
+  }
+
+  function restart() { start(); }
+
   function destroy() {
     if (loop) loop.stop();
-    running = false; matchOver = false;
+    running = false; matchOver = false; paused = false;
+    syncPause();
     clearKeys();
     const ov = document.getElementById('pong-overlay'); if (ov) ov.style.display = 'none';
     resetMatch(false);
     draw();
   }
 
-  return { init, start, destroy, toggleMode };
+  return { init, start, destroy, toggleMode, togglePause, restart };
 })();

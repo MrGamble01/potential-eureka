@@ -23,7 +23,7 @@ const LightCyclesGame = (() => {
   let riders;                // [{x,y,dir,nextDir,alive,color}, ...] index 0 = P1, 1 = P2/AI
   let twoPlayer = false;
   let thirdAI = false;       // P5: three-cycle free-for-all
-  let running, gameOver, roundMsg;
+  let running, gameOver, paused, roundMsg;
   let gameLoop, speed;
   let survivedTicks;
   let wins, losses;          // this-session round tally (both modes)
@@ -46,7 +46,7 @@ const LightCyclesGame = (() => {
 
     bestStreak = Utils.highScore.load('cycles-streak');
     streak = 0; wins = 0; losses = 0;
-    running = false; gameOver = false; roundMsg = null;
+    running = false; gameOver = false; paused = false; roundMsg = null;
     updateInfo();
     draw();
 
@@ -64,6 +64,7 @@ const LightCyclesGame = (() => {
     });
     canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     canvas.addEventListener('touchend', e => {
+      if (paused) return;
       if (!running) { start(); return; }
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
@@ -83,8 +84,9 @@ const LightCyclesGame = (() => {
     // A mode switch ends any round in progress — the streak only means
     // something if every round in it was played against the AI.
     clearInterval(gameLoop);
-    running = false; gameOver = false; roundMsg = null;
+    running = false; gameOver = false; paused = false; roundMsg = null;
     wins = 0; losses = 0; streak = 0;
+    syncPause();
     updateInfo();
     clearOverlay();
     draw();
@@ -103,7 +105,8 @@ const LightCyclesGame = (() => {
     particles = [];
     survivedTicks = 0;
     speed = 95;
-    running = true; gameOver = false; roundMsg = null;
+    running = true; gameOver = false; paused = false; roundMsg = null;
+    syncPause();
     sfx('start');
     const overlay = document.getElementById('cycles-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -121,6 +124,9 @@ const LightCyclesGame = (() => {
   }
 
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); return; }
+    if (paused) { e.preventDefault(); return; }
     const startKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'];
     if (!running && startKeys.includes(e.key)) { e.preventDefault(); start(); return; }
     if (!running) return;
@@ -357,6 +363,16 @@ const LightCyclesGame = (() => {
     }
     ctx.globalAlpha = 1;
 
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.55)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '600 28px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
+
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -383,11 +399,28 @@ const LightCyclesGame = (() => {
     if (ov) ov.style.display = 'none';
   }
 
+  function syncPause() {
+    const btn = document.getElementById('cycles-pause');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) clearInterval(gameLoop);
+    else gameLoop = setInterval(tick, speed);
+    syncPause();
+    draw();
+  }
+
+  function restart() { start(); }
+
   function destroy() {
     clearInterval(gameLoop);
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false; roundMsg = null;
+    running = false; gameOver = false; paused = false; roundMsg = null;
+    syncPause();
     clearOverlay();
     draw();
   }
@@ -404,12 +437,13 @@ const LightCyclesGame = (() => {
       btn.style.color = thirdAI ? P3_COLOR : '';
     }
     clearInterval(gameLoop);
-    running = false; gameOver = false; roundMsg = null;
+    running = false; gameOver = false; paused = false; roundMsg = null;
     wins = 0; losses = 0; streak = 0;
+    syncPause();
     updateInfo();
     clearOverlay();
     draw();
   }
 
-  return { init, start, destroy, toggleMode, toggleThird };
+  return { init, start, destroy, toggleMode, toggleThird, togglePause, restart };
 })();

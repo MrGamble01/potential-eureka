@@ -24,13 +24,13 @@ const BreakoutGame = (() => {
   let paddleX, paddleW;
   let balls, bricks, particles, powerups;
   let score, high, lives, level, combo;
-  let running, launched, gameOver;
+  let running, launched, gameOver, paused;
   let stickyLeft = 0;                 // sticky-paddle catches remaining
   let slowUntil, wideUntil;
   let pointerX = null;
 
   const loop = Utils.gameLoop(dt => {
-    if (running && !gameOver) update(dt);
+    if (running && !gameOver && !paused) update(dt);
     draw();
   });
 
@@ -48,8 +48,8 @@ const BreakoutGame = (() => {
     resetGame(false);
 
     canvas.addEventListener('mousemove', e => { pointerX = relX(e.clientX); });
-    canvas.addEventListener('mousedown', () => launch());
-    canvas.addEventListener('touchstart', e => { pointerX = relX(e.touches[0].clientX); launch(); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('mousedown', () => { if (!paused) launch(); });
+    canvas.addEventListener('touchstart', e => { pointerX = relX(e.touches[0].clientX); if (!paused) launch(); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchmove', e => { pointerX = relX(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
     document.addEventListener('keydown', Utils.whenViewActive('view-breakout', onKey));
     updateInfo();
@@ -62,6 +62,8 @@ const BreakoutGame = (() => {
   }
 
   function onKey(e) {
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+    if (paused) return;
     if (e.key === ' ' || e.key === 'ArrowUp') { launch(); e.preventDefault(); }
     else if (e.key === 'ArrowLeft')  { pointerX = (paddleX + paddleW / 2) - 44; }
     else if (e.key === 'ArrowRight') { pointerX = (paddleX + paddleW / 2) + 44; }
@@ -76,7 +78,9 @@ const BreakoutGame = (() => {
     buildLevel();
     resetBall();
     gameOver = false;
+    paused = false;
     running = !!startRun;
+    syncPause();
     launched = false;
     updateInfo();
   }
@@ -471,6 +475,15 @@ const BreakoutGame = (() => {
       ctx.textAlign = 'center';
       ctx.fillText('⊙ Caught · Move to aim · Click, tap or Space to release', WIDTH / 2, HEIGHT - 70);
     }
+    if (paused && running && !gameOver) {
+      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '600 28px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -496,14 +509,26 @@ const BreakoutGame = (() => {
     ctx.closePath();
   }
 
+  function syncPause() {
+    const btn = document.getElementById('breakout-pause');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    syncPause();
+  }
+
   function destroy() {
     loop.stop();
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
+    syncPause();
     const ov = document.getElementById('breakout-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();

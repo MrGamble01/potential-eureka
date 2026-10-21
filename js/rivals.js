@@ -32,6 +32,8 @@ const Rivals = (() => {
     'vector-best':         { label: 'Vector Defense', fmt: v => v + ' waves',                dir: 'max' },
     'cascade-best':        { label: 'Word Cascade',  fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'maze-best':           { label: 'Gem Labyrinth', fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
+    'inkflip-best':        { label: 'Inkflip',       fmt: v => v + ' discs',                 dir: 'max' },
+    'gutter-best':         { label: 'Gutterlight',   fmt: v => v + ' strokes',               dir: 'min' },
     'crate-best':          { label: 'Crate Escape',  fmt: v => v + ' puzzles',               dir: 'max' },
     // The flagships' saves are JSON blobs, so each carries its own reader
     // instead of the default parseInt (AOW-12 pattern). A corrupt blob

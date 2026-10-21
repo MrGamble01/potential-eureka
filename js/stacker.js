@@ -17,7 +17,7 @@ const StackerGame = (() => {
   const CAMERA_ROWS = 12;         // floors visible before the view slides
 
   let canvas, ctx, loop;
-  let stack, current, floors, best, running, over, perfectStreak;
+  let stack, current, floors, best, running, over, paused, perfectStreak;
   let cameraY, flashT, particles;
   const sfx = Utils.sfx;
 
@@ -39,14 +39,19 @@ const StackerGame = (() => {
     updateInfo();
 
     document.addEventListener('keydown', Utils.whenViewActive('view-stacker', e => {
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+      if (e.key === 'r' || e.key === 'R') { e.preventDefault(); if (!e.repeat) restart(); return; }
       if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'Enter') {
         e.preventDefault();
-        if (e.repeat) return;
+        if (e.repeat || paused) return;
         if (!running || over) start();
         else drop();
       }
     }));
-    canvas.addEventListener('pointerdown', () => { (!running || over) ? start() : drop(); });
+    canvas.addEventListener('pointerdown', () => {
+      if (paused) return;
+      (!running || over) ? start() : drop();
+    });
     const ov = document.getElementById('stacker-overlay');
     if (ov) ov.addEventListener('click', () => { if (!running || over) start(); });
 
@@ -62,7 +67,9 @@ const StackerGame = (() => {
     flashT = 0;
     particles = [];
     over = false;
+    paused = false;
     running = !!run;
+    syncPause();
     spawnBlock();
   }
 
@@ -157,7 +164,7 @@ const StackerGame = (() => {
   }
 
   function tick(dt) {
-    if (!running || over) return;
+    if (!running || over || paused) return;
     if (current) {
       current.x += current.dir * current.speed * dt;
       // Bounce at the walls (with the block fully off-screen as margin
@@ -233,6 +240,16 @@ const StackerGame = (() => {
       ctx.textAlign = 'left';
     }
 
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '600 28px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
+
     if (!running && !over) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -254,9 +271,24 @@ const StackerGame = (() => {
     set('stacker-width', current ? Math.round(stack[stack.length - 1].w) : BASE_W);
   }
 
+  function syncPause() {
+    const btn = document.getElementById('stacker-pause');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  function togglePause() {
+    if (!running || over) return;
+    paused = !paused;
+    syncPause();
+    draw();
+  }
+
+  function restart() { start(); }
+
   function destroy() {
     if (loop) loop.stop();
-    running = false; over = false;
+    running = false; over = false; paused = false;
+    syncPause();
     const ov = document.getElementById('stacker-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
     // reset() rolls the run back to the idle tower — repaint the HUD too, or
@@ -265,5 +297,5 @@ const StackerGame = (() => {
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause, restart };
 })();

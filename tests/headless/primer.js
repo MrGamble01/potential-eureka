@@ -109,16 +109,16 @@ ok(!/e\.key === '\?'[\s\S]{0,200}primer-modal/.test(hub),
   // lands and only one of them is updated, that is drift on the first
   // sentence a newcomer reads.
   const counts = await page.evaluate(() => {
-    const word = s => (String(s).match(/\b(TWENTY-ONE|Twenty-one|twenty-one)\b/) || [])[0] || null;
+    const word = s => (String(s).match(/\b(TWENTY-FIVE|Twenty-five|twenty-five)\b/) || [])[0] || null;
     return {
-      hero: word(document.querySelector('.arcade-hero-kicker').textContent),
+      footer: word((document.querySelector('.hub-footer-tag') || {}).textContent || ''),
       primer: word(document.getElementById('primer-modal').textContent),
       cards: document.querySelectorAll('.arcade-card').length,
     };
   });
-  ok(!!counts.hero && !!counts.primer,
-    `the primer counts the catalogue the same way the hero does (${counts.hero} / ${counts.primer})`);
-  ok(counts.cards >= 21,
+  ok(!!counts.footer && !!counts.primer,
+    `the primer counts the catalogue the same way the footer does (${counts.footer} / ${counts.primer})`);
+  ok(counts.cards >= 25,
     `the catalogue really has that many cards, plus the studio (${counts.cards})`);
 
   await page.keyboard.press('Escape');
