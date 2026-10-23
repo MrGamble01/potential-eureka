@@ -252,6 +252,13 @@ var MURAL_LINES = [
   'Third panel: every regular on the block gets a face on the wall.',
   'The last panel: a door standing open. Everyone paints a piece of it.',
 ];
+// Short names for the same four panels, filed when a session lands.
+var MURAL_BEATS = [
+  'Sunrise over the bridge',
+  'Barrel fire on the wall',
+  'Faces on the wall',
+  'A door standing open',
+];
 function muralAvailable(){ return repTier()>=1 && (G.mural||0)<MURAL_PANELS; }
 function muralDone(){ return G.muralDay===G.days; }
 function muralAction(){
@@ -1254,11 +1261,21 @@ function keysOpen(){
 }
 
 // Blocking overlays also stop movement and discard queued walking input.
+// Photo mode holds the camp still while the player frames a shot.
+// Declared beside the other overlays so movement and the day clock
+// can see it without waiting on main.js.
+var momentHold=false;
 function overlayOpen(){
+  if(momentHold) return true;
   if(introOpen()) return true;
   if(bridgeOpen()) return true;
   var ledger=document.getElementById('ledger-modal');
   if(ledger && ledger.classList.contains('open')) return true;
   if(typeof gameOverShown!=='undefined' && gameOverShown) return true;
   return !!document.getElementById('hv-graduation');
+}
+function noteMoment(label){
+  try{
+    if(label && window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+  }catch(e){}
 }

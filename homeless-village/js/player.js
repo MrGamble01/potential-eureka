@@ -1002,6 +1002,7 @@ function finishAction(a){
       addRep(2);
       floatText('🎨 +3😊');
       log('🎨 '+MURAL_LINES[G.mural-1]);
+      noteMoment(MURAL_BEATS[G.mural-1]);
       var painters=REGULARS.filter(function(r){ return regularStage(r.id)===2; });
       if(painters.length) log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
       if(G.mural>=MURAL_PANELS){

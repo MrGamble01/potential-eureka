@@ -136,6 +136,8 @@ var _groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
 var _hit=new THREE.Vector3();
 renderer.domElement.addEventListener('pointerdown', function(e){
   // Don't hijack taps meant for HUD buttons layered over the canvas.
+  // An open camera is framing, not walking.
+  if(overlayOpen()) return;
   if(e.target!==renderer.domElement) return;
   var r=renderer.domElement.getBoundingClientRect();
   var ndc={ x:((e.clientX-r.left)/r.width)*2-1, y:-((e.clientY-r.top)/r.height)*2+1 };
@@ -257,16 +259,12 @@ function frame(ts){
   var dt=Math.min(ts-lastTime,100);
   lastTime=ts;
 
-  // Camera gentle sway
-  camSwayT+=dt*.0003;
-  camera.position.x=20+Math.sin(camSwayT)*.15;
-  camera.position.z=20+Math.cos(camSwayT*.7)*.12;
-  camera.lookAt(0,0,0);
+  if(!momentHold) camSwayT+=dt*.0003;
   if(typeof tickFlutter==='function') tickFlutter(dt);
-  if(typeof stormExpireIfDue==='function') stormExpireIfDue();
+  if(!momentHold && typeof stormExpireIfDue==='function') stormExpireIfDue();
   if(typeof rioMesh!=='undefined' && rioMesh){
     rioMesh.position.y=Math.abs(Math.sin(ts*.0025))*.04;
-    if(G.stormOn && typeof rioTarget==='function'){
+    if(!momentHold && G.stormOn && typeof rioTarget==='function'){
       var rioTo=rioTarget();
       var rioStep=Math.min(1, dt*.004);
       rioMesh.position.x+=(rioTo.x-rioMesh.position.x)*rioStep;
@@ -306,6 +304,9 @@ function frame(ts){
 
   // NPC wander + bob (the player figure is driven by movePlayer() below,
   // not this random-target AI — see the "Player input" block above).
+  // Photo mode freezes where everyone is standing. The fire above
+  // still flickers, and the weather plate still moves.
+  if(!momentHold){
   if(typeof juneMesh!=='undefined' && juneMesh){
     juneMesh.position.y=Math.abs(Math.sin(ts*.002))*.04;
   }
@@ -369,14 +370,165 @@ function frame(ts){
     if(pb) pb.style.width='0%';
   });
 
+  }
+  // The day clock still hears the hold, so a sweep countdown pauses
+  // the same way it does behind the crash course.
   tickDay(dt);
 
-  autosaveTimer+=dt;
-  if(autosaveTimer>30000){ autosaveTimer=0; saveGame(); }
+  if(!momentHold){
+    autosaveTimer+=dt;
+    if(autosaveTimer>30000){ autosaveTimer=0; saveGame(); }
+  }
 
+  applyFraming();
+  paintWeather(ts);
+  noteSky();
   renderer.render(scene,camera);
+  if(window.EurekaMoments) EurekaMoments.afterFrame();
 }
 
+var momentPanX=0, momentPanZ=0, momentZoom=1;
+var photoPlate=null, photoCtx=null;
+var skySeen=null, skyMarked=false;
+var SKY_BEAT={
+  rain:'Rain on the camp',
+  cold:'Cold Snap',
+  heat:'Heat Wave',
+  night:'Night under the bridge'
+};
+
+function applyFraming(){
+  var zoom=momentHold?momentZoom:1;
+  var px=momentHold?momentPanX:0;
+  var pz=momentHold?momentPanZ:0;
+  var swayX=momentHold?0:Math.sin(camSwayT)*.15;
+  var swayZ=momentHold?0:Math.cos(camSwayT*.7)*.12;
+  camera.position.set(20+swayX+px, 20, 20+swayZ+pz);
+  camera.lookAt(px, 0, pz);
+  var box=document.getElementById('canvas-container');
+  var w=(box&&box.clientWidth)||window.innerWidth;
+  var h=(box&&box.clientHeight)||window.innerHeight;
+  var a=w/Math.max(1,h);
+  var size=14/zoom;
+  camera.left=-size*a; camera.right=size*a;
+  camera.top=size; camera.bottom=-size;
+  camera.updateProjectionMatrix();
+}
+
+function paintRain(ctx,w,h,ts){
+  ctx.save();
+  ctx.strokeStyle='rgba(190,220,255,.55)';
+  ctx.lineWidth=Math.max(1,w/640);
+  var off=(ts*.35)%48;
+  ctx.beginPath();
+  for(var x=-h;x<w+h;x+=22){
+    ctx.moveTo(x+off,-10);
+    ctx.lineTo(x+off-h*.18,h+10);
+  }
+  ctx.stroke();
+  ctx.fillStyle='rgba(8,18,40,.22)';
+  ctx.fillRect(0,0,w,h);
+  ctx.restore();
+}
+
+function paintWeather(ts){
+  var c=document.getElementById('hv-weather');
+  if(!c) return;
+  var gl=renderer.domElement;
+  if(c.width!==gl.width||c.height!==gl.height){
+    c.width=Math.max(2,gl.width);
+    c.height=Math.max(2,gl.height);
+  }
+  var ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if(G.weather==='heat'){
+    ctx.fillStyle='rgba(255,120,30,.16)';
+    ctx.fillRect(0,0,c.width,c.height);
+  } else if(G.weather==='cold'){
+    ctx.fillStyle='rgba(170,205,255,.18)';
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='rgba(255,255,255,.8)';
+    for(var i=0;i<42;i++){
+      var x=((i*97)+(ts*.03))%c.width;
+      var y=((i*53)+(ts*.05))%c.height;
+      ctx.fillRect(x,y,2,2);
+    }
+  } else if(G.weather==='rain'&&!G.stormOn){
+    paintRain(ctx,c.width,c.height,ts);
+  }
+}
+
+function momentCanvas(){
+  var gl=renderer.domElement;
+  if(!gl||!gl.width) return gl;
+  if(!photoPlate){
+    photoPlate=document.createElement('canvas');
+    photoCtx=photoPlate.getContext('2d');
+  }
+  if(photoPlate.width!==gl.width||photoPlate.height!==gl.height){
+    photoPlate.width=gl.width;
+    photoPlate.height=gl.height;
+  }
+  photoCtx.clearRect(0,0,photoPlate.width,photoPlate.height);
+  photoCtx.drawImage(gl,0,0);
+  var sky=document.getElementById('hv-weather');
+  if(sky&&sky.width>2) photoCtx.drawImage(sky,0,0,photoPlate.width,photoPlate.height);
+  var nf=Math.max(0,Math.sin((G.timeOfDay||0)*Math.PI*2-Math.PI*1.2));
+  if(nf>0.02){
+    photoCtx.fillStyle='rgba(5,10,20,'+(nf*.55)+')';
+    photoCtx.fillRect(0,0,photoPlate.width,photoPlate.height);
+  }
+  if(G.stormOn) paintRain(photoCtx,photoPlate.width,photoPlate.height,performance.now());
+  return photoPlate;
+}
+
+function skyNow(){
+  if(G.weather&&G.weather!=='clear') return G.weather;
+  if((G.timeOfDay||0)>=5/6) return 'night';
+  return 'day';
+}
+function noteSky(){
+  var id=skyNow();
+  if(skySeen===null){ skySeen=id; return; }
+  if(skyMarked||id===skySeen||id==='day') return;
+  skyMarked=true;
+  noteMoment(SKY_BEAT[id]||id);
+}
+
+function nudgePhoto(dx,dy){
+  var scale=18/Math.max(1,window.innerWidth)/momentZoom;
+  momentPanX=Math.max(-8,Math.min(8,momentPanX-(dx+dy)*scale));
+  momentPanZ=Math.max(-6,Math.min(6,momentPanZ-(dx-dy)*scale*.65));
+}
+function zoomPhoto(scale){
+  momentZoom=Math.max(.7,Math.min(2.2,momentZoom*scale));
+}
+function momentBlocked(){
+  return !momentHold && overlayOpen();
+}
+function attachMoments(){
+  if(!window.EurekaMoments) return;
+  var btn=document.getElementById('hv-moments');
+  if(btn) btn.addEventListener('click', function(){
+    if(momentBlocked()) return;
+    EurekaMoments.togglePhoto();
+  });
+  EurekaMoments.attach({
+    game:'homeless',
+    gameTitle:'Homeless Village',
+    canvas:momentCanvas,
+    hud:'#top-bar,#bottom-bar,#action-panel,#craft-panel,#workers-panel,#clinic-dock,#walk-pad,#log-feed,#craft-toggle,#event-banner,#sweep-warning,#storm-call,#storm-banner,#tooltip,#camp-audio',
+    hotkey:{key:'p', shift:false},
+    blocked:momentBlocked,
+    pause:function(){ momentHold=true; keysDown={}; walkTarget=null; },
+    resume:function(){ momentHold=false; },
+    onOpen:function(){ momentPanX=0; momentPanZ=0; momentZoom=1; },
+    onClose:function(){ momentPanX=0; momentPanZ=0; momentZoom=1; },
+    camera:{modes:['free'], pan:nudgePhoto, zoom:zoomPhoto}
+  });
+}
+
+attachMoments();
 requestAnimationFrame(gameLoop);
 try {
   if (window.EurekaProgress && G.structures && G.structures.clinic) {

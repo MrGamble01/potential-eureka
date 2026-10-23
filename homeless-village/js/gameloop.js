@@ -282,6 +282,7 @@ function stormStart(){
   G.stormDeadline=Date.now()+STORM_PHASE_MS;
   stormHoldReadyAt=Date.now()+700;
   log('\ud83c\udf27\ufe0f Storm night. '+STORM_PHASES[0].title+'.');
+  noteMoment('Storm night');
   sfx('storm');
   refreshRio();
   if(typeof refreshStormHUD==='function') refreshStormHUD();
@@ -872,7 +873,7 @@ function armSweepHold(ms){
 function tickSweepHold(dt){
   if(!sweepHoldArmed) return;
   if(!G.sweepWarned){ sweepHoldArmed=false; return; }
-  if(introOpen()||bridgeOpen()){
+  if(introOpen()||bridgeOpen()||momentHold){
     sweepHoldPaused=true;
     // ui.js closes over etaAt. Rewrite the end time so the painted
     // ~Ns stay with the hold. Skip after Pack Up — showSweepWarning
@@ -900,6 +901,9 @@ function tickSweepHold(dt){
 function tickDay(dt){
   if(gameOverShown) return; // time stops behind the game-over overlay
   tickSweepHold(dt);
+  // Photo mode is the same kind of hold: framing the camp should not
+  // spend the day, the warmth, or the hour behind the shutter.
+  if(momentHold) return;
   // HV-56: and behind the crash course. Reading how the camp works should
   // not cost you the daylight you are reading about — a new player who
   // takes a minute over it would otherwise come back to a colder night

@@ -69,7 +69,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `crate-best`, `crate-level`, `crate-moves` | Crate Escape (ladder progress, current level, per-level best moves) |
 | `arcade-daily-<game>-<date>` | Daily challenge bests (today's only — stale dates are swept on boot) |
 | `eureka-feel-v1` | Shared game-feel setting: motion (`auto` / `full` / `reduced`) and haptics. Owned by `js/feel.js` |
-| `eureka-moments-v1` | Shared photo mode and highlight replay switch (`enabled`). Owned by `js/moments.js`. Voxel Isle, Hearthvale, Age of War, and Grow Op opt in. Clips stay out of this key; IndexedDB (`eureka-moments-clips`) holds them when the browser allows |
+| `eureka-moments-v1` | Shared photo mode and highlight replay switch (`enabled`). Owned by `js/moments.js`. Voxel Isle, Hearthvale, Age of War, Grow Op, and Homeless Village opt in. Clips stay out of this key; IndexedDB (`eureka-moments-clips`) holds them when the browser allows |
 | `eureka-flag-daily-v1` | Flagship daily bests, seven-day history and streak. Owned by `js/flag-daily.js` |
 | `arcade-rivals`, `rival-name` | Shared-leaderboard rivals + your share-code name |
 | `arcade-achievements` | Unlocked achievements with timestamps (never re-lock) |

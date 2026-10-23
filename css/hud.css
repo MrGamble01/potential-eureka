@@ -691,6 +691,7 @@ html.hud #warmth-pill {
 html.hud #chain-btn,
 html.hud #help-btn,
 html.hud #sound-btn,
+html.hud #hv-moments,
 html.hud #craft-toggle,
 html.hud #pack-up-btn,
 html.hud #storm-call,
@@ -717,6 +718,7 @@ html.hud #event-banner .ev-close {
 html.hud #chain-btn,
 html.hud #help-btn,
 html.hud #sound-btn,
+html.hud #hv-moments,
 html.hud #craft-toggle {
   border: 1px solid var(--hud-border-strong);
   background: rgba(12, 14, 20, 0.9);
@@ -725,6 +727,7 @@ html.hud #craft-toggle {
 
 html.hud #help-btn,
 html.hud #sound-btn,
+html.hud #hv-moments,
 html.hud #intro-close,
 html.hud #chain-close,
 html.hud #ledger-close,
