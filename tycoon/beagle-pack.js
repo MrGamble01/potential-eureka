@@ -1705,7 +1705,7 @@ const CSS = `
   flex: 1; min-width: 0; min-height: 52px; border-radius: 12px;
   border: 1px solid rgba(255,220,170,.28); background: rgba(255,255,255,.06);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  padding: 4px 2px;
+  padding: 4px 2px; overflow: hidden; position: relative;
 }
 .bgl-act .bgl-ico { font-size: 16px; line-height: 1; }
 .bgl-act .bgl-sub { font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -1737,14 +1737,15 @@ const CSS = `
 #bgl-fx { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 .bgl-bone-tag {
   position: absolute; transform: translate(-50%, -120%); font-size: 22px;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,.45));
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); pointer-events: none;
 }
 .bgl-floater {
   position: absolute; transform: translate(-50%, -100%); font-weight: 900; color: #fff6e0;
   text-shadow: 0 2px 0 #6b3a12; font-size: 16px; animation: bglFloat .9s ease forwards;
+  pointer-events: none;
 }
-.bgl-bit { position: absolute; width: 7px; height: 7px; border-radius: 2px; animation: bglBit .55s ease forwards; }
-.bgl-paw { position: absolute; font-size: 22px; animation: bglFloat .8s ease forwards; opacity: .9; }
+.bgl-bit { position: absolute; width: 7px; height: 7px; border-radius: 2px; animation: bglBit .55s ease forwards; pointer-events: none; }
+.bgl-paw { position: absolute; font-size: 22px; animation: bglFloat .8s ease forwards; opacity: .9; pointer-events: none; }
 .bgl-shout {
   position: fixed; left: 0; right: 0; top: 32%; z-index: 400; pointer-events: none;
   text-align: center; font-weight: 900; letter-spacing: 1px;
@@ -1776,11 +1777,15 @@ const CSS = `
 @media (max-width: 900px) {
   #bgl-yard {
     left: 8px; right: 8px; width: auto;
-    /* Under the cash and metrics, above the office so a bone stays tappable. */
+    /* Cash and metrics own the top band. The yard starts below them
+       and stacks above those chips, so one that grows into a button
+       cannot take its center. */
     top: calc(140px + env(safe-area-inset-top, 0px));
     bottom: auto;
     max-height: 236px;
+    z-index: 140;
   }
+  #metrics-hud { max-height: 76px; overflow: hidden; }
   #bgl-perk, #bgl-status { display: none; }
   #bgl-toggle { min-height: 44px; padding: 4px 8px; }
   #bgl-body { gap: 4px; padding: 0 8px 6px; }
@@ -1795,6 +1800,7 @@ const CSS = `
   #bgl-yard {
     top: calc(58px + env(safe-area-inset-top, 0px));
     bottom: auto;
+    z-index: 100;
     /* Clear the joystick on the left and the sprint / 3rd-person cluster on the right. */
     left: calc(154px + env(safe-area-inset-left, 0px));
     right: auto;
