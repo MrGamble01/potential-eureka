@@ -1792,6 +1792,16 @@ const CSS = `
   #bgl-banner { padding: 1px 6px; font-size: 11px; }
   #bgl-mounds, #bgl-actions { gap: 4px; }
   .bgl-mound, .bgl-act { min-height: 44px; }
+  /* A scrolled body reports the action centers even after the yard
+     has clipped them. Stick the row to the visible bottom so the
+     center stays on the button. */
+  #bgl-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    flex: none;
+    background: #120c08;
+  }
   /* The hire drawer covers the left of the screen and used to leave a
      sliver of the yard clickable beside it. Step aside while it's open. */
   #left-panel.open ~ #bgl-yard { opacity: 0; pointer-events: none; }
