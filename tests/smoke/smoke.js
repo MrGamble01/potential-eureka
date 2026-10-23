@@ -423,6 +423,25 @@ const TARGETS = [
       }, before);
     },
   },
+  {
+    name: 'The Ledger',
+    path: '/games/ledger/index.html',
+    file: 'games/ledger/index.html',
+    check: async (page) => {
+      await page.locator('#haul').selectOption('mara');
+      await page.locator('#drop').selectOption('ivo');
+      await page.waitForFunction(() => {
+        const cash = document.getElementById('cash');
+        return cash && Number((cash.textContent || '').replace(/\D/g, '')) > 100;
+      }, null, { timeout: 8000 });
+      const mid = Number(((await page.locator('#cash').innerText()) || '').replace(/\D/g, ''));
+      await page.locator('#pause').click();
+      await page.waitForTimeout(900);
+      const held = Number(((await page.locator('#cash').innerText()) || '').replace(/\D/g, ''));
+      if (held !== mid) throw new Error('The Ledger kept paying while paused (' + mid + ' → ' + held + ')');
+      if ((await page.locator('#pause').innerText()).trim() !== 'Resume') throw new Error('Pause did not arm resume');
+    },
+  },
   phoneTarget('Phone 390×844', { width: 390, height: 844 }),
   phoneTarget('Phone 375×667', { width: 375, height: 667 }),
   phoneTarget('Phone 844×390', { width: 844, height: 390 }),
