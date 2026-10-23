@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-lab-photo';  // Grow Op photo mode, with the living sky in the frame. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-0722-reconcile';  // Shop looks, Homeless Village photo, and the office sky and camera, re-applied together. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
