@@ -45,11 +45,6 @@
   <link rel="stylesheet" href="css/arcade.css?v=20261017moments4">
   <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="css/game-cards.css?v=20261017moments4">
-  <link rel="stylesheet" href="css/dashboard.css?v=20261017moments4">
-  <link rel="stylesheet" href="css/games.css?v=20261021cabinet">
-  <link rel="stylesheet" href="css/productivity.css?v=20261017moments4">
-  <link rel="stylesheet" href="css/personal.css?v=20261017moments4">
-  <link rel="stylesheet" href="css/orgchart.css?v=20261017moments4">
   <link rel="stylesheet" href="css/hub-pages.css?v=20261018sparkdark">
   <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
   <link rel="stylesheet" href="css/studio-face.css?v=20261021cabinet">
@@ -1622,36 +1617,6 @@
   <script src="js/utils.js" defer></script>
   <script src="js/scores.js" defer></script>
   <script src="js/effects.js" defer></script>
-  <script src="js/dashboard.js" defer></script>
-  <script src="js/calendar.js" defer></script>
-  <script src="js/pomodoro.js" defer></script>
-  <script src="js/todo.js" defer></script>
-  <script src="js/notes.js" defer></script>
-  <script src="js/bookmarks.js" defer></script>
-  <script src="js/productivity.js" defer></script>
-  <script src="js/personal-auth.js" defer></script>
-  <script src="js/personal-content.js" defer></script>
-  <script src="js/personal.js" defer></script>
-  <script src="js/snake.js" defer></script>
-  <script src="js/maze.js" defer></script>
-  <script src="js/life.js" defer></script>
-  <script src="js/tetris.js" defer></script>
-  <script src="js/breakout.js" defer></script>
-  <script src="js/game2048.js" defer></script>
-  <script src="js/asteroids.js" defer></script>
-  <script src="js/minesweeper.js" defer></script>
-  <script src="js/connect4.js" defer></script>
-  <script src="js/word5.js" defer></script>
-  <script src="js/lightcycles.js" defer></script>
-  <script src="js/pong.js" defer></script>
-  <script src="js/stacker.js" defer></script>
-  <script src="js/crateescape.js" defer></script>
-  <script src="js/vectordefense.js" defer></script>
-  <script src="js/wordcascade.js" defer></script>
-  <script src="js/memorymatrix.js" defer></script>
-  <script src="js/inkflip.js" defer></script>
-  <script src="js/gutterlight.js" defer></script>
-  <script src="js/snip.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
   <script src="js/feel.js" defer></script>
@@ -1661,6 +1626,7 @@
   <script src="js/telemetry.js" defer></script>
   <script src="js/coins.js" defer></script>
   <script src="js/hub-routes.js" defer></script>
+  <script src="js/view-assets.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1670,7 +1636,6 @@
     addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
   </script>
-  <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
   // DOMContentLoaded fires — not synchronously as the parser reaches them.
@@ -1821,7 +1786,11 @@
       const smooth = !opts || opts.smooth !== false;
       requestAnimationFrame(() => sec.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }));
     }
-    function switchView(name) {
+    let switchToken = 0;
+    async function switchView(name) {
+      const token = ++switchToken;
+      if (window.EurekaViews) await window.EurekaViews.ensure(name);
+      if (token !== switchToken) return;
       if (currentView === 'arcade' && name !== 'arcade') {
         const pending = readLeave();
         if (!pending || !pending.section) rememberLeave(null, name);
