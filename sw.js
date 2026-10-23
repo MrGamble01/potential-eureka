@@ -9,12 +9,10 @@
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
 //
-// BUMP ONCE PER MERGE TRAIN, NOT ONCE PER PR. Every open PR rewriting this
-// one line meant every pair of them conflicted here, and a branch cut before
-// its neighbour merged carried a LOWER serial than main — landing it would
-// have handed installed PWAs a backwards version and pinned them to a stale
-// shell. The serial is now plain (no per-ticket suffix), so a fix PR leaves
-// it alone and whoever lands the batch bumps it once.
+// This refill stamps every PR: eureka-YYYYMMDD-HHMM-<slug>. A later
+// stamp must be a different string or an installed PWA keeps the stale
+// shell. Older trains bumped once at merge so stacked PRs would not
+// fight over this line.
 // v6: rolls out the Flagship Depth campaign (AoW trials/councils/vault,
 // Hearthvale raids/mastery/talents/Furrier, Grow Op market/contracts/
 // stings/pure batches, Homeless Village weather/dog/regulars/board,
@@ -29,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-lab-photo';  // Grow Op photo mode, with the living sky in the frame. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-0658-trim';  // Sentence to Game stub leaves the shell. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -68,12 +66,7 @@ const SHELL = [
   '/games/ashmarch/index.html',
   '/games/ashmarch/ashmarch.css',
   '/games/ashmarch/ashmarch.js',
-  '/games/sentence-to-game/index.html',
-  '/games/sentence-to-game/stg.css',
-  '/games/sentence-to-game/play.js',
-  '/games/sentence-to-game/compile.js',
   '/assets/covers/ashmarch.svg',
-  '/assets/covers/sentence.svg',
   '/assets/covers/inkflip.svg',
   '/assets/covers/gutterlight.svg',
   '/css/arcade.css',
