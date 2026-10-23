@@ -52,6 +52,15 @@ main { padding: 16px; max-width: 880px; margin: 0 auto; }
 }
 #heat-fill { height: 100%; width: 0; background: var(--heat); }
 .lede { color: var(--muted); max-width: 62ch; }
+.now {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a2118;
+  border: 1px solid var(--line);
+}
+.heat.hot #heat-fill { background: #ffb020; }
+.heat.hot strong { color: var(--heat); }
 .chain {
   display: grid;
   grid-template-columns: 1fr;

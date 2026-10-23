@@ -86,6 +86,21 @@ function living() {
   return state.crew.filter((c) => c.alive);
 }
 
+function personName(id) {
+  const person = state.crew.find((c) => c.id === id && c.alive);
+  return person ? person.name : '';
+}
+
+function nowLine() {
+  if (state.paused) return 'Paused. Crates stay where they are.';
+  if (state.lay > 0) return 'Laying low. Heat is leaving, and the routes hold.';
+  const haul = personName(state.legs.haul);
+  const drop = personName(state.legs.drop);
+  if (!haul || !drop) return 'Staff both legs. Crates sit in the yard until someone hauls and someone sells.';
+  if (state.heat >= 80) return haul + ' is hauling. ' + drop + ' is selling. The authorities are close.';
+  return haul + ' is hauling. ' + drop + ' is selling. Heat ' + state.heat + '.';
+}
+
 function takenIds() {
   const ids = new Set(state.crew.map((c) => c.id));
   if (state.bossId) ids.add(state.bossId);
@@ -204,6 +219,8 @@ function paint(forceCrew) {
   $('cash').textContent = '$' + state.cash;
   $('heat-num').textContent = String(state.heat);
   $('heat-fill').style.width = state.heat + '%';
+  $('heat-num').parentElement.classList.toggle('hot', state.heat >= 80);
+  $('now').textContent = nowLine();
   $('yard').textContent = String(state.stock.yard);
   $('dock').textContent = String(state.stock.dock);
   $('corner').textContent = String(state.stock.corner);
@@ -215,9 +232,13 @@ function paint(forceCrew) {
     crewSig = sig;
     fillSelect($('haul'), 'haul');
     fillSelect($('drop'), 'drop');
-    $('crew').innerHTML = state.crew.map((c) =>
-      '<li class="' + (c.alive ? '' : 'dead') + '">' + c.name + (c.alive ? '' : ' — gone') + '</li>'
-    ).join('');
+    $('crew').innerHTML = state.crew.map((c) => {
+      let role = '';
+      if (c.alive && state.legs.haul === c.id) role = ' — hauling';
+      else if (c.alive && state.legs.drop === c.id) role = ' — selling';
+      else if (!c.alive) role = ' — gone';
+      return '<li class="' + (c.alive ? '' : 'dead') + '">' + c.name + role + '</li>';
+    }).join('');
   }
   $('log').innerHTML = state.log.map((line) => '<li>' + line + '</li>').join('');
 }
