@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-1710-slug';
+const SW_VERSION = 'eureka-20261023-1720-redirect';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -152,10 +152,25 @@ const SHELL = [
 // year, and this worker matches them with ignoreSearch, so a version
 // bump used to precache whatever the browser had stored for the bare
 // path. Reload bypasses that and stores the response this install saw.
+// cache.put keeps the redirected flag. Chrome will not navigate to a hit
+// that still says it was a redirect, so copy the body into a new response.
+function settledResponse(res) {
+  if (!res || res.type === 'opaqueredirect' || !res.ok) return null;
+  if (!res.redirected) return res;
+  try {
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers,
+    });
+  } catch (e) { return null; }
+}
+
 async function precacheFresh(cache, url) {
   const res = await fetch(url, { cache: 'reload', credentials: 'same-origin' });
-  if (!res.ok) throw new Error('precache ' + res.status + ' ' + url);
-  await cache.put(url, res);
+  const stored = settledResponse(res);
+  if (!stored) throw new Error('precache ' + res.status + ' ' + url);
+  await cache.put(url, stored);
 }
 
 self.addEventListener('install', event => {
@@ -187,26 +202,38 @@ self.addEventListener('fetch', event => {
   // (/drug-lab for /drug-lab.html), so the fallback tries the path, then
   // path + '.html', then the hub itself as a last resort.
   if (req.mode === 'navigate') {
-    const fromCache = async () =>
-      await caches.match(req, { ignoreSearch: true }) ||
-      await caches.match(url.pathname) ||
-      await caches.match(url.pathname.replace(/\/$/, '') + '.html') ||
-      await caches.match('/index.html');
+    const usable = (hit) => hit && !hit.redirected && hit.type !== 'opaqueredirect';
+    const fromCache = async () => {
+      const hits = [
+        await caches.match(req, { ignoreSearch: true }),
+        await caches.match(url.pathname),
+        await caches.match(url.pathname.replace(/\/$/, '') + '.html'),
+        await caches.match('/index.html'),
+      ];
+      for (let i = 0; i < hits.length; i++) if (usable(hits[i])) return hits[i];
+    };
     event.respondWith((async () => {
       try {
-        const res = await fetch(req);
-        // A 404 with a good cached copy behind it is a cache hit, not an
-        // error page. This is what makes clean URLs (/drug-lab) work on
-        // hosts without Vercel's cleanUrls rewriting — python http.server
-        // included — and offline alike.
-        if (!res.ok) {
+        let res = await fetch(req);
+        // A navigation fetch uses redirect:manual, so a 308 arrives with no
+        // body. Follow it. A 404 with a good cached copy behind it is still
+        // a hit, which is what makes clean URLs work on python http.server.
+        if (res.type === 'opaqueredirect') {
+          res = await fetch(url.pathname + url.search, {
+            cache: 'reload',
+            credentials: 'same-origin',
+            redirect: 'follow',
+          });
+        }
+        const stored = settledResponse(res);
+        if (!stored) {
           const cached = await fromCache();
           if (cached) return cached;
           return res;
         }
-        const copy = res.clone();
-        caches.open(RUNTIME).then(cache => cache.put(req, copy));
-        return res;
+        const copy = stored.clone();
+        caches.open(RUNTIME).then(cache => cache.put(req, copy)).catch(() => {});
+        return stored;
       } catch (_) {
         const cached = await fromCache();
         return cached || Response.error();
@@ -220,7 +247,7 @@ self.addEventListener('fetch', event => {
   // anything not precached — thumbnails, hover clips, favicons.
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then(cached => {
-      if (cached) return cached;
+      if (cached && !cached.redirected && cached.type !== 'opaqueredirect') return cached;
       // Same trap as install: a cache-first miss that fills from the
       // HTTP cache pins the immutable file until the next serial.
       const versioned = /\.(css|js)$/.test(url.pathname);
@@ -228,10 +255,11 @@ self.addEventListener('fetch', event => {
         ? fetch(url.pathname + url.search, { cache: 'reload', credentials: 'same-origin' })
         : fetch(req);
       return incoming.then(res => {
-        // Only cache real successes; opaque/error responses would wedge.
-        if (res.ok && (res.type === 'basic' || res.type === 'default')) {
-          const copy = res.clone();
-          caches.open(RUNTIME).then(cache => cache.put(req, copy));
+        const stored = settledResponse(res);
+        if (stored && (stored.type === 'basic' || stored.type === 'default')) {
+          const copy = stored.clone();
+          caches.open(RUNTIME).then(cache => cache.put(req, copy)).catch(() => {});
+          return stored;
         }
         return res;
       });
