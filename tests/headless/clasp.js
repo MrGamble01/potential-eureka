@@ -40,6 +40,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       ok((await page.locator('#clasp-pause').innerText()).trim() === 'Resume', width + ' focus leaves the chosen pause');
       await page.locator('#clasp-pause').click();
+      await page.keyboard.press('r');
       await page.keyboard.press(' ');
       await page.waitForSelector('#clasp-overlay', { state: 'visible' });
       const earlyPaint = await page.evaluate(() => {
