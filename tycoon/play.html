@@ -4,7 +4,8 @@
   PLAY
     WASD / arrows — move                   Tap / click — move to spot
     Right-click drag / two-finger drag — pan camera
-    Scroll / pinch — zoom                  Esc — close any modal
+    Scroll / pinch — zoom                  P — photo mode
+    Esc — close any modal
     Sidebar (☰ on mobile) — hires, rooms, upgrades, amenities, settings
     🤝 Walk near an investor — auto-greet and collect
 
@@ -504,6 +505,19 @@
       font-variant-numeric: tabular-nums;
     }
     #status-bar .sep { color: rgba(255,255,255,0.25); }
+    /* Office windows share the living-world sky. The chip names
+       the hour and the weather. It does not price a deal. */
+    #tyc-sky {
+      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+      z-index: 24; pointer-events: none; user-select: none;
+      max-width: min(420px, calc(100vw - 280px));
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(8,10,18,0.84); color: #d7e6f8;
+      border: 1px solid rgba(126,182,255,0.45);
+      font: 700 12px/1.35 ui-monospace, ui-monospace, monospace;
+      text-align: center; white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+    }
 
     /* ── Toast notifications ──────────────────────────── */
     #toast-container {
@@ -1392,6 +1406,24 @@
       transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     #tp-toggle .tp-ico { font-size: 15px; line-height: 1; }
+    #tyc-moments {
+      position: fixed;
+      bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      width: 44px; height: 44px; padding: 0;
+      background: rgba(8,10,18,0.92);
+      border: 1px solid rgba(126,182,255,0.45);
+      color: #d7e6f8; font-size: 18px; line-height: 1;
+      border-radius: 12px; cursor: pointer; z-index: 125;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    @media (max-width: 900px) {
+      #tyc-moments {
+        right: auto;
+        left: calc(16px + env(safe-area-inset-left, 0px));
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      }
+    }
     #tp-toggle:hover { background: rgba(8,10,18,0.98); }
     #tp-toggle:active { transform: scale(0.94); }
     #tp-toggle.on {
@@ -1471,6 +1503,10 @@
 
       #activity-feed { display: none; }
 
+      #tyc-sky {
+        top: auto; bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+        max-width: calc(100vw - 24px);
+      }
       #status-bar {
         /* GAMES ends near 90px and the menu takes the next 44. The
            session pill starts after both, and stops before the cash chip. */
@@ -1627,6 +1663,7 @@
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <button id="tp-toggle" type="button" title="Walk the office in 3rd person (V)"><span class="tp-ico">🎥</span><span id="tp-label">3RD PERSON</span></button>
+<button id="tyc-moments" type="button" title="Photo mode (P)" aria-label="Photo mode">📷</button>
 <div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom in for 1st-person · Exit: V</div>
 <div id="tp-crosshair"></div>
 <div id="drawer-backdrop"></div>
@@ -1644,6 +1681,7 @@
   <span class="sep" id="partner-sep" style="display:none">|</span>
   <span id="partner-chip" style="display:none"></span>
 </div>
+<div id="tyc-sky" role="status" aria-live="polite"></div>
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
@@ -1728,6 +1766,7 @@
       <div class="help-section-title">Camera</div>
       <div class="help-row"><span class="help-keys"><span class="help-key">RMB</span><span class="help-key">2-finger</span></span><span class="help-desc">Drag to pan</span></div>
       <div class="help-row"><span class="help-keys"><span class="help-key">Scroll</span><span class="help-key">Pinch</span></span><span class="help-desc">Zoom in / out</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">P</span></span><span class="help-desc">Photo mode — frame the office, then Esc</span></div>
     </div>
     <div class="help-section">
       <div class="help-section-title">Interface</div>
@@ -2021,11 +2060,14 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/climax.js"></script>
+<script src="/js/living-world.js"></script>
+<script src="/js/moments.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2798,7 +2840,7 @@ function applyCameraTransform() {
 applyCameraTransform();
 fitCamera();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -3109,6 +3151,184 @@ function wallKey(gx1, gz1, gx2, gz2) {
   return `${gx1},${gz1}:${gx2},${gz2}`;
 }
 
+function pendantShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().pendant : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the brass cone */ }
+  return null;
+}
+function cssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
+// Office windows share one living-world sky. The panes are proud of
+// the wall so the door split, shared walls, and desk layout stay as
+// they are. The clock is painted. It is never asked what a deal pays.
+const officeWindows = [];
+const officeWindowByKey = {};
+const skyCanvas = document.createElement('canvas');
+skyCanvas.id = 'office-sky-canvas';
+skyCanvas.width = 128;
+skyCanvas.height = 96;
+skyCanvas.setAttribute('aria-hidden', 'true');
+const skyHost = document.createElement('div');
+skyHost.id = 'office-sky-host';
+skyHost.hidden = true;
+skyHost.appendChild(skyCanvas);
+document.body.appendChild(skyHost);
+const skyCtx = skyCanvas.getContext('2d');
+const skyTexture = new THREE.CanvasTexture(skyCanvas);
+skyTexture.minFilter = THREE.LinearFilter;
+skyTexture.magFilter = THREE.LinearFilter;
+const skyMat = new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide });
+const skyFrameMat = new THREE.MeshLambertMaterial({ color: 0x2c241c });
+let officeWorld = null;
+try {
+  if (window.EurekaWorld) {
+    officeWorld = window.EurekaWorld.create({
+      profile: 'tycoon',
+      query: location.search,
+      seed: 11,
+    });
+  }
+} catch (e) { /* the office still runs under a painted noon */ }
+window.TYC_WORLD = officeWorld;
+window.TYC_SKY = skyCanvas;
+window.TYC_WINDOWS = officeWindows;
+
+let momentHold = false;
+let skySeen = '';
+const skyMarked = {};
+const SKY_BEAT = {
+  dawn: 'Dawn on the office',
+  dusk: 'Dusk on the office',
+  night: 'Night on the office',
+  rain: 'Rain on the glass',
+  storm: 'Storm on the glass',
+  fog: 'Fog on the glass',
+  snow: 'Snow on the glass',
+};
+function noteMoment(label) {
+  try {
+    if (label && window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+  } catch (e) { /* a missed still is not a crash */ }
+}
+function noteSky(snap) {
+  if (!snap || !snap.key || snap.key === skySeen) return;
+  const first = !skySeen;
+  skySeen = snap.key;
+  if (first) return;
+  const id = snap.weather && snap.weather !== 'clear' ? snap.weather : (snap.phase && snap.phase !== 'day' ? snap.phase : '');
+  if (!id || skyMarked[id] || !SKY_BEAT[id]) return;
+  skyMarked[id] = true;
+  noteMoment(SKY_BEAT[id]);
+}
+function officeSkyReduced() {
+  try {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { return false; }
+}
+function fillOfficeSky(phase) {
+  const w = skyCanvas.width, h = skyCanvas.height;
+  const g = skyCtx.createLinearGradient(0, 0, 0, h);
+  if (phase === 'dawn') {
+    g.addColorStop(0, '#ff7a2e');
+    g.addColorStop(0.42, '#ffd0a2');
+    g.addColorStop(1, '#6ea6dc');
+  } else if (phase === 'dusk') {
+    g.addColorStop(0, '#2a1848');
+    g.addColorStop(0.55, '#c45a78');
+    g.addColorStop(1, '#f0a060');
+  } else if (phase === 'night') {
+    g.addColorStop(0, '#070b18');
+    g.addColorStop(1, '#121a33');
+  } else {
+    g.addColorStop(0, '#3d94e0');
+    g.addColorStop(0.55, '#8ec8f5');
+    g.addColorStop(1, '#d7ecff');
+  }
+  skyCtx.fillStyle = g;
+  skyCtx.fillRect(0, 0, w, h);
+}
+function paintOfficeSky(dt, reduced) {
+  if (!officeWorld || !skyCtx) return null;
+  const step = Number.isFinite(dt) ? dt : 0.016;
+  if (!momentHold) officeWorld.tick(step);
+  const snap = officeWorld.snapshot();
+  fillOfficeSky(snap.phase);
+  officeWorld.paint(skyCtx, skyCanvas.width, skyCanvas.height, step, reduced == null ? officeSkyReduced() : !!reduced);
+  skyTexture.needsUpdate = true;
+  const chip = document.getElementById('tyc-sky');
+  if (chip) {
+    if (chip.textContent !== snap.label) chip.textContent = snap.label;
+    if (chip.dataset) chip.dataset.world = snap.key;
+  }
+  noteSky(snap);
+  return snap;
+}
+window.TYC_PAINT = paintOfficeSky;
+
+function dropOfficeWindow(key) {
+  const rec = officeWindowByKey[key];
+  if (!rec) return;
+  scene.remove(rec.frame);
+  for (const pane of rec.panes) scene.remove(pane);
+  delete officeWindowByKey[key];
+  const i = officeWindows.indexOf(rec);
+  if (i >= 0) officeWindows.splice(i, 1);
+}
+function releaseOfficeWindows(roomId) {
+  for (let i = officeWindows.length - 1; i >= 0; i--) {
+    const rec = officeWindows[i];
+    if (roomId && rec.roomId !== roomId) continue;
+    scene.remove(rec.frame);
+    for (const pane of rec.panes) scene.remove(pane);
+    if (officeWindowByKey[rec.key] === rec) delete officeWindowByKey[rec.key];
+    officeWindows.splice(i, 1);
+  }
+}
+function addOfficeWindow(def, nb, key, meshes) {
+  if (officeWindowByKey[key]) return;
+  const cx = def.gx * 16;
+  const cz = def.gz * 16;
+  const y = 1.95;
+  const proud = 0.28;
+  let axis = 'z';
+  let outward = 1;
+  let px = cx;
+  let pz = cz;
+  if (nb.dgz === -1) { pz = cz - 8; outward = -1; }
+  else if (nb.dgz === 1) { pz = cz + 8; outward = 1; }
+  else if (nb.dgx === -1) { axis = 'x'; px = cx - 8; outward = -1; }
+  else { axis = 'x'; px = cx + 8; outward = 1; }
+  const rot = axis === 'x' ? (outward > 0 ? Math.PI / 2 : -Math.PI / 2) : (outward > 0 ? 0 : Math.PI);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.72, 0.08), skyFrameMat);
+  const panes = [];
+  function place(mesh, dist) {
+    if (axis === 'x') mesh.position.set(px + outward * dist, y, pz);
+    else mesh.position.set(px, y, pz + outward * dist);
+    mesh.rotation.y = rot;
+  }
+  place(frame, proud - 0.06);
+  scene.add(frame);
+  for (const dist of [proud, -proud]) {
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(6.05, 1.22), skyMat);
+    pane.name = 'office-window';
+    if (axis === 'x') pane.position.set(px + outward * dist, y, pz);
+    else pane.position.set(px, y, pz + outward * dist);
+    pane.rotation.y = dist > 0 ? rot : rot + Math.PI;
+    scene.add(pane);
+    panes.push(pane);
+  }
+  const rec = { key: key, roomId: def.id, frame: frame, panes: panes };
+  officeWindows.push(rec);
+  officeWindowByKey[key] = rec;
+  meshes.decorations.push(frame, panes[0], panes[1]);
+}
+
 function buildRoom(def) {
   const cx = def.gx * 16;
   const cz = def.gz * 16;
@@ -3157,6 +3377,7 @@ function buildRoom(def) {
         scene.remove(doorWallPairs[key]);
         delete doorWallPairs[key];
       }
+      dropOfficeWindow(key);
     } else {
       // Build outer wall, but for south wall of starter room add door gap
       if (def.id === 'starter' && nb.dgz === 1) {
@@ -3180,6 +3401,7 @@ function buildRoom(def) {
         scene.add(wallMesh);
         meshes.walls.push(wallMesh);
         if (neighborDef) sharedWalls[key] = wallMesh;
+        addOfficeWindow(def, nb, key, meshes);
       }
     }
   }
@@ -3199,14 +3421,36 @@ function buildRoom(def) {
   cord.position.set(cx, 3.75, cz);
   scene.add(cord);
   meshes.decorations.push(cord);
+  const pendant = pendantShopLook();
   const shade = new THREE.Mesh(
     new THREE.ConeGeometry(0.35, 0.45, 14, 1, true),
-    new THREE.MeshLambertMaterial({ color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0.35, side: THREE.DoubleSide })
+    pendant
+      ? new THREE.MeshLambertMaterial({
+          color: cssHex(pendant.color, 0xf2c47a),
+          emissive: cssHex(pendant.color, 0xf2b05a),
+          emissiveIntensity: 0.35,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshLambertMaterial({ color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0.35, side: THREE.DoubleSide })
   );
+  shade.name = 'room-pendant';
   shade.position.set(cx, 3.05, cz);
   shade.rotation.x = Math.PI;
   scene.add(shade);
   meshes.decorations.push(shade);
+  if (pendant) {
+    // Unlit rim so the shop accent stays the shop accent on every room.
+    // The point light above is unchanged.
+    const glass = new THREE.Mesh(
+      new THREE.TorusGeometry(0.38, 0.07, 8, 18),
+      new THREE.MeshBasicMaterial({ color: cssHex(pendant.accent, 0x2ee6c7), fog: false })
+    );
+    glass.name = 'room-pendant-glass';
+    glass.position.set(cx, 3.26, cz);
+    glass.rotation.x = Math.PI / 2;
+    scene.add(glass);
+    meshes.decorations.push(glass);
+  }
   const bulb = new THREE.Mesh(
     new THREE.SphereGeometry(0.09, 10, 8),
     new THREE.MeshBasicMaterial({ color: 0xfff0b8 })
@@ -3482,14 +3726,114 @@ for (let r = -6; r <= 6; r++) {
   line.position.y = r * 0.22;
   brickWallG.add(line);
 }
-// A few accent "dark bricks" scattered
-const darkBrickMat = new THREE.MeshLambertMaterial({ color: 0x5a2a1a });
+// A few accent "dark bricks" scattered. Kiln Course recolors this
+// course only. The wall, the grout, and the gold string lights stay.
+function brickShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().brick : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the dark accent bricks */ }
+  return null;
+}
+function brickCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+const kilnCourse = brickShopLook();
+const darkBrickMat = kilnCourse
+  ? new THREE.MeshLambertMaterial({ color: brickCssHex(kilnCourse.color, 0x5a2a1a) })
+  : new THREE.MeshLambertMaterial({ color: 0x5a2a1a });
+const kilnFace = kilnCourse
+  ? new THREE.MeshBasicMaterial({
+      color: brickCssHex(kilnCourse.accent, 0x46f0ff),
+      fog: false,
+      side: THREE.DoubleSide,
+    })
+  : null;
 for (let i = 0; i < 18; i++) {
   const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.18, 0.04), darkBrickMat);
   b.position.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 2.6, 0.03);
   brickWallG.add(b);
+  if (kilnFace) {
+    // Unlit face so the shop accent stays the shop accent. The gold
+    // bulbs on this wall keep their own material.
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.14), kilnFace);
+    face.name = 'starter-brick-shop';
+    face.position.set(b.position.x, b.position.y, 0.08);
+    brickWallG.add(face);
+  }
 }
 scene.add(brickWallG);
+
+// The guest book, time capsule, and lobby mural are story beats.
+// They stand in the lobby once the office has earned them, on the
+// brick the iso camera already faces, beside the sky windows.
+const lobbyBook = new THREE.Group();
+lobbyBook.name = 'lobby-guestbook';
+const bookStand = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.7, 0.5), new THREE.MeshLambertMaterial({ color: 0x4a3424 }));
+bookStand.position.y = 0.35;
+lobbyBook.add(bookStand);
+const bookPages = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.05, 0.44), new THREE.MeshBasicMaterial({ color: 0xfff6e8 }));
+bookPages.position.y = 0.72;
+lobbyBook.add(bookPages);
+const bookSpine = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.55, 0.5), new THREE.MeshBasicMaterial({ color: 0xff4d00 }));
+bookSpine.position.set(-0.34, 0.48, 0);
+lobbyBook.add(bookSpine);
+lobbyBook.position.set(8.85, 0, 2.4);
+lobbyBook.visible = false;
+scene.add(lobbyBook);
+
+const lobbyCapsule = new THREE.Group();
+lobbyCapsule.name = 'lobby-capsule';
+const capsuleShell = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.86, 14), new THREE.MeshBasicMaterial({ color: 0xffe14a }));
+capsuleShell.rotation.z = Math.PI / 2;
+lobbyCapsule.add(capsuleShell);
+const capsuleSeam = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.07, 0.36), new THREE.MeshBasicMaterial({ color: 0x2a241c }));
+lobbyCapsule.add(capsuleSeam);
+lobbyCapsule.position.set(8.55, 0.85, -2.6);
+lobbyCapsule.visible = false;
+scene.add(lobbyCapsule);
+
+const muralCanvas = document.createElement('canvas');
+muralCanvas.width = 320;
+muralCanvas.height = 128;
+const muralCtx = muralCanvas.getContext('2d');
+muralCtx.fillStyle = '#ff2bd6';
+muralCtx.fillRect(0, 0, 320, 128);
+muralCtx.fillStyle = '#1a120c';
+muralCtx.fillRect(12, 36, 296, 56);
+['#c4552a', '#e7c07a', '#3d6b4f', '#ff2bd6', '#7eb6ff'].forEach((color, i) => {
+  muralCtx.fillStyle = color;
+  muralCtx.fillRect(24 + i * 56, 44, 44, 40);
+});
+muralCtx.fillStyle = '#f4efe4';
+muralCtx.font = 'bold 18px sans-serif';
+muralCtx.fillText('THE LOBBY', 18, 28);
+const muralMap = new THREE.CanvasTexture(muralCanvas);
+const lobbyMural = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.15), new THREE.MeshBasicMaterial({ map: muralMap }));
+lobbyMural.name = 'lobby-mural';
+lobbyMural.position.set(8.5, 0.72, 0);
+lobbyMural.rotation.y = Math.PI / 2;
+lobbyMural.visible = false;
+scene.add(lobbyMural);
+
+let lobbySyncing = false;
+function syncLobbyProps() {
+  if (lobbySyncing) return;
+  lobbySyncing = true;
+  try {
+    lobbyBook.visible = guestBookOut();
+    lobbyCapsule.visible = capsuleSealed();
+    lobbyMural.visible = muralPainted();
+    refreshGuestChip();
+    refreshCapsuleChip();
+    refreshMuralChip();
+  } finally {
+    lobbySyncing = false;
+  }
+}
+window.TYC_LOBBY = { sync: syncLobbyProps, book: lobbyBook, capsule: lobbyCapsule, mural: lobbyMural };
 
 // Pizza box on the floor near the CEO desk → upgrades to catered takeout bag
 const pizzaG = new THREE.Group();
@@ -3517,6 +3861,42 @@ const kbd = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.3), new THREE.Mesh
 kbd.position.set(0, 1.07, 3.35); kbd.castShadow = true; scene.add(kbd);
 const mouse = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.2), new THREE.MeshLambertMaterial({ color: 0x2a2a2a }));
 mouse.position.set(0.65, 1.07, 3.35); mouse.castShadow = true; scene.add(mouse);
+
+// Founder Lamp — the Spark Shop look this office wears. The bare desk
+// stays bare. The shade is unlit so the shop color stays the shop color.
+// Nothing here touches cash, hires, or feature prices.
+(function placeFounderLamp() {
+  let worn = null;
+  try {
+    const shop = window.EurekaCosmetics;
+    worn = shop && shop.look ? shop.look().lamp : null;
+  } catch (e) { worn = null; }
+  if (!worn) return;
+  const lamp = new THREE.Group();
+  lamp.name = 'ceo-lamp';
+  lamp.position.set(-1.48, 1.05, 3.52);
+  const brass = new THREE.MeshLambertMaterial({ color: 0xc48a3a });
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.045, 10), brass);
+  foot.position.y = 0.02;
+  lamp.add(foot);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.58, 8), brass);
+  stem.position.y = 0.33;
+  lamp.add(stem);
+  const shade = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.36, 0.5),
+    new THREE.MeshBasicMaterial({ color: 0xffb24a, fog: false })
+  );
+  shade.name = 'ceo-lamp-shade';
+  shade.position.y = 0.74;
+  lamp.add(shade);
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffe7a8, fog: false })
+  );
+  bulb.position.y = 0.5;
+  lamp.add(bulb);
+  scene.add(lamp);
+})();
 
 // Cardboard-box stack in corner → upgrades to proper shelving unit
 const storageG = new THREE.Group();
@@ -3549,35 +3929,140 @@ for (let li = 0; li < 5; li++) {
   leaf.castShadow = true; scene.add(leaf);
 }
 
+function standShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().stand : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the brass shade */ }
+  return null;
+}
+function standCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 // Standing lamp + warm point light in corner
 const lampPoleMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
 const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8), lampPoleMat);
 lampPole.position.set(-6.8, 1.1, 6.3); scene.add(lampPole);
 const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.08, 12), lampPoleMat);
 lampBase.position.set(-6.8, 0.04, 6.3); scene.add(lampBase);
-const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.45, 14, 1, true), new THREE.MeshLambertMaterial({ color: 0xf0d890, emissive: 0xf0c060, emissiveIntensity: 0.25, side: THREE.DoubleSide }));
-lampShade.position.set(-6.8, 2.15, 6.3); lampShade.rotation.x = Math.PI; scene.add(lampShade);
+const cornerStand = standShopLook();
+const lampShade = new THREE.Mesh(
+  new THREE.ConeGeometry(0.38, 0.45, 14, 1, true),
+  cornerStand
+    ? new THREE.MeshLambertMaterial({
+        color: standCssHex(cornerStand.color, 0xf0d890),
+        emissive: standCssHex(cornerStand.color, 0xf0c060),
+        emissiveIntensity: 0.25,
+        side: THREE.DoubleSide,
+      })
+    : new THREE.MeshLambertMaterial({ color: 0xf0d890, emissive: 0xf0c060, emissiveIntensity: 0.25, side: THREE.DoubleSide })
+);
+lampShade.name = 'corner-stand';
+lampShade.position.set(-6.8, 2.15, 6.3);
+lampShade.rotation.x = Math.PI;
+scene.add(lampShade);
+if (cornerStand) {
+  // Unlit rim so the shop accent stays the shop accent. The point light stays.
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.09, 8, 20),
+    new THREE.MeshBasicMaterial({ color: standCssHex(cornerStand.accent, 0x3ec6ff), fog: false })
+  );
+  rim.name = 'corner-stand-rim';
+  rim.position.set(-6.8, 2.4, 6.3);
+  rim.rotation.x = Math.PI / 2;
+  scene.add(rim);
+}
 const lampLight = new THREE.PointLight(0xffdc8a, 0.55, 9);
 lampLight.position.set(-6.8, 2.0, 6.3);
 scene.add(lampLight);
 
+function festoonShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().festoon : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the gold bulbs */ }
+  return null;
+}
+function festoonCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 // String lights along the north wall (just below the ceiling).
 // Grouped so they can be hidden together when the starter's north
 // wall is merged with an owned neighbor (Breakroom).
-const stringBulbMat = new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0.75 });
+const fairBulbs = festoonShopLook();
+const stringBulbMat = fairBulbs
+  ? new THREE.MeshLambertMaterial({
+      color: festoonCssHex(fairBulbs.color, 0xffdd66),
+      emissive: festoonCssHex(fairBulbs.color, 0xffcc44),
+      emissiveIntensity: 0.75,
+    })
+  : new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0.75 });
+const fairGlassMat = fairBulbs
+  ? new THREE.MeshBasicMaterial({ color: festoonCssHex(fairBulbs.accent, 0xcc66ff), fog: false })
+  : null;
 const stringLightsG = new THREE.Group();
 for (let i = 0; i < 12; i++) {
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), stringBulbMat);
   bulb.position.set(-7 + i * 1.27, 2.85 + Math.sin(i * 0.9) * 0.12, -7.6);
   stringLightsG.add(bulb);
+  if (fairGlassMat) {
+    // Unlit glass so the shop accent stays the shop accent. The gold
+    // bulbs and the corner lamp stay on their own materials.
+    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), fairGlassMat);
+    glass.name = 'string-light-glass';
+    glass.position.copy(bulb.position);
+    stringLightsG.add(glass);
+  }
 }
 scene.add(stringLightsG);
+
+function boardShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().board : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the white slab */ }
+  return null;
+}
+function boardCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
 
 // Whiteboard on the west wall with scribbles
 const wbG = new THREE.Group();
 wbG.position.set(-7.85, 1.8, 0);
-const wbPanel = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.5, 2.2), new THREE.MeshLambertMaterial({ color: 0xf8f8f5 }));
+const starterBoard = boardShopLook();
+const wbPanel = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 1.5, 2.2),
+  starterBoard
+    ? new THREE.MeshLambertMaterial({ color: boardCssHex(starterBoard.color, 0xf8f8f5) })
+    : new THREE.MeshLambertMaterial({ color: 0xf8f8f5 })
+);
+wbPanel.name = 'starter-board';
 wbPanel.castShadow = true; wbG.add(wbPanel);
+if (starterBoard) {
+  // Unlit coat on the face the office camera already sees. The frame,
+  // the scribbles, and the war-room budget stay put.
+  const ink = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 1.25),
+    new THREE.MeshBasicMaterial({
+      color: boardCssHex(starterBoard.accent, 0xff4fd8),
+      side: THREE.DoubleSide,
+      fog: false,
+    })
+  );
+  ink.name = 'starter-board-ink';
+  ink.position.set(0.08, 0, 0);
+  ink.rotation.y = Math.PI / 2;
+  wbG.add(ink);
+}
 const wbFrame = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.6, 2.3), new THREE.MeshLambertMaterial({ color: 0x3a3a3a }));
 wbFrame.position.x = -0.01; wbG.add(wbFrame);
 // Squiggles (thin colored strips)
@@ -4555,6 +5040,19 @@ function purgePlotsInRoom(roomId) {
   }
 }
 
+function noteShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().note : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the yellow and pink notes */ }
+  return null;
+}
+function noteCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 function createPlot(def) {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
@@ -4593,16 +5091,36 @@ function createPlot(def) {
   wbFace.position.set(0, 1.8, -0.67);
   g.add(wbFace);
   // A pair of accent sticky notes along the top corners so it still
-  // feels like a scrappy board, not a slick TV.
+  // feels like a scrappy board, not a slick TV. Booth Notes recolors
+  // the paper and pins an unlit face; a bare desk keeps both colors.
+  const boothNotes = noteShopLook();
   const noteColors = [0xffeb3b, 0xff80ab];
+  const boothFace = boothNotes
+    ? new THREE.MeshBasicMaterial({
+        color: noteCssHex(boothNotes.accent, 0x3dffc8),
+        fog: false,
+        side: THREE.DoubleSide,
+      })
+    : null;
   for (let ni = 0; ni < 2; ni++) {
     const note = new THREE.Mesh(
       new THREE.BoxGeometry(0.22, 0.22, 0.02),
-      new THREE.MeshLambertMaterial({ color: noteColors[ni] })
+      boothNotes
+        ? new THREE.MeshLambertMaterial({ color: noteCssHex(boothNotes.color, noteColors[ni]) })
+        : new THREE.MeshLambertMaterial({ color: noteColors[ni] })
     );
     note.position.set(-0.7 + ni * 1.4, 2.2, -0.66);
     note.rotation.z = (ni === 0 ? 1 : -1) * 0.12;
     g.add(note);
+    if (boothFace) {
+      // Unlit face so the shop accent stays the shop accent. The
+      // yellow and pink paper stay on the bare branch above.
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), boothFace);
+      face.name = 'desk-sticky-shop';
+      face.position.set(note.position.x, note.position.y, -0.64);
+      face.rotation.z = note.rotation.z;
+      g.add(face);
+    }
   }
   // Laptop sitting on the desk (off to one side so the paper stack
   // still reads front-center as the feature-in-progress).
@@ -11753,6 +12271,7 @@ function refreshGuestChip() {
   el.style.display = '';
   el.style.opacity = guestLeafed ? '0.45' : '';
   el.textContent = '\u{1F4D4} guests';
+  syncLobbyProps();
   el.title = guestLeafed
     ? 'The Guest Book has had its leaf-through this session. Once a day \u2014 the ink dries.'
     : 'The Guest Book \u2014 three founding toasts and a book sits open in the lobby, every visitor signed in. Leaf through it and somebody in the margins invests: $' + guestPurse()
@@ -11767,6 +12286,7 @@ function leafGuestBook() {
   state.cash += p;
   addFeedEntry('\u{1F4D4} The founder leafs through the lobby guest book \u2014 every name that ever came through the door. One of them calls back with a check: +$' + p + '.');
   showToast('\u{1F4D4} The Guest Book \u2014 +$' + p + '. The names pay.', 'good', 'standard');
+  noteMoment('The Guest Book');
   checkAchievements();
   refreshGuestChip();
 }
@@ -11921,6 +12441,7 @@ function refreshCapsuleChip() {
   el.style.display = '';
   el.style.opacity = capsuleVisited ? '0.45' : '';
   el.textContent = '\u{1F4E6} capsule';
+  syncLobbyProps();
   el.title = capsuleVisited
     ? 'The Time Capsule has had its visit this session. Once a day \u2014 the wall keeps.'
     : 'The Time Capsule \u2014 three sings of the anthem and the company sealed one in the lobby wall: the letter, the photo, the guest book page, a recording. Visit it, and a passing alum leaves a check on the ledge: $' + capsulePurse()
@@ -11935,6 +12456,7 @@ function visitTimeCapsule() {
   state.cash += p;
   addFeedEntry('\u{1F4E6} A visit to the Time Capsule in the lobby wall \u2014 the letter, the photo, the guest book page, a recording of the anthem. A passing alum leaves a check on the ledge: +$' + p + '.');
   showToast('\u{1F4E6} The Time Capsule \u2014 +$' + p + '. The wall remembers.', 'good', 'standard');
+  noteMoment('The Time Capsule');
   checkAchievements();
   refreshCapsuleChip();
 }
@@ -11964,6 +12486,7 @@ function refreshMuralChip() {
   el.style.display = '';
   el.style.opacity = muralSat ? '0.45' : '';
   el.textContent = '\u{1F3A8} mural';
+  syncLobbyProps();
   el.title = muralSat
     ? 'The Lobby Mural has had its sitting this session. The wall keeps painting itself.'
     : 'The Lobby Mural \u2014 three visits to the capsule and a designer took the long wall beside it: the garage, the first desk, the bench, four chords, the capsule seam. Sit with it, and a recruit signs the same day: $' + muralPurse()
@@ -11978,6 +12501,7 @@ function sitWithMural() {
   state.cash += p;
   addFeedEntry('\u{1F3A8} A sitting with the Lobby Mural \u2014 the garage, the first desk, the bench under the window, four chords, the seam where the capsule went in. A recruit reads the whole wall and signs the same day: +$' + p + '.');
   showToast('\u{1F3A8} The Lobby Mural \u2014 +$' + p + '. The wall tells it.', 'good', 'standard');
+  noteMoment('The Lobby Mural');
   checkAchievements();
   refreshMuralChip();
 }
@@ -13138,6 +13662,12 @@ function fatalFrame(msg) {
 function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  if (momentHold) {
+    paintOfficeSky(dt);
+    renderer.render(scene, camera);
+    try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
+    return;
+  }
 
   let dx = 0, dz = 0;
   if (keys['w'] || keys['arrowup'])    dz -= 1;
@@ -13243,7 +13773,9 @@ function frameBody(now) {
   tickCashHud(dt);
   if (beaglePack) beaglePack.tick(dt);
   tickIdleBreathing(now);
+  paintOfficeSky(dt);
   renderer.render(scene, activeCamera());
+  try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
 }
 
 // Subtle "alive" head sway on every character so standing still
@@ -13492,6 +14024,7 @@ function doIPO() {
       for (const d of rm.decorations) scene.remove(d);
       delete roomMeshes[roomId];
     }
+    releaseOfficeWindows(roomId);
     ownedRooms.delete(roomId);
   }
   // Reset any room-conversion modes so new season starts fresh
@@ -13533,6 +14066,7 @@ function doIPO() {
       for (const d of rm.decorations) scene.remove(d);
       delete roomMeshes['starter'];
     }
+    releaseOfficeWindows('starter');
     buildRoom(starterDef);
   }
 
@@ -14544,6 +15078,81 @@ if (BEAGLE && typeof BEAGLE.create === 'function') {
     console.warn('Beagle yard failed to start', err);
   }
 }
+
+// Photo mode frames the iso office, including the sky windows
+// and the lobby pieces. The floor holds still while it is open,
+// and the play camera comes back when it closes.
+const photoPlate = document.createElement('canvas');
+const photoCtx = photoPlate.getContext('2d');
+let momentCam = null;
+function momentCanvas() {
+  const gl = renderer.domElement;
+  if (!gl || !gl.width || !photoCtx) return gl || null;
+  if (photoPlate.width !== gl.width || photoPlate.height !== gl.height) {
+    photoPlate.width = gl.width;
+    photoPlate.height = gl.height;
+  }
+  photoCtx.setTransform(1, 0, 0, 1, 0, 0);
+  photoCtx.clearRect(0, 0, photoPlate.width, photoPlate.height);
+  try { photoCtx.drawImage(gl, 0, 0); } catch (e) {}
+  return photoPlate;
+}
+function rememberCam() {
+  if (momentCam) return;
+  momentCam = { x: cameraPanX, z: cameraPanZ, zoom: cameraZoom };
+}
+function restoreCam() {
+  if (!momentCam) return;
+  cameraPanX = momentCam.x;
+  cameraPanZ = momentCam.z;
+  cameraZoom = momentCam.zoom;
+  momentCam = null;
+  applyCameraTransform();
+  fitCamera();
+}
+function nudgePhoto(dx, dy) {
+  const s = cameraZoom / 280;
+  cameraPanX = Math.max(-48, Math.min(48, cameraPanX - dx * s * 0.65));
+  cameraPanZ = Math.max(-48, Math.min(48, cameraPanZ + dy * s * 0.65));
+  applyCameraTransform();
+}
+function zoomPhoto(scale) {
+  const next = cameraZoom / (Number(scale) || 1);
+  cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+  fitCamera();
+}
+function momentBlocked() {
+  return !!document.querySelector('[role="dialog"].open');
+}
+function attachMoments() {
+  if (!window.EurekaMoments) return;
+  const hud = [
+    '.ea-back', '#sidebar-toggle', '#tp-toggle', '#tp-hint', '#tp-crosshair',
+    '#status-bar', '#tyc-sky', '#cash-hud', '#metrics-hud', '#goal-hud',
+    '#left-panel', '#labels', '#toast-container', '#activity-feed',
+    '#sprint-btn', '#joystick', '#tyc-moments', '#ipo-btn',
+    '#arcade-ai-launch', '#arcade-ai-ticker',
+  ].join(',');
+  try {
+    EurekaMoments.attach({
+      game: 'tycoon',
+      gameTitle: 'Startup Tycoon',
+      canvas: momentCanvas,
+      hud: hud,
+      hotkey: { key: 'p', shift: false },
+      button: 'tyc-moments',
+      blocked: momentBlocked,
+      pause: function () { momentHold = true; target = null; },
+      resume: function () { momentHold = false; },
+      onOpen: rememberCam,
+      onClose: restoreCam,
+      camera: { modes: ['free'], pan: nudgePhoto, zoom: zoomPhoto },
+    });
+  } catch (e) { /* the office still runs without a camera */ }
+}
+attachMoments();
+syncLobbyProps();
+window.TYC_PLATE = momentCanvas;
 
 requestAnimationFrame(loop);
 

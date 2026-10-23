@@ -1091,6 +1091,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 <script src="/js/flag-daily.js"></script>
 <script src="/js/living-world.js"></script>
 <script src="/js/moments.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -1262,7 +1263,7 @@ function zoomPhoto(scale) {
 }
 applyCamera(); fitCamera();
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -1673,6 +1674,27 @@ function buildGrowPlot(x, z, roomId) {
     new THREE.MeshLambertMaterial({color:0x111111, emissive:0x220033, emissiveIntensity:0.4}));
   bar.position.set(x, 3.85, z); scene.add(bar);
 
+  // Amber lamp glass sits under the bar. Hidden until the shop look is worn.
+  // Each plot gets its own material so a later tent can take the color alone.
+  const shade = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.2, 0.5),
+    new THREE.MeshLambertMaterial({
+      color: 0xffb020, emissive: 0xff7a18, emissiveIntensity: 1.15,
+      transparent: true, opacity: 0.94,
+    }));
+  shade.position.set(x, 3.58, z);
+  shade.visible = false;
+  scene.add(shade);
+
+  // Shade over the tent.
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.07, 1.35),
+    new THREE.MeshLambertMaterial({
+      color: 0xffb020, emissive: 0xff7a18, emissiveIntensity: 1.15,
+      transparent: true, opacity: 0.94,
+    }));
+  canopy.position.set(x, 2.45, z);
+  canopy.visible = false;
+  scene.add(canopy);
+
   // Plant group (grows over time)
   const plantG = new THREE.Group();
   plantG.position.set(x, 0.6, z);
@@ -1680,11 +1702,12 @@ function buildGrowPlot(x, z, roomId) {
 
   const plot = {
     x, z, roomId,
-    pot, soil, plantG, uvLight, bar,
+    pot, soil, plantG, uvLight, bar, shade, canopy,
     progress: Math.random() * 0.3, // stagger starts
     ready: false,
     hasBud: false, // bud picked up by player
     stage: -1,
+    glassId: undefined,
   };
   growPlots.push(plot);
   updatePlantMesh(plot);
@@ -5899,26 +5922,91 @@ function updateGrowPlotLabel(p, index) {
     removeLabel(key);
   }
 }
+const growGlassTint = new THREE.Color();
+
+function wornGrowGlass() {
+  try {
+    if (!window.EurekaCosmetics || typeof EurekaCosmetics.look !== 'function') return null;
+    return EurekaCosmetics.look().glass || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function paintPlotGlass(mesh, color, accent) {
+  mesh.material.color.set(color);
+  mesh.material.emissive.set(accent);
+  mesh.material.emissiveIntensity = 1.2;
+  mesh.material.transparent = true;
+  mesh.material.opacity = 0.94;
+}
+
+// Each plot remembers the glass it already wears. Skipping the whole
+// pass after the first tent would leave a room bought later bare.
+function applyGrowLook() {
+  const glass = wornGrowGlass();
+  const key = glass && glass.id ? glass.id : '';
+  for (let i = 0; i < growPlots.length; i++) {
+    const p = growPlots[i];
+    if (!p.shade || !p.canopy || !p.bar) continue;
+    if (p.glassId === key) continue;
+    p.glassId = key;
+    if (!glass) {
+      p.shade.visible = false;
+      p.canopy.visible = false;
+      p.bar.material.color.setHex(0x111111);
+      p.bar.material.emissive.setHex(0x220033);
+      p.bar.material.emissiveIntensity = 0.4;
+      continue;
+    }
+    const color = glass.color || '#ffb020';
+    const accent = glass.accent || '#ff7a18';
+    p.shade.visible = true;
+    p.canopy.visible = true;
+    paintPlotGlass(p.shade, color, accent);
+    paintPlotGlass(p.canopy, color, accent);
+    p.bar.material.color.set(color);
+    p.bar.material.emissive.set(accent);
+    p.bar.material.emissiveIntensity = 1.35;
+  }
+}
+
+function tintGrowLamp(p) {
+  if (p.shade && p.shade.visible) {
+    const glass = wornGrowGlass();
+    p.uvLight.color.setHex(activeStrain().light);
+    if (glass && glass.color) {
+      growGlassTint.set(glass.color);
+      p.uvLight.color.lerp(growGlassTint, 0.62);
+    }
+  } else {
+    p.uvLight.color.setHex(activeStrain().light);
+  }
+}
+
 function updateGrowPlots(dt) {
+  applyGrowLook();
   const speed = 1/growTime();
   for (const p of growPlots) {
-    if (p.ready) continue;
-    p.progress = Math.min(1, p.progress + speed*dt);
-    if (p.progress>=1 && !p.ready) {
-      p.ready=true;
-      sfx('ready');
+    if (!p.ready) {
+      p.progress = Math.min(1, p.progress + speed*dt);
+      if (p.progress>=1 && !p.ready) {
+        p.ready=true;
+        sfx('ready');
+      }
+      if (p.plantG) {
+        if (p.ready) {
+          const s = 1 + Math.sin(now() * 5 + p.x) * 0.08;
+          p.plantG.scale.set(s, s, s);
+        } else if (p.plantG.scale.x !== 1) p.plantG.scale.set(1, 1, 1);
+      }
+      updateGrowPlotLabel(p, growPlots.indexOf(p));
+      if (p.stage !== Math.floor(p.progress*3)+1 || p.tint !== activeStrain().color) updatePlantMesh(p);
+      p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
     }
-    if (p.plantG) {
-      if (p.ready) {
-        const s = 1 + Math.sin(now() * 5 + p.x) * 0.08;
-        p.plantG.scale.set(s, s, s);
-      } else if (p.plantG.scale.x !== 1) p.plantG.scale.set(1, 1, 1);
-    }
-    updateGrowPlotLabel(p, growPlots.indexOf(p));
-    if (p.stage !== Math.floor(p.progress*3)+1 || p.tint !== activeStrain().color) updatePlantMesh(p);
-    // UV flicker — the lamp takes the color of the cut in the tent
-    p.uvLight.color.setHex(activeStrain().light);
-    p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
+    // UV flicker — the lamp takes the color of the cut in the tent.
+    // Worn glass pulls that light toward the shade.
+    tintGrowLamp(p);
   }
 }
 function now(){return performance.now()/1000;}
@@ -6851,6 +6939,7 @@ window.LAB_SKY = {
   heatDrain: function () { return heatDrainPerSec(); },
   buyers: function () { return dealerArrivalTime(); },
 };
+window.LAB_LAMPS = { scene: scene, camera: camera, renderer: renderer, plots: growPlots };
 syncLabSky(false);
 
 // The photo is the shop plus the weather painted over it.

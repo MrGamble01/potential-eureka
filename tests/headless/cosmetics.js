@@ -155,6 +155,148 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   } catch (e) { threw = true; }
   ok(!threw && purse.sparks === 0 && !purse.equipped.cape && !worn.trail && !worn.skin,
     'a messy purse is clamped and does not throw');
+  const cloth = Cosmetics.CATALOG.filter(function (i) { return i.id === 'tarp-ward'; })[0];
+  ok(cloth && cloth.slot === 'tarp' && cloth.cost === 44 && cloth.color === '#6d4cff' && cloth.accent === '#ff4ad2'
+    && cloth.games[0] === 'Homeless Village',
+    'ward cloth is a tarp look priced in sparks');
+  const wardBox = mem();
+  wardBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'tarp-ward': 1 }, equipped: { tarp: 'tarp-ward' } },
+  }));
+  const dyed = Cosmetics.create(Persist.create(wardBox), { storage: wardBox, achievementIds: function () { return []; } }).look();
+  ok(dyed.tarp && dyed.tarp.id === 'tarp-ward' && dyed.tarp.color === '#6d4cff' && dyed.tarp.accent === '#ff4ad2' && !dyed.skin,
+    'an equipped ward cloth survives a read and does not become a banner');
+  const stripped = mem();
+  stripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { tarp: 'tarp-ward', cape: 'nope' } },
+  }));
+  const undyed = Cosmetics.create(Persist.create(stripped), { storage: stripped, achievementIds: function () { return []; } });
+  ok(!undyed.look().tarp && !undyed.purse().equipped.cape && undyed.purse().equipped.tarp === 'tarp-ward',
+    'a ward cloth that was never bought is not worn, and the slot is kept');
+
+  const shade = Cosmetics.CATALOG.filter(function (i) { return i.id === 'stand-hearth'; })[0];
+  ok(shade && shade.slot === 'stand' && shade.cost === 44 && shade.color === '#1d4ed8' && shade.accent === '#3ec6ff'
+    && shade.games[0] === 'Startup Tycoon',
+    'hearth shade is a standing-lamp look priced in sparks');
+  const standBox = mem();
+  standBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'stand-hearth': 1 }, equipped: { stand: 'stand-hearth' } },
+  }));
+  const wornShade = Cosmetics.create(Persist.create(standBox), { storage: standBox, achievementIds: function () { return []; } }).look();
+  ok(wornShade.stand && wornShade.stand.id === 'stand-hearth' && wornShade.stand.color === '#1d4ed8'
+    && wornShade.stand.accent === '#3ec6ff' && !wornShade.skin,
+    'an equipped hearth shade survives a read and does not become a banner');
+  const bareStand = mem();
+  bareStand.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { stand: 'stand-hearth', cape: 'nope' } },
+  }));
+  const undressed = Cosmetics.create(Persist.create(bareStand), { storage: bareStand, achievementIds: function () { return []; } });
+  ok(!undressed.look().stand && !undressed.purse().equipped.cape && undressed.purse().equipped.stand === 'stand-hearth',
+    'a hearth shade that was never bought is not worn, and the slot is kept');
+
+  const ink = Cosmetics.CATALOG.filter(function (i) { return i.id === 'board-ink'; })[0];
+  ok(ink && ink.slot === 'board' && ink.cost === 44 && ink.color === '#1b3a8a' && ink.accent === '#ff4fd8'
+    && ink.games[0] === 'Startup Tycoon',
+    'ink board is a whiteboard look priced in sparks');
+  const boardBox = mem();
+  boardBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'board-ink': 1 }, equipped: { board: 'board-ink' } },
+  }));
+  const wornBoard = Cosmetics.create(Persist.create(boardBox), { storage: boardBox, achievementIds: function () { return []; } }).look();
+  ok(wornBoard.board && wornBoard.board.id === 'board-ink' && wornBoard.board.color === '#1b3a8a'
+    && wornBoard.board.accent === '#ff4fd8' && !wornBoard.skin,
+    'an equipped ink board survives a read and does not become a banner');
+  const bareBoard = mem();
+  bareBoard.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { board: 'board-ink', cape: 'nope' } },
+  }));
+  const wiped = Cosmetics.create(Persist.create(bareBoard), { storage: bareBoard, achievementIds: function () { return []; } });
+  ok(!wiped.look().board && !wiped.purse().equipped.cape && wiped.purse().equipped.board === 'board-ink',
+    'an ink board that was never bought is not worn, and the slot is kept');
+
+  const fair = Cosmetics.CATALOG.filter(function (i) { return i.id === 'festoon-fair'; })[0];
+  ok(fair && fair.slot === 'festoon' && fair.cost === 44 && fair.color === '#5b2dff' && fair.accent === '#cc66ff'
+    && fair.games[0] === 'Startup Tycoon',
+    'fair bulbs are a string-light look priced in sparks');
+  const fairBox = mem();
+  fairBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'festoon-fair': 1 }, equipped: { festoon: 'festoon-fair' } },
+  }));
+  const wornFair = Cosmetics.create(Persist.create(fairBox), { storage: fairBox, achievementIds: function () { return []; } }).look();
+  ok(wornFair.festoon && wornFair.festoon.id === 'festoon-fair' && wornFair.festoon.color === '#5b2dff'
+    && wornFair.festoon.accent === '#cc66ff' && !wornFair.skin,
+    'an equipped fair string survives a read and does not become a banner');
+  const bareFair = mem();
+  bareFair.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { festoon: 'festoon-fair', cape: 'nope' } },
+  }));
+  const dark = Cosmetics.create(Persist.create(bareFair), { storage: bareFair, achievementIds: function () { return []; } });
+  ok(!dark.look().festoon && !dark.purse().equipped.cape && dark.purse().equipped.festoon === 'festoon-fair',
+    'a fair string that was never bought is not worn, and the slot is kept');
+
+  const booth = Cosmetics.CATALOG.filter(function (i) { return i.id === 'note-booth'; })[0];
+  ok(booth && booth.slot === 'note' && booth.cost === 44 && booth.color === '#0f766e' && booth.accent === '#3dffc8'
+    && booth.games[0] === 'Startup Tycoon',
+    'booth notes are a desk-note look priced in sparks');
+  const noteBox = mem();
+  noteBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'note-booth': 1 }, equipped: { note: 'note-booth' } },
+  }));
+  const wornNote = Cosmetics.create(Persist.create(noteBox), { storage: noteBox, achievementIds: function () { return []; } }).look();
+  ok(wornNote.note && wornNote.note.id === 'note-booth' && wornNote.note.color === '#0f766e'
+    && wornNote.note.accent === '#3dffc8' && !wornNote.skin,
+    'equipped booth notes survive a read and do not become a banner');
+  const bareNote = mem();
+  bareNote.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { note: 'note-booth', cape: 'nope' } },
+  }));
+  const plainNotes = Cosmetics.create(Persist.create(bareNote), { storage: bareNote, achievementIds: function () { return []; } });
+  ok(!plainNotes.look().note && !plainNotes.purse().equipped.cape && plainNotes.purse().equipped.note === 'note-booth',
+    'booth notes that were never bought are not worn, and the slot is kept');
+
+  const kiln = Cosmetics.CATALOG.filter(function (i) { return i.id === 'brick-kiln'; })[0];
+  ok(kiln && kiln.slot === 'brick' && kiln.cost === 44 && kiln.color === '#1d4e89' && kiln.accent === '#46f0ff'
+    && kiln.games[0] === 'Startup Tycoon',
+    'kiln course is a brick look priced in sparks');
+  const kilnBox = mem();
+  kilnBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'brick-kiln': 1 }, equipped: { brick: 'brick-kiln' } },
+  }));
+  const wornKiln = Cosmetics.create(Persist.create(kilnBox), { storage: kilnBox, achievementIds: function () { return []; } }).look();
+  ok(wornKiln.brick && wornKiln.brick.id === 'brick-kiln' && wornKiln.brick.color === '#1d4e89'
+    && wornKiln.brick.accent === '#46f0ff' && !wornKiln.skin,
+    'an equipped kiln course survives a read and does not become a banner');
+  const bareKiln = mem();
+  bareKiln.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { brick: 'brick-kiln', cape: 'nope' } },
+  }));
+  const plainKiln = Cosmetics.create(Persist.create(bareKiln), { storage: bareKiln, achievementIds: function () { return []; } });
+  ok(!plainKiln.look().brick && !plainKiln.purse().equipped.cape && plainKiln.purse().equipped.brick === 'brick-kiln',
+    'a kiln course that was never bought is not worn, and the slot is kept');
 }
 
 {
@@ -181,6 +323,84 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   ok(!bare.look().kitchen && !bare.purse().equipped.cape && bare.purse().equipped.kitchen === 'kitchen-supper',
     'a supper cloth that was never bought is not worn, and the slot is kept');
 }
+
+{
+  const lantern = Cosmetics.CATALOG.filter(function (i) { return i.id === 'tent-lantern'; })[0];
+  ok(lantern && lantern.slot === 'tent' && lantern.cost === 44 && lantern.color === '#e8a04a'
+    && lantern.games.indexOf('Homeless Village') >= 0,
+    'the lantern canvas is a Homeless Village shop look priced in sparks');
+  const box = mem();
+  box.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: {
+      sparks: 80,
+      owned: { 'tent-lantern': 1700000000000 },
+      equipped: { tent: 'tent-lantern', cape: 'nope' },
+      xp: 0,
+    },
+  }));
+  const api = Cosmetics.create(Persist.create(box), { storage: box, achievementIds: function () { return []; } });
+  const worn = api.look();
+  const before = api.purse().sparks;
+  ok(worn.tent && worn.tent.id === 'tent-lantern' && worn.tent.accent === '#ffe38a'
+    && api.purse().equipped.tent === 'tent-lantern' && !api.purse().equipped.cape,
+    'a saved tent canvas survives the purse and a foreign slot does not');
+  ok(api.unequip('tent').ok && !api.look().tent && api.purse().sparks === before && api.purse().owned['tent-lantern'],
+    'taking the canvas off spends no sparks and keeps the unlock');
+}
+
+{
+  const lamp = Cosmetics.CATALOG.filter(function (i) { return i.id === 'lamp-founder'; })[0];
+  ok(lamp && lamp.slot === 'lamp' && lamp.cost === 44 && lamp.color === '#ffb24a' && lamp.accent === '#ffe7a8'
+    && lamp.games[0] === 'Startup Tycoon',
+    'the founder lamp is a desk look priced in sparks');
+  const lampBox = mem();
+  lampBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'lamp-founder': 1 }, equipped: { lamp: 'lamp-founder' } },
+  }));
+  const lampWorn = Cosmetics.create(Persist.create(lampBox), { storage: lampBox, achievementIds: function () { return []; } }).look();
+  ok(lampWorn.lamp && lampWorn.lamp.id === 'lamp-founder' && lampWorn.lamp.color === '#ffb24a' && lampWorn.lamp.accent === '#ffe7a8' && !lampWorn.skin,
+    'an equipped founder lamp survives a read and does not become a banner');
+  const lampStripped = mem();
+  lampStripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { lamp: 'lamp-founder', cape: 'nope' } },
+  }));
+  const lampBare = Cosmetics.create(Persist.create(lampStripped), { storage: lampStripped, achievementIds: function () { return []; } });
+  ok(!lampBare.look().lamp && !lampBare.purse().equipped.cape && lampBare.purse().equipped.lamp === 'lamp-founder',
+    'a lamp that was never bought is not worn, and the slot is kept');
+}
+
+
+{
+  const tide = Cosmetics.CATALOG.filter(function (i) { return i.id === 'pendant-tide'; })[0];
+  ok(tide && tide.slot === 'pendant' && tide.cost === 44 && tide.color === '#149e86' && tide.accent === '#2ee6c7'
+    && tide.games[0] === 'Startup Tycoon',
+    'tide glass is a pendant look priced in sparks');
+  const tideBox = mem();
+  tideBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'pendant-tide': 1 }, equipped: { pendant: 'pendant-tide' } },
+  }));
+  const tideWorn = Cosmetics.create(Persist.create(tideBox), { storage: tideBox, achievementIds: function () { return []; } }).look();
+  ok(tideWorn.pendant && tideWorn.pendant.id === 'pendant-tide' && tideWorn.pendant.color === '#149e86' && tideWorn.pendant.accent === '#2ee6c7' && !tideWorn.skin,
+    'an equipped tide glass survives a read and does not become a banner');
+  const tideStripped = mem();
+  tideStripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { pendant: 'pendant-tide', cape: 'nope' } },
+  }));
+  const tideBare = Cosmetics.create(Persist.create(tideStripped), { storage: tideStripped, achievementIds: function () { return []; } });
+  ok(!tideBare.look().pendant && !tideBare.purse().equipped.cape && tideBare.purse().equipped.pendant === 'pendant-tide',
+    'a tide glass that was never bought is not worn, and the slot is kept');
+}
+
 
 (async () => {
   const browser = await chromium.launch({

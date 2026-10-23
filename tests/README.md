@@ -26,7 +26,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 
 ## What's covered
 
-`moments` covers the shared photo mode and highlight reel. The buffer, GIF encoder, filters, frame size, clip titles, and the on/off switch run in Node. The browser half opens photo mode on Voxel Isle and Hearthvale, checks the HUD hide, the highlights switch, a full-colour desktop frame, a named career unlock, that the photo bar stays clear of the announcer and the build bar, and that a phone-sized capture does not throw. `aowmoments` covers Age of War: the camera button, Shift+P beside pause, an age-up and a special filed by name, and the camera staying inside the HUD bar at 1280 and 390, including Eclipse. `labmoments` covers Grow Op: P and the camera button open photo mode, the grow holds still and then resumes, a night sky is filed by name, and the saved frame includes the moon painted over the shop.
+`moments` covers the shared photo mode and highlight reel. The buffer, GIF encoder, filters, frame size, clip titles, and the on/off switch run in Node. The browser half opens photo mode on Voxel Isle and Hearthvale, checks the HUD hide, the highlights switch, a full-colour desktop frame, a named career unlock, that the photo bar stays clear of the announcer and the build bar, and that a phone-sized capture does not throw. `aowmoments` covers Age of War: the camera button, Shift+P beside pause, an age-up and a special filed by name, and the camera staying inside the HUD bar at 1280 and 390, including Eclipse. `labmoments` covers Grow Op: P and the camera button open photo mode, the grow holds still and then resumes, a night sky is filed by name, and the saved frame includes the moon painted over the shop. `hvmoments` covers Homeless Village: P and the camera button, the day held still while framing, a mural panel and the camp's own weather filed and visible in the shot. `labglass` covers Amber Lamp Glass on Grow Op tents.
 
 `labsheetpause` is hook-free: Grow Op holds production, heat, market and
 contract deadlines behind The Corner, the crash course and the initial
@@ -75,8 +75,17 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Startup Tycoon Jeff shortfall | `tycjeff` (hook-free: disabled shortfall tag/title, forced refusal toast without spending or spawning, live funding refresh, exact signing bonus and free promotion; zero page errors) |
 | Startup Tycoon desk/convert shortfalls | `tycdesk` (hook-free: seeded cash shortfalls and titles, affordable prices/purchases, locked conversion, room-full copy, zero page errors) |
 | Startup Tycoon amenity stock | `tycamenity` (hook-free: initial/live stock, stockless owned tags, cash shortfalls, affordable purchase, zero page errors) |
+| Startup Tycoon office sky | `tycsky` (hook-free: shared window canvas follows dawn, night, and rain; the chip stays "open sky"; per-ship and cash stay put when the sky is pinned; zero page errors) |
+| Startup Tycoon photo mode | `tycmoments` (hook-free: P and the camera button, hold while framing, sky windows in the plate, guest book / capsule / mural filed by name; 1280 and 390; zero page errors) |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
 | Startup Tycoon lobby chips | `tycchips` (hook-free: a real click on the guest book, time capsule, and mural chips pays the existing purse once; the office canvas no longer eats the hit; deal amounts stay put) |
+| Startup Tycoon founder lamp | `tyclamp` (hook-free: bare CEO desk has no shop shade, the equipped Founder Lamp paints it, shown cash stays on the welcome-back purse, deal constants unchanged; zero page errors) |
+| Startup Tycoon pendant glass | `tycpendant` (hook-free: bare rooms keep the brass cone, Tide Glass tints every ceiling pendant, a second owned room adds glass, shown cash and room prices stay put) |
+| Startup Tycoon corner lamp | `tycstand` (hook-free: a bare office keeps the brass standing shade, Hearth Shade tints that corner lamp, shown cash and deal prices stay put) |
+| Startup Tycoon ink board | `tycboard` (hook-free: a bare office keeps the white starter whiteboard, Ink Board coats that slab, shown cash and deal prices stay put) |
+| Startup Tycoon string lights | `tycstring` (hook-free: a bare office keeps the gold north-wall bulbs, Fair Bulbs tint that string, shown cash and deal prices stay put) |
+| Startup Tycoon desk notes | `tycnotes` (hook-free: a bare office keeps the yellow and pink sticky notes, Booth Notes tint every desk, shown cash and deal prices stay put) |
+| Startup Tycoon brick course | `tycbrick` (hook-free: a bare office keeps the dark accent bricks, Kiln Course tints that course, the gold string lights stay, shown cash and deal prices stay put) |
 | Age of War browsing sheets | `aowesc` (hook-free: real Settings/Awards/The Line buttons, Escape hides each sheet and resumes battle time at 1280px/768px; clean-page Escape, intentional pause, War Council, and welcome Escape/Enter controls) |
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `feel` (shared particles, shake, hit-stop, tweens, pop-ups, transitions, haptics, reduced-motion), `flagdaily` (one seeded flagship sprint a day, best, history, streak), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card), `hubhome` (Age of War billboard, Long/Quick scan, empty filter, hop-after-search, 900×700 density, scan-mark reset, 720×700 compact flagship, filter-mode chrome, 390 first-visit fold, Games-back restore, shell on HoF, daylight chrome, 1280 Long 3-across, description search, 1280 Studio one-card / Quick 3-across, HoF+resume restore, Studio hop, 390 shell under wrapped nav, HoF Long/Quick + sixth flagship, Hearthvale badge/reset, daylight HoF tokens, 390 HoF score wrap, HoF opens at the title after a scrolled catalogue, HoF per-lane ranks, daylight Patch Notes / Primer / overlay / PEAK / Studio Crew chips), `hublinks` (catalogue, daily, and Hall of Fame links plus nickname hashes open the named game) |
@@ -114,6 +123,7 @@ presses and ordinary key releases still work.
 
 - `hvcookpot` (HV-172: Soup night serves before Cook spends the breakfast pot)
 - `hvtornbed` (HV-173: Make room requires a standing tent and wind or sweep lapses the ask)
+- `hvtent` (a Spark Shop lantern canvas on the standing tent; cardboard, scraps, wood, and warmth stay put)
 - `hvdryrain` (HV-174: Only rain hosts a Dry Corner sit; clear-sky roofing still works)
 - `hvchurchcard` (HV-175: Church donations include two to five cardboard with the existing supplies)
 - `hvradiosweep` (HV-176: City Sweep confiscates the radio while Lookout forecasts remain)
@@ -318,6 +328,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hublinks` (catalogue cards, daily chips, Hall of Fame rows and nickname URLs open the game they name; `#game2048` / `#grow-op` / `#hof` included; 404 lists working game links)
 - `objective` (SITE-6: every arcade game states its goal and not just its keys — Crate Escape's stated goal is the one checkSolved tests, Vector Defense's wave and life counts are recomputed from the source, and a vocabulary guard catches any game that lists controls and never says what a run is for)
 - `controls` (SITE-7: every arcade game names an input and not just a goal — the seven subtitles that stated a goal and left the keys unsaid now carry them, each claim recomputed from the handler that owns it, plus a guard against a subtitle rendering a literal HTML entity)
+- `hvward` (Night Clinic tarp: a bare cot keeps the gray cloth, Ward Cloth dyes it and shows the unlit band, a rebuild keeps the dye, taking it off restores the gray, and the clinic recipe stays wood 7, scraps 5, cardboard 3, goodwill 4)
 
 - `hvcloth` (Supper Cloth: the soup-kitchen awning wears a shop hem; the pot recipe stays wood 10, scraps 8, cans 5, goodwill 5)
 ### Hearthvale suites

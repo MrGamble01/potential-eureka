@@ -5,8 +5,17 @@
    (XP, trophies, boss kills) and from the daily
    challenges. They spend here, on this device,
    on looks the flagships actually draw: banners,
-   cloaks, trails, hub-card themes, titles, badges,
-   and the cloth over the Homeless Village soup kitchen.
+   cloaks, trails, lamp glass, hub-card themes, titles, badges,
+   the cloth over the Homeless Village soup kitchen,
+   the canvas on a Homeless Village tent,
+   the brass lamp on the Startup Tycoon desk,
+   the glass on every Startup Tycoon ceiling pendant,
+   the cloth on the Homeless Village night clinic tarp,
+   the shade on the Startup Tycoon corner lamp,
+   the coat on the Startup Tycoon starter whiteboard,
+   the string lights on the Startup Tycoon north wall,
+   the sticky notes on a Startup Tycoon desk,
+   and the dark bricks on a Startup Tycoon wall.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -33,6 +42,8 @@
       blurb: 'A second title beside the one you earned.', games: ['Profile'] },
     { id: 'badge-wolf', slot: 'badge', name: 'Wolf Badge', glyph: '🐺', cost: 40,
       blurb: 'The Hollow Wolf, worn on your profile.', games: ['Profile'] },
+    { id: 'glass-amber', slot: 'glass', name: 'Amber Lamp Glass', cost: 44, color: '#ffb020', accent: '#ff7a18',
+      blurb: 'Amber glass on every grow lamp, and a shade over the tent.', games: ['Grow Op'] },
     { id: 'palette-orchard', slot: 'palette', name: 'Orchard Cloak', cost: 48, color: '#7fbf63',
       blurb: 'A green cloak in the valley and a ring under your army.', games: ['Hearthvale', 'Age of War'] },
     { id: 'cards-lantern', slot: 'cards', name: 'Lantern Cards', cost: 55, color: '#f0a04b',
@@ -51,6 +62,24 @@
       blurb: 'A violet standard. The other side sees it coming.', games: ['Age of War', 'Hearthvale'] },
     { id: 'kitchen-supper', slot: 'kitchen', name: 'Supper Cloth', cost: 44, color: '#e23b6a', accent: '#3ef0d0',
       blurb: 'A cloth over the soup kitchen. The pot still costs what it cost.', games: ['Homeless Village'] },
+    { id: 'tent-lantern', slot: 'tent', name: 'Lantern Canvas', cost: 44, color: '#e8a04a', accent: '#ffe38a',
+      blurb: 'A warm fly over the camp tent. Raising the tent still costs the same cardboard, scraps, and wood.', games: ['Homeless Village'] },
+    { id: 'lamp-founder', slot: 'lamp', name: 'Founder Lamp', cost: 44, color: '#ffb24a', accent: '#ffe7a8',
+      blurb: 'A brass lamp on the CEO desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'pendant-tide', slot: 'pendant', name: 'Tide Glass', cost: 44, color: '#149e86', accent: '#2ee6c7',
+      blurb: 'Sea-glass on every ceiling pendant. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'tarp-ward', slot: 'tarp', name: 'Ward Cloth', cost: 44, color: '#6d4cff', accent: '#ff4ad2',
+      blurb: 'A dyed cloth on the night clinic tarp. The cot still costs what it cost.', games: ['Homeless Village'] },
+    { id: 'stand-hearth', slot: 'stand', name: 'Hearth Shade', cost: 44, color: '#1d4ed8', accent: '#3ec6ff',
+      blurb: 'A cool shade on the corner standing lamp. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'board-ink', slot: 'board', name: 'Ink Board', cost: 44, color: '#1b3a8a', accent: '#ff4fd8',
+      blurb: 'A fresh coat on the starter whiteboard. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'festoon-fair', slot: 'festoon', name: 'Fair Bulbs', cost: 44, color: '#5b2dff', accent: '#cc66ff',
+      blurb: 'A cooler string along the north wall. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'note-booth', slot: 'note', name: 'Booth Notes', cost: 44, color: '#0f766e', accent: '#3dffc8',
+      blurb: 'A cooler pair of notes on every desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'brick-kiln', slot: 'brick', name: 'Kiln Course', cost: 44, color: '#1d4e89', accent: '#46f0ff',
+      blurb: 'A cooler course in the north-wall brick. Deals still pay what they paid.', games: ['Startup Tycoon'] },
   ];
 
   const BY_ID = {};
@@ -61,10 +90,20 @@
     { id: 'skin', name: 'Banners' },
     { id: 'trail', name: 'Trails' },
     { id: 'palette', name: 'Cloaks' },
+    { id: 'glass', name: 'Lamp glass' },
     { id: 'cards', name: 'Hub cards' },
     { id: 'title', name: 'Titles' },
     { id: 'badge', name: 'Badges' },
     { id: 'kitchen', name: 'Soup kitchen' },
+    { id: 'tent', name: 'Tent canvas' },
+    { id: 'lamp', name: 'Desk lamp' },
+    { id: 'pendant', name: 'Pendants' },
+    { id: 'tarp', name: 'Tarps' },
+    { id: 'stand', name: 'Standing lamps' },
+    { id: 'board', name: 'Boards' },
+    { id: 'festoon', name: 'String lights' },
+    { id: 'note', name: 'Desk notes' },
+    { id: 'brick', name: 'Brick' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -246,6 +285,16 @@
       const title = take('title');
       const badge = take('badge');
       const kitchen = take('kitchen');
+      const glass = take('glass');
+      const tent = take('tent');
+      const lamp = take('lamp');
+      const pendant = take('pendant');
+      const tarp = take('tarp');
+      const stand = take('stand');
+      const board = take('board');
+      const festoon = take('festoon');
+      const note = take('note');
+      const brick = take('brick');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -254,6 +303,16 @@
         title: title ? { id: title.id, name: title.name } : null,
         badge: badge ? { id: badge.id, name: badge.name, glyph: badge.glyph } : null,
         kitchen: kitchen ? { id: kitchen.id, name: kitchen.name, color: kitchen.color, accent: kitchen.accent } : null,
+        glass: glass ? { id: glass.id, name: glass.name, color: glass.color, accent: glass.accent } : null,
+        tent: tent ? { id: tent.id, name: tent.name, color: tent.color, accent: tent.accent } : null,
+        lamp: lamp ? { id: lamp.id, name: lamp.name, color: lamp.color, accent: lamp.accent } : null,
+        pendant: pendant ? { id: pendant.id, name: pendant.name, color: pendant.color, accent: pendant.accent } : null,
+        tarp: tarp ? { id: tarp.id, name: tarp.name, color: tarp.color, accent: tarp.accent } : null,
+        stand: stand ? { id: stand.id, name: stand.name, color: stand.color, accent: stand.accent } : null,
+        board: board ? { id: board.id, name: board.name, color: board.color, accent: board.accent } : null,
+        festoon: festoon ? { id: festoon.id, name: festoon.name, color: festoon.color, accent: festoon.accent } : null,
+        note: note ? { id: note.id, name: note.name, color: note.color, accent: note.accent } : null,
+        brick: brick ? { id: brick.id, name: brick.name, color: brick.color, accent: brick.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -461,6 +520,15 @@
       if (item.slot === 'badge') return paintBadge(ctx, w, h, item, t, revealing);
       if (item.slot === 'title') return paintPlaque(ctx, w, h, item, t, revealing);
       if (item.slot === 'kitchen') return paintKitchen(ctx, w, h, item, t, revealing);
+      if (item.slot === 'tent') return paintTent(ctx, w, h, item, t, revealing);
+      if (item.slot === 'lamp') return paintLamp(ctx, w, h, item, t, revealing);
+      if (item.slot === 'pendant') return paintPendant(ctx, w, h, item, t, revealing);
+      if (item.slot === 'tarp') return paintTarp(ctx, w, h, item, t, revealing);
+      if (item.slot === 'stand') return paintStand(ctx, w, h, item, t, revealing);
+      if (item.slot === 'board') return paintBoard(ctx, w, h, item, t, revealing);
+      if (item.slot === 'festoon') return paintFestoon(ctx, w, h, item, t, revealing);
+      if (item.slot === 'note') return paintNote(ctx, w, h, item, t, revealing);
+      if (item.slot === 'brick') return paintBrick(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -526,6 +594,19 @@
         ctx.lineTo(x - 16 * scale, ground - 30 * scale);
         ctx.fill();
       }
+      if (item.slot === 'glass') {
+        const accent = item.accent || '#ff7a18';
+        // Shade over the figure, then the lamp bar. Offsets stay inside a
+        // short shop thumb, where the ground sits near the bottom.
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(x - 28 * scale, ground - 54 * scale, 56 * scale, 10 * scale);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 20 * scale, ground - 64 * scale, 40 * scale, 7 * scale);
+        ctx.fillStyle = accent;
+        ctx.fillRect(x - 16 * scale, ground - 62 * scale, 32 * scale, 3 * scale);
+      }
       if (revealing) {
         ctx.strokeStyle = 'rgba(247,201,72,.8)';
         ctx.lineWidth = 2;
@@ -533,6 +614,39 @@
         ctx.arc(x, ground - 28 * scale, 30 * scale + Math.sin(t * 6) * 2, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+
+    function paintTent(ctx, w, h, item, t, revealing) {
+      const color = item.color || '#e8a04a';
+      const accent = item.accent || '#ffe38a';
+      const ground = h * 0.78;
+      const cx = w * 0.52;
+      const rise = Math.sin(t * 2) * 2;
+      ctx.fillStyle = '#2a4030';
+      ctx.beginPath();
+      ctx.moveTo(cx - 78, ground);
+      ctx.lineTo(cx, ground - 86 + rise);
+      ctx.lineTo(cx + 78, ground);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.moveTo(cx - 70, ground - 2);
+      ctx.lineTo(cx, ground - 96 + rise);
+      ctx.lineTo(cx + 70, ground - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = Math.max(4, h * 0.035);
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - 46, ground - 14);
+      ctx.lineTo(cx, ground - 78 + rise);
+      ctx.lineTo(cx + 46, ground - 14);
+      ctx.stroke();
+      if (revealing) paintBurst(ctx, w, h, t);
     }
 
     function paintBadge(ctx, w, h, item, t, revealing) {
@@ -588,6 +702,146 @@
       ctx.fill();
       ctx.fillStyle = item.accent || '#3ef0d0';
       ctx.fillRect(x - 40 * scale, ground - 20 * scale, 80 * scale, 6 * scale);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+
+    function paintLamp(ctx, w, h, item, t, revealing) {
+      const scale = Math.max(1, h / 160);
+      const bob = Math.sin(t * 2) * 2;
+      const x = w * 0.5;
+      const ground = h * 0.78;
+      ctx.fillStyle = '#5c3d1e';
+      ctx.fillRect(x - 54 * scale, ground - 8 * scale, 108 * scale, 10 * scale);
+      ctx.fillStyle = '#c48a3a';
+      ctx.fillRect(x - 4 * scale, ground - 46 * scale + bob, 8 * scale, 38 * scale);
+      ctx.fillStyle = item.color || '#ffb24a';
+      ctx.fillRect(x - 28 * scale, ground - 62 * scale + bob, 56 * scale, 18 * scale);
+      ctx.fillStyle = item.accent || '#ffe7a8';
+      ctx.beginPath();
+      ctx.arc(x, ground - 50 * scale + bob, 5 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+
+    function paintPendant(ctx, w, h, item, t, revealing) {
+      const scale = Math.max(1, h / 160);
+      const x = w * 0.5;
+      const y = h * 0.42 + Math.sin(t * 2) * 2;
+      ctx.strokeStyle = '#2a2a2e';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 28 * scale);
+      ctx.lineTo(x, y - 8 * scale);
+      ctx.stroke();
+      ctx.fillStyle = item.color || '#149e86';
+      ctx.beginPath();
+      ctx.moveTo(x - 28 * scale, y + 10 * scale);
+      ctx.lineTo(x, y - 8 * scale);
+      ctx.lineTo(x + 28 * scale, y + 10 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = item.accent || '#2ee6c7';
+      ctx.fillRect(x - 30 * scale, y + 8 * scale, 60 * scale, 5 * scale);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintTarp(ctx, w, h, item, t, revealing) {
+      const x = w * 0.5;
+      const y = h * 0.46 + Math.sin(t * 2) * 2;
+      ctx.fillStyle = item.color || '#6d4cff';
+      ctx.fillRect(x - 46, y - 16, 92, 36);
+      ctx.fillStyle = item.accent || '#ff4ad2';
+      ctx.fillRect(x - 46, y + 14, 92, 8);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintStand(ctx, w, h, item, t, revealing) {
+      const x = w * 0.5;
+      const y = h * 0.48;
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 28);
+      ctx.lineTo(x, y - 6);
+      ctx.stroke();
+      ctx.fillStyle = item.color || '#1d4ed8';
+      ctx.beginPath();
+      ctx.moveTo(x - 26, y + 8);
+      ctx.lineTo(x, y - 18);
+      ctx.lineTo(x + 26, y + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = item.accent || '#3ec6ff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(x, y + 6, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintBoard(ctx, w, h, item, t, revealing) {
+      const x = w * 0.5 - 40;
+      const y = h * 0.28;
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(x - 6, y - 6, 92, 70);
+      ctx.fillStyle = item.color || '#1b3a8a';
+      ctx.fillRect(x, y, 80, 58);
+      ctx.fillStyle = item.accent || '#ff4fd8';
+      ctx.fillRect(x + 8, y + 16, 64, 8);
+      ctx.fillRect(x + 8, y + 30, 40, 6);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintFestoon(ctx, w, h, item, t, revealing) {
+      const y = h * 0.42 + Math.sin(t * 2) * 2;
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(18, y);
+      ctx.lineTo(w - 18, y);
+      ctx.stroke();
+      ctx.fillStyle = item.accent || '#cc66ff';
+      for (let i = 0; i < 7; i++) {
+        ctx.beginPath();
+        ctx.arc(28 + i * ((w - 56) / 6), y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = item.color || '#5b2dff';
+      for (let i = 0; i < 7; i++) {
+        ctx.beginPath();
+        ctx.arc(28 + i * ((w - 56) / 6), y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintNote(ctx, w, h, item, t, revealing) {
+      const y = h * 0.42 + Math.sin(t * 2) * 3;
+      ctx.save();
+      ctx.translate(w * 0.38, y);
+      ctx.rotate(-0.12);
+      ctx.fillStyle = item.color || '#0f766e';
+      ctx.fillRect(-28, -22, 44, 44);
+      ctx.fillStyle = item.accent || '#3dffc8';
+      ctx.fillRect(-18, -14, 26, 26);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(w * 0.62, y);
+      ctx.rotate(0.12);
+      ctx.fillStyle = item.color || '#0f766e';
+      ctx.fillRect(-16, -22, 44, 44);
+      ctx.fillStyle = item.accent || '#3dffc8';
+      ctx.fillRect(-6, -14, 26, 26);
+      ctx.restore();
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintBrick(ctx, w, h, item, t, revealing) {
+      const y = h * 0.46 + Math.sin(t * 2) * 2;
+      ctx.fillStyle = '#7a3a26';
+      ctx.fillRect(24, y - 28, w - 48, 56);
+      ctx.fillStyle = item.color || '#1d4e89';
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(36 + i * ((w - 84) / 6), y - 16, 28, 14);
+      }
+      ctx.fillStyle = item.accent || '#46f0ff';
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(42 + i * ((w - 84) / 6), y - 12, 16, 6);
+      }
       if (revealing) paintBurst(ctx, w, h, t);
     }
 
