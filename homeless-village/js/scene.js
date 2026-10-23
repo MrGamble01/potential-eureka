@@ -147,15 +147,58 @@ function buildTent(x,z){
 }
 
 var soupKitchenMesh=null;
+var SOUP_AWNING_BARE=0x7a4820;
+function soupShopLook(){
+  try {
+    if(window.EurekaCosmetics&&typeof EurekaCosmetics.look==='function'){
+      var look=EurekaCosmetics.look();
+      if(look&&look.kitchen&&typeof look.kitchen.color==='string') return look.kitchen;
+    }
+  } catch(e) {}
+  return null;
+}
+function cssHex(s, fallback){
+  if(typeof s!=='string') return fallback;
+  var m=/^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1],16) : fallback;
+}
 function buildSoupKitchen(x,z){
   if(soupKitchenMesh) scene.remove(soupKitchenMesh);
   var grp=new THREE.Group();
   grp.add(new THREE.Mesh(new THREE.BoxGeometry(3,.1,2), MAT.wood));
   var cnt=new THREE.Mesh(new THREE.BoxGeometry(2.8,.9,.5), MAT.cardboard);
   cnt.position.set(0,.5,-.7); grp.add(cnt);
+  var worn=soupShopLook();
+  var cloth=worn ? cssHex(worn.color, SOUP_AWNING_BARE) : SOUP_AWNING_BARE;
   var aw=new THREE.Mesh(new THREE.PlaneGeometry(3.2,1.8),
-    new THREE.MeshLambertMaterial({color:0x7a4820,side:THREE.DoubleSide,transparent:true,opacity:.85}));
+    new THREE.MeshLambertMaterial({
+      color:cloth,
+      emissive: worn ? cloth : 0x000000,
+      emissiveIntensity: worn ? 0.25 : 0,
+      side:THREE.DoubleSide, transparent:true, opacity:.85
+    }));
+  aw.name='soup-awning';
   aw.rotation.x=-.3; aw.position.set(0,2,.2); grp.add(aw);
+  if(worn){
+    // The brown plane tucks under the bridge deck. This hem hangs on the
+    // south lip the camp camera already sees, unlit so the shop accent
+    // stays the shop accent. Raising it does not spend the pot.
+    var hem=new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2,2.2),
+      new THREE.MeshBasicMaterial({
+        color:cssHex(worn.accent, 0x3ef0d0),
+        side:THREE.DoubleSide,
+        fog:false
+      })
+    );
+    hem.name='soup-awning-hem';
+    // The kitchen sits at z=-6, under the deck. The hem hangs south of
+    // about z=-3.5, where this camera can see under the bridge, and turns
+    // to face that camera so the cloth is a cloth and not an edge.
+    hem.position.set(0,1.15,3.5);
+    hem.lookAt(camera.position.x, camera.position.y, camera.position.z);
+    grp.add(hem);
+  }
   grp.position.set(x,0,z); scene.add(grp); soupKitchenMesh=grp;
 }
 
