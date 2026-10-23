@@ -117,7 +117,7 @@ html.hud-b :is(
   #speedctl button, #menu-btn, #touch-pause, #zoom-ctl button, #menu button,
   .btab, #panel button, .closebtn, .ev-choice, .trade-row button, .diffbtn,
   #lab-tray button, .act-btn, .upg-btn, .strain-btn,
-  #manage-btn, #lab-help-btn, #sfx-btn, #back-btn,
+  #manage-btn, #lab-help-btn, #sfx-btn, #lab-moments, #back-btn,
   #intro-go, .diff-opt, #contract-offer button,
   #camPad button, #darePanel button, #gullPanel button,
   #helpOv button, #achOv button, #almanacOv button,
@@ -680,7 +680,7 @@ html.hud-b[data-game="growop"] #lab-tray button {
   backdrop-filter: blur(12px);
 }
 
-html.hud-b[data-game="growop"] :is(#manage-btn, #lab-help-btn, #sfx-btn, #back-btn, #next-step) {
+html.hud-b[data-game="growop"] :is(#manage-btn, #lab-help-btn, #sfx-btn, #lab-moments, #back-btn, #next-step) {
   background: var(--hud-bg);
   border: 1px solid var(--hud-line);
   border-radius: 12px;

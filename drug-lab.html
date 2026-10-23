@@ -281,6 +281,12 @@ canvas{display:block;touch-action:none;}
   color:#22dd55;font-size:16px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 #sfx-btn[aria-pressed="true"]{color:#886655;border-color:rgba(255,255,255,0.15);}
+#lab-moments{
+  position:fixed;bottom:14px;left:156px;z-index:80;
+  width:44px;height:44px;padding:0;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:18px;line-height:1;border-radius:8px;cursor:pointer;font-family:inherit;
+}
 #alley-hud{position:fixed;top:54px;left:268px;z-index:25;max-width:210px;}
 #alley-btn{
   display:block;text-align:left;cursor:pointer;font-family:inherit;
@@ -872,7 +878,7 @@ canvas{display:block;touch-action:none;}
   #heat-hud,#goal-hud{min-width:0;max-width:46vw;}
 }
 </style>
-<link rel="stylesheet" href="/css/hud-b.css?v=20261018topbar">
+<link rel="stylesheet" href="/css/hud-b.css?v=20261023labphoto">
 </head>
 <body>
 <div id="raid-overlay"></div>
@@ -933,6 +939,7 @@ canvas{display:block;touch-action:none;}
 </div>
 <div id="juice-flash"></div>
 <button id="sfx-btn" type="button" aria-pressed="false" aria-label="Sound on" title="Sound">🔊</button>
+<button id="lab-moments" type="button" title="Photo mode (P)" aria-label="Photo mode">📷</button>
 <div id="alley-hud">
   <button id="alley-btn" type="button" title="Today's alley. The same neighbors for everyone, plus any friend code you paste.">
     <span class="kicker">THE ALLEY</span>
@@ -1083,6 +1090,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/living-world.js"></script>
+<script src="/js/moments.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -1222,9 +1230,35 @@ function fitCamera() {
   camera.updateProjectionMatrix();
 }
 let panX = 0, panZ = 0;
+let momentHold = false;
+let momentCam = null;
 function applyCamera() {
   camera.position.set(20 + panX, 20, 20 + panZ);
   camera.lookAt(panX, 0, panZ);
+}
+function rememberCam() {
+  if (momentCam) return;
+  momentCam = { x: panX, z: panZ, zoom: cameraZoom };
+}
+function restoreCam() {
+  if (!momentCam) return;
+  panX = momentCam.x;
+  panZ = momentCam.z;
+  cameraZoom = momentCam.zoom;
+  momentCam = null;
+  applyCamera();
+  fitCamera();
+}
+function nudgePhoto(dx, dy) {
+  const s = cameraZoom / 280;
+  panX = Math.max(-28, Math.min(28, panX - dx * s * 0.65));
+  panZ = Math.max(-28, Math.min(28, panZ + dy * s * 0.65));
+  applyCamera();
+}
+function zoomPhoto(scale) {
+  const next = cameraZoom / (Number(scale) || 1);
+  cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+  fitCamera();
 }
 applyCamera(); fitCamera();
 
@@ -1253,7 +1287,7 @@ function fitLeftPanel() {
   const help = document.getElementById('lab-help-btn');
   const sfx = document.getElementById('sfx-btn');
   let floor = innerHeight;
-  for (const el of [help, sfx]) {
+  for (const el of [help, sfx, document.getElementById('lab-moments')]) {
     if (!el) continue;
     const r = el.getBoundingClientRect();
     if (r.width >= 2 && r.height >= 2 && r.left < panelRight) floor = Math.min(floor, r.top);
@@ -1281,6 +1315,32 @@ sun.shadow.bias = -0.001;
 scene.add(sun);
 
 let labWorld = null;
+let skySeen = '';
+const skyMarked = {};
+const SKY_BEAT = {
+  night: 'Night on the corner',
+  dawn: 'Dawn on the corner',
+  dusk: 'Dusk on the corner',
+  rain: 'Rain on the block',
+  storm: 'Storm over the tents',
+  fog: 'Fog on the block',
+  snow: 'Snow on the tents',
+};
+function noteMoment(label) {
+  try {
+    if (label && window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+  } catch (e) {}
+}
+function noteSky(snap) {
+  if (!snap || !snap.key || snap.key === skySeen) return;
+  const first = !skySeen;
+  skySeen = snap.key;
+  if (first) return;
+  const id = snap.weather && snap.weather !== 'clear' ? snap.weather : (snap.phase && snap.phase !== 'day' ? snap.phase : '');
+  if (!id || skyMarked[id] || !SKY_BEAT[id]) return;
+  skyMarked[id] = true;
+  noteMoment(SKY_BEAT[id]);
+}
 const labSkyCanvas = document.createElement('canvas');
 labSkyCanvas.id = 'lab-sky-canvas';
 document.body.appendChild(labSkyCanvas);
@@ -1371,6 +1431,7 @@ function syncLabSky(changed) {
       }
     } catch (e) {}
   }
+  noteSky(snap);
   return snap;
 }
 
@@ -4871,7 +4932,7 @@ window.addEventListener('keyup',   e => { keys[e.code]=false; });
 let suppressClick = false; // set by a touch pan-drag to cancel the synthetic click
 renderer.domElement.addEventListener('click', e => {
   if (suppressClick) { suppressClick = false; return; }
-  if (activeEvent || raidActive || raidNightOpen) return;
+  if (momentHold || activeEvent || raidActive || raidNightOpen) return;
   const mouse = new THREE.Vector2(
     (e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   const ray = new THREE.Raycaster();
@@ -5904,6 +5965,7 @@ function updateChemStation_tick(dt) {
     if (rollPure()) {   // LAB-10 roll, LAB-19 eureka page
       chemPure += 2;
       addFeed('✨ PURE batch cooked → 2 units at premium');
+      noteMoment('Pure batch');
     } else {
       addFeed('⚗️ Batch cooked → 2 units');
     }
@@ -6514,6 +6576,7 @@ function startMusic() {
 function addShake(n) { shake = Math.min(1.2, shake + n); }
 function applyShake() {
   applyCamera();
+  if (momentHold) return;
   if (stickVec.x || stickVec.z) {
     /* camera stays put; the stick moves the player in updatePlayer */
   }
@@ -6790,6 +6853,70 @@ window.LAB_SKY = {
 };
 syncLabSky(false);
 
+// The photo is the shop plus the weather painted over it.
+// The corner holds still while the camera is open, and the
+// framing is put back when the camera closes.
+const photoPlate = document.createElement('canvas');
+const photoCtx = photoPlate.getContext('2d');
+function momentCanvas() {
+  const gl = renderer.domElement;
+  if (!gl || !gl.width || !photoCtx) return gl || null;
+  if (photoPlate.width !== gl.width || photoPlate.height !== gl.height) {
+    photoPlate.width = gl.width;
+    photoPlate.height = gl.height;
+  }
+  photoCtx.setTransform(1, 0, 0, 1, 0, 0);
+  photoCtx.clearRect(0, 0, photoPlate.width, photoPlate.height);
+  try { photoCtx.drawImage(gl, 0, 0); } catch (e) {}
+  if (labSkyCanvas && labSkyCanvas.width > 2) {
+    try { photoCtx.drawImage(labSkyCanvas, 0, 0, photoPlate.width, photoPlate.height); } catch (e) {}
+  }
+  return photoPlate;
+}
+function momentBlocked() {
+  if (busted || activeEvent || raidNightOpen) return true;
+  return !!document.querySelector('#chain-modal.open, #intro-modal.open, #diff-modal.open');
+}
+function paintFrame() {
+  renderer.render(scene, camera);
+  try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
+}
+function attachMoments() {
+  if (!window.EurekaMoments) return;
+  const hud = [
+    '.ea-back', '#act-badge', '#status-bar', '#lab-sky', '#cash-hud', '#market-hud',
+    '#contract-hud', '#contract-offer', '#rival-hud', '#tip-hud', '#bw-hud', '#wave-hud',
+    '#party-hud', '#lab-tray', '#heat-hud', '#goal-hud', '#sfx-btn', '#alley-hud',
+    '#alley-sheet', '#touch-dock', '#activity-feed', '#left-panel', '#manage-btn',
+    '#lab-help-btn', '#lab-moments', '#toast-container', '#labels', '#juice-flash',
+  ].join(',');
+  try {
+    EurekaMoments.attach({
+      game: 'growop',
+      gameTitle: 'Grow Op',
+      canvas: momentCanvas,
+      hud: hud,
+      hotkey: { key: 'p', shift: false },
+      blocked: momentBlocked,
+      pause: function () { momentHold = true; },
+      resume: function () { momentHold = false; },
+      onOpen: rememberCam,
+      onClose: restoreCam,
+      camera: { modes: ['free'], pan: nudgePhoto, zoom: zoomPhoto },
+    });
+  } catch (e) {}
+  const btn = document.getElementById('lab-moments');
+  if (btn && !btn.dataset.momentsBound) {
+    btn.dataset.momentsBound = '1';
+    btn.addEventListener('click', function () {
+      if (!window.EurekaMoments) return;
+      if (EurekaMoments.view() === 'live' && momentBlocked()) return;
+      EurekaMoments.togglePhoto();
+    });
+  }
+}
+attachMoments();
+
 // ── Start ──
 requestAnimationFrame(animate);
 
@@ -6804,8 +6931,9 @@ function animate(now_ms) {
   labSoundtrack(now_ms);
   const readingSheet = document.querySelector(
     '#chain-modal.open, #intro-modal.open, #diff-modal.open');
+  const held = momentHold || !!readingSheet;
   if (labWorld) {
-    const live = !busted && !raidActive && !activeEvent && !raidNightOpen && !readingSheet;
+    const live = !busted && !raidActive && !activeEvent && !raidNightOpen && !held;
     const changed = live ? labWorld.tick(dt) : false;
     syncLabSky(changed);
   }
@@ -6813,7 +6941,7 @@ function animate(now_ms) {
   if(busted) {
     // Game over: freeze the simulation behind the modal.
     updateLabels();
-    renderer.render(scene,camera);
+    paintFrame();
     return;
   }
 
@@ -6825,7 +6953,7 @@ function animate(now_ms) {
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent && !raidNightOpen && !readingSheet) {
+  if(!raidActive && !activeEvent && !raidNightOpen && !held) {
     updateRaidCool(dt);
     updateNia(dt);
     updateGrowPlots(dt);
@@ -6851,7 +6979,7 @@ function animate(now_ms) {
     updateWave(dt);
     updateParty(dt);
     updateGoals();
-  } else if(raidActive && !readingSheet) {
+  } else if(raidActive && !held) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;
@@ -6862,15 +6990,15 @@ function animate(now_ms) {
     }
   }
 
-  if(statusTimer>0){statusTimer-=dt;if(statusTimer<=0)document.getElementById('status-bar').textContent=statusMsg;}
-
-  autoSaveTimer+=dt;
-  if(autoSaveTimer>8){autoSaveTimer=0;saveGame();}
-
-  updateLabels();
-  refreshNextStep();
+  if(!momentHold){
+    if(statusTimer>0){statusTimer-=dt;if(statusTimer<=0)document.getElementById('status-bar').textContent=statusMsg;}
+    autoSaveTimer+=dt;
+    if(autoSaveTimer>8){autoSaveTimer=0;saveGame();}
+    updateLabels();
+    refreshNextStep();
+  }
   applyShake();
-  renderer.render(scene,camera);
+  paintFrame();
 }
 
 
