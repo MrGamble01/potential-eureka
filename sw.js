@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-0658-trim';  // Sentence to Game stub leaves the shell. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-0715-ledger';  // The Ledger joins the workshop. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -66,7 +66,11 @@ const SHELL = [
   '/games/ashmarch/index.html',
   '/games/ashmarch/ashmarch.css',
   '/games/ashmarch/ashmarch.js',
+  '/games/ledger/index.html',
+  '/games/ledger/ledger.css',
+  '/games/ledger/ledger.js',
   '/assets/covers/ashmarch.svg',
+  '/assets/covers/ledger.svg',
   '/assets/covers/inkflip.svg',
   '/assets/covers/gutterlight.svg',
   '/css/arcade.css',
