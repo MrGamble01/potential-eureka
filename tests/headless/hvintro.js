@@ -154,6 +154,16 @@ const winterHalves = /G\.season===3\?\.5:1/.test(player);
       await exitPage.waitForSelector('#intro-modal.open');
       if (sheet === 'chain-modal') {
         await exitPage.click('#intro-close');
+        if (width === 390) {
+          const onScreen = await exitPage.evaluate(() => ['chain-btn', 'help-btn', 'sound-btn'].every((id) => {
+            const el = document.getElementById(id);
+            const r = el.getBoundingClientRect();
+            const cx = r.left + r.width / 2;
+            const cy = r.top + r.height / 2;
+            return r.width >= 44 && cx >= 0 && cx <= innerWidth && cy >= 0 && cy <= innerHeight;
+          }));
+          ok(onScreen, '390: Bridge, help, and sound sit on the first screen');
+        }
         await exitPage.click('#chain-btn');
       }
       const reachable = await exitPage.evaluate(id => {
