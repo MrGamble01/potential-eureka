@@ -38,6 +38,7 @@
     aow: 'Age of War',
     growop: 'Grow Op',
     homeless: 'Homeless Village',
+    tycoon: 'Startup Tycoon',
   };
   const FILTERS = ['none', 'warm', 'noir', 'vivid', 'dusk'];
   const FRAMES = ['none', 'polaroid', 'film', 'arcade'];

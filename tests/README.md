@@ -76,6 +76,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Startup Tycoon desk/convert shortfalls | `tycdesk` (hook-free: seeded cash shortfalls and titles, affordable prices/purchases, locked conversion, room-full copy, zero page errors) |
 | Startup Tycoon amenity stock | `tycamenity` (hook-free: initial/live stock, stockless owned tags, cash shortfalls, affordable purchase, zero page errors) |
 | Startup Tycoon office sky | `tycsky` (hook-free: shared window canvas follows dawn, night, and rain; the chip stays "open sky"; per-ship and cash stay put when the sky is pinned; zero page errors) |
+| Startup Tycoon photo mode | `tycmoments` (hook-free: P and the camera button, hold while framing, sky windows in the plate, guest book / capsule / mural filed by name; 1280 and 390; zero page errors) |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
 | Startup Tycoon lobby chips | `tycchips` (hook-free: a real click on the guest book, time capsule, and mural chips pays the existing purse once; the office canvas no longer eats the hit; deal amounts stay put) |
 | Startup Tycoon founder lamp | `tyclamp` (hook-free: bare CEO desk has no shop shade, the equipped Founder Lamp paints it, shown cash stays on the welcome-back purse, deal constants unchanged; zero page errors) |
