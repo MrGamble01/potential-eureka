@@ -177,6 +177,30 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   const undyed = Cosmetics.create(Persist.create(stripped), { storage: stripped, achievementIds: function () { return []; } });
   ok(!undyed.look().tarp && !undyed.purse().equipped.cape && undyed.purse().equipped.tarp === 'tarp-ward',
     'a ward cloth that was never bought is not worn, and the slot is kept');
+
+  const shade = Cosmetics.CATALOG.filter(function (i) { return i.id === 'stand-hearth'; })[0];
+  ok(shade && shade.slot === 'stand' && shade.cost === 44 && shade.color === '#1d4ed8' && shade.accent === '#3ec6ff'
+    && shade.games[0] === 'Startup Tycoon',
+    'hearth shade is a standing-lamp look priced in sparks');
+  const standBox = mem();
+  standBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'stand-hearth': 1 }, equipped: { stand: 'stand-hearth' } },
+  }));
+  const wornShade = Cosmetics.create(Persist.create(standBox), { storage: standBox, achievementIds: function () { return []; } }).look();
+  ok(wornShade.stand && wornShade.stand.id === 'stand-hearth' && wornShade.stand.color === '#1d4ed8'
+    && wornShade.stand.accent === '#3ec6ff' && !wornShade.skin,
+    'an equipped hearth shade survives a read and does not become a banner');
+  const bareStand = mem();
+  bareStand.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { stand: 'stand-hearth', cape: 'nope' } },
+  }));
+  const undressed = Cosmetics.create(Persist.create(bareStand), { storage: bareStand, achievementIds: function () { return []; } });
+  ok(!undressed.look().stand && !undressed.purse().equipped.cape && undressed.purse().equipped.stand === 'stand-hearth',
+    'a hearth shade that was never bought is not worn, and the slot is kept');
 }
 
 {
