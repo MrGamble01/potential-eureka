@@ -5103,6 +5103,11 @@ const AgeOfWarGame = (() => {
   // ---- Rendering ----
   let skyDt = 0;
   function loop(now) {
+    if (window.EurekaFocus && EurekaFocus.held()) {
+      lastFrame = now;
+      rafId = requestAnimationFrame(loop);
+      return;
+    }
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
     skyDt = momentHold ? 0 : dt;

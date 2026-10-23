@@ -405,16 +405,29 @@
       timer = null;
     }
 
-    function onVis() {
-      let hidden = false;
-      try { hidden = !!(win.document && win.document.hidden); } catch (e) { hidden = false; }
-      if (hidden) {
-        disarm();
-        silencePad();
-      } else if (playing && unlocked) {
+    let parked = false;
+
+    function park() {
+      if (parked) return;
+      parked = true;
+      disarm();
+      silencePad();
+    }
+
+    function unpark() {
+      if (!parked) return;
+      parked = false;
+      if (playing && unlocked) {
         if (ctx) nextNoteTime = ctx.currentTime + 0.05;
         armScheduler();
       }
+    }
+
+    function onVis() {
+      let hidden = false;
+      try { hidden = !!(win.document && win.document.hidden); } catch (e) { hidden = false; }
+      if (hidden) park();
+      else if (!win.EurekaFocus || !win.EurekaFocus.held()) unpark();
     }
 
     function unlock() {
@@ -582,6 +595,8 @@
       attachReadout: attachReadout,
       mood: function () { return mood; },
       playing: function () { return playing; },
+      park: park,
+      unpark: unpark,
       unlocked: function () { return unlocked; },
       pump: pump,
       context: function () { return ctx; },

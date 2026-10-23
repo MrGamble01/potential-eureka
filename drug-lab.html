@@ -1086,6 +1086,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
 <script src="/js/audio.js"></script>
+<script src="/js/focus-hold.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
@@ -7011,6 +7012,10 @@ requestAnimationFrame(animate);
 
 function animate(now_ms) {
   requestAnimationFrame(animate);
+  if (window.EurekaFocus && EurekaFocus.held()) {
+    lastTime = now_ms;
+    return;
+  }
   // Grow, heat and movement stay capped so a backgrounded tab cannot
   // skip the operation forward. The street-event clock is a real
   // seconds timer, so a jumped or paused clock still reaches it.

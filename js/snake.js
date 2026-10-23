@@ -247,6 +247,7 @@ const SnakeGame = (() => {
   }
 
   function tick() {
+    if (window.EurekaFocus && window.EurekaFocus.held()) return;
     direction = { ...nextDirection };
     let head = {
       x: snake[0].x + direction.x,

@@ -331,6 +331,7 @@ const MazeGame = (() => {
     const frame = (now) => {
       const dt = now - last; last = now;
       rafId = requestAnimationFrame(frame);
+      if (window.EurekaFocus && window.EurekaFocus.held()) return;
       // Loop lives for the page's lifetime (init runs once). Skip all work
       // while the maze view is hidden — and accumulate elapsed time only
       // while active, so leaving the view pauses the timer instead of
