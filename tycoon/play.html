@@ -2003,6 +2003,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
@@ -3091,6 +3092,19 @@ function wallKey(gx1, gz1, gx2, gz2) {
   return `${gx1},${gz1}:${gx2},${gz2}`;
 }
 
+function pendantShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().pendant : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the brass cone */ }
+  return null;
+}
+function cssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 function buildRoom(def) {
   const cx = def.gx * 16;
   const cz = def.gz * 16;
@@ -3181,14 +3195,36 @@ function buildRoom(def) {
   cord.position.set(cx, 3.75, cz);
   scene.add(cord);
   meshes.decorations.push(cord);
+  const pendant = pendantShopLook();
   const shade = new THREE.Mesh(
     new THREE.ConeGeometry(0.35, 0.45, 14, 1, true),
-    new THREE.MeshLambertMaterial({ color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0.35, side: THREE.DoubleSide })
+    pendant
+      ? new THREE.MeshLambertMaterial({
+          color: cssHex(pendant.color, 0xf2c47a),
+          emissive: cssHex(pendant.color, 0xf2b05a),
+          emissiveIntensity: 0.35,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshLambertMaterial({ color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0.35, side: THREE.DoubleSide })
   );
+  shade.name = 'room-pendant';
   shade.position.set(cx, 3.05, cz);
   shade.rotation.x = Math.PI;
   scene.add(shade);
   meshes.decorations.push(shade);
+  if (pendant) {
+    // Unlit rim so the shop accent stays the shop accent on every room.
+    // The point light above is unchanged.
+    const glass = new THREE.Mesh(
+      new THREE.TorusGeometry(0.38, 0.07, 8, 18),
+      new THREE.MeshBasicMaterial({ color: cssHex(pendant.accent, 0x2ee6c7), fog: false })
+    );
+    glass.name = 'room-pendant-glass';
+    glass.position.set(cx, 3.26, cz);
+    glass.rotation.x = Math.PI / 2;
+    scene.add(glass);
+    meshes.decorations.push(glass);
+  }
   const bulb = new THREE.Mesh(
     new THREE.SphereGeometry(0.09, 10, 8),
     new THREE.MeshBasicMaterial({ color: 0xfff0b8 })

@@ -157,6 +157,31 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
     'a messy purse is clamped and does not throw');
 }
 
+{
+  const glass = Cosmetics.CATALOG.filter(function (i) { return i.id === 'pendant-tide'; })[0];
+  ok(glass && glass.slot === 'pendant' && glass.cost === 44 && glass.color === '#149e86' && glass.accent === '#2ee6c7'
+    && glass.games[0] === 'Startup Tycoon',
+    'tide glass is a pendant look priced in sparks');
+  const box = mem();
+  box.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'pendant-tide': 1 }, equipped: { pendant: 'pendant-tide' } },
+  }));
+  const worn = Cosmetics.create(Persist.create(box), { storage: box, achievementIds: function () { return []; } }).look();
+  ok(worn.pendant && worn.pendant.id === 'pendant-tide' && worn.pendant.color === '#149e86' && worn.pendant.accent === '#2ee6c7' && !worn.skin,
+    'an equipped tide glass survives a read and does not become a banner');
+  const stripped = mem();
+  stripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { pendant: 'pendant-tide', cape: 'nope' } },
+  }));
+  const bare = Cosmetics.create(Persist.create(stripped), { storage: stripped, achievementIds: function () { return []; } });
+  ok(!bare.look().pendant && !bare.purse().equipped.cape && bare.purse().equipped.pendant === 'pendant-tide',
+    'a tide glass that was never bought is not worn, and the slot is kept');
+}
+
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || undefined,
