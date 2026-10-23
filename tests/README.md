@@ -76,6 +76,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Startup Tycoon desk/convert shortfalls | `tycdesk` (hook-free: seeded cash shortfalls and titles, affordable prices/purchases, locked conversion, room-full copy, zero page errors) |
 | Startup Tycoon amenity stock | `tycamenity` (hook-free: initial/live stock, stockless owned tags, cash shortfalls, affordable purchase, zero page errors) |
 | Startup Tycoon office sky | `tycsky` (hook-free: shared window canvas follows dawn, night, and rain; the chip stays "open sky"; per-ship and cash stay put when the sky is pinned; zero page errors) |
+| Startup Tycoon photo mode | `tycmoments` (hook-free: P and the camera button, hold while framing, sky windows in the plate, guest book / capsule / mural filed by name; 1280 and 390; zero page errors) |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
 | Age of War browsing sheets | `aowesc` (hook-free: real Settings/Awards/The Line buttons, Escape hides each sheet and resumes battle time at 1280px/768px; clean-page Escape, intentional pause, War Council, and welcome Escape/Enter controls) |
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |

@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-tycoon-sky';  // Office windows follow the shared sky. Deals stay on their own numbers. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-tycoon-photo';  // Office photo mode frames the lobby and the sky windows. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

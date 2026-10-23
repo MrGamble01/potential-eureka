@@ -36,6 +36,7 @@
     voxel: 'Voxel Isle',
     hearthvale: 'Hearthvale',
     aow: 'Age of War',
+    tycoon: 'Startup Tycoon',
   };
   const FILTERS = ['none', 'warm', 'noir', 'vivid', 'dusk'];
   const FRAMES = ['none', 'polaroid', 'film', 'arcade'];

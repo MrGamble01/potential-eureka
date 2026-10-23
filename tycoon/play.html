@@ -4,7 +4,8 @@
   PLAY
     WASD / arrows — move                   Tap / click — move to spot
     Right-click drag / two-finger drag — pan camera
-    Scroll / pinch — zoom                  Esc — close any modal
+    Scroll / pinch — zoom                  P — photo mode
+    Esc — close any modal
     Sidebar (☰ on mobile) — hires, rooms, upgrades, amenities, settings
     🤝 Walk near an investor — auto-greet and collect
 
@@ -1387,6 +1388,24 @@
       transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     #tp-toggle .tp-ico { font-size: 15px; line-height: 1; }
+    #tyc-moments {
+      position: fixed;
+      bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      width: 44px; height: 44px; padding: 0;
+      background: rgba(8,10,18,0.92);
+      border: 1px solid rgba(126,182,255,0.45);
+      color: #d7e6f8; font-size: 18px; line-height: 1;
+      border-radius: 12px; cursor: pointer; z-index: 125;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    @media (max-width: 900px) {
+      #tyc-moments {
+        right: auto;
+        left: calc(16px + env(safe-area-inset-left, 0px));
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      }
+    }
     #tp-toggle:hover { background: rgba(8,10,18,0.98); }
     #tp-toggle:active { transform: scale(0.94); }
     #tp-toggle.on {
@@ -1626,6 +1645,7 @@
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <button id="tp-toggle" type="button" title="Walk the office in 3rd person (V)"><span class="tp-ico">🎥</span><span id="tp-label">3RD PERSON</span></button>
+<button id="tyc-moments" type="button" title="Photo mode (P)" aria-label="Photo mode">📷</button>
 <div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom in for 1st-person · Exit: V</div>
 <div id="tp-crosshair"></div>
 <div id="drawer-backdrop"></div>
@@ -1728,6 +1748,7 @@
       <div class="help-section-title">Camera</div>
       <div class="help-row"><span class="help-keys"><span class="help-key">RMB</span><span class="help-key">2-finger</span></span><span class="help-desc">Drag to pan</span></div>
       <div class="help-row"><span class="help-keys"><span class="help-key">Scroll</span><span class="help-key">Pinch</span></span><span class="help-desc">Zoom in / out</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">P</span></span><span class="help-desc">Photo mode — frame the office, then Esc</span></div>
     </div>
     <div class="help-section">
       <div class="help-section-title">Interface</div>
@@ -2027,6 +2048,7 @@
 <script src="/js/flag-daily.js"></script>
 <script src="/js/climax.js"></script>
 <script src="/js/living-world.js"></script>
+<script src="/js/moments.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2799,7 +2821,7 @@ function applyCameraTransform() {
 applyCameraTransform();
 fitCamera();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -3142,6 +3164,33 @@ window.TYC_WORLD = officeWorld;
 window.TYC_SKY = skyCanvas;
 window.TYC_WINDOWS = officeWindows;
 
+let momentHold = false;
+let skySeen = '';
+const skyMarked = {};
+const SKY_BEAT = {
+  dawn: 'Dawn on the office',
+  dusk: 'Dusk on the office',
+  night: 'Night on the office',
+  rain: 'Rain on the glass',
+  storm: 'Storm on the glass',
+  fog: 'Fog on the glass',
+  snow: 'Snow on the glass',
+};
+function noteMoment(label) {
+  try {
+    if (label && window.EurekaMoments && EurekaMoments.mark) EurekaMoments.mark(label);
+  } catch (e) { /* a missed still is not a crash */ }
+}
+function noteSky(snap) {
+  if (!snap || !snap.key || snap.key === skySeen) return;
+  const first = !skySeen;
+  skySeen = snap.key;
+  if (first) return;
+  const id = snap.weather && snap.weather !== 'clear' ? snap.weather : (snap.phase && snap.phase !== 'day' ? snap.phase : '');
+  if (!id || skyMarked[id] || !SKY_BEAT[id]) return;
+  skyMarked[id] = true;
+  noteMoment(SKY_BEAT[id]);
+}
 function officeSkyReduced() {
   try {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -3172,7 +3221,7 @@ function fillOfficeSky(phase) {
 function paintOfficeSky(dt, reduced) {
   if (!officeWorld || !skyCtx) return null;
   const step = Number.isFinite(dt) ? dt : 0.016;
-  officeWorld.tick(step);
+  if (!momentHold) officeWorld.tick(step);
   const snap = officeWorld.snapshot();
   fillOfficeSky(snap.phase);
   officeWorld.paint(skyCtx, skyCanvas.width, skyCanvas.height, step, reduced == null ? officeSkyReduced() : !!reduced);
@@ -3182,6 +3231,7 @@ function paintOfficeSky(dt, reduced) {
     if (chip.textContent !== snap.label) chip.textContent = snap.label;
     if (chip.dataset) chip.dataset.world = snap.key;
   }
+  noteSky(snap);
   return snap;
 }
 window.TYC_PAINT = paintOfficeSky;
@@ -3627,6 +3677,75 @@ for (let i = 0; i < 18; i++) {
   brickWallG.add(b);
 }
 scene.add(brickWallG);
+
+// The guest book, time capsule, and lobby mural are story beats.
+// They stand in the lobby once the office has earned them, on the
+// brick the iso camera already faces, beside the sky windows.
+const lobbyBook = new THREE.Group();
+lobbyBook.name = 'lobby-guestbook';
+const bookStand = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.7, 0.5), new THREE.MeshLambertMaterial({ color: 0x4a3424 }));
+bookStand.position.y = 0.35;
+lobbyBook.add(bookStand);
+const bookPages = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.05, 0.44), new THREE.MeshBasicMaterial({ color: 0xfff6e8 }));
+bookPages.position.y = 0.72;
+lobbyBook.add(bookPages);
+const bookSpine = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.55, 0.5), new THREE.MeshBasicMaterial({ color: 0xff4d00 }));
+bookSpine.position.set(-0.34, 0.48, 0);
+lobbyBook.add(bookSpine);
+lobbyBook.position.set(8.85, 0, 2.4);
+lobbyBook.visible = false;
+scene.add(lobbyBook);
+
+const lobbyCapsule = new THREE.Group();
+lobbyCapsule.name = 'lobby-capsule';
+const capsuleShell = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.86, 14), new THREE.MeshBasicMaterial({ color: 0xffe14a }));
+capsuleShell.rotation.z = Math.PI / 2;
+lobbyCapsule.add(capsuleShell);
+const capsuleSeam = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.07, 0.36), new THREE.MeshBasicMaterial({ color: 0x2a241c }));
+lobbyCapsule.add(capsuleSeam);
+lobbyCapsule.position.set(8.55, 0.85, -2.6);
+lobbyCapsule.visible = false;
+scene.add(lobbyCapsule);
+
+const muralCanvas = document.createElement('canvas');
+muralCanvas.width = 320;
+muralCanvas.height = 128;
+const muralCtx = muralCanvas.getContext('2d');
+muralCtx.fillStyle = '#ff2bd6';
+muralCtx.fillRect(0, 0, 320, 128);
+muralCtx.fillStyle = '#1a120c';
+muralCtx.fillRect(12, 36, 296, 56);
+['#c4552a', '#e7c07a', '#3d6b4f', '#ff2bd6', '#7eb6ff'].forEach((color, i) => {
+  muralCtx.fillStyle = color;
+  muralCtx.fillRect(24 + i * 56, 44, 44, 40);
+});
+muralCtx.fillStyle = '#f4efe4';
+muralCtx.font = 'bold 18px sans-serif';
+muralCtx.fillText('THE LOBBY', 18, 28);
+const muralMap = new THREE.CanvasTexture(muralCanvas);
+const lobbyMural = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.15), new THREE.MeshBasicMaterial({ map: muralMap }));
+lobbyMural.name = 'lobby-mural';
+lobbyMural.position.set(8.5, 0.72, 0);
+lobbyMural.rotation.y = Math.PI / 2;
+lobbyMural.visible = false;
+scene.add(lobbyMural);
+
+let lobbySyncing = false;
+function syncLobbyProps() {
+  if (lobbySyncing) return;
+  lobbySyncing = true;
+  try {
+    lobbyBook.visible = guestBookOut();
+    lobbyCapsule.visible = capsuleSealed();
+    lobbyMural.visible = muralPainted();
+    refreshGuestChip();
+    refreshCapsuleChip();
+    refreshMuralChip();
+  } finally {
+    lobbySyncing = false;
+  }
+}
+window.TYC_LOBBY = { sync: syncLobbyProps, book: lobbyBook, capsule: lobbyCapsule, mural: lobbyMural };
 
 // Pizza box on the floor near the CEO desk → upgrades to catered takeout bag
 const pizzaG = new THREE.Group();
@@ -11890,6 +12009,7 @@ function refreshGuestChip() {
   el.style.display = '';
   el.style.opacity = guestLeafed ? '0.45' : '';
   el.textContent = '\u{1F4D4} guests';
+  syncLobbyProps();
   el.title = guestLeafed
     ? 'The Guest Book has had its leaf-through this session. Once a day \u2014 the ink dries.'
     : 'The Guest Book \u2014 three founding toasts and a book sits open in the lobby, every visitor signed in. Leaf through it and somebody in the margins invests: $' + guestPurse()
@@ -11904,6 +12024,7 @@ function leafGuestBook() {
   state.cash += p;
   addFeedEntry('\u{1F4D4} The founder leafs through the lobby guest book \u2014 every name that ever came through the door. One of them calls back with a check: +$' + p + '.');
   showToast('\u{1F4D4} The Guest Book \u2014 +$' + p + '. The names pay.', 'good', 'standard');
+  noteMoment('The Guest Book');
   checkAchievements();
   refreshGuestChip();
 }
@@ -12058,6 +12179,7 @@ function refreshCapsuleChip() {
   el.style.display = '';
   el.style.opacity = capsuleVisited ? '0.45' : '';
   el.textContent = '\u{1F4E6} capsule';
+  syncLobbyProps();
   el.title = capsuleVisited
     ? 'The Time Capsule has had its visit this session. Once a day \u2014 the wall keeps.'
     : 'The Time Capsule \u2014 three sings of the anthem and the company sealed one in the lobby wall: the letter, the photo, the guest book page, a recording. Visit it, and a passing alum leaves a check on the ledge: $' + capsulePurse()
@@ -12072,6 +12194,7 @@ function visitTimeCapsule() {
   state.cash += p;
   addFeedEntry('\u{1F4E6} A visit to the Time Capsule in the lobby wall \u2014 the letter, the photo, the guest book page, a recording of the anthem. A passing alum leaves a check on the ledge: +$' + p + '.');
   showToast('\u{1F4E6} The Time Capsule \u2014 +$' + p + '. The wall remembers.', 'good', 'standard');
+  noteMoment('The Time Capsule');
   checkAchievements();
   refreshCapsuleChip();
 }
@@ -12101,6 +12224,7 @@ function refreshMuralChip() {
   el.style.display = '';
   el.style.opacity = muralSat ? '0.45' : '';
   el.textContent = '\u{1F3A8} mural';
+  syncLobbyProps();
   el.title = muralSat
     ? 'The Lobby Mural has had its sitting this session. The wall keeps painting itself.'
     : 'The Lobby Mural \u2014 three visits to the capsule and a designer took the long wall beside it: the garage, the first desk, the bench, four chords, the capsule seam. Sit with it, and a recruit signs the same day: $' + muralPurse()
@@ -12115,6 +12239,7 @@ function sitWithMural() {
   state.cash += p;
   addFeedEntry('\u{1F3A8} A sitting with the Lobby Mural \u2014 the garage, the first desk, the bench under the window, four chords, the seam where the capsule went in. A recruit reads the whole wall and signs the same day: +$' + p + '.');
   showToast('\u{1F3A8} The Lobby Mural \u2014 +$' + p + '. The wall tells it.', 'good', 'standard');
+  noteMoment('The Lobby Mural');
   checkAchievements();
   refreshMuralChip();
 }
@@ -13275,6 +13400,12 @@ function fatalFrame(msg) {
 function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  if (momentHold) {
+    paintOfficeSky(dt);
+    renderer.render(scene, camera);
+    try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
+    return;
+  }
 
   let dx = 0, dz = 0;
   if (keys['w'] || keys['arrowup'])    dz -= 1;
@@ -13382,6 +13513,7 @@ function frameBody(now) {
   tickIdleBreathing(now);
   paintOfficeSky(dt);
   renderer.render(scene, activeCamera());
+  try { if (window.EurekaMoments) EurekaMoments.afterFrame(); } catch (e) {}
 }
 
 // Subtle "alive" head sway on every character so standing still
@@ -14684,6 +14816,81 @@ if (BEAGLE && typeof BEAGLE.create === 'function') {
     console.warn('Beagle yard failed to start', err);
   }
 }
+
+// Photo mode frames the iso office, including the sky windows
+// and the lobby pieces. The floor holds still while it is open,
+// and the play camera comes back when it closes.
+const photoPlate = document.createElement('canvas');
+const photoCtx = photoPlate.getContext('2d');
+let momentCam = null;
+function momentCanvas() {
+  const gl = renderer.domElement;
+  if (!gl || !gl.width || !photoCtx) return gl || null;
+  if (photoPlate.width !== gl.width || photoPlate.height !== gl.height) {
+    photoPlate.width = gl.width;
+    photoPlate.height = gl.height;
+  }
+  photoCtx.setTransform(1, 0, 0, 1, 0, 0);
+  photoCtx.clearRect(0, 0, photoPlate.width, photoPlate.height);
+  try { photoCtx.drawImage(gl, 0, 0); } catch (e) {}
+  return photoPlate;
+}
+function rememberCam() {
+  if (momentCam) return;
+  momentCam = { x: cameraPanX, z: cameraPanZ, zoom: cameraZoom };
+}
+function restoreCam() {
+  if (!momentCam) return;
+  cameraPanX = momentCam.x;
+  cameraPanZ = momentCam.z;
+  cameraZoom = momentCam.zoom;
+  momentCam = null;
+  applyCameraTransform();
+  fitCamera();
+}
+function nudgePhoto(dx, dy) {
+  const s = cameraZoom / 280;
+  cameraPanX = Math.max(-48, Math.min(48, cameraPanX - dx * s * 0.65));
+  cameraPanZ = Math.max(-48, Math.min(48, cameraPanZ + dy * s * 0.65));
+  applyCameraTransform();
+}
+function zoomPhoto(scale) {
+  const next = cameraZoom / (Number(scale) || 1);
+  cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+  fitCamera();
+}
+function momentBlocked() {
+  return !!document.querySelector('[role="dialog"].open');
+}
+function attachMoments() {
+  if (!window.EurekaMoments) return;
+  const hud = [
+    '.ea-back', '#sidebar-toggle', '#tp-toggle', '#tp-hint', '#tp-crosshair',
+    '#status-bar', '#tyc-sky', '#cash-hud', '#metrics-hud', '#goal-hud',
+    '#left-panel', '#labels', '#toast-container', '#activity-feed',
+    '#sprint-btn', '#joystick', '#tyc-moments', '#ipo-btn',
+    '#arcade-ai-launch', '#arcade-ai-ticker',
+  ].join(',');
+  try {
+    EurekaMoments.attach({
+      game: 'tycoon',
+      gameTitle: 'Startup Tycoon',
+      canvas: momentCanvas,
+      hud: hud,
+      hotkey: { key: 'p', shift: false },
+      button: 'tyc-moments',
+      blocked: momentBlocked,
+      pause: function () { momentHold = true; target = null; },
+      resume: function () { momentHold = false; },
+      onOpen: rememberCam,
+      onClose: restoreCam,
+      camera: { modes: ['free'], pan: nudgePhoto, zoom: zoomPhoto },
+    });
+  } catch (e) { /* the office still runs without a camera */ }
+}
+attachMoments();
+syncLobbyProps();
+window.TYC_PLATE = momentCanvas;
 
 requestAnimationFrame(loop);
 
