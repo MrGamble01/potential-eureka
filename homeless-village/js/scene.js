@@ -1,5 +1,6 @@
 var canvas   = document.getElementById('three-canvas');
-var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
+// preserveDrawingBuffer lets the photo plate read the camp after the frame.
+var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;

@@ -36,6 +36,7 @@
     voxel: 'Voxel Isle',
     hearthvale: 'Hearthvale',
     aow: 'Age of War',
+    homeless: 'Homeless Village',
   };
   const FILTERS = ['none', 'warm', 'noir', 'vivid', 'dusk'];
   const FRAMES = ['none', 'polaroid', 'film', 'arcade'];
