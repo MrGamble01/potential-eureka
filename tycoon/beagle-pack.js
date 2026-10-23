@@ -1086,16 +1086,16 @@ export function create(api) {
       '<div id="bgl-perk"></div>',
       '<div id="bgl-banner" role="status"></div>',
       '<div id="bgl-mounds"></div>',
+      '<div id="bgl-shop" hidden><div id="bgl-shop-list"></div><p id="bgl-shop-stats"></p></div>',
+      '<div id="bgl-status"></div>',
+      '<div class="bgl-keys">1 dig · 2 ball · 3 treat · 4 pet · 5 howl · P park</div>',
+      '</div>',
       '<div id="bgl-actions">',
       '<button type="button" id="bgl-act-ball" class="bgl-act" title="Throw a tennis ball. 2 bones."></button>',
       '<button type="button" id="bgl-act-treat" class="bgl-act" title="Treat the pack. 3 bones."></button>',
       '<button type="button" id="bgl-act-pet" class="bgl-act" title="Belly rubs. Free."></button>',
       '<button type="button" id="bgl-act-howl" class="bgl-act" title="Howl for ×1.5 speed. 4 bones."></button>',
       '<button type="button" id="bgl-act-shop" class="bgl-act" title="Spend bones on the kennel."></button>',
-      '</div>',
-      '<div id="bgl-shop" hidden><div id="bgl-shop-list"></div><p id="bgl-shop-stats"></p></div>',
-      '<div id="bgl-status"></div>',
-      '<div class="bgl-keys">1 dig · 2 ball · 3 treat · 4 pet · 5 howl · P park</div>',
       '</div>',
     ].join('');
     document.body.appendChild(el);
@@ -1700,7 +1700,7 @@ const CSS = `
   background: #2a211c; color: #b9a48e; font-size: 12px; font-weight: 800; animation: none;
 }
 .bgl-mound:active:not(:disabled) { transform: scale(.94); }
-#bgl-actions { display: flex; gap: 6px; }
+#bgl-actions { display: flex; gap: 6px; flex: none; }
 .bgl-act {
   flex: 1; min-width: 0; min-height: 52px; border-radius: 12px;
   border: 1px solid rgba(255,220,170,.28); background: rgba(255,255,255,.06);
@@ -1792,14 +1792,12 @@ const CSS = `
   #bgl-banner { padding: 1px 6px; font-size: 11px; }
   #bgl-mounds, #bgl-actions { gap: 4px; }
   .bgl-mound, .bgl-act { min-height: 44px; }
-  /* A scrolled body reports the action centers even after the yard
-     has clipped them. Stick the row to the visible bottom so the
-     center stays on the button. */
+  /* The row is a sibling of the scrolling body, pinned to the yard.
+     A scroll used to slide the centers up onto the top chrome, and
+     sticky could not hold them inside overflow:hidden. */
   #bgl-actions {
-    position: sticky;
-    bottom: 0;
+    position: relative;
     z-index: 6;
-    flex: none;
     background: #120c08;
   }
   /* The hire drawer covers the left of the screen and used to leave a
