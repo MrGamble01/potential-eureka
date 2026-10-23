@@ -43,7 +43,19 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       await page.locator('#peg-pause').click();
       await page.keyboard.press(' ');
       await page.waitForSelector('#peg-overlay', { state: 'visible' });
-      ok(/MISS/.test(await page.locator('#peg-overlay').innerText()), width + ' a miss ends on the canvas');
+      const earlyPaint = await page.evaluate(() => {
+        const c = document.getElementById('peg-canvas');
+        const ctx = c.getContext('2d');
+        const dpr = c.width / 480;
+        const row = ctx.getImageData(Math.round(190 * dpr), Math.round(120 * dpr), Math.round(100 * dpr), Math.round(36 * dpr)).data;
+        let n = 0;
+        for (let i = 0; i < row.length; i += 4) {
+          if (row[i] > 220 && row[i + 1] > 210 && row[i + 2] > 200) n += 1;
+        }
+        return n;
+      });
+      ok(/EARLY/.test(await page.locator('#peg-overlay').innerText()) && earlyPaint > 8,
+        width + ' an early drop paints EARLY (' + earlyPaint + ')');
       await page.locator('#peg-overlay').click();
       await page.waitForFunction(() => document.getElementById('peg-overlay').style.display === 'none');
       ok((await page.locator('#peg-score').innerText()).trim() === '0', width + ' a tap deals a fresh toss');
