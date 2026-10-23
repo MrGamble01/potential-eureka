@@ -132,3 +132,4 @@ const HubRoutes = (() => {
 
   return { PAGES, VIEWS, ALIASES, TITLES, pageFor, viewFor, titleFor };
 })();
+window.HubRoutes = HubRoutes;
