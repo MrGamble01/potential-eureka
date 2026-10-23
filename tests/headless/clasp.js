@@ -1,4 +1,3 @@
-/* Clasp: one tap shuts the needle. A miss paints MISS. A shut in the gold scores. */
 const { chromium } = require('playwright');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
