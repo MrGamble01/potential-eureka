@@ -155,6 +155,28 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   } catch (e) { threw = true; }
   ok(!threw && purse.sparks === 0 && !purse.equipped.cape && !worn.trail && !worn.skin,
     'a messy purse is clamped and does not throw');
+  const cloth = Cosmetics.CATALOG.filter(function (i) { return i.id === 'tarp-ward'; })[0];
+  ok(cloth && cloth.slot === 'tarp' && cloth.cost === 44 && cloth.color === '#6d4cff' && cloth.accent === '#ff4ad2'
+    && cloth.games[0] === 'Homeless Village',
+    'ward cloth is a tarp look priced in sparks');
+  const wardBox = mem();
+  wardBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'tarp-ward': 1 }, equipped: { tarp: 'tarp-ward' } },
+  }));
+  const dyed = Cosmetics.create(Persist.create(wardBox), { storage: wardBox, achievementIds: function () { return []; } }).look();
+  ok(dyed.tarp && dyed.tarp.id === 'tarp-ward' && dyed.tarp.color === '#6d4cff' && dyed.tarp.accent === '#ff4ad2' && !dyed.skin,
+    'an equipped ward cloth survives a read and does not become a banner');
+  const stripped = mem();
+  stripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { tarp: 'tarp-ward', cape: 'nope' } },
+  }));
+  const undyed = Cosmetics.create(Persist.create(stripped), { storage: stripped, achievementIds: function () { return []; } });
+  ok(!undyed.look().tarp && !undyed.purse().equipped.cape && undyed.purse().equipped.tarp === 'tarp-ward',
+    'a ward cloth that was never bought is not worn, and the slot is kept');
 }
 
 {
