@@ -15,7 +15,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-eight games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-nine games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
@@ -320,7 +320,7 @@
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">20</span>
+          <span class="arcade-section-count">21</span>
           <span class="arcade-section-chip">Few minutes</span>
         </div>
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
@@ -607,6 +607,20 @@
           <div class="arcade-card-title">CLASP</div>
           <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Timing</span><span>One tap</span></div>
           <div class="arcade-card-desc">Shut the needle in the gold.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card" href="#rivet" data-view="rivet" style="--accent:#d4784a">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/covers/rivet.svg" alt="Rivet cover" width="640" height="400" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="rivet"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">RIVET</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Timing</span><span>One tap</span></div>
+          <div class="arcade-card-desc">Drive the hammer in the gold.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -1541,6 +1555,30 @@
     </div>
   </section>
 
+  <section id="view-rivet" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">RIVET</div>
+        <div class="game-subtitle">One hammer on a rail. Tap, click, or press Space to drive it in the gold. P pauses. R restarts.</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Rivets: <strong id="rivet-score">0</strong></span>
+        <span>Best: <strong id="rivet-best">0</strong></span>
+        <span>State: <strong id="rivet-state">Live</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="rivet-canvas" class="game-canvas" role="img" aria-label="Rivet hammer"></canvas>
+        <div id="rivet-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" type="button" onclick="RivetGame.start()">New Game</button>
+        <button type="button" id="rivet-pause" onclick="RivetGame.togglePause()">Pause</button>
+        <button type="button" onclick="RivetGame.restart()">Restart</button>
+      </div>
+    </div>
+  </section>
+
   <section id="view-gutterlight" class="view">
     <div class="game-container">
       <div class="game-header">
@@ -1568,7 +1606,7 @@
 
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Twenty-eight browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Twenty-nine browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
@@ -1613,7 +1651,7 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Twenty-eight games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+        Twenty-nine games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
         <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
@@ -1759,6 +1797,7 @@
       snip: () => SnipGame.destroy(),
       peg: () => PegGame.destroy(),
       clasp: () => ClaspGame.destroy(),
+      rivet: () => RivetGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
       // which view was on screen.
@@ -1773,7 +1812,7 @@
     const RETURN_KEY = 'eureka-arcade-return';
     const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
       'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
-      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight', 'snip', 'peg', 'clasp']);
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet']);
     function sectionForEl(el) {
       const sec = el && el.closest && el.closest('[data-section]');
       return (sec && sec.dataset.section) || '';
@@ -1924,6 +1963,7 @@
           case 'snip':         SnipGame.init(); break;
           case 'peg':          PegGame.init(); break;
           case 'clasp':        ClaspGame.init(); break;
+          case 'rivet':        RivetGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -1936,6 +1976,7 @@
       if (name === 'snip') SnipGame.resume();
       if (name === 'peg') PegGame.resume();
       if (name === 'clasp') ClaspGame.resume();
+      if (name === 'rivet') RivetGame.resume();
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (typeof Achievements !== 'undefined') Achievements.check();
@@ -2037,6 +2078,8 @@
         best: () => { const v = Scores.num('peg-best'); return v > 0 ? v + ' pegs' : null; } },
       { name: 'Clasp',            accent: '#9fd6c2', rid: 'clasp-best', href: '#clasp', go: () => { rememberLaunch('quick'); switchView('clasp'); },
         best: () => { const v = Scores.num('clasp-best'); return v > 0 ? v + ' clasps' : null; } },
+      { name: 'Rivet',            accent: '#d4784a', rid: 'rivet-best', href: '#rivet', go: () => { rememberLaunch('quick'); switchView('rivet'); },
+        best: () => { const v = Scores.num('rivet-best'); return v > 0 ? v + ' rivets' : null; } },
     ];
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to
@@ -2415,6 +2458,7 @@
         snip: () => { const v = Scores.num('snip-best'); return v > 0 ? v + ' snips' : ''; },
         peg: () => { const v = Scores.num('peg-best'); return v > 0 ? v + ' pegs' : ''; },
         clasp: () => { const v = Scores.num('clasp-best'); return v > 0 ? v + ' clasps' : ''; },
+        rivet: () => { const v = Scores.num('rivet-best'); return v > 0 ? v + ' rivets' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];

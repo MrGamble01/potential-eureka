@@ -45,7 +45,7 @@ LEAD=(
   labreset
   meta20 daily feel moments flagdaily rivals rivalsaow rivalsflag ach ach2 coins insights plays
   search resume theme focus focushold shortcuts patchnotes backup hofcard
-  undo2048 tap2048 w5share w5keys cycles3 cratereturn snakepause life lifegun hudreset mazesolve minesdaily pongkeys astkeys c4think snip peg clasp
+  undo2048 tap2048 w5share w5keys cycles3 cratereturn snakepause life lifegun hudreset mazesolve minesdaily pongkeys astkeys c4think snip peg clasp rivet
   escdialogs sticky insightsvis reset
   labintro labsheetpause primer sessiontag hubhome hubfirst hublinks slug404 swredirect ledger objective controls
   mobilefit
