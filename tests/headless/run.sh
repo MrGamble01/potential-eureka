@@ -47,7 +47,7 @@ LEAD=(
   search resume theme focus focushold shortcuts patchnotes backup hofcard
   undo2048 tap2048 w5share w5keys cycles3 cratereturn snakepause life lifegun hudreset mazesolve minesdaily pongkeys astkeys c4think snip
   escdialogs sticky insightsvis reset
-  labintro labsheetpause primer sessiontag hubhome hublinks ledger objective controls
+  labintro labsheetpause primer sessiontag hubhome hubfirst hublinks ledger objective controls
   mobilefit
   hudsafe
   hudfit
