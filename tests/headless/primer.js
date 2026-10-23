@@ -118,7 +118,7 @@ ok(!/e\.key === '\?'[\s\S]{0,200}primer-modal/.test(hub),
   // lands and only one of them is updated, that is drift on the first
   // sentence a newcomer reads.
   const counts = await page.evaluate(() => {
-    const word = s => (String(s).match(/\b(THIRTY|Thirty|thirty)\b/) || [])[0] || null;
+    const word = s => (String(s).match(/\b(THIRTY-ONE|Thirty-one|thirty-one)\b/) || [])[0] || null;
     return {
       footer: word((document.querySelector('.hub-footer-tag') || {}).textContent || ''),
       primer: word(document.getElementById('primer-modal').textContent),

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Brand cover">
+  <rect width="640" height="400" fill="#1a1210"/>
+  <rect x="48" y="210" width="544" height="150" fill="#3a241c"/>
+  <rect x="196" y="228" width="248" height="72" rx="6" fill="#e3b341"/>
+  <rect x="308" y="72" width="24" height="120" rx="4" fill="#6e6258"/>
+  <rect x="268" y="184" width="104" height="36" rx="6" fill="#ff5a36"/>
+</svg>

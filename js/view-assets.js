@@ -25,6 +25,7 @@
     clasp: 'js/clasp.js',
     rivet: 'js/rivet.js',
     plumb: 'js/plumb.js',
+    brand: 'js/brand.js',
   };
   const TOOLS = {
     dashboard: {
