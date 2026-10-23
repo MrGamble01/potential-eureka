@@ -41,7 +41,7 @@ const RivetGame = (() => {
     verdict = '';
     y = TOP;
     speed = 110;
-    half = 34;
+    half = 42;
     syncPause();
     const ov = document.getElementById('rivet-overlay');
     if (ov) {
@@ -89,7 +89,7 @@ const RivetGame = (() => {
       flash = 16;
       y = TOP;
       speed = 110 + rivets * 22;
-      half = Math.max(16, 34 - rivets * 3);
+      half = Math.max(16, 42 - rivets * 4);
       Utils.sfx('clear');
     } else {
       end(y < PLATE ? 'EARLY' : 'LATE');
