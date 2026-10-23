@@ -13,7 +13,7 @@ const ClaspGame = (() => {
   const END = Math.PI - 0.36;
 
   let canvas, ctx, loop;
-  let angle, speed, half, clasps, best, paused, over, flash;
+  let angle, speed, half, clasps, best, paused, over, flash, verdict;
 
   function init() {
     canvas = document.getElementById('clasp-canvas');
@@ -40,9 +40,10 @@ const ClaspGame = (() => {
     paused = false;
     over = false;
     flash = 0;
+    verdict = '';
     angle = START;
     speed = 0.95;
-    half = 0.30;
+    half = 0.36;
     syncPause();
     const ov = document.getElementById('clasp-overlay');
     if (ov) {
@@ -91,23 +92,24 @@ const ClaspGame = (() => {
       flash = 16;
       angle = START;
       speed = 0.95 + clasps * 0.18;
-      half = Math.max(0.12, 0.30 - clasps * 0.03);
+      half = Math.max(0.12, 0.36 - clasps * 0.04);
       Utils.sfx('clear');
     } else {
-      end();
+      end(angle < gold ? 'EARLY' : 'LATE');
     }
     updateInfo();
     draw();
   }
 
-  function end() {
+  function end(word) {
     over = true;
+    verdict = word;
     syncPause();
     Utils.sfx('over');
     const ov = document.getElementById('clasp-overlay');
     if (ov) {
       ov.style.display = 'flex';
-      ov.innerHTML = '<h2>MISS</h2><p>' + clasps + ' clasp' + (clasps === 1 ? '' : 's') + '</p><p>Tap or Space tries again</p>';
+      ov.innerHTML = '<h2>' + word + '</h2><p>' + clasps + ' clasp' + (clasps === 1 ? '' : 's') + '</p><p>Tap or Space tries again</p>';
       ov.onclick = () => start();
     }
     updateInfo();
@@ -117,7 +119,7 @@ const ClaspGame = (() => {
   function tick(dt) {
     if (!paused && !over) {
       angle += speed * dt / 60;
-      if (angle >= END) end();
+      if (angle >= END) end('LATE');
       if (flash > 0) flash -= dt;
     }
     draw();
@@ -130,7 +132,7 @@ const ClaspGame = (() => {
     };
     set('clasp-score', String(clasps));
     set('clasp-best', best > 0 ? String(best) : '0');
-    set('clasp-state', over ? 'Miss' : paused ? 'Paused' : 'Live');
+    set('clasp-state', over ? verdict : paused ? 'Paused' : 'Live');
   }
 
   function tip() {
@@ -179,7 +181,7 @@ const ClaspGame = (() => {
       ctx.fillStyle = '#f6efe4';
       ctx.font = '700 28px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(over ? 'MISS' : 'PAUSED', W / 2, H / 2);
+      ctx.fillText(over ? verdict : 'PAUSED', W / 2, H / 2);
     }
   }
 
