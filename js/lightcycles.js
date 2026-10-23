@@ -200,6 +200,7 @@ const LightCyclesGame = (() => {
   }
 
   function tick() {
+    if (window.EurekaFocus && window.EurekaFocus.held()) return;
     if (!twoPlayer && riders[1].alive) aiSteer(1);
     if (riders[2] && riders[2].alive) aiSteer(2);
     survivedTicks++;

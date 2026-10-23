@@ -74,6 +74,10 @@ const Utils = {
     let raf = null, lastT = 0;
     function frame() {
       raf = requestAnimationFrame(frame);
+      if (window.EurekaFocus && window.EurekaFocus.held()) {
+        lastT = performance.now();
+        return;
+      }
       const now = performance.now();
       const dt = Math.min((now - lastT) / 16.667, 2.2);
       lastT = now;

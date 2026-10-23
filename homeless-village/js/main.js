@@ -245,6 +245,11 @@ if(G.arcStage>=3 && !G.arcDone) showGraduation();
 // loop and surface the failure.
 var frameErrors=0;
 function gameLoop(ts){
+  if(window.EurekaFocus && EurekaFocus.held()){
+    lastTime=ts;
+    requestAnimationFrame(gameLoop);
+    return;
+  }
   try{ frame(ts); }
   catch(e){
     if(++frameErrors>10){

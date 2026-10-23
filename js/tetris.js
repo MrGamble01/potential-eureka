@@ -251,6 +251,10 @@ const TetrisGame = (() => {
   }
 
   function collapseRows() {
+    if (window.EurekaFocus && window.EurekaFocus.held()) {
+      clearTimer = setTimeout(collapseRows, 90);
+      return;
+    }
     if (!clearingRows) return;
     const cleared = clearingRows.length;
     // Ascending order: splice+unshift leaves rows below the removed row at
@@ -324,6 +328,7 @@ const TetrisGame = (() => {
     if (lockTimer !== null) return;
     lockTimer = setTimeout(() => {
       lockTimer = null;
+      if (window.EurekaFocus && window.EurekaFocus.held()) { scheduleLock(); return; }
       if (running && grounded()) { lock(); draw(); updateInfo(); }
     }, LOCK_DELAY_MS);
   }
@@ -340,6 +345,7 @@ const TetrisGame = (() => {
   }
 
   function autoDown() {
+    if (window.EurekaFocus && window.EurekaFocus.held()) return;
     if (move(0, 1)) { cancelLock(); lockResets = 0; }
     else scheduleLock();
     draw(); updateInfo();

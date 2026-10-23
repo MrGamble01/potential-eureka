@@ -182,6 +182,7 @@ function raid() {
 }
 
 function tick() {
+  if (window.EurekaFocus && window.EurekaFocus.held()) return;
   if (state.paused) return;
   if (state.lay > 0) {
     state.lay -= 1;

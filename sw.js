@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-1010-touch';  // Phone catalogues stack, and the camp controls stay on the first screen. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-1210-focus';  // Blur parks the live clock and the score, and focus lets them go. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

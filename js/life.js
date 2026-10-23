@@ -111,6 +111,7 @@ const LifeGame = (() => {
   }
 
   function step() {
+    if (window.EurekaFocus && window.EurekaFocus.held()) return;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const neighbors = countNeighbors(r, c);
