@@ -40,7 +40,7 @@ const StitchGame = (() => {
     flash = 0;
     verdict = '';
     x = LEFT;
-    speed = 96;
+    speed = 78;
     half = 42;
     syncPause();
     const ov = document.getElementById('stitch-overlay');
