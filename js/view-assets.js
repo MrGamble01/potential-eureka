@@ -27,6 +27,7 @@
     plumb: 'js/plumb.js',
     brand: 'js/brand.js',
     stitch: 'js/stitch.js',
+    hone: 'js/hone.js',
   };
   const TOOLS = {
     dashboard: {

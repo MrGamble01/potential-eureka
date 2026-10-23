@@ -97,7 +97,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const jumps = [...document.querySelectorAll('[data-jump]')].map(b => b.dataset.jump);
     return {
       longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /24/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /25/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
       studio: !!(studio && /Studio/.test((studio.querySelector('.arcade-section-title') || {}).textContent || '')),
       jumps: ['long', 'quick', 'studio'].every(k => jumps.includes(k)),
       longCards: long ? long.querySelectorAll('.arcade-card').length : 0,
@@ -105,7 +105,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     };
   });
   ok(scan.longTitle && scan.longCards === 6, 'Long games is labeled, counted, and holds the six flagships');
-  ok(scan.quickTitle && scan.quickCards === 24, 'Quick games is labeled, counted, and holds the twenty-four arcade titles');
+  ok(scan.quickTitle && scan.quickCards === 25, 'Quick games is labeled, counted, and holds the twenty-five arcade titles');
   ok(scan.studio && scan.jumps, 'Studio is labeled and the scan hops reach long, quick and studio');
 
   await page.click('.arcade-scan-link--quick');
@@ -349,8 +349,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       last: widths[widths.length - 1],
     };
   });
-  ok(desktopQuick.cols === 3 && desktopQuick.rows === 8 && desktopQuick.full === 8 && desktopQuick.last === 3,
-    `1280 Quick games scan as eight full rows (${desktopQuick.cols}×${desktopQuick.full}, last ${desktopQuick.last})`);
+  ok(desktopQuick.cols === 3 && desktopQuick.rows === 9 && desktopQuick.full === 8 && desktopQuick.last === 1,
+    `1280 Quick games scan as nine rows (${desktopQuick.cols}×${desktopQuick.full}, last ${desktopQuick.last})`);
 
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
   await page.waitForTimeout(400);
@@ -690,7 +690,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       names,
       vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
       longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /24/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /25/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
       quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
       longRanks: long ? [...long.querySelectorAll('.hof-rank')].map(el => el.textContent.trim()) : [],
@@ -698,14 +698,14 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       quickFirst: quick && ((quick.querySelector('.hof-row .hof-name') || {}).textContent || ''),
     };
   });
-  ok(hofBoard.rows === 30 && hofBoard.longRows === 6 && hofBoard.quickRows === 24 && hofBoard.longTitle && hofBoard.quickTitle,
-    `HoF board is 6 Long + 24 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
+  ok(hofBoard.rows === 31 && hofBoard.longRows === 6 && hofBoard.quickRows === 25 && hofBoard.longTitle && hofBoard.quickTitle,
+    `HoF board is 6 Long + 25 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
   ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
     `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
   ok(hofBoard.longRanks.join() === '01,02,03,04,05,06'
-    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[23] === '24'
+    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[24] === '25'
     && /Snake/.test(hofBoard.quickFirst),
-    `HoF ranks restart per lane (Quick ${hofBoard.quickRanks[0]}–${hofBoard.quickRanks[14]}, first ${hofBoard.quickFirst})`);
+    `HoF ranks restart per lane (Quick ${hofBoard.quickRanks[0]}–${hofBoard.quickRanks[24]}, first ${hofBoard.quickFirst})`);
 
   await Promise.all([
     bp.waitForURL(/hearthvale/, { timeout: 20000 }),

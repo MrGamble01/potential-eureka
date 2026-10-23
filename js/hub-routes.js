@@ -30,7 +30,7 @@ const HubRoutes = (() => {
     'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048',
     'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
     'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip',
-    'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch', 'halloffame',
+    'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch', 'hone', 'halloffame',
   ];
 
   // Hash / slug nicknames that are not the view id.
@@ -79,6 +79,7 @@ const HubRoutes = (() => {
     bob: 'plumb',
     iron: 'brand',
     thread: 'stitch',
+    stone: 'hone',
   };
 
   // Tab titles. The catalogue keeps the original document title.
@@ -114,6 +115,7 @@ const HubRoutes = (() => {
     plumb: 'Plumb — Eureka Games',
     brand: 'Brand — Eureka Games',
     stitch: 'Stitch — Eureka Games',
+    hone: 'Hone — Eureka Games',
     halloffame: 'Hall of Fame — Eureka Games',
     trophy: 'Trophy Room — Eureka Games',
   };

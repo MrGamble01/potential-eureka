@@ -74,6 +74,8 @@ function names(page) {
         sear: hit('sear'),
         stitch: hit('stitch'),
         sew: hit('sew'),
+        hone: hit('hone'),
+        stone: hit('stone'),
       };
     });
     ok(verbs.snip.length === 1 && verbs.snip[0] === '#snip', 'search finds Snip by name');
@@ -90,6 +92,8 @@ function names(page) {
     ok(verbs.sear.length === 1 && verbs.sear[0] === '#brand', 'search finds Brand by sear');
     ok(verbs.stitch.length === 1 && verbs.stitch[0] === '#stitch', 'search finds Stitch by name');
     ok(verbs.sew.includes('#stitch'), 'search finds Stitch by sew');
+    ok(verbs.hone.includes('#hone'), 'search finds Hone by hone');
+    ok(verbs.stone.includes('#hone'), 'search finds Hone by stone');
 
     const deep = await browser.newPage({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
     deep.on('pageerror', (e) => errs.push(String(e).slice(0, 200)));
