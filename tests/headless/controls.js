@@ -74,7 +74,7 @@ function subtitle(id) {
 {
   const s = src('stacker.js');
   const keys = /e\.key === ' ' \|\| e\.key === 'ArrowDown' \|\| e\.key === 'Enter'/.test(s);
-  const click = /canvas\.addEventListener\('pointerdown', \(\) => \{ \(!running \|\| over\) \? start\(\) : drop\(\)/.test(s);
+  const click = /canvas\.addEventListener\('pointerdown', \(\) => \{[\s\S]{0,160}\(!running \|\| over\) \? start\(\) : drop\(\)/.test(s);
   const copy = subtitle('stacker') || '';
   ok(keys && click && /Space, &darr; or click drops/.test(copy),
     'Stacker: Space / down-arrow / click all drop the slider');

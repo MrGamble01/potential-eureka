@@ -512,6 +512,22 @@ function box(rect) {
         el.style.animation = 'none';
       });
       if (window.HudSafe) window.HudSafe.apply();
+      // The phone trophy header is taller than the screen, so the shop
+      // starts below the fold. Bring the first card up under the fixed
+      // menu and toasts, which is where a player reads it.
+      const lead = document.querySelector('#spark-shop .spark-card');
+      const leadBox = lead.getBoundingClientRect();
+      const leadOnScreen = leadBox.height > 2 && leadBox.top < innerHeight && leadBox.bottom > 0;
+      if (!leadOnScreen) {
+        const lows = [
+          document.querySelector('.hub-chrome.is-menu-open > .arcade-shell'),
+          document.getElementById('spark-toast'),
+          document.querySelector('.career-toast'),
+        ].filter(Boolean).map((el) => el.getBoundingClientRect())
+          .filter((r) => r.height > 2 && r.bottom > 0 && r.top < innerHeight);
+        const floor = lows.reduce((m, r) => Math.max(m, r.bottom), 0);
+        window.scrollBy({ top: leadBox.top - (floor + 8), behavior: 'instant' });
+      }
       function painted(el) {
         if (!el || el.hidden) return null;
         const cs = getComputedStyle(el);

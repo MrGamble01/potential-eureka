@@ -1938,6 +1938,15 @@
   .aow-spawn-btn { padding: 6px 4px 4px; }
   .aow-train-row { margin-top: 4px; padding: 4px 6px; }
   .aow-actionbar { max-height: 64px; }
+  /* 768×700 was leaving a 236px field. The recruit row can scroll
+     so the battlefield keeps the 260px floor. */
+  .aow-stage { min-height: 260px; }
+  #aow-units-tab {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 140px;
+    overflow: auto;
+  }
 }
 
 /* Landscape phones are wider than 721px, so they get this column, but
@@ -1967,6 +1976,14 @@
   .aow-actionbar {
     max-height: none;
     grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  }
+  /* The 260px floor above is for 700px tablets. A 390px-tall
+     landscape screen scrolls the shell instead of reserving it. */
+  .aow-stage { min-height: 0; }
+  #aow-units-tab {
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
   }
 }
 

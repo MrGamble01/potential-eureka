@@ -3,7 +3,7 @@
  *
  *  A. One primary path: Age of War is the only hero CTA.
  *  B. Snake is still a hop, not a second door the same size.
- *  C. The kicker still counts the catalogue the primer claims.
+ *  C. The hero kicker reads Eureka Studio.
  *  D. Long / Quick / Studio scan: heads, counts, jump buttons.
  *  E. Search still filters across both catalogues.
  *  F. Challenge, primer and patch notes still live in the secondary nav.
@@ -81,14 +81,14 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       flagCta: ctas.some(c => /Play Age of War/.test(c.textContent)),
       quickDoor: !!quickDoor,
       snakeHop: !!(snakeHop && /Snake/.test(snakeHop.textContent)),
-      twentyOne: /\bTWENTY-ONE\b/.test(kicker),
+      kicker: kicker.trim(),
     };
   });
   ok(hero.flagHref === 'ageofwar/' && hero.flagCta && hero.ctaCount === 1,
     'the only hero CTA is Play Age of War, on the flagship billboard');
   ok(!hero.quickDoor && !hero.snakeHop,
     'Snake stays a catalogue card, with no second door under the billboard');
-  ok(hero.twentyOne, 'the kicker still counts twenty-one games');
+  ok(hero.kicker === 'Eureka Studio', 'the hero kicker reads Eureka Studio (' + hero.kicker + ')');
 
   const scan = await page.evaluate(() => {
     const long = document.querySelector('[data-section="long"]');
@@ -236,7 +236,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     'How it works, Patch Notes, Challenge and Hall of Fame stay in the secondary nav');
 
   await page.click('#challenge-jump-btn');
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => {
+    const b = document.getElementById('daily-banner');
+    if (!b) return false;
+    const r = b.getBoundingClientRect();
+    return r.top >= 0 && r.top < window.innerHeight;
+  }, null, { timeout: 5000 });
   const dailyOnScreen = await page.evaluate(() => {
     const b = document.getElementById('daily-banner');
     const r = b.getBoundingClientRect();
@@ -247,7 +252,14 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.fill('#card-search', 'zzzz');
   await page.waitForTimeout(200);
   await page.click('#challenge-jump-btn');
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => {
+    const b = document.getElementById('daily-banner');
+    if (!b) return false;
+    const r = b.getBoundingClientRect();
+    const q = document.getElementById('card-search').value;
+    return !q && getComputedStyle(b).display !== 'none' && r.top >= 0 && r.top < window.innerHeight
+      && document.getElementById('arcade-empty').hidden;
+  }, null, { timeout: 5000 });
   const chalFromMiss = await page.evaluate(() => {
     const b = document.getElementById('daily-banner');
     const r = b.getBoundingClientRect();
@@ -285,7 +297,13 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(descHit.studio && descHit.empty && /studio/i.test(descHit.title) && descHit.count === '1 game',
     'search "office" matches the Studio card description');
   await page.fill('#card-search', '');
-  await page.waitForTimeout(200);
+  await page.waitForFunction(() => {
+    const cards = [...document.querySelectorAll('#view-arcade .arcade-card')];
+    return cards.length > 0 && cards.every((card) => {
+      const t = getComputedStyle(card).transform;
+      return t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
+    });
+  }, null, { timeout: 5000 });
 
   const playLined = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.arcade-grid--long .arcade-card')];
@@ -321,18 +339,18 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     `1280 Studio is one card wide, not a stretched banner (${desktopStudio.w}px)`);
 
   const desktopQuick = await page.evaluate(() => {
-    const cards = [...document.querySelectorAll('.arcade-grid--quick .arcade-card')];
+    const cards = [...document.querySelectorAll('[data-section="quick"] .arcade-card')];
     const tops = [...new Set(cards.map(c => Math.round(c.getBoundingClientRect().top)))];
     const widths = tops.map(t => cards.filter(c => Math.round(c.getBoundingClientRect().top) === t).length);
     return {
       rows: tops.length,
       cols: widths[0],
+      full: widths.filter(n => n === 3).length,
       last: widths[widths.length - 1],
-      even: widths.every(n => n === 3),
     };
   });
-  ok(desktopQuick.cols === 3 && desktopQuick.rows === 5 && desktopQuick.even,
-    `1280 Quick games scan as five even rows of three (${desktopQuick.cols}×${desktopQuick.rows})`);
+  ok(desktopQuick.cols === 3 && desktopQuick.rows === 6 && desktopQuick.full === 5 && desktopQuick.last === 2,
+    `1280 Quick games scan as five rows of three and a row of two (${desktopQuick.cols}×${desktopQuick.full}+${desktopQuick.last})`);
 
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
   await page.waitForTimeout(400);
@@ -861,7 +879,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(200);
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => window.scrollY < 40, null, { timeout: 5000 });
   const hofTop = await page.evaluate(() => {
     const title = document.querySelector('.hof-title');
     const long = document.querySelector('.hof-lane--long');
