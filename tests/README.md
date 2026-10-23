@@ -318,6 +318,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `objective` (SITE-6: every arcade game states its goal and not just its keys — Crate Escape's stated goal is the one checkSolved tests, Vector Defense's wave and life counts are recomputed from the source, and a vocabulary guard catches any game that lists controls and never says what a run is for)
 - `controls` (SITE-7: every arcade game names an input and not just a goal — the seven subtitles that stated a goal and left the keys unsaid now carry them, each claim recomputed from the handler that owns it, plus a guard against a subtitle rendering a literal HTML entity)
 
+- `hvcloth` (Supper Cloth: the soup-kitchen awning wears a shop hem; the pot recipe stays wood 10, scraps 8, cans 5, goodwill 5)
 ### Hearthvale suites
 
 - `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at desktop, short laptop, tablet and phone; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood)

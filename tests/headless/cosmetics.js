@@ -157,6 +157,31 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
     'a messy purse is clamped and does not throw');
 }
 
+{
+  const cloth = Cosmetics.CATALOG.filter(function (i) { return i.id === 'kitchen-supper'; })[0];
+  ok(cloth && cloth.slot === 'kitchen' && cloth.cost === 44 && cloth.color === '#e23b6a' && cloth.accent === '#3ef0d0'
+    && cloth.games[0] === 'Homeless Village',
+    'the supper cloth is a soup-kitchen look priced in sparks');
+  const box = mem();
+  box.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'kitchen-supper': 1 }, equipped: { kitchen: 'kitchen-supper' } },
+  }));
+  const worn = Cosmetics.create(Persist.create(box), { storage: box, achievementIds: function () { return []; } }).look();
+  ok(worn.kitchen && worn.kitchen.id === 'kitchen-supper' && worn.kitchen.color === '#e23b6a' && worn.kitchen.accent === '#3ef0d0' && !worn.skin,
+    'an equipped supper cloth survives a read and does not become a banner');
+  const stripped = mem();
+  stripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { kitchen: 'kitchen-supper', cape: 'nope' } },
+  }));
+  const bare = Cosmetics.create(Persist.create(stripped), { storage: stripped, achievementIds: function () { return []; } });
+  ok(!bare.look().kitchen && !bare.purse().equipped.cape && bare.purse().equipped.kitchen === 'kitchen-supper',
+    'a supper cloth that was never bought is not worn, and the slot is kept');
+}
+
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || undefined,
