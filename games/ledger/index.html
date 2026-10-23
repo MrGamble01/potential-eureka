@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>The Ledger — Eureka Studio</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
+  <link rel="stylesheet" href="ledger.css">
+</head>
+<body>
+  <header class="top">
+    <a class="back" href="/">Arcade</a>
+    <div class="mark">The Ledger<small id="boss">The Founder</small></div>
+    <div class="tools">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="laylow">Lay low</button>
+      <button type="button" id="restart">Restart</button>
+    </div>
+  </header>
+  <main>
+    <section class="meters" aria-label="Book">
+      <div class="cash">Cash <strong id="cash">$100</strong></div>
+      <div class="heat" title="City attention. A full bar brings the authorities.">
+        <span>Heat</span>
+        <div class="heat-track" aria-hidden="true"><div id="heat-fill"></div></div>
+        <strong id="heat-num">0</strong>
+      </div>
+    </section>
+    <p class="lede">Crates move yard, dock, then corner. Staff both legs or the chain sits. Heat brings the authorities. When the chair falls, an heir takes the book and the city keeps moving.</p>
+    <p id="now" class="now" role="status"></p>
+    <section class="chain" aria-label="Route">
+      <article class="node"><h2>Yard</h2><strong id="yard">0</strong><span>crates</span></article>
+      <article class="leg">
+        <label for="haul">Haul to the dock</label>
+        <select id="haul"></select>
+      </article>
+      <article class="node"><h2>Dock</h2><strong id="dock">0</strong><span>crates</span></article>
+      <article class="leg">
+        <label for="drop">Drop to the corner</label>
+        <select id="drop"></select>
+      </article>
+      <article class="node"><h2>Corner</h2><strong id="corner">0</strong><span>crates</span></article>
+    </section>
+    <section class="side">
+      <h2>On the book</h2>
+      <ul id="crew"></ul>
+      <h2>The day</h2>
+      <ol id="log"></ol>
+    </section>
+  </main>
+  <script type="module" src="ledger.js"></script>
+</body>
+</html>

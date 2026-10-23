@@ -1,0 +1,85 @@
+:root {
+  color-scheme: dark;
+  --ink: #e8e0d0;
+  --muted: #a39886;
+  --bg: #14110e;
+  --card: #221c16;
+  --line: #3a3126;
+  --gold: #e3b341;
+  --heat: #e85d4c;
+  --ok: #7dcea0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font: 16px/1.4 Georgia, "Iowan Old Style", serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+button, select { font: inherit; }
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #1b1612;
+}
+.back { color: var(--gold); text-decoration: none; }
+.mark { font-weight: 700; letter-spacing: 0.04em; }
+.mark small { display: block; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.tools button, select {
+  background: #2c241c;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.tools button:hover, select:hover { border-color: var(--gold); }
+main { padding: 16px; max-width: 880px; margin: 0 auto; }
+.meters { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
+.cash strong { color: var(--ok); font-size: 1.4rem; }
+.heat { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+.heat-track {
+  flex: 1;
+  height: 10px;
+  background: #2a211b;
+  border-radius: 99px;
+  overflow: hidden;
+}
+#heat-fill { height: 100%; width: 0; background: var(--heat); }
+.lede { color: var(--muted); max-width: 62ch; }
+.now {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a2118;
+  border: 1px solid var(--line);
+}
+.heat.hot #heat-fill { background: #ffb020; }
+.heat.hot strong { color: var(--heat); }
+.chain {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.node, .leg {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.node h2, .side h2 { margin: 0 0 4px; font-size: 0.95rem; letter-spacing: 0.04em; }
+.node strong { font-size: 1.8rem; color: var(--gold); }
+.node span, .leg label { display: block; color: var(--muted); font-size: 0.85rem; }
+.leg select { width: 100%; margin-top: 6px; }
+.side { margin-top: 16px; }
+#crew, #log { margin: 0 0 12px; padding-left: 18px; }
+#crew li.dead { color: var(--muted); text-decoration: line-through; }
+#log { max-height: 220px; overflow: auto; }
+@media (min-width: 800px) {
+  .chain { grid-template-columns: 1fr 1.2fr 1fr 1.2fr 1fr; align-items: stretch; }
+}

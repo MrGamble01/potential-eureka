@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="The Ledger cover">
+  <rect width="640" height="400" fill="#14110e"/>
+  <rect x="70" y="150" width="140" height="90" rx="8" fill="#2c241c" stroke="#e3b341" stroke-width="4"/>
+  <rect x="250" y="150" width="140" height="90" rx="8" fill="#2c241c" stroke="#e3b341" stroke-width="4"/>
+  <rect x="430" y="150" width="140" height="90" rx="8" fill="#2c241c" stroke="#e85d4c" stroke-width="4"/>
+  <path d="M210 195 H250 M390 195 H430" stroke="#e8e0d0" stroke-width="6"/>
+  <text x="80" y="320" fill="#e8e0d0" font-family="Georgia, serif" font-size="42">The Ledger</text>
+</svg>
