@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Stitch cover">
+  <rect width="640" height="400" fill="#1a1418"/>
+  <rect x="0" y="48" width="220" height="304" fill="#3a2a32"/>
+  <rect x="420" y="48" width="220" height="304" fill="#3a2a32"/>
+  <rect x="236" y="48" width="168" height="304" rx="8" fill="#e3b341"/>
+  <path d="M36 200 H300" stroke="#8a4058" stroke-width="10" fill="none"/>
+  <rect x="286" y="172" width="56" height="56" rx="8" fill="#ff7a9a"/>
+  <rect x="312" y="188" width="12" height="24" fill="#f4efe6"/>
+</svg>

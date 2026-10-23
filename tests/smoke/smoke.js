@@ -155,6 +155,7 @@ const TARGETS = [
   hubCanvas({ name: 'Rivet', view: 'rivet', canvas: '#rivet-canvas', start: press(' ') }),
   hubCanvas({ name: 'Plumb', view: 'plumb', canvas: '#plumb-canvas', start: press(' ') }),
   hubCanvas({ name: 'Brand', view: 'brand', canvas: '#brand-canvas', start: press(' ') }),
+  hubCanvas({ name: 'Stitch', view: 'stitch', canvas: '#stitch-canvas', start: press(' ') }),
   hubCanvas({
     name: 'Maze Runner',
     view: 'maze',
