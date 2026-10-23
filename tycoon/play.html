@@ -3621,14 +3621,52 @@ for (let li = 0; li < 5; li++) {
   leaf.castShadow = true; scene.add(leaf);
 }
 
+function standShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().stand : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the brass shade */ }
+  return null;
+}
+function standCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 // Standing lamp + warm point light in corner
 const lampPoleMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
 const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8), lampPoleMat);
 lampPole.position.set(-6.8, 1.1, 6.3); scene.add(lampPole);
 const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.08, 12), lampPoleMat);
 lampBase.position.set(-6.8, 0.04, 6.3); scene.add(lampBase);
-const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.45, 14, 1, true), new THREE.MeshLambertMaterial({ color: 0xf0d890, emissive: 0xf0c060, emissiveIntensity: 0.25, side: THREE.DoubleSide }));
-lampShade.position.set(-6.8, 2.15, 6.3); lampShade.rotation.x = Math.PI; scene.add(lampShade);
+const cornerStand = standShopLook();
+const lampShade = new THREE.Mesh(
+  new THREE.ConeGeometry(0.38, 0.45, 14, 1, true),
+  cornerStand
+    ? new THREE.MeshLambertMaterial({
+        color: standCssHex(cornerStand.color, 0xf0d890),
+        emissive: standCssHex(cornerStand.color, 0xf0c060),
+        emissiveIntensity: 0.25,
+        side: THREE.DoubleSide,
+      })
+    : new THREE.MeshLambertMaterial({ color: 0xf0d890, emissive: 0xf0c060, emissiveIntensity: 0.25, side: THREE.DoubleSide })
+);
+lampShade.name = 'corner-stand';
+lampShade.position.set(-6.8, 2.15, 6.3);
+lampShade.rotation.x = Math.PI;
+scene.add(lampShade);
+if (cornerStand) {
+  // Unlit rim so the shop accent stays the shop accent. The point light stays.
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.09, 8, 20),
+    new THREE.MeshBasicMaterial({ color: standCssHex(cornerStand.accent, 0x3ec6ff), fog: false })
+  );
+  rim.name = 'corner-stand-rim';
+  rim.position.set(-6.8, 2.4, 6.3);
+  rim.rotation.x = Math.PI / 2;
+  scene.add(rim);
+}
 const lampLight = new THREE.PointLight(0xffdc8a, 0.55, 9);
 lampLight.position.set(-6.8, 2.0, 6.3);
 scene.add(lampLight);
