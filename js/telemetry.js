@@ -13,14 +13,14 @@ const Telemetry = (() => {
   const GAME_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
     'minesweeper', 'connect4', 'word5', 'maze', 'life', 'lightcycles', 'pong',
     'stacker', 'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix',
-    'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand']);
+    'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch']);
   const NAMES = {
     snake: 'Snake', tetris: 'Tetris', breakout: 'Neon Breaker',
     asteroids: 'Vector Storm', 2048: '2048', minesweeper: 'Minefield',
     connect4: 'Drop Four', word5: 'Word Five', maze: 'Maze Runner',
     life: 'Game of Life', lightcycles: 'Light Cycles', pong: 'Pong++',
     stacker: 'Stacker', crateescape: 'Crate Escape', vectordefense: 'Vector Defense', wordcascade: 'Word Cascade', memorymatrix: 'Memory Matrix',
-    inkflip: 'Inkflip', gutterlight: 'Gutterlight', snip: 'Snip', peg: 'Peg', clasp: 'Clasp', rivet: 'Rivet', plumb: 'Plumb', brand: 'Brand',
+    inkflip: 'Inkflip', gutterlight: 'Gutterlight', snip: 'Snip', peg: 'Peg', clasp: 'Clasp', rivet: 'Rivet', plumb: 'Plumb', brand: 'Brand', stitch: 'Stitch',
   };
 
   let current = null;    // { view, startedAt }

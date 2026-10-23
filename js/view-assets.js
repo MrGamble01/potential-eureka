@@ -26,6 +26,7 @@
     rivet: 'js/rivet.js',
     plumb: 'js/plumb.js',
     brand: 'js/brand.js',
+    stitch: 'js/stitch.js',
   };
   const TOOLS = {
     dashboard: {
