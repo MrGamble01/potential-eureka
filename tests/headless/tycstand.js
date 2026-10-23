@@ -22,7 +22,6 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(lamp, /new THREE\.PointLight\(0xffdc8a, 0\.55, 9\)/, 'the corner light stays the same lamp');
   assert.match(lamp, /color: 0xf0d890, emissive: 0xf0c060, emissiveIntensity: 0\.25/, 'a bare shade is still the brass cone');
   assert.match(lamp, /name = 'corner-stand-rim'/, 'the shop rim is built with the corner lamp');
-  assert.doesNotMatch(play, /lamp-founder|ceo-lamp|pendant-tide|room-pendant/, 'this slice does not add the desk lamp or the ceiling glass');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers and the bare shade stay put');
 

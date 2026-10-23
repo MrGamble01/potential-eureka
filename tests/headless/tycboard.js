@@ -24,7 +24,6 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(play, /color: 0xffdd66, emissive: 0xffcc44/, 'the north-wall string lights stay gold');
   assert.match(board, /color: 0xf8f8f5/, 'a bare whiteboard is still the white slab');
   assert.match(board, /name = 'starter-board-ink'/, 'the shop coat is built with the starter board');
-  assert.doesNotMatch(play, /stand-hearth|lamp-founder|pendant-tide|ceo-lamp/, 'this slice does not add the other lamp looks');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers and the bare slab stay put');
 

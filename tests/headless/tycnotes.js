@@ -27,7 +27,6 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(notes, /-0\.7 \+ ni \* 1\.4, 2\.2, -0\.66/, 'the notes stay on the top corners');
   assert.match(notes, /name = 'desk-sticky-shop'/, 'the shop face is built with every desk');
   assert.match(play, /function createPlot\(def\)/, 'desks still share one builder');
-  assert.doesNotMatch(play, /festoon-fair|board-ink|stand-hearth|lamp-founder|pendant-tide|tarp-ward|kitchen-supper|tent-lantern|glass-amber/, 'this slice does not add the other shop looks');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers and the bare notes stay put');
 
