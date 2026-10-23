@@ -285,13 +285,21 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 }
 
 @media (max-width:700px){
-  #craft-toggle{display:block;top:56px;right:8px;bottom:auto;min-height:44px;padding:10px 14px}
+  /* The wrapped bar is about 132px. 56px parked Craft on the stat row. */
+  #craft-toggle{display:block;top:140px;right:8px;bottom:auto;min-height:44px;padding:10px 14px}
 
   #top-bar{
-    flex-wrap:nowrap;gap:8px;padding:8px 10px;
+    flex-wrap:wrap;gap:6px 8px;padding:8px 10px;
+    overflow-x:hidden;
+  }
+  /* Bridge, help, and sound were past x=390 inside a 1093px
+     scrolling bar. They lead the row so a thumb finds them. */
+  #top-bar .left{gap:6px;flex:1 1 100%;flex-wrap:wrap;min-width:0}
+  #chain-btn,#help-btn,#sound-btn{order:-1}
+  #top-bar .right{
+    gap:6px;flex:1 1 100%;min-width:0;
     overflow-x:auto;-webkit-overflow-scrolling:touch;
   }
-  #top-bar .left,#top-bar .right{gap:6px;flex:0 0 auto}
   #days-counter{font-size:11px;white-space:nowrap}
   #goal-pill{font-size:10px;padding:3px 8px;flex:0 0 auto}
   #season-badge{display:none}
