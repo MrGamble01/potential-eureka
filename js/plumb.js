@@ -42,7 +42,7 @@ const PlumbGame = (() => {
     flash = 0;
     verdict = '';
     x = LEFT;
-    speed = 100;
+    speed = 78;
     half = 42;
     syncPause();
     const ov = document.getElementById('plumb-overlay');
