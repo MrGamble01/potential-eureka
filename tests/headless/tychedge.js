@@ -1,8 +1,8 @@
 /*
  * The hedge lives in #goal-hud. That bar is pointer-events none,
  * so the office canvas ate the click. Writing the policy is
- * already wired. The history chip already takes the hit. Factor
- * stays inert.
+ * already wired. The history chip already takes the hit. The
+ * factor desk takes a click too.
  *
  * With no revenue the premium is the $400 floor. A rival win pays
  * 3×. A second click while a policy is open does not write another.
@@ -107,8 +107,8 @@ function hit(page, id, edge) {
         factor: getComputedStyle(document.getElementById('factor-chip')).pointerEvents,
         moon: getComputedStyle(document.getElementById('moonshot-chip')).pointerEvents,
       }));
-      ok(inert.hedge === 'auto' && inert.factor === 'none' && inert.moon === 'auto',
-        width + ' factor stays inert (hedge ' + inert.hedge + ', factor ' + inert.factor + ')');
+      ok(inert.hedge === 'auto' && inert.factor === 'auto' && inert.moon === 'auto',
+        width + ' factor takes pointers (hedge ' + inert.hedge + ', factor ' + inert.factor + ')');
       const snap = () => page.evaluate((key) => {
         window.dispatchEvent(new Event('pagehide'));
         const saved = JSON.parse(localStorage.getItem(key));

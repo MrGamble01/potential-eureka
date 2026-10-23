@@ -2,7 +2,7 @@
  * The Founders' Scholarship lives in #goal-hud. That bar is
  * pointer-events none, so the office canvas ate the click. Buying
  * the endowment is already wired. The history chip already takes
- * the hit. Factor stays inert.
+ * the hit. The factor desk takes a click too.
  *
  * The scholarship costs $25,000 once. The floor stays 50, then 55
  * after five catches, then 60 after ten.
@@ -117,8 +117,8 @@ function hit(page, id, edge) {
         hedge: getComputedStyle(document.getElementById('hedge-chip')).pointerEvents,
         factor: getComputedStyle(document.getElementById('factor-chip')).pointerEvents,
       }));
-      ok(inert.endow === 'auto' && inert.factor === 'none',
-        width + ' factor stays inert (endow ' + inert.endow + ', factor ' + inert.factor + ')');
+      ok(inert.endow === 'auto' && inert.factor === 'auto',
+        width + ' factor takes pointers (endow ' + inert.endow + ', factor ' + inert.factor + ')');
       const snap = () => page.evaluate((key) => {
         window.dispatchEvent(new Event('pagehide'));
         const saved = JSON.parse(localStorage.getItem(key));
