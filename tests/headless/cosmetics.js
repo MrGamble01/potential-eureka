@@ -208,6 +208,31 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
     'taking the canvas off spends no sparks and keeps the unlock');
 }
 
+{
+  const lamp = Cosmetics.CATALOG.filter(function (i) { return i.id === 'lamp-founder'; })[0];
+  ok(lamp && lamp.slot === 'lamp' && lamp.cost === 44 && lamp.color === '#ffb24a' && lamp.accent === '#ffe7a8'
+    && lamp.games[0] === 'Startup Tycoon',
+    'the founder lamp is a desk look priced in sparks');
+  const lampBox = mem();
+  lampBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'lamp-founder': 1 }, equipped: { lamp: 'lamp-founder' } },
+  }));
+  const lampWorn = Cosmetics.create(Persist.create(lampBox), { storage: lampBox, achievementIds: function () { return []; } }).look();
+  ok(lampWorn.lamp && lampWorn.lamp.id === 'lamp-founder' && lampWorn.lamp.color === '#ffb24a' && lampWorn.lamp.accent === '#ffe7a8' && !lampWorn.skin,
+    'an equipped founder lamp survives a read and does not become a banner');
+  const lampStripped = mem();
+  lampStripped.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { lamp: 'lamp-founder', cape: 'nope' } },
+  }));
+  const lampBare = Cosmetics.create(Persist.create(lampStripped), { storage: lampStripped, achievementIds: function () { return []; } });
+  ok(!lampBare.look().lamp && !lampBare.purse().equipped.cape && lampBare.purse().equipped.lamp === 'lamp-founder',
+    'a lamp that was never bought is not worn, and the slot is kept');
+}
+
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || undefined,

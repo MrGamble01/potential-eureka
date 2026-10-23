@@ -7,7 +7,8 @@
    on looks the flagships actually draw: banners,
    cloaks, trails, lamp glass, hub-card themes, titles, badges,
    the cloth over the Homeless Village soup kitchen,
-   and the canvas on a Homeless Village tent.
+   the canvas on a Homeless Village tent,
+   and the brass lamp on the Startup Tycoon desk.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -56,6 +57,8 @@
       blurb: 'A cloth over the soup kitchen. The pot still costs what it cost.', games: ['Homeless Village'] },
     { id: 'tent-lantern', slot: 'tent', name: 'Lantern Canvas', cost: 44, color: '#e8a04a', accent: '#ffe38a',
       blurb: 'A warm fly over the camp tent. Raising the tent still costs the same cardboard, scraps, and wood.', games: ['Homeless Village'] },
+    { id: 'lamp-founder', slot: 'lamp', name: 'Founder Lamp', cost: 44, color: '#ffb24a', accent: '#ffe7a8',
+      blurb: 'A brass lamp on the CEO desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
   ];
 
   const BY_ID = {};
@@ -72,6 +75,7 @@
     { id: 'badge', name: 'Badges' },
     { id: 'kitchen', name: 'Soup kitchen' },
     { id: 'tent', name: 'Tent canvas' },
+    { id: 'lamp', name: 'Desk lamp' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -255,6 +259,7 @@
       const kitchen = take('kitchen');
       const glass = take('glass');
       const tent = take('tent');
+      const lamp = take('lamp');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -265,6 +270,7 @@
         kitchen: kitchen ? { id: kitchen.id, name: kitchen.name, color: kitchen.color, accent: kitchen.accent } : null,
         glass: glass ? { id: glass.id, name: glass.name, color: glass.color, accent: glass.accent } : null,
         tent: tent ? { id: tent.id, name: tent.name, color: tent.color, accent: tent.accent } : null,
+        lamp: lamp ? { id: lamp.id, name: lamp.name, color: lamp.color, accent: lamp.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -473,6 +479,7 @@
       if (item.slot === 'title') return paintPlaque(ctx, w, h, item, t, revealing);
       if (item.slot === 'kitchen') return paintKitchen(ctx, w, h, item, t, revealing);
       if (item.slot === 'tent') return paintTent(ctx, w, h, item, t, revealing);
+      if (item.slot === 'lamp') return paintLamp(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -646,6 +653,24 @@
       ctx.fill();
       ctx.fillStyle = item.accent || '#3ef0d0';
       ctx.fillRect(x - 40 * scale, ground - 20 * scale, 80 * scale, 6 * scale);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+
+    function paintLamp(ctx, w, h, item, t, revealing) {
+      const scale = Math.max(1, h / 160);
+      const bob = Math.sin(t * 2) * 2;
+      const x = w * 0.5;
+      const ground = h * 0.78;
+      ctx.fillStyle = '#5c3d1e';
+      ctx.fillRect(x - 54 * scale, ground - 8 * scale, 108 * scale, 10 * scale);
+      ctx.fillStyle = '#c48a3a';
+      ctx.fillRect(x - 4 * scale, ground - 46 * scale + bob, 8 * scale, 38 * scale);
+      ctx.fillStyle = item.color || '#ffb24a';
+      ctx.fillRect(x - 28 * scale, ground - 62 * scale + bob, 56 * scale, 18 * scale);
+      ctx.fillStyle = item.accent || '#ffe7a8';
+      ctx.beginPath();
+      ctx.arc(x, ground - 50 * scale + bob, 5 * scale, 0, Math.PI * 2);
+      ctx.fill();
       if (revealing) paintBurst(ctx, w, h, t);
     }
 
