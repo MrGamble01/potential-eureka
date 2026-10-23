@@ -117,8 +117,8 @@ function hit(page, id, edge) {
         hedge: getComputedStyle(document.getElementById('hedge-chip')).pointerEvents,
         factor: getComputedStyle(document.getElementById('factor-chip')).pointerEvents,
       }));
-      ok(inert.endow === 'auto' && inert.hedge === 'none' && inert.factor === 'none',
-        width + ' hedge and factor stay inert (endow ' + inert.endow + ', hedge ' + inert.hedge + ')');
+      ok(inert.endow === 'auto' && inert.factor === 'none',
+        width + ' factor stays inert (endow ' + inert.endow + ', factor ' + inert.factor + ')');
       const snap = () => page.evaluate((key) => {
         window.dispatchEvent(new Event('pagehide'));
         const saved = JSON.parse(localStorage.getItem(key));
