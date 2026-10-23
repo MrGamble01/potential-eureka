@@ -47,6 +47,44 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       await page.locator('#snip-overlay').click();
       await page.waitForFunction(() => document.getElementById('snip-overlay').style.display === 'none');
       ok((await page.locator('#snip-score').innerText()).trim() === '0', width + ' a tap deals a fresh fuse');
+      await page.waitForFunction(() => {
+        const c = document.getElementById('snip-canvas');
+        const ctx = c.getContext('2d');
+        const dpr = c.width / 480;
+        const y = Math.round(140 * dpr);
+        const row = ctx.getImageData(0, y, c.width, 1).data;
+        let min = c.width;
+        let max = 0;
+        let n = 0;
+        for (let i = 0; i < c.width; i++) {
+          const o = i * 4;
+          if (row[o] > 245 && row[o + 1] > 140 && row[o + 2] < 80) {
+            n += 1;
+            if (i < min) min = i;
+            if (i > max) max = i;
+          }
+        }
+        if (n < 4) return false;
+        const mid = ((min + max) / 2) / dpr;
+        return mid > 200 && mid < 236;
+      }, null, { timeout: 8000 });
+      await page.keyboard.press(' ');
+      const cutPaint = await page.evaluate(() => {
+        const c = document.getElementById('snip-canvas');
+        const ctx = c.getContext('2d');
+        const dpr = c.width / 480;
+        const row = ctx.getImageData(Math.round(160 * dpr), Math.round(70 * dpr), Math.round(140 * dpr), Math.round(36 * dpr)).data;
+        let n = 0;
+        for (let i = 0; i < row.length; i += 4) {
+          if (row[i] > 240 && row[i + 1] > 200 && row[i + 2] > 100 && row[i + 2] < 180) n += 1;
+        }
+        return n;
+      });
+      await page.waitForFunction(() => document.getElementById('snip-score').textContent.trim() === '1', null, { timeout: 4000 });
+      const scored = (await page.locator('#snip-score').innerText()).trim();
+      const overlay = await page.locator('#snip-overlay').evaluate((el) => el.style.display);
+      ok(scored === '1' && overlay === 'none' && cutPaint > 8,
+        width + ' a cut in the gold paints CUT (' + scored + ', ' + cutPaint + ')');
       await page.close();
     }
   } finally {

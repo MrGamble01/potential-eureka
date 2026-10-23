@@ -10,7 +10,7 @@ const PegGame = (() => {
   const FLOOR = 214;
 
   let canvas, ctx, loop;
-  let x, y, falling, speed, catchHalf, pegs, best, paused, over, flash;
+  let x, y, falling, speed, catchHalf, pegs, best, paused, over, flash, verdict;
 
   function init() {
     canvas = document.getElementById('peg-canvas');
@@ -37,6 +37,7 @@ const PegGame = (() => {
     paused = false;
     over = false;
     flash = 0;
+    verdict = '';
     falling = false;
     x = 42;
     y = 78;
@@ -101,20 +102,21 @@ const PegGame = (() => {
       catchHalf = Math.max(14, 26 - pegs * 2);
       Utils.sfx('clear');
     } else {
-      end();
+      end(x < PEG_X ? 'EARLY' : 'LATE');
     }
     updateInfo();
   }
 
-  function end() {
+  function end(word) {
     over = true;
     falling = false;
+    verdict = word;
     syncPause();
     Utils.sfx('over');
     const ov = document.getElementById('peg-overlay');
     if (ov) {
       ov.style.display = 'flex';
-      ov.innerHTML = '<h2>MISS</h2><p>' + pegs + ' peg' + (pegs === 1 ? '' : 's') + '</p><p>Tap or Space tries again</p>';
+      ov.innerHTML = '<h2>' + word + '</h2><p>' + pegs + ' peg' + (pegs === 1 ? '' : 's') + '</p><p>Tap or Space tries again</p>';
       ov.onclick = () => start();
     }
     updateInfo();
@@ -128,7 +130,7 @@ const PegGame = (() => {
         if (y >= FLOOR) land();
       } else {
         x += speed * dt / 60;
-        if (x >= W - 28) end();
+        if (x >= W - 28) end('LATE');
       }
       if (flash > 0) flash -= dt;
     }
@@ -142,7 +144,7 @@ const PegGame = (() => {
     };
     set('peg-score', String(pegs));
     set('peg-best', best > 0 ? String(best) : '0');
-    set('peg-state', over ? 'Miss' : paused ? 'Paused' : 'Live');
+    set('peg-state', over ? verdict : paused ? 'Paused' : 'Live');
   }
 
   function draw() {
@@ -171,7 +173,7 @@ const PegGame = (() => {
       ctx.fillStyle = '#f6efe4';
       ctx.font = '700 28px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(over ? 'MISS' : 'PAUSED', W / 2, H / 2);
+      ctx.fillText(over ? verdict : 'PAUSED', W / 2, H / 2);
     }
   }
 

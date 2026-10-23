@@ -31,7 +31,7 @@ const SnipGame = (() => {
   }
 
   function placeBand() {
-    const width = Math.max(36, 128 - snips * 10);
+    const width = Math.max(40, 84 - snips * 8);
     bandL = 176;
     bandR = bandL + width;
   }
@@ -42,7 +42,7 @@ const SnipGame = (() => {
     over = false;
     flash = 0;
     spark = 36;
-    speed = 150;
+    speed = 130;
     placeBand();
     syncPause();
     const ov = document.getElementById('snip-overlay');
@@ -89,9 +89,9 @@ const SnipGame = (() => {
       snips += 1;
       best = Utils.highScore.save('snip-best', snips, best);
       spark = 36;
-      speed = 150 + snips * 24;
+      speed = 130 + snips * 22;
       placeBand();
-      flash = 10;
+      flash = 16;
       Utils.sfx('clear');
     } else {
       end();
@@ -150,6 +150,12 @@ const SnipGame = (() => {
     ctx.fillStyle = '#ffb020';
     ctx.arc(spark, H / 2, 12, 0, Math.PI * 2);
     ctx.fill();
+    if (flash > 0) {
+      ctx.fillStyle = '#ffe08a';
+      ctx.font = '700 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('CUT', (bandL + bandR) / 2, H / 2 - 48);
+    }
     if (paused || over) {
       ctx.fillStyle = 'rgba(12, 10, 8, 0.55)';
       ctx.fillRect(0, 0, W, H);
