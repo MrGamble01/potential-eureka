@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-0746-shops';  // Shop looks, photos, and the office sky, re-applied on main. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-0753-chips';  // Goal-bar chips take a click, after the shop and sky stamp. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
