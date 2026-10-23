@@ -273,6 +273,30 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   const plainNotes = Cosmetics.create(Persist.create(bareNote), { storage: bareNote, achievementIds: function () { return []; } });
   ok(!plainNotes.look().note && !plainNotes.purse().equipped.cape && plainNotes.purse().equipped.note === 'note-booth',
     'booth notes that were never bought are not worn, and the slot is kept');
+
+  const kiln = Cosmetics.CATALOG.filter(function (i) { return i.id === 'brick-kiln'; })[0];
+  ok(kiln && kiln.slot === 'brick' && kiln.cost === 44 && kiln.color === '#1d4e89' && kiln.accent === '#46f0ff'
+    && kiln.games[0] === 'Startup Tycoon',
+    'kiln course is a brick look priced in sparks');
+  const kilnBox = mem();
+  kilnBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'brick-kiln': 1 }, equipped: { brick: 'brick-kiln' } },
+  }));
+  const wornKiln = Cosmetics.create(Persist.create(kilnBox), { storage: kilnBox, achievementIds: function () { return []; } }).look();
+  ok(wornKiln.brick && wornKiln.brick.id === 'brick-kiln' && wornKiln.brick.color === '#1d4e89'
+    && wornKiln.brick.accent === '#46f0ff' && !wornKiln.skin,
+    'an equipped kiln course survives a read and does not become a banner');
+  const bareKiln = mem();
+  bareKiln.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { brick: 'brick-kiln', cape: 'nope' } },
+  }));
+  const plainKiln = Cosmetics.create(Persist.create(bareKiln), { storage: bareKiln, achievementIds: function () { return []; } });
+  ok(!plainKiln.look().brick && !plainKiln.purse().equipped.cape && plainKiln.purse().equipped.brick === 'brick-kiln',
+    'a kiln course that was never bought is not worn, and the slot is kept');
 }
 
 {
