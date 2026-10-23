@@ -137,12 +137,14 @@ canvas.game-canvas {
 #tetris-canvas,
 #g2048-canvas,
 #inkflip-canvas,
-#gutter-canvas {
+#gutter-canvas,
+#snip-canvas {
   image-rendering: auto;
 }
 
 #view-inkflip .game-controls button,
-#view-gutterlight .game-controls button {
+#view-gutterlight .game-controls button,
+#view-snip .game-controls button {
   min-height: 44px;
 }
 

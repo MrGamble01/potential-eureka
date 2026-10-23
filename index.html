@@ -15,7 +15,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-five games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-six games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
@@ -320,7 +320,7 @@
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">17</span>
+          <span class="arcade-section-count">18</span>
           <span class="arcade-section-chip">Few minutes</span>
         </div>
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
@@ -565,6 +565,20 @@
           <div class="arcade-card-title">GUTTERLIGHT</div>
           <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Putting</span><span>Nine holes</span></div>
           <div class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card" href="#snip" data-view="snip" style="--accent:#e3b341">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/covers/snip.svg" alt="Snip cover" width="640" height="400" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="snip"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">SNIP</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Timing</span><span>One tap</span></div>
+          <div class="arcade-card-desc">Tap when the spark crosses the cut.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -1427,6 +1441,30 @@
     </div>
   </section>
 
+  <section id="view-snip" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">SNIP</div>
+        <div class="game-subtitle">One spark on a fuse. Tap, click, or press Space while it sits in the gold cut. P pauses. R restarts.</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Snips: <strong id="snip-score">0</strong></span>
+        <span>Best: <strong id="snip-best">0</strong></span>
+        <span>State: <strong id="snip-state">Live</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="snip-canvas" class="game-canvas" role="img" aria-label="Snip fuse"></canvas>
+        <div id="snip-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" type="button" onclick="SnipGame.start()">New Game</button>
+        <button type="button" id="snip-pause" onclick="SnipGame.togglePause()">Pause</button>
+        <button type="button" onclick="SnipGame.restart()">Restart</button>
+      </div>
+    </div>
+  </section>
+
   <section id="view-gutterlight" class="view">
     <div class="game-container">
       <div class="game-header">
@@ -1454,7 +1492,7 @@
 
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Twenty-five browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Twenty-six browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
@@ -1499,7 +1537,7 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Twenty-five games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+        Twenty-six games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
         <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
@@ -1613,6 +1651,7 @@
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/inkflip.js" defer></script>
   <script src="js/gutterlight.js" defer></script>
+  <script src="js/snip.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
   <script src="js/feel.js" defer></script>
@@ -1671,6 +1710,7 @@
       memorymatrix: () => MemoryMatrixGame.destroy(),
       inkflip: () => InkflipGame.destroy(),
       gutterlight: () => GutterlightGame.destroy(),
+      snip: () => SnipGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
       // which view was on screen.
@@ -1685,7 +1725,7 @@
     const RETURN_KEY = 'eureka-arcade-return';
     const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
       'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
-      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight']);
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight', 'snip']);
     function sectionForEl(el) {
       const sec = el && el.closest && el.closest('[data-section]');
       return (sec && sec.dataset.section) || '';
@@ -1829,6 +1869,7 @@
           case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'inkflip':      InkflipGame.init(); break;
           case 'gutterlight':  GutterlightGame.init(); break;
+          case 'snip':         SnipGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -1838,6 +1879,7 @@
       // the first visit too.
       if (name === 'inkflip') InkflipGame.resume();
       if (name === 'gutterlight') GutterlightGame.resume();
+      if (name === 'snip') SnipGame.resume();
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (typeof Achievements !== 'undefined') Achievements.check();
@@ -1933,6 +1975,8 @@
         best: () => { const v = Scores.num('inkflip-best'); return v > 0 ? v + ' discs' : null; } },
       { name: 'Gutterlight',      accent: '#3fb950', rid: 'gutter-best', href: '#gutterlight', go: () => { rememberLaunch('quick'); switchView('gutterlight'); },
         best: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : null; } },
+      { name: 'Snip',             accent: '#e3b341', rid: 'snip-best', href: '#snip', go: () => { rememberLaunch('quick'); switchView('snip'); },
+        best: () => { const v = Scores.num('snip-best'); return v > 0 ? v + ' snips' : null; } },
     ];
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to
@@ -2308,6 +2352,7 @@
         memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
         inkflip: () => { const v = Scores.num('inkflip-best'); return v > 0 ? v + ' discs' : ''; },
         gutterlight: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : ''; },
+        snip: () => { const v = Scores.num('snip-best'); return v > 0 ? v + ' snips' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
