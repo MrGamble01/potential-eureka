@@ -114,6 +114,7 @@ presses and ordinary key releases still work.
 
 - `hvcookpot` (HV-172: Soup night serves before Cook spends the breakfast pot)
 - `hvtornbed` (HV-173: Make room requires a standing tent and wind or sweep lapses the ask)
+- `hvtent` (a Spark Shop lantern canvas on the standing tent; cardboard, scraps, wood, and warmth stay put)
 - `hvdryrain` (HV-174: Only rain hosts a Dry Corner sit; clear-sky roofing still works)
 - `hvchurchcard` (HV-175: Church donations include two to five cardboard with the existing supplies)
 - `hvradiosweep` (HV-176: City Sweep confiscates the radio while Lookout forecasts remain)
