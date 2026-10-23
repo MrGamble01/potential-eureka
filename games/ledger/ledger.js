@@ -96,7 +96,10 @@ function nowLine() {
   if (state.lay > 0) return 'Laying low. Heat is leaving, and the routes hold.';
   const haul = personName(state.legs.haul);
   const drop = personName(state.legs.drop);
-  if (!haul || !drop) return 'Staff both legs. Crates sit in the yard until someone hauls and someone sells.';
+  if (!haul || !drop) {
+    if (state.heirN > 0) return state.boss + ' holds the book. Staff both legs. The routes are quiet.';
+    return 'Staff both legs. Crates sit in the yard until someone hauls and someone sells.';
+  }
   if (state.heat >= 80) return haul + ' is hauling. ' + drop + ' is selling. The authorities are close.';
   return haul + ' is hauling. ' + drop + ' is selling. Heat ' + state.heat + '.';
 }
@@ -216,7 +219,7 @@ function tick() {
 let crewSig = '';
 
 function paint(forceCrew) {
-  $('boss').textContent = state.boss;
+  $('boss').textContent = state.heirN > 0 ? state.boss + ', heir' : state.boss;
   $('cash').textContent = '$' + state.cash;
   $('heat-num').textContent = String(state.heat);
   $('heat-fill').style.width = state.heat + '%';

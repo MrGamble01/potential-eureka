@@ -80,7 +80,10 @@ function cashOf(text) {
       await page.waitForFunction(() => (document.getElementById('laylow').textContent || '') === 'Lay low', null, { timeout: 8000 });
       await page.waitForFunction(() => /takes the book/.test(document.getElementById('log').textContent || ''), null, { timeout: 20000 });
       const heir = (await page.locator('#boss').innerText()).trim();
-      ok(heir !== 'The Founder', width + ' an heir takes the book (' + heir + ')');
+      const heirNow = await page.locator('#now').innerText();
+      ok(heir !== 'The Founder' && /heir/.test(heir), width + ' an heir takes the book (' + heir + ')');
+      ok(heirNow.indexOf(heir.replace(/, heir$/, '')) === 0 && /Staff both legs/.test(heirNow),
+        width + ' the status names the heir and the quiet routes');
       const after = cashOf(await page.locator('#cash').innerText());
       const options = await page.locator('#haul option').evaluateAll((els) => els.map((el) => el.value).filter(Boolean));
       ok(options.length >= 2, width + ' two people are still on the book (' + options.join(', ') + ')');
