@@ -1490,8 +1490,12 @@
     @media (max-width: 900px) {
       #tyc-moments {
         right: auto;
-        left: calc(16px + env(safe-area-inset-left, 0px));
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        left: calc(14px + env(safe-area-inset-left, 0px));
+        /* Elevator is 52px at 14px. The next-action card then spans
+           the width from 78px. The joystick, when on, fills 88px
+           through 212px once its border is counted. The photo
+           button sits just above that. */
+        bottom: calc(220px + env(safe-area-inset-bottom, 0px));
       }
     }
     #tp-toggle:hover { background: rgba(8,10,18,0.98); }

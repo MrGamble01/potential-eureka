@@ -45,7 +45,7 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 25, `catalogue exposes 25 launch links (${cards.length})`);
+  ok(cards.length === 27, `catalogue exposes 27 launch links, hero and workshop included (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
@@ -57,6 +57,8 @@ function fileExists(href) {
     'Startup Tycoon PLAY opens the game, not the splash');
   ok(pageCards.some(c => c.href === 'ageofwar/' && /AGE OF WAR/.test(c.title)),
     'Age of War still links into ageofwar/');
+  ok(pageCards.some(c => c.href === 'games/ashmarch/'), 'Ashmarch stays a catalogue launch link');
+  ok(pageCards.some(c => c.href === 'games/ledger/'), 'The Ledger stays a catalogue launch link');
 
   const daily = await page.evaluate(() =>
     [...document.querySelectorAll('.daily-chip')].map(el => ({

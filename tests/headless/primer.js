@@ -64,11 +64,20 @@ ok(!/e\.key === '\?'[\s\S]{0,200}primer-modal/.test(hub),
   // every click the page wants. resume and theme both broke on exactly
   // that before this changed.
   // The catalogue is taller than a 900px first visit, so the first
-  // card's centre can sit below the fold. Scroll it into view, then
-  // hit-test, and require the strip's box not to cover the card.
+  // card's centre can sit below the fold. The page scrolls smoothly,
+  // so the hit-test waits until that centre is actually on screen.
+  // The strip's box still must not cover the card.
+  await page.evaluate(() => {
+    document.querySelector('.arcade-card').scrollIntoView({ block: 'center', inline: 'nearest' });
+  });
+  await page.waitForFunction(() => {
+    const card = document.querySelector('.arcade-card');
+    const r = card.getBoundingClientRect();
+    const cy = r.top + r.height / 2;
+    return cy > 0 && cy < window.innerHeight;
+  }, null, { timeout: 5000 });
   const clickable = await page.evaluate(() => {
     const card = document.querySelector('.arcade-card');
-    card.scrollIntoView({ block: 'center', inline: 'nearest' });
     const r = card.getBoundingClientRect();
     const strip = document.getElementById('primer-hint').getBoundingClientRect();
     const overlaps = !(r.right < strip.left || r.left > strip.right || r.bottom < strip.top || r.top > strip.bottom);
