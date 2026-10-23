@@ -157,6 +157,32 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
     'a messy purse is clamped and does not throw');
 }
 
+{
+  const lantern = Cosmetics.CATALOG.filter(function (i) { return i.id === 'tent-lantern'; })[0];
+  ok(lantern && lantern.slot === 'tent' && lantern.cost === 44 && lantern.color === '#e8a04a'
+    && lantern.games.indexOf('Homeless Village') >= 0,
+    'the lantern canvas is a Homeless Village shop look priced in sparks');
+  const box = mem();
+  box.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: {
+      sparks: 80,
+      owned: { 'tent-lantern': 1700000000000 },
+      equipped: { tent: 'tent-lantern', cape: 'nope' },
+      xp: 0,
+    },
+  }));
+  const api = Cosmetics.create(Persist.create(box), { storage: box, achievementIds: function () { return []; } });
+  const worn = api.look();
+  const before = api.purse().sparks;
+  ok(worn.tent && worn.tent.id === 'tent-lantern' && worn.tent.accent === '#ffe38a'
+    && api.purse().equipped.tent === 'tent-lantern' && !api.purse().equipped.cape,
+    'a saved tent canvas survives the purse and a foreign slot does not');
+  ok(api.unequip('tent').ok && !api.look().tent && api.purse().sparks === before && api.purse().owned['tent-lantern'],
+    'taking the canvas off spends no sparks and keeps the unlock');
+}
+
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || undefined,

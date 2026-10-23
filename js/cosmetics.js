@@ -5,7 +5,8 @@
    (XP, trophies, boss kills) and from the daily
    challenges. They spend here, on this device,
    on looks the flagships actually draw: banners,
-   cloaks, trails, hub-card themes, titles, badges.
+   cloaks, trails, hub-card themes, titles, badges,
+   and the canvas on a Homeless Village tent.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -48,6 +49,8 @@
       blurb: 'Soft lights on the march and on the walk home.', games: ['Age of War', 'Hearthvale'] },
     { id: 'skin-void', slot: 'skin', name: 'Void Banner', cost: 120, color: '#b388ff', accent: '#3a2466',
       blurb: 'A violet standard. The other side sees it coming.', games: ['Age of War', 'Hearthvale'] },
+    { id: 'tent-lantern', slot: 'tent', name: 'Lantern Canvas', cost: 44, color: '#e8a04a', accent: '#ffe38a',
+      blurb: 'A warm fly over the camp tent. Raising the tent still costs the same cardboard, scraps, and wood.', games: ['Homeless Village'] },
   ];
 
   const BY_ID = {};
@@ -61,6 +64,7 @@
     { id: 'cards', name: 'Hub cards' },
     { id: 'title', name: 'Titles' },
     { id: 'badge', name: 'Badges' },
+    { id: 'tent', name: 'Tent canvas' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -241,6 +245,7 @@
       const cards = take('cards');
       const title = take('title');
       const badge = take('badge');
+      const tent = take('tent');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -248,6 +253,7 @@
         cards: cards ? { id: cards.id, name: cards.name, color: cards.color } : null,
         title: title ? { id: title.id, name: title.name } : null,
         badge: badge ? { id: badge.id, name: badge.name, glyph: badge.glyph } : null,
+        tent: tent ? { id: tent.id, name: tent.name, color: tent.color, accent: tent.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -454,6 +460,7 @@
       if (item.slot === 'cards') return paintCard(ctx, w, h, item, t);
       if (item.slot === 'badge') return paintBadge(ctx, w, h, item, t, revealing);
       if (item.slot === 'title') return paintPlaque(ctx, w, h, item, t, revealing);
+      if (item.slot === 'tent') return paintTent(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -526,6 +533,39 @@
         ctx.arc(x, ground - 28 * scale, 30 * scale + Math.sin(t * 6) * 2, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+
+    function paintTent(ctx, w, h, item, t, revealing) {
+      const color = item.color || '#e8a04a';
+      const accent = item.accent || '#ffe38a';
+      const ground = h * 0.78;
+      const cx = w * 0.52;
+      const rise = Math.sin(t * 2) * 2;
+      ctx.fillStyle = '#2a4030';
+      ctx.beginPath();
+      ctx.moveTo(cx - 78, ground);
+      ctx.lineTo(cx, ground - 86 + rise);
+      ctx.lineTo(cx + 78, ground);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.moveTo(cx - 70, ground - 2);
+      ctx.lineTo(cx, ground - 96 + rise);
+      ctx.lineTo(cx + 70, ground - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = Math.max(4, h * 0.035);
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - 46, ground - 14);
+      ctx.lineTo(cx, ground - 78 + rise);
+      ctx.lineTo(cx + 46, ground - 14);
+      ctx.stroke();
+      if (revealing) paintBurst(ctx, w, h, t);
     }
 
     function paintBadge(ctx, w, h, item, t, revealing) {

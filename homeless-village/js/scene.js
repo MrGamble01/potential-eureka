@@ -134,15 +134,55 @@ function buildWorkbench(x,z){
 }
 
 var tentMesh=null;
+var TENT_BARE=0x2a4030;
+function tentShopLook(){
+  try {
+    if(window.EurekaCosmetics&&typeof EurekaCosmetics.look==='function'){
+      var look=EurekaCosmetics.look();
+      if(look&&look.tent&&typeof look.tent.color==='string') return look.tent;
+    }
+  } catch(e) {}
+  return null;
+}
+function cssHex(s, fallback){
+  if(typeof s!=='string') return fallback;
+  var m=/^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1],16) : fallback;
+}
 function buildTent(x,z){
   if(tentMesh) scene.remove(tentMesh);
   var grp=new THREE.Group();
   var shape=new THREE.Shape();
   shape.moveTo(-1.2,0); shape.lineTo(0,1.6); shape.lineTo(1.2,0); shape.closePath();
   var geo=new THREE.ExtrudeGeometry(shape,{depth:2.2,bevelEnabled:false});
-  var mat=new THREE.MeshLambertMaterial({color:0x2a4030,side:THREE.DoubleSide,transparent:true,opacity:.9});
+  var worn=tentShopLook();
+  var cloth=worn ? cssHex(worn.color, TENT_BARE) : TENT_BARE;
+  var mat=new THREE.MeshLambertMaterial({
+    color:cloth,
+    emissive: worn ? cloth : 0x000000,
+    emissiveIntensity: worn ? 0.35 : 0,
+    side:THREE.DoubleSide, transparent:true, opacity:.9
+  });
   var tb=new THREE.Mesh(geo,mat);
+  tb.name='tent-canvas';
   tb.rotation.y=Math.PI/2; tb.position.set(1.1,0,-1.2); grp.add(tb);
+  if(worn){
+    // The roof tucks under the bridge deck. This flap hangs on the mouth
+    // the camp camera already sees, unlit so the shop accent stays literal.
+    var fly=new THREE.Mesh(
+      new THREE.PlaneGeometry(1.5,1.05),
+      new THREE.MeshBasicMaterial({
+        color:cssHex(worn.accent, 0xffe38a),
+        side:THREE.DoubleSide,
+        fog:false
+      })
+    );
+    fly.name='tent-fly';
+    fly.position.set(3.15,0.78,-0.15);
+    fly.rotation.y=Math.PI/5;
+    grp.add(fly);
+  }
+  grp.userData.lookId=worn?worn.id:'';
   grp.position.set(x,0,z); scene.add(grp); tentMesh=grp;
 }
 
