@@ -2003,6 +2003,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
@@ -3464,12 +3465,43 @@ for (let r = -6; r <= 6; r++) {
   line.position.y = r * 0.22;
   brickWallG.add(line);
 }
-// A few accent "dark bricks" scattered
-const darkBrickMat = new THREE.MeshLambertMaterial({ color: 0x5a2a1a });
+// A few accent "dark bricks" scattered. Kiln Course recolors this
+// course only. The wall, the grout, and the gold string lights stay.
+function brickShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().brick : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the dark accent bricks */ }
+  return null;
+}
+function brickCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+const kilnCourse = brickShopLook();
+const darkBrickMat = kilnCourse
+  ? new THREE.MeshLambertMaterial({ color: brickCssHex(kilnCourse.color, 0x5a2a1a) })
+  : new THREE.MeshLambertMaterial({ color: 0x5a2a1a });
+const kilnFace = kilnCourse
+  ? new THREE.MeshBasicMaterial({
+      color: brickCssHex(kilnCourse.accent, 0x46f0ff),
+      fog: false,
+      side: THREE.DoubleSide,
+    })
+  : null;
 for (let i = 0; i < 18; i++) {
   const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.18, 0.04), darkBrickMat);
   b.position.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 2.6, 0.03);
   brickWallG.add(b);
+  if (kilnFace) {
+    // Unlit face so the shop accent stays the shop accent. The gold
+    // bulbs on this wall keep their own material.
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.14), kilnFace);
+    face.name = 'starter-brick-shop';
+    face.position.set(b.position.x, b.position.y, 0.08);
+    brickWallG.add(face);
+  }
 }
 scene.add(brickWallG);
 
