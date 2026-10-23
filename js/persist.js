@@ -379,7 +379,7 @@
     }
 
     function cleanEquipped(raw) {
-      const slots = { skin: 1, trail: 1, palette: 1, cards: 1, title: 1, badge: 1 };
+      const slots = { skin: 1, trail: 1, palette: 1, cards: 1, title: 1, badge: 1, note: 1 };
       const out = {};
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
       const keys = Object.keys(raw);

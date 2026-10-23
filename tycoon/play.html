@@ -2003,6 +2003,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
@@ -4537,6 +4538,19 @@ function purgePlotsInRoom(roomId) {
   }
 }
 
+function noteShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().note : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the yellow and pink notes */ }
+  return null;
+}
+function noteCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 function createPlot(def) {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
@@ -4575,16 +4589,36 @@ function createPlot(def) {
   wbFace.position.set(0, 1.8, -0.67);
   g.add(wbFace);
   // A pair of accent sticky notes along the top corners so it still
-  // feels like a scrappy board, not a slick TV.
+  // feels like a scrappy board, not a slick TV. Booth Notes recolors
+  // the paper and pins an unlit face; a bare desk keeps both colors.
+  const boothNotes = noteShopLook();
   const noteColors = [0xffeb3b, 0xff80ab];
+  const boothFace = boothNotes
+    ? new THREE.MeshBasicMaterial({
+        color: noteCssHex(boothNotes.accent, 0x3dffc8),
+        fog: false,
+        side: THREE.DoubleSide,
+      })
+    : null;
   for (let ni = 0; ni < 2; ni++) {
     const note = new THREE.Mesh(
       new THREE.BoxGeometry(0.22, 0.22, 0.02),
-      new THREE.MeshLambertMaterial({ color: noteColors[ni] })
+      boothNotes
+        ? new THREE.MeshLambertMaterial({ color: noteCssHex(boothNotes.color, noteColors[ni]) })
+        : new THREE.MeshLambertMaterial({ color: noteColors[ni] })
     );
     note.position.set(-0.7 + ni * 1.4, 2.2, -0.66);
     note.rotation.z = (ni === 0 ? 1 : -1) * 0.12;
     g.add(note);
+    if (boothFace) {
+      // Unlit face so the shop accent stays the shop accent. The
+      // yellow and pink paper stay on the bare branch above.
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), boothFace);
+      face.name = 'desk-sticky-shop';
+      face.position.set(note.position.x, note.position.y, -0.64);
+      face.rotation.z = note.rotation.z;
+      g.add(face);
+    }
   }
   // Laptop sitting on the desk (off to one side so the paper stack
   // still reads front-center as the feature-in-progress).
