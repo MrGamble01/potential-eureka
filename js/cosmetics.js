@@ -5,7 +5,8 @@
    (XP, trophies, boss kills) and from the daily
    challenges. They spend here, on this device,
    on looks the flagships actually draw: banners,
-   cloaks, trails, hub-card themes, titles, badges.
+   cloaks, trails, hub-card themes, titles, badges,
+   and the brass lamp on the Startup Tycoon desk.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -48,6 +49,8 @@
       blurb: 'Soft lights on the march and on the walk home.', games: ['Age of War', 'Hearthvale'] },
     { id: 'skin-void', slot: 'skin', name: 'Void Banner', cost: 120, color: '#b388ff', accent: '#3a2466',
       blurb: 'A violet standard. The other side sees it coming.', games: ['Age of War', 'Hearthvale'] },
+    { id: 'lamp-founder', slot: 'lamp', name: 'Founder Lamp', cost: 44, color: '#ffb24a', accent: '#ffe7a8',
+      blurb: 'A brass lamp on the CEO desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
   ];
 
   const BY_ID = {};
@@ -61,6 +64,7 @@
     { id: 'cards', name: 'Hub cards' },
     { id: 'title', name: 'Titles' },
     { id: 'badge', name: 'Badges' },
+    { id: 'lamp', name: 'Desk lamp' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -241,6 +245,7 @@
       const cards = take('cards');
       const title = take('title');
       const badge = take('badge');
+      const lamp = take('lamp');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -248,6 +253,7 @@
         cards: cards ? { id: cards.id, name: cards.name, color: cards.color } : null,
         title: title ? { id: title.id, name: title.name } : null,
         badge: badge ? { id: badge.id, name: badge.name, glyph: badge.glyph } : null,
+        lamp: lamp ? { id: lamp.id, name: lamp.name, color: lamp.color, accent: lamp.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -454,6 +460,7 @@
       if (item.slot === 'cards') return paintCard(ctx, w, h, item, t);
       if (item.slot === 'badge') return paintBadge(ctx, w, h, item, t, revealing);
       if (item.slot === 'title') return paintPlaque(ctx, w, h, item, t, revealing);
+      if (item.slot === 'lamp') return paintLamp(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -562,6 +569,24 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(item.name, w / 2, y + bh / 2);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+
+    function paintLamp(ctx, w, h, item, t, revealing) {
+      const scale = Math.max(1, h / 160);
+      const bob = Math.sin(t * 2) * 2;
+      const x = w * 0.5;
+      const ground = h * 0.78;
+      ctx.fillStyle = '#5c3d1e';
+      ctx.fillRect(x - 54 * scale, ground - 8 * scale, 108 * scale, 10 * scale);
+      ctx.fillStyle = '#c48a3a';
+      ctx.fillRect(x - 4 * scale, ground - 46 * scale + bob, 8 * scale, 38 * scale);
+      ctx.fillStyle = item.color || '#ffb24a';
+      ctx.fillRect(x - 28 * scale, ground - 62 * scale + bob, 56 * scale, 18 * scale);
+      ctx.fillStyle = item.accent || '#ffe7a8';
+      ctx.beginPath();
+      ctx.arc(x, ground - 50 * scale + bob, 5 * scale, 0, Math.PI * 2);
+      ctx.fill();
       if (revealing) paintBurst(ctx, w, h, t);
     }
 

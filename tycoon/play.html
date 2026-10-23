@@ -2003,6 +2003,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
@@ -3499,6 +3500,42 @@ const kbd = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.3), new THREE.Mesh
 kbd.position.set(0, 1.07, 3.35); kbd.castShadow = true; scene.add(kbd);
 const mouse = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.2), new THREE.MeshLambertMaterial({ color: 0x2a2a2a }));
 mouse.position.set(0.65, 1.07, 3.35); mouse.castShadow = true; scene.add(mouse);
+
+// Founder Lamp — the Spark Shop look this office wears. The bare desk
+// stays bare. The shade is unlit so the shop color stays the shop color.
+// Nothing here touches cash, hires, or feature prices.
+(function placeFounderLamp() {
+  let worn = null;
+  try {
+    const shop = window.EurekaCosmetics;
+    worn = shop && shop.look ? shop.look().lamp : null;
+  } catch (e) { worn = null; }
+  if (!worn) return;
+  const lamp = new THREE.Group();
+  lamp.name = 'ceo-lamp';
+  lamp.position.set(-1.48, 1.05, 3.52);
+  const brass = new THREE.MeshLambertMaterial({ color: 0xc48a3a });
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.045, 10), brass);
+  foot.position.y = 0.02;
+  lamp.add(foot);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.58, 8), brass);
+  stem.position.y = 0.33;
+  lamp.add(stem);
+  const shade = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.36, 0.5),
+    new THREE.MeshBasicMaterial({ color: 0xffb24a, fog: false })
+  );
+  shade.name = 'ceo-lamp-shade';
+  shade.position.y = 0.74;
+  lamp.add(shade);
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffe7a8, fog: false })
+  );
+  bulb.position.y = 0.5;
+  lamp.add(bulb);
+  scene.add(lamp);
+})();
 
 // Cardboard-box stack in corner → upgrades to proper shelving unit
 const storageG = new THREE.Group();
