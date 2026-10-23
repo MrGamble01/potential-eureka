@@ -20,7 +20,7 @@ const ROOT = path.join(__dirname, '..', '..');
   );
   const lights = play.slice(
     play.indexOf('// String lights along the north wall'),
-    play.indexOf('// String lights along the north wall') + 700
+    play.indexOf('// String lights along the north wall') + 1600
   );
   assert.match(play, /engCostScale:\s+1\.45/, 'engineer cost scale stays 1.45');
   assert.match(play, /featurePriceBase:\s+8/, 'feature price stays 8');
@@ -35,8 +35,7 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(course, /name = 'starter-brick-shop'/, 'the shop face is built on the accent course');
   assert.match(lights, /color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0\.75/, 'the string lights stay the gold bulbs');
   assert.match(lights, /-7 \+ i \* 1\.27, 2\.85 \+ Math\.sin\(i \* 0\.9\) \* 0\.12, -7\.6/, 'the bulbs stay on the north wall');
-  assert.doesNotMatch(lights, /festoon|MeshBasicMaterial/, 'this slice does not retint the string lights');
-  assert.doesNotMatch(play, /festoon-fair|note-booth|board-ink|stand-hearth|lamp-founder|pendant-tide|tarp-ward|kitchen-supper|tent-lantern|glass-amber/, 'this slice does not add the other shop looks');
+  assert.match(lights, /fairBulbs\s*\?\s*new THREE\.MeshBasicMaterial/, 'the unlit glass is only the worn string');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers, the bare course, and the gold string stay put');
 

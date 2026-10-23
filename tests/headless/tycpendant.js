@@ -23,7 +23,6 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(play, /new THREE\.PointLight\(0xfff9f0, 0\.35, 24\)/, 'the room light stays the same lamp');
   assert.match(room, /color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0\.35/, 'a bare pendant is still the brass cone');
   assert.match(room, /name = 'room-pendant-glass'/, 'the shop rim is built with the room');
-  assert.doesNotMatch(play, /lamp-founder|ceo-lamp/, 'this slice does not add the desk lamp');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers and the bare cone stay put');
 

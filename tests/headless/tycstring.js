@@ -24,7 +24,6 @@ const ROOT = path.join(__dirname, '..', '..');
   assert.match(lights, /color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0\.75/, 'a bare string is still the gold bulbs');
   assert.match(lights, /-7 \+ i \* 1\.27, 2\.85 \+ Math\.sin\(i \* 0\.9\) \* 0\.12, -7\.6/, 'the bulbs stay on the north wall');
   assert.match(lights, /name = 'string-light-glass'/, 'the shop glass is built with the string');
-  assert.doesNotMatch(play, /stand-hearth|board-ink|lamp-founder|pendant-tide|ceo-lamp/, 'this slice does not add the other lamp or board looks');
   assert.doesNotMatch(play, /window\.__/, 'no test hook on the office');
   console.log('PASS deal numbers and the bare string stay put');
 
