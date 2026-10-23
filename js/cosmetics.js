@@ -13,7 +13,8 @@
    the cloth on the Homeless Village night clinic tarp,
    the shade on the Startup Tycoon corner lamp,
    the coat on the Startup Tycoon starter whiteboard,
-   and the string lights on the Startup Tycoon north wall.
+   the string lights on the Startup Tycoon north wall,
+   and the sticky notes on a Startup Tycoon desk.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -74,6 +75,8 @@
       blurb: 'A fresh coat on the starter whiteboard. Deals still pay what they paid.', games: ['Startup Tycoon'] },
     { id: 'festoon-fair', slot: 'festoon', name: 'Fair Bulbs', cost: 44, color: '#5b2dff', accent: '#cc66ff',
       blurb: 'A cooler string along the north wall. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'note-booth', slot: 'note', name: 'Booth Notes', cost: 44, color: '#0f766e', accent: '#3dffc8',
+      blurb: 'A cooler pair of notes on every desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
   ];
 
   const BY_ID = {};
@@ -96,6 +99,7 @@
     { id: 'stand', name: 'Standing lamps' },
     { id: 'board', name: 'Boards' },
     { id: 'festoon', name: 'String lights' },
+    { id: 'note', name: 'Desk notes' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -285,6 +289,7 @@
       const stand = take('stand');
       const board = take('board');
       const festoon = take('festoon');
+      const note = take('note');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -301,6 +306,7 @@
         stand: stand ? { id: stand.id, name: stand.name, color: stand.color, accent: stand.accent } : null,
         board: board ? { id: board.id, name: board.name, color: board.color, accent: board.accent } : null,
         festoon: festoon ? { id: festoon.id, name: festoon.name, color: festoon.color, accent: festoon.accent } : null,
+        note: note ? { id: note.id, name: note.name, color: note.color, accent: note.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -515,6 +521,7 @@
       if (item.slot === 'stand') return paintStand(ctx, w, h, item, t, revealing);
       if (item.slot === 'board') return paintBoard(ctx, w, h, item, t, revealing);
       if (item.slot === 'festoon') return paintFestoon(ctx, w, h, item, t, revealing);
+      if (item.slot === 'note') return paintNote(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -794,6 +801,26 @@
         ctx.arc(28 + i * ((w - 56) / 6), y, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintNote(ctx, w, h, item, t, revealing) {
+      const y = h * 0.42 + Math.sin(t * 2) * 3;
+      ctx.save();
+      ctx.translate(w * 0.38, y);
+      ctx.rotate(-0.12);
+      ctx.fillStyle = item.color || '#0f766e';
+      ctx.fillRect(-28, -22, 44, 44);
+      ctx.fillStyle = item.accent || '#3dffc8';
+      ctx.fillRect(-18, -14, 26, 26);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(w * 0.62, y);
+      ctx.rotate(0.12);
+      ctx.fillStyle = item.color || '#0f766e';
+      ctx.fillRect(-16, -22, 44, 44);
+      ctx.fillStyle = item.accent || '#3dffc8';
+      ctx.fillRect(-6, -14, 26, 26);
+      ctx.restore();
       if (revealing) paintBurst(ctx, w, h, t);
     }
 

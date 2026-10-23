@@ -249,6 +249,30 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   const dark = Cosmetics.create(Persist.create(bareFair), { storage: bareFair, achievementIds: function () { return []; } });
   ok(!dark.look().festoon && !dark.purse().equipped.cape && dark.purse().equipped.festoon === 'festoon-fair',
     'a fair string that was never bought is not worn, and the slot is kept');
+
+  const booth = Cosmetics.CATALOG.filter(function (i) { return i.id === 'note-booth'; })[0];
+  ok(booth && booth.slot === 'note' && booth.cost === 44 && booth.color === '#0f766e' && booth.accent === '#3dffc8'
+    && booth.games[0] === 'Startup Tycoon',
+    'booth notes are a desk-note look priced in sparks');
+  const noteBox = mem();
+  noteBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'note-booth': 1 }, equipped: { note: 'note-booth' } },
+  }));
+  const wornNote = Cosmetics.create(Persist.create(noteBox), { storage: noteBox, achievementIds: function () { return []; } }).look();
+  ok(wornNote.note && wornNote.note.id === 'note-booth' && wornNote.note.color === '#0f766e'
+    && wornNote.note.accent === '#3dffc8' && !wornNote.skin,
+    'equipped booth notes survive a read and do not become a banner');
+  const bareNote = mem();
+  bareNote.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { note: 'note-booth', cape: 'nope' } },
+  }));
+  const plainNotes = Cosmetics.create(Persist.create(bareNote), { storage: bareNote, achievementIds: function () { return []; } });
+  ok(!plainNotes.look().note && !plainNotes.purse().equipped.cape && plainNotes.purse().equipped.note === 'note-booth',
+    'booth notes that were never bought are not worn, and the slot is kept');
 }
 
 {
