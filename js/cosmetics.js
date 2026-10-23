@@ -8,7 +8,8 @@
    cloaks, trails, lamp glass, hub-card themes, titles, badges,
    the cloth over the Homeless Village soup kitchen,
    the canvas on a Homeless Village tent,
-   and the brass lamp on the Startup Tycoon desk.
+   the brass lamp on the Startup Tycoon desk,
+   and the glass on every Startup Tycoon ceiling pendant.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -59,6 +60,8 @@
       blurb: 'A warm fly over the camp tent. Raising the tent still costs the same cardboard, scraps, and wood.', games: ['Homeless Village'] },
     { id: 'lamp-founder', slot: 'lamp', name: 'Founder Lamp', cost: 44, color: '#ffb24a', accent: '#ffe7a8',
       blurb: 'A brass lamp on the CEO desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'pendant-tide', slot: 'pendant', name: 'Tide Glass', cost: 44, color: '#149e86', accent: '#2ee6c7',
+      blurb: 'Sea-glass on every ceiling pendant. Deals still pay what they paid.', games: ['Startup Tycoon'] },
   ];
 
   const BY_ID = {};
@@ -76,6 +79,7 @@
     { id: 'kitchen', name: 'Soup kitchen' },
     { id: 'tent', name: 'Tent canvas' },
     { id: 'lamp', name: 'Desk lamp' },
+    { id: 'pendant', name: 'Pendants' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -260,6 +264,7 @@
       const glass = take('glass');
       const tent = take('tent');
       const lamp = take('lamp');
+      const pendant = take('pendant');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -271,6 +276,7 @@
         glass: glass ? { id: glass.id, name: glass.name, color: glass.color, accent: glass.accent } : null,
         tent: tent ? { id: tent.id, name: tent.name, color: tent.color, accent: tent.accent } : null,
         lamp: lamp ? { id: lamp.id, name: lamp.name, color: lamp.color, accent: lamp.accent } : null,
+        pendant: pendant ? { id: pendant.id, name: pendant.name, color: pendant.color, accent: pendant.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -480,6 +486,7 @@
       if (item.slot === 'kitchen') return paintKitchen(ctx, w, h, item, t, revealing);
       if (item.slot === 'tent') return paintTent(ctx, w, h, item, t, revealing);
       if (item.slot === 'lamp') return paintLamp(ctx, w, h, item, t, revealing);
+      if (item.slot === 'pendant') return paintPendant(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -671,6 +678,28 @@
       ctx.beginPath();
       ctx.arc(x, ground - 50 * scale + bob, 5 * scale, 0, Math.PI * 2);
       ctx.fill();
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+
+    function paintPendant(ctx, w, h, item, t, revealing) {
+      const scale = Math.max(1, h / 160);
+      const x = w * 0.5;
+      const y = h * 0.42 + Math.sin(t * 2) * 2;
+      ctx.strokeStyle = '#2a2a2e';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 28 * scale);
+      ctx.lineTo(x, y - 8 * scale);
+      ctx.stroke();
+      ctx.fillStyle = item.color || '#149e86';
+      ctx.beginPath();
+      ctx.moveTo(x - 28 * scale, y + 10 * scale);
+      ctx.lineTo(x, y - 8 * scale);
+      ctx.lineTo(x + 28 * scale, y + 10 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = item.accent || '#2ee6c7';
+      ctx.fillRect(x - 30 * scale, y + 8 * scale, 60 * scale, 5 * scale);
       if (revealing) paintBurst(ctx, w, h, t);
     }
 
