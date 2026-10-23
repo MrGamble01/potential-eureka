@@ -50,7 +50,7 @@ function names(page) {
     ok(found.onScreen, 'search sits on the first screen');
     ok(found.snip, 'search finds Snip');
     ok(found.ledger, 'search finds The Ledger');
-    const brand = await page.evaluate(() => {
+    const verbs = await page.evaluate(() => {
       const search = document.getElementById('card-search');
       const hit = (q) => {
         search.value = q;
@@ -59,10 +59,33 @@ function names(page) {
           .filter((c) => c.style.display !== 'none')
           .map((c) => c.getAttribute('href') || '');
       };
-      return { name: hit('brand'), verb: hit('sear') };
+      return {
+        snip: hit('snip'),
+        cut: hit('cut'),
+        peg: hit('peg'),
+        drop: hit('drop'),
+        clasp: hit('clasp'),
+        shut: hit('shut'),
+        rivet: hit('rivet'),
+        drive: hit('drive'),
+        plumb: hit('plumb'),
+        pinch: hit('pinch'),
+        brand: hit('brand'),
+        sear: hit('sear'),
+      };
     });
-    ok(brand.name.length === 1 && brand.name[0] === '#brand', 'search finds Brand by name');
-    ok(brand.verb.length === 1 && brand.verb[0] === '#brand', 'search finds Brand by sear');
+    ok(verbs.snip.length === 1 && verbs.snip[0] === '#snip', 'search finds Snip by name');
+    ok(verbs.cut.length === 1 && verbs.cut[0] === '#snip', 'search finds Snip by cut');
+    ok(verbs.peg.length === 1 && verbs.peg[0] === '#peg', 'search finds Peg by name');
+    ok(verbs.drop.includes('#peg'), 'search finds Peg by drop');
+    ok(verbs.clasp.length === 1 && verbs.clasp[0] === '#clasp', 'search finds Clasp by name');
+    ok(verbs.shut.length === 1 && verbs.shut[0] === '#clasp', 'search finds Clasp by shut');
+    ok(verbs.rivet.length === 1 && verbs.rivet[0] === '#rivet', 'search finds Rivet by name');
+    ok(verbs.drive.length === 1 && verbs.drive[0] === '#rivet', 'search finds Rivet by drive');
+    ok(verbs.plumb.length === 1 && verbs.plumb[0] === '#plumb', 'search finds Plumb by name');
+    ok(verbs.pinch.length === 1 && verbs.pinch[0] === '#plumb', 'search finds Plumb by pinch');
+    ok(verbs.brand.length === 1 && verbs.brand[0] === '#brand', 'search finds Brand by name');
+    ok(verbs.sear.length === 1 && verbs.sear[0] === '#brand', 'search finds Brand by sear');
 
     const deep = await browser.newPage({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
     deep.on('pageerror', (e) => errs.push(String(e).slice(0, 200)));
