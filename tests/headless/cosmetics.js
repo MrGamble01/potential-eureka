@@ -155,6 +155,29 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   } catch (e) { threw = true; }
   ok(!threw && purse.sparks === 0 && !purse.equipped.cape && !worn.trail && !worn.skin,
     'a messy purse is clamped and does not throw');
+  const fair = Cosmetics.CATALOG.filter(function (i) { return i.id === 'festoon-fair'; })[0];
+  ok(fair && fair.slot === 'festoon' && fair.cost === 44 && fair.color === '#5b2dff' && fair.accent === '#cc66ff'
+    && fair.games[0] === 'Startup Tycoon',
+    'fair bulbs are a string-light look priced in sparks');
+  const fairBox = mem();
+  fairBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'festoon-fair': 1 }, equipped: { festoon: 'festoon-fair' } },
+  }));
+  const wornFair = Cosmetics.create(Persist.create(fairBox), { storage: fairBox, achievementIds: function () { return []; } }).look();
+  ok(wornFair.festoon && wornFair.festoon.id === 'festoon-fair' && wornFair.festoon.color === '#5b2dff'
+    && wornFair.festoon.accent === '#cc66ff' && !wornFair.skin,
+    'an equipped fair string survives a read and does not become a banner');
+  const bareFair = mem();
+  bareFair.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { festoon: 'festoon-fair', cape: 'nope' } },
+  }));
+  const dark = Cosmetics.create(Persist.create(bareFair), { storage: bareFair, achievementIds: function () { return []; } });
+  ok(!dark.look().festoon && !dark.purse().equipped.cape && dark.purse().equipped.festoon === 'festoon-fair',
+    'a fair string that was never bought is not worn, and the slot is kept');
 }
 
 (async () => {

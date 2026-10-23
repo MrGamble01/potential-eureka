@@ -2003,6 +2003,7 @@
 </div>
 <link rel="stylesheet" href="/css/feel.css">
 <script src="/js/persist.js"></script>
+<script src="/js/cosmetics.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
@@ -3543,15 +3544,46 @@ const lampLight = new THREE.PointLight(0xffdc8a, 0.55, 9);
 lampLight.position.set(-6.8, 2.0, 6.3);
 scene.add(lampLight);
 
+function festoonShopLook() {
+  try {
+    const shop = window.EurekaCosmetics;
+    const worn = shop && shop.look ? shop.look().festoon : null;
+    if (worn && typeof worn.color === 'string') return worn;
+  } catch (e) { /* a missing shop leaves the gold bulbs */ }
+  return null;
+}
+function festoonCssHex(s, fallback) {
+  const m = typeof s === 'string' && /^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
 // String lights along the north wall (just below the ceiling).
 // Grouped so they can be hidden together when the starter's north
 // wall is merged with an owned neighbor (Breakroom).
-const stringBulbMat = new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0.75 });
+const fairBulbs = festoonShopLook();
+const stringBulbMat = fairBulbs
+  ? new THREE.MeshLambertMaterial({
+      color: festoonCssHex(fairBulbs.color, 0xffdd66),
+      emissive: festoonCssHex(fairBulbs.color, 0xffcc44),
+      emissiveIntensity: 0.75,
+    })
+  : new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0.75 });
+const fairGlassMat = fairBulbs
+  ? new THREE.MeshBasicMaterial({ color: festoonCssHex(fairBulbs.accent, 0xcc66ff), fog: false })
+  : null;
 const stringLightsG = new THREE.Group();
 for (let i = 0; i < 12; i++) {
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), stringBulbMat);
   bulb.position.set(-7 + i * 1.27, 2.85 + Math.sin(i * 0.9) * 0.12, -7.6);
   stringLightsG.add(bulb);
+  if (fairGlassMat) {
+    // Unlit glass so the shop accent stays the shop accent. The gold
+    // bulbs and the corner lamp stay on their own materials.
+    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), fairGlassMat);
+    glass.name = 'string-light-glass';
+    glass.position.copy(bulb.position);
+    stringLightsG.add(glass);
+  }
 }
 scene.add(stringLightsG);
 
