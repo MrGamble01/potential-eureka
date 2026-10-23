@@ -37,6 +37,7 @@
     hearthvale: 'Hearthvale',
     aow: 'Age of War',
     growop: 'Grow Op',
+    homeless: 'Homeless Village',
   };
   const FILTERS = ['none', 'warm', 'noir', 'vivid', 'dusk'];
   const FRAMES = ['none', 'polaroid', 'film', 'arcade'];
