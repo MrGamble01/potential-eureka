@@ -143,7 +143,8 @@ canvas.game-canvas {
 #rivet-canvas,
 #plumb-canvas,
 #brand-canvas,
-#stitch-canvas {
+#stitch-canvas,
+#hone-canvas {
   image-rendering: auto;
 }
 
@@ -155,7 +156,8 @@ canvas.game-canvas {
 #view-rivet .game-controls button,
 #view-plumb .game-controls button,
 #view-brand .game-controls button,
-#view-stitch .game-controls button {
+#view-stitch .game-controls button,
+#view-hone .game-controls button {
   min-height: 44px;
 }
 
