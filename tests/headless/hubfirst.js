@@ -50,6 +50,19 @@ function names(page) {
     ok(found.onScreen, 'search sits on the first screen');
     ok(found.snip, 'search finds Snip');
     ok(found.ledger, 'search finds The Ledger');
+    const brand = await page.evaluate(() => {
+      const search = document.getElementById('card-search');
+      const hit = (q) => {
+        search.value = q;
+        search.dispatchEvent(new Event('input', { bubbles: true }));
+        return [...document.querySelectorAll('.arcade-grid .arcade-card')]
+          .filter((c) => c.style.display !== 'none')
+          .map((c) => c.getAttribute('href') || '');
+      };
+      return { name: hit('brand'), verb: hit('sear') };
+    });
+    ok(brand.name.length === 1 && brand.name[0] === '#brand', 'search finds Brand by name');
+    ok(brand.verb.length === 1 && brand.verb[0] === '#brand', 'search finds Brand by sear');
 
     const deep = await browser.newPage({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
     deep.on('pageerror', (e) => errs.push(String(e).slice(0, 200)));
