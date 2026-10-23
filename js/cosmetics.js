@@ -5,7 +5,8 @@
    (XP, trophies, boss kills) and from the daily
    challenges. They spend here, on this device,
    on looks the flagships actually draw: banners,
-   cloaks, trails, hub-card themes, titles, badges.
+   cloaks, trails, lamp glass, hub-card themes,
+   titles, badges.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -32,6 +33,8 @@
       blurb: 'A second title beside the one you earned.', games: ['Profile'] },
     { id: 'badge-wolf', slot: 'badge', name: 'Wolf Badge', glyph: '🐺', cost: 40,
       blurb: 'The Hollow Wolf, worn on your profile.', games: ['Profile'] },
+    { id: 'glass-amber', slot: 'glass', name: 'Amber Lamp Glass', cost: 44, color: '#ffb020', accent: '#ff7a18',
+      blurb: 'Amber glass on every grow lamp, and a shade over the tent.', games: ['Grow Op'] },
     { id: 'palette-orchard', slot: 'palette', name: 'Orchard Cloak', cost: 48, color: '#7fbf63',
       blurb: 'A green cloak in the valley and a ring under your army.', games: ['Hearthvale', 'Age of War'] },
     { id: 'cards-lantern', slot: 'cards', name: 'Lantern Cards', cost: 55, color: '#f0a04b',
@@ -58,6 +61,7 @@
     { id: 'skin', name: 'Banners' },
     { id: 'trail', name: 'Trails' },
     { id: 'palette', name: 'Cloaks' },
+    { id: 'glass', name: 'Lamp glass' },
     { id: 'cards', name: 'Hub cards' },
     { id: 'title', name: 'Titles' },
     { id: 'badge', name: 'Badges' },
@@ -241,6 +245,7 @@
       const cards = take('cards');
       const title = take('title');
       const badge = take('badge');
+      const glass = take('glass');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -248,6 +253,7 @@
         cards: cards ? { id: cards.id, name: cards.name, color: cards.color } : null,
         title: title ? { id: title.id, name: title.name } : null,
         badge: badge ? { id: badge.id, name: badge.name, glyph: badge.glyph } : null,
+        glass: glass ? { id: glass.id, name: glass.name, color: glass.color, accent: glass.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -518,6 +524,19 @@
         ctx.lineTo(x - 42 * scale, ground - 40 * scale + wave);
         ctx.lineTo(x - 16 * scale, ground - 30 * scale);
         ctx.fill();
+      }
+      if (item.slot === 'glass') {
+        const accent = item.accent || '#ff7a18';
+        // Shade over the figure, then the lamp bar. Offsets stay inside a
+        // short shop thumb, where the ground sits near the bottom.
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(x - 28 * scale, ground - 54 * scale, 56 * scale, 10 * scale);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 20 * scale, ground - 64 * scale, 40 * scale, 7 * scale);
+        ctx.fillStyle = accent;
+        ctx.fillRect(x - 16 * scale, ground - 62 * scale, 32 * scale, 3 * scale);
       }
       if (revealing) {
         ctx.strokeStyle = 'rgba(247,201,72,.8)';

@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261021-ink-gutter';  // Inkflip, Gutterlight, and the cabinet pause pass. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-grow-glass';  // Amber Lamp Glass hangs on the Grow Op lamps. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
