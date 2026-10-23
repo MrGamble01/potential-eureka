@@ -1,8 +1,8 @@
 /*
  * The moonshot lives in #goal-hud. That bar is pointer-events
  * none, so the office canvas ate the click. Placing the bet is
- * already wired. The history chip already takes the hit. Factor
- * stays inert.
+ * already wired. The history chip already takes the hit. The
+ * factor desk takes a click too.
  *
  * With no revenue the stake is the $500 floor. Ahead pays 2.2×
  * after 20 seconds. A second click while a bet is in the air
@@ -109,8 +109,8 @@ function hit(page, id, edge) {
         factor: getComputedStyle(document.getElementById('factor-chip')).pointerEvents,
         endow: getComputedStyle(document.getElementById('endow-chip')).pointerEvents,
       }));
-      ok(inert.moon === 'auto' && inert.factor === 'none' && inert.endow === 'auto',
-        width + ' factor stays inert (moon ' + inert.moon + ', factor ' + inert.factor + ')');
+      ok(inert.moon === 'auto' && inert.factor === 'auto' && inert.endow === 'auto',
+        width + ' factor takes pointers (moon ' + inert.moon + ', factor ' + inert.factor + ')');
       const snap = () => page.evaluate((key) => {
         window.dispatchEvent(new Event('pagehide'));
         return { cash: JSON.parse(localStorage.getItem(key)).cash };
