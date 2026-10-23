@@ -42,23 +42,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       await page.locator('#clasp-pause').click();
       await page.keyboard.press(' ');
       await page.waitForSelector('#clasp-overlay', { state: 'visible' });
-      const missPaint = await page.evaluate(() => {
+      const earlyPaint = await page.evaluate(() => {
         const c = document.getElementById('clasp-canvas');
         const ctx = c.getContext('2d');
         const dpr = c.width / 480;
-        const x = Math.round(200 * dpr);
-        const y = Math.round(120 * dpr);
-        const w = Math.round(80 * dpr);
-        const h = Math.round(36 * dpr);
-        const row = ctx.getImageData(x, y, w, h).data;
+        const row = ctx.getImageData(Math.round(190 * dpr), Math.round(120 * dpr), Math.round(100 * dpr), Math.round(36 * dpr)).data;
         let n = 0;
         for (let i = 0; i < row.length; i += 4) {
           if (row[i] > 220 && row[i + 1] > 210 && row[i + 2] > 200) n += 1;
         }
         return n;
       });
-      ok(/MISS/.test(await page.locator('#clasp-overlay').innerText()) && missPaint > 8,
-        width + ' a miss is painted on the canvas (' + missPaint + ')');
+      const earlyState = (await page.locator('#clasp-state').innerText()).trim();
+      ok(/EARLY/.test(await page.locator('#clasp-overlay').innerText()) && earlyState === 'EARLY' && earlyPaint > 8,
+        width + ' an early shut paints EARLY (' + earlyPaint + ', ' + earlyState + ')');
       await page.locator('#clasp-overlay').click();
       await page.waitForFunction(() => document.getElementById('clasp-overlay').style.display === 'none');
       ok((await page.locator('#clasp-score').innerText()).trim() === '0', width + ' a tap deals a fresh sweep');
@@ -98,6 +95,13 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       const scored = (await page.locator('#clasp-score').innerText()).trim();
       const overlay = await page.locator('#clasp-overlay').evaluate((el) => el.style.display);
       ok(scored === '1' && overlay === 'none', width + ' a shut in the gold scores (' + scored + ')');
+      await page.waitForFunction(() => {
+        const ov = document.getElementById('clasp-overlay');
+        return ov.style.display !== 'none' && /LATE/.test(ov.innerText);
+      }, null, { timeout: 6000 });
+      const lateState = (await page.locator('#clasp-state').innerText()).trim();
+      const lateScore = (await page.locator('#clasp-score').innerText()).trim();
+      ok(lateState === 'LATE' && lateScore === '1', width + ' a needle that runs off paints LATE (' + lateState + ')');
       await page.close();
     }
   } finally {
