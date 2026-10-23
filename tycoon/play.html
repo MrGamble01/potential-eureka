@@ -780,6 +780,10 @@
       border: 1px solid rgba(212,153,34,0.28);
       border-radius: 10px; padding: 7px 12px 8px;
       color: #E6EDF3; pointer-events: none; user-select: none;
+      /* Above the office canvas (appended later, in normal flow).
+         Under status overlays at z-index 20 and the living-sky chip
+         at 24, so that label still paints over this bar. */
+      z-index: 8;
       box-shadow: 0 4px 14px rgba(0,0,0,0.35);
       font-variant-numeric: tabular-nums;
     }
@@ -791,6 +795,13 @@
     .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
     .goal-header .goal-meta {
       display: inline-flex; align-items: center; gap: 8px;
+    }
+    /* The bar ignores pointers so the office stays clickable.
+       These three lobby chips are real controls; they have to
+       take the hit or the canvas underneath eats it. */
+    #guest-chip, #capsule-chip, #mural-chip {
+      pointer-events: auto;
+      cursor: pointer;
     }
     .goal-header #goal-pb {
       font-size: 10px; font-weight: 700; color: #9ec5fe;
@@ -1113,10 +1124,17 @@
     @media (max-width: 900px) {
       #goal-hud {
         top: calc(58px + env(safe-area-inset-top, 0px));
-        min-width: 180px;
+        left: 8px;
+        transform: none;
+        /* The metrics panel owns the right edge and takes clicks.
+           Keep this bar, and the lobby chips in it, on the left. */
+        width: min(320px, calc(100vw - 188px));
+        min-width: 0;
+        max-width: min(320px, calc(100vw - 188px));
         padding: 5px 10px 6px;
       }
-      .goal-header { font-size: 10px; }
+      .goal-header { flex-wrap: wrap; font-size: 10px; }
+      .goal-header .goal-meta { flex-wrap: wrap; max-width: 100%; }
     }
 
     /* ── Win modal (celebratory overlay when goal hit) ─── */
