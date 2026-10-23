@@ -201,6 +201,30 @@ const voidCost = Cosmetics.CATALOG.filter(function (i) { return i.id === 'skin-v
   const undressed = Cosmetics.create(Persist.create(bareStand), { storage: bareStand, achievementIds: function () { return []; } });
   ok(!undressed.look().stand && !undressed.purse().equipped.cape && undressed.purse().equipped.stand === 'stand-hearth',
     'a hearth shade that was never bought is not worn, and the slot is kept');
+
+  const ink = Cosmetics.CATALOG.filter(function (i) { return i.id === 'board-ink'; })[0];
+  ok(ink && ink.slot === 'board' && ink.cost === 44 && ink.color === '#1b3a8a' && ink.accent === '#ff4fd8'
+    && ink.games[0] === 'Startup Tycoon',
+    'ink board is a whiteboard look priced in sparks');
+  const boardBox = mem();
+  boardBox.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: { 'board-ink': 1 }, equipped: { board: 'board-ink' } },
+  }));
+  const wornBoard = Cosmetics.create(Persist.create(boardBox), { storage: boardBox, achievementIds: function () { return []; } }).look();
+  ok(wornBoard.board && wornBoard.board.id === 'board-ink' && wornBoard.board.color === '#1b3a8a'
+    && wornBoard.board.accent === '#ff4fd8' && !wornBoard.skin,
+    'an equipped ink board survives a read and does not become a banner');
+  const bareBoard = mem();
+  bareBoard.setItem(Persist.PROGRESS_KEY, JSON.stringify({
+    v: 1,
+    games: {},
+    career: { sparks: 12, owned: {}, equipped: { board: 'board-ink', cape: 'nope' } },
+  }));
+  const wiped = Cosmetics.create(Persist.create(bareBoard), { storage: bareBoard, achievementIds: function () { return []; } });
+  ok(!wiped.look().board && !wiped.purse().equipped.cape && wiped.purse().equipped.board === 'board-ink',
+    'an ink board that was never bought is not worn, and the slot is kept');
 }
 
 {
