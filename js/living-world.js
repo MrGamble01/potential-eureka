@@ -7,6 +7,9 @@
    bow, night makes the enemy meaner and the
    street pay more, fog shortens sight, a
    storm slows the march and favors heavies.
+   Startup Tycoon watches the same sky in the
+   office windows and names none of those
+   rules, so a deal stays a deal.
 
    The first stretch of a visit is a clear
    morning, so a saved war and a saved corner
@@ -56,6 +59,16 @@
       start: 0.28,
       weathers: ['clear', 'rain', 'fog', 'storm', 'snow'],
       show: ['growth', 'move', 'price', 'heatGain', 'heatDrain', 'buyers', 'vision'],
+    },
+    // Visual only. show: [] keeps the chip on "open sky"
+    // so rain and night never get named as deal effects.
+    tycoon: {
+      id: 'tycoon',
+      dayLength: 150,
+      holdClear: 100,
+      start: 0.28,
+      weathers: ['clear', 'rain', 'fog', 'storm', 'snow'],
+      show: [],
     },
   };
 

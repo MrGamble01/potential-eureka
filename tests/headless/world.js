@@ -22,6 +22,8 @@ ok(src.indexOf('particleBudget') >= 0 && src.indexOf('reduced') >= 0, 'reduced m
 
 ok(World.PROFILES.ageofwar.holdClear >= 90, 'a war stays a clear morning long enough for a short visit');
 ok(World.PROFILES.growop.holdClear >= 90, 'the corner stays a clear morning long enough for a short visit');
+ok(World.PROFILES.tycoon && World.PROFILES.tycoon.holdClear >= 90, 'the office stays a clear morning long enough for a short visit');
+ok(Array.isArray(World.PROFILES.tycoon.show) && World.PROFILES.tycoon.show.length === 0, 'the office sky lists no deal effects');
 ok(World.WEATHER.rain.growth === 1.45, 'rain feeds crops');
 ok(World.PHASE.night.foe === 1.24, 'night makes foes hit harder');
 ok(World.WEATHER.storm.move === 0.72, 'a storm slows the march');
@@ -112,6 +114,15 @@ function steps(w, seconds) {
 }
 
 {
+  const w = World.create({ profile: 'tycoon', seed: 2, query: '?world=night-storm' });
+  const s = w.snapshot();
+  ok(s.phase === 'night' && s.weather === 'storm', `the office can pin a night storm (${s.key})`);
+  ok(s.effect === 'open sky', `a night storm over the office is still an open sky (${s.effect})`);
+  ok(s.mods.price > 1 && s.mods.foe > 1, 'the clock still knows the night storm');
+  ok(!/foes|street|heat|crops|buyers|heavies/.test(s.label), `the office label stays off the deal sheet (${s.label})`);
+}
+
+{
   const w = World.create({ profile: 'growop', seed: 1, query: '?world=tour', tourEvery: 5 });
   const first = w.snapshot().key;
   ok(first === 'day|clear', `a tour opens on a clear day (${first})`);
@@ -137,6 +148,7 @@ ok(World.moodFor({ phase: 'day', weather: 'clear' }) === 'calm', 'clear day is c
   const pages = {
     'ageofwar/index.html': ['/js/living-world.js', 'id="aow-sky"'],
     'drug-lab.html': ['/js/living-world.js', 'id="lab-sky"'],
+    'tycoon/play.html': ['/js/living-world.js', 'id="tyc-sky"', "profile: 'tycoon'"],
   };
   Object.keys(pages).forEach((file) => {
     const text = fs.readFileSync(path.join(root, file), 'utf8');
@@ -153,6 +165,12 @@ ok(World.moodFor({ phase: 'day', weather: 'clear' }) === 'calm', 'clear day is c
   ok(lab.indexOf('labWorld.growSeconds') >= 0, 'Grow Op crops go through the sky');
   ok(lab.indexOf('labWorld.saleValue') >= 0, 'Grow Op prices go through the sky');
   ok(lab.indexOf('labWorld.heatGain') >= 0, 'Grow Op heat goes through the sky');
+  const office = fs.readFileSync(path.join(root, 'tycoon/play.html'), 'utf8');
+  ok(office.indexOf('officeWorld.saleValue') < 0, 'the office does not price deals from the sky');
+  ok(office.indexOf('officeWorld.heatGain') < 0, 'the office does not take heat from the sky');
+  ok(office.indexOf('officeWorld.growSeconds') < 0, 'the office does not time crops from the sky');
+  ok(office.indexOf('officeWorld.unitDamage') < 0, 'the office does not scale hits from the sky');
+  ok(office.indexOf('paintOfficeSky') >= 0, 'the office paints the shared sky');
   const boot = fs.readFileSync(path.join(root, 'js/ai/boot.js'), 'utf8');
   ok(boot.indexOf("#aow-sky") >= 0 && boot.indexOf("#lab-sky") >= 0, 'the announcer watches both skies');
 }

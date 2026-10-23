@@ -504,6 +504,19 @@
       font-variant-numeric: tabular-nums;
     }
     #status-bar .sep { color: rgba(255,255,255,0.25); }
+    /* Office windows share the living-world sky. The chip names
+       the hour and the weather. It does not price a deal. */
+    #tyc-sky {
+      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+      z-index: 24; pointer-events: none; user-select: none;
+      max-width: min(420px, calc(100vw - 280px));
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(8,10,18,0.84); color: #d7e6f8;
+      border: 1px solid rgba(126,182,255,0.45);
+      font: 700 12px/1.35 ui-monospace, ui-monospace, monospace;
+      text-align: center; white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+    }
 
     /* ── Toast notifications ──────────────────────────── */
     #toast-container {
@@ -1471,6 +1484,10 @@
 
       #activity-feed { display: none; }
 
+      #tyc-sky {
+        top: auto; bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+        max-width: calc(100vw - 24px);
+      }
       #status-bar {
         /* GAMES ends near 90px and the menu takes the next 44. The
            session pill starts after both, and stops before the cash chip. */
@@ -1644,6 +1661,7 @@
   <span class="sep" id="partner-sep" style="display:none">|</span>
   <span id="partner-chip" style="display:none"></span>
 </div>
+<div id="tyc-sky" role="status" aria-live="polite"></div>
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
@@ -2027,6 +2045,7 @@
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
 <script src="/js/climax.js"></script>
+<script src="/js/living-world.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -3123,6 +3142,143 @@ function cssHex(s, fallback) {
   return m ? parseInt(m[1], 16) : fallback;
 }
 
+// Office windows share one living-world sky. The panes are proud of
+// the wall so the door split, shared walls, and desk layout stay as
+// they are. The clock is painted. It is never asked what a deal pays.
+const officeWindows = [];
+const officeWindowByKey = {};
+const skyCanvas = document.createElement('canvas');
+skyCanvas.id = 'office-sky-canvas';
+skyCanvas.width = 128;
+skyCanvas.height = 96;
+skyCanvas.setAttribute('aria-hidden', 'true');
+const skyHost = document.createElement('div');
+skyHost.id = 'office-sky-host';
+skyHost.hidden = true;
+skyHost.appendChild(skyCanvas);
+document.body.appendChild(skyHost);
+const skyCtx = skyCanvas.getContext('2d');
+const skyTexture = new THREE.CanvasTexture(skyCanvas);
+skyTexture.minFilter = THREE.LinearFilter;
+skyTexture.magFilter = THREE.LinearFilter;
+const skyMat = new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide });
+const skyFrameMat = new THREE.MeshLambertMaterial({ color: 0x2c241c });
+let officeWorld = null;
+try {
+  if (window.EurekaWorld) {
+    officeWorld = window.EurekaWorld.create({
+      profile: 'tycoon',
+      query: location.search,
+      seed: 11,
+    });
+  }
+} catch (e) { /* the office still runs under a painted noon */ }
+window.TYC_WORLD = officeWorld;
+window.TYC_SKY = skyCanvas;
+window.TYC_WINDOWS = officeWindows;
+
+function officeSkyReduced() {
+  try {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { return false; }
+}
+function fillOfficeSky(phase) {
+  const w = skyCanvas.width, h = skyCanvas.height;
+  const g = skyCtx.createLinearGradient(0, 0, 0, h);
+  if (phase === 'dawn') {
+    g.addColorStop(0, '#ff7a2e');
+    g.addColorStop(0.42, '#ffd0a2');
+    g.addColorStop(1, '#6ea6dc');
+  } else if (phase === 'dusk') {
+    g.addColorStop(0, '#2a1848');
+    g.addColorStop(0.55, '#c45a78');
+    g.addColorStop(1, '#f0a060');
+  } else if (phase === 'night') {
+    g.addColorStop(0, '#070b18');
+    g.addColorStop(1, '#121a33');
+  } else {
+    g.addColorStop(0, '#3d94e0');
+    g.addColorStop(0.55, '#8ec8f5');
+    g.addColorStop(1, '#d7ecff');
+  }
+  skyCtx.fillStyle = g;
+  skyCtx.fillRect(0, 0, w, h);
+}
+function paintOfficeSky(dt, reduced) {
+  if (!officeWorld || !skyCtx) return null;
+  const step = Number.isFinite(dt) ? dt : 0.016;
+  officeWorld.tick(step);
+  const snap = officeWorld.snapshot();
+  fillOfficeSky(snap.phase);
+  officeWorld.paint(skyCtx, skyCanvas.width, skyCanvas.height, step, reduced == null ? officeSkyReduced() : !!reduced);
+  skyTexture.needsUpdate = true;
+  const chip = document.getElementById('tyc-sky');
+  if (chip) {
+    if (chip.textContent !== snap.label) chip.textContent = snap.label;
+    if (chip.dataset) chip.dataset.world = snap.key;
+  }
+  return snap;
+}
+window.TYC_PAINT = paintOfficeSky;
+
+function dropOfficeWindow(key) {
+  const rec = officeWindowByKey[key];
+  if (!rec) return;
+  scene.remove(rec.frame);
+  for (const pane of rec.panes) scene.remove(pane);
+  delete officeWindowByKey[key];
+  const i = officeWindows.indexOf(rec);
+  if (i >= 0) officeWindows.splice(i, 1);
+}
+function releaseOfficeWindows(roomId) {
+  for (let i = officeWindows.length - 1; i >= 0; i--) {
+    const rec = officeWindows[i];
+    if (roomId && rec.roomId !== roomId) continue;
+    scene.remove(rec.frame);
+    for (const pane of rec.panes) scene.remove(pane);
+    if (officeWindowByKey[rec.key] === rec) delete officeWindowByKey[rec.key];
+    officeWindows.splice(i, 1);
+  }
+}
+function addOfficeWindow(def, nb, key, meshes) {
+  if (officeWindowByKey[key]) return;
+  const cx = def.gx * 16;
+  const cz = def.gz * 16;
+  const y = 1.95;
+  const proud = 0.28;
+  let axis = 'z';
+  let outward = 1;
+  let px = cx;
+  let pz = cz;
+  if (nb.dgz === -1) { pz = cz - 8; outward = -1; }
+  else if (nb.dgz === 1) { pz = cz + 8; outward = 1; }
+  else if (nb.dgx === -1) { axis = 'x'; px = cx - 8; outward = -1; }
+  else { axis = 'x'; px = cx + 8; outward = 1; }
+  const rot = axis === 'x' ? (outward > 0 ? Math.PI / 2 : -Math.PI / 2) : (outward > 0 ? 0 : Math.PI);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.72, 0.08), skyFrameMat);
+  const panes = [];
+  function place(mesh, dist) {
+    if (axis === 'x') mesh.position.set(px + outward * dist, y, pz);
+    else mesh.position.set(px, y, pz + outward * dist);
+    mesh.rotation.y = rot;
+  }
+  place(frame, proud - 0.06);
+  scene.add(frame);
+  for (const dist of [proud, -proud]) {
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(6.05, 1.22), skyMat);
+    pane.name = 'office-window';
+    if (axis === 'x') pane.position.set(px + outward * dist, y, pz);
+    else pane.position.set(px, y, pz + outward * dist);
+    pane.rotation.y = dist > 0 ? rot : rot + Math.PI;
+    scene.add(pane);
+    panes.push(pane);
+  }
+  const rec = { key: key, roomId: def.id, frame: frame, panes: panes };
+  officeWindows.push(rec);
+  officeWindowByKey[key] = rec;
+  meshes.decorations.push(frame, panes[0], panes[1]);
+}
+
 function buildRoom(def) {
   const cx = def.gx * 16;
   const cz = def.gz * 16;
@@ -3171,6 +3327,7 @@ function buildRoom(def) {
         scene.remove(doorWallPairs[key]);
         delete doorWallPairs[key];
       }
+      dropOfficeWindow(key);
     } else {
       // Build outer wall, but for south wall of starter room add door gap
       if (def.id === 'starter' && nb.dgz === 1) {
@@ -3194,6 +3351,7 @@ function buildRoom(def) {
         scene.add(wallMesh);
         meshes.walls.push(wallMesh);
         if (neighborDef) sharedWalls[key] = wallMesh;
+        addOfficeWindow(def, nb, key, meshes);
       }
     }
   }
@@ -13484,6 +13642,7 @@ function frameBody(now) {
   tickCashHud(dt);
   if (beaglePack) beaglePack.tick(dt);
   tickIdleBreathing(now);
+  paintOfficeSky(dt);
   renderer.render(scene, activeCamera());
 }
 
@@ -13733,6 +13892,7 @@ function doIPO() {
       for (const d of rm.decorations) scene.remove(d);
       delete roomMeshes[roomId];
     }
+    releaseOfficeWindows(roomId);
     ownedRooms.delete(roomId);
   }
   // Reset any room-conversion modes so new season starts fresh
@@ -13774,6 +13934,7 @@ function doIPO() {
       for (const d of rm.decorations) scene.remove(d);
       delete roomMeshes['starter'];
     }
+    releaseOfficeWindows('starter');
     buildRoom(starterDef);
   }
 
