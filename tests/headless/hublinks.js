@@ -45,12 +45,12 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 30, `catalogue exposes 30 launch links, hero and workshop included (${cards.length})`);
+  ok(cards.length === 31, `catalogue exposes 31 launch links, hero and workshop included (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
-  ok(hashCards.length === 20 && hashCards.every(c => c.view),
-    `quick-game links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 20'})`);
+  ok(hashCards.length === 21 && hashCards.every(c => c.view),
+    `quick-game links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 21'})`);
   ok(pageCards.every(c => fileExists(c.href)),
     `standalone links point at a file (${pageCards.map(c => c.href).join(', ')})`);
   ok(pageCards.some(c => c.href === 'tycoon/play.html' && /STARTUP TYCOON/.test(c.title)),

@@ -23,6 +23,7 @@
     snip: 'js/snip.js',
     peg: 'js/peg.js',
     clasp: 'js/clasp.js',
+    rivet: 'js/rivet.js',
   };
   const TOOLS = {
     dashboard: {
