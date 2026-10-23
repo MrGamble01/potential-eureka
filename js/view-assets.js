@@ -21,6 +21,7 @@
     inkflip: 'js/inkflip.js',
     gutterlight: 'js/gutterlight.js',
     snip: 'js/snip.js',
+    peg: 'js/peg.js',
   };
   const TOOLS = {
     dashboard: {

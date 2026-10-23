@@ -144,7 +144,8 @@ canvas.game-canvas {
 
 #view-inkflip .game-controls button,
 #view-gutterlight .game-controls button,
-#view-snip .game-controls button {
+#view-snip .game-controls button,
+#view-peg .game-controls button {
   min-height: 44px;
 }
 
