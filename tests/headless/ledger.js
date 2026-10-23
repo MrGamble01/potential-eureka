@@ -40,9 +40,10 @@ function cashOf(text) {
         const el = document.getElementById('pause');
         const r = el.getBoundingClientRect();
         const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return top && top.id;
+        return { id: top && top.id, h: Math.round(r.height) };
       });
-      ok(pauseHit === 'pause', width + ' pause is the top control (' + pauseHit + ')');
+      ok(pauseHit.id === 'pause' && pauseHit.h >= 44,
+        width + ' pause is a thumb target (' + pauseHit.id + ', ' + pauseHit.h + 'px)');
       await page.locator('#haul').selectOption('mara');
       await page.locator('#drop').selectOption('ivo');
       const movingNow = await page.locator('#now').innerText();

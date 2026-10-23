@@ -1371,7 +1371,8 @@
   text-transform: uppercase;
 }
 
-/* Phone portrait: each catalogue is a thumbnail rail. */
+/* Phone portrait: one column. A sideways rail hid the rest of
+   Long games past the screen edge, and the scrollbar was off. */
 @media (max-width: 640px) and (min-height: 761px) {
   #view-arcade .arcade-section-head {
     margin-bottom: 8px;
@@ -1394,29 +1395,18 @@
   }
   #view-arcade .arcade-grid,
   #view-arcade .arcade-grid--studio {
-    display: flex;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 4px;
+    overflow: visible;
   }
-  #view-arcade .arcade-grid::-webkit-scrollbar { display: none; }
   #view-arcade .arcade-card {
-    flex: 0 0 78%;
-    width: 78%;
-    scroll-snap-align: start;
+    width: 100%;
+    min-width: 0;
     aspect-ratio: 3 / 4;
-  }
-  #view-arcade .arcade-grid--studio .arcade-card {
-    flex-basis: 86%;
-    width: 86%;
   }
 }
 

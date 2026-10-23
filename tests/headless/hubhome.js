@@ -469,6 +469,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const hint = document.getElementById('primer-hint');
     const daily = document.getElementById('daily-banner');
     const fr = first.getBoundingClientRect();
+    const second = document.querySelectorAll('.arcade-grid--long .arcade-card')[1].getBoundingClientRect();
+    const grid = document.querySelector('.arcade-grid--long');
     return {
       firstTop: Math.round(fr.top),
       onFold: fr.top < window.innerHeight - 40,
@@ -476,10 +478,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       hintBelow: hint.getBoundingClientRect().top > fr.top,
       dailyBelow: daily.getBoundingClientRect().top > fr.top,
       overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      stacked: second.left >= -1 && second.right <= window.innerWidth + 1 && second.top >= fr.bottom - 8,
+      rail: grid.scrollWidth <= grid.clientWidth + 1,
+      cardTall: fr.height > 200 && second.height > 200,
+      secondLeft: Math.round(second.left),
+      cardH: Math.round(fr.height),
     };
   });
   ok(fold390.onFold && !fold390.overflow,
     `390 first-visit Long card starts on the fold (top ${fold390.firstTop})`);
+  ok(fold390.stacked && fold390.rail && fold390.cardTall,
+    `390 Long games stack in one column (second card at ${fold390.secondLeft}, card ${fold390.cardH}px)`);
   ok(fold390.hintOn && fold390.hintBelow && fold390.dailyBelow,
     '390 first-visit keeps primer and daily, but under the catalogue');
 
