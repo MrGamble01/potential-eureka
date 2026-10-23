@@ -24,6 +24,7 @@
     peg: 'js/peg.js',
     clasp: 'js/clasp.js',
     rivet: 'js/rivet.js',
+    plumb: 'js/plumb.js',
   };
   const TOOLS = {
     dashboard: {
