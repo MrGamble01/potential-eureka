@@ -138,14 +138,16 @@ canvas.game-canvas {
 #g2048-canvas,
 #inkflip-canvas,
 #gutter-canvas,
-#snip-canvas {
+#snip-canvas,
+#clasp-canvas {
   image-rendering: auto;
 }
 
 #view-inkflip .game-controls button,
 #view-gutterlight .game-controls button,
 #view-snip .game-controls button,
-#view-peg .game-controls button {
+#view-peg .game-controls button,
+#view-clasp .game-controls button {
   min-height: 44px;
 }
 

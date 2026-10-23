@@ -22,6 +22,7 @@
     gutterlight: 'js/gutterlight.js',
     snip: 'js/snip.js',
     peg: 'js/peg.js',
+    clasp: 'js/clasp.js',
   };
   const TOOLS = {
     dashboard: {
