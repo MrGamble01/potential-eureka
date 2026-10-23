@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261023-0759-ledger';  // The Ledger joins the workshop, after the shop and sky stamp. Install still fetches with cache:'reload'.
+const SW_VERSION = 'eureka-20261023-0800-ledger';  // The Ledger on the hub, after the shop and sky stamp. Install still fetches with cache:'reload'.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

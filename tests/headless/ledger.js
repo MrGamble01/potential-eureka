@@ -34,6 +34,8 @@ function cashOf(text) {
       await page.goto(BASE + '/games/ledger/index.html', { waitUntil: 'load', timeout: 30000 });
       ok((await page.locator('#boss').innerText()).trim() === 'The Founder', width + ' opens on the founder');
       ok(cashOf(await page.locator('#cash').innerText()) === 100, width + ' opens with $100');
+      ok(/Staff both legs/.test(await page.locator('#now').innerText()),
+        width + ' an empty book says to staff both legs');
       const pauseHit = await page.evaluate(() => {
         const el = document.getElementById('pause');
         const r = el.getBoundingClientRect();
@@ -43,6 +45,9 @@ function cashOf(text) {
       ok(pauseHit === 'pause', width + ' pause is the top control (' + pauseHit + ')');
       await page.locator('#haul').selectOption('mara');
       await page.locator('#drop').selectOption('ivo');
+      const movingNow = await page.locator('#now').innerText();
+      ok(/Mara Voss is hauling/.test(movingNow) && /Ivo Quill is selling/.test(movingNow),
+        width + ' the board names who is hauling and who is selling');
       await page.waitForFunction(() => {
         const n = Number((document.getElementById('cash').textContent || '').replace(/\D/g, ''));
         return n > 100;
@@ -50,6 +55,7 @@ function cashOf(text) {
       ok(true, width + ' both legs pay');
       const moving = cashOf(await page.locator('#cash').innerText());
       await page.locator('#pause').click();
+      ok(/Paused/.test(await page.locator('#now').innerText()), width + ' pause says the crates are waiting');
       await page.waitForTimeout(1000);
       const held = cashOf(await page.locator('#cash').innerText());
       ok(held === moving && (await page.locator('#pause').innerText()).trim() === 'Resume',
@@ -63,6 +69,7 @@ function cashOf(text) {
       await page.waitForFunction(() => Number(document.getElementById('heat-num').textContent) > 0);
       const hot = Number(await page.locator('#heat-num').innerText());
       await page.locator('#laylow').click();
+      ok(/Laying low/.test(await page.locator('#now').innerText()), width + ' lay low says the routes are holding');
       await page.waitForFunction((was) => Number(document.getElementById('heat-num').textContent) < was, hot);
       const cooled = Number(await page.locator('#heat-num').innerText());
       const flat = cashOf(await page.locator('#cash').innerText());
