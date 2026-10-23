@@ -789,17 +789,25 @@
     }
     .goal-header {
       display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap;
       font-size: 11px; font-weight: 800; letter-spacing: 0.4px;
       margin-bottom: 5px;
     }
     .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
     .goal-header .goal-meta {
-      display: inline-flex; align-items: center; gap: 8px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      max-width: 100%; min-width: 0; flex: 1 1 100%;
     }
     /* The bar ignores pointers so the office stays clickable.
        These three lobby chips are real controls; they have to
        take the hit or the canvas underneath eats it. */
     #guest-chip, #capsule-chip, #mural-chip {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    /* Toast, bench, all-hands, anthem, and the docent are the same
+       kind of control. The bar still ignores everything else. */
+    #toast-chip, #bench-chip, #story-chip, #song-chip, #docent-chip {
       pointer-events: auto;
       cursor: pointer;
     }
