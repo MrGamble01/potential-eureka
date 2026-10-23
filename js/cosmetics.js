@@ -9,7 +9,8 @@
    the cloth over the Homeless Village soup kitchen,
    the canvas on a Homeless Village tent,
    the brass lamp on the Startup Tycoon desk,
-   and the glass on every Startup Tycoon ceiling pendant.
+   the glass on every Startup Tycoon ceiling pendant,
+   and the cloth on the Homeless Village night clinic tarp.
 
    Older progress files have no purse. Reading
    one fills the new fields with zeros and does
@@ -62,6 +63,8 @@
       blurb: 'A brass lamp on the CEO desk. Deals still pay what they paid.', games: ['Startup Tycoon'] },
     { id: 'pendant-tide', slot: 'pendant', name: 'Tide Glass', cost: 44, color: '#149e86', accent: '#2ee6c7',
       blurb: 'Sea-glass on every ceiling pendant. Deals still pay what they paid.', games: ['Startup Tycoon'] },
+    { id: 'tarp-ward', slot: 'tarp', name: 'Ward Cloth', cost: 44, color: '#6d4cff', accent: '#ff4ad2',
+      blurb: 'A dyed cloth on the night clinic tarp. The cot still costs what it cost.', games: ['Homeless Village'] },
   ];
 
   const BY_ID = {};
@@ -80,6 +83,7 @@
     { id: 'tent', name: 'Tent canvas' },
     { id: 'lamp', name: 'Desk lamp' },
     { id: 'pendant', name: 'Pendants' },
+    { id: 'tarp', name: 'Tarps' },
   ];
 
   function itemById(id) { return BY_ID[id] || null; }
@@ -265,6 +269,7 @@
       const tent = take('tent');
       const lamp = take('lamp');
       const pendant = take('pendant');
+      const tarp = take('tarp');
       lookCached = {
         skin: skin ? { id: skin.id, name: skin.name, color: skin.color, accent: skin.accent } : null,
         trail: trail ? { id: trail.id, name: trail.name, color: trail.color, style: trail.style } : null,
@@ -277,6 +282,7 @@
         tent: tent ? { id: tent.id, name: tent.name, color: tent.color, accent: tent.accent } : null,
         lamp: lamp ? { id: lamp.id, name: lamp.name, color: lamp.color, accent: lamp.accent } : null,
         pendant: pendant ? { id: pendant.id, name: pendant.name, color: pendant.color, accent: pendant.accent } : null,
+        tarp: tarp ? { id: tarp.id, name: tarp.name, color: tarp.color, accent: tarp.accent } : null,
         sparks: doc.sparks | 0,
       };
       lookAt = t;
@@ -487,6 +493,7 @@
       if (item.slot === 'tent') return paintTent(ctx, w, h, item, t, revealing);
       if (item.slot === 'lamp') return paintLamp(ctx, w, h, item, t, revealing);
       if (item.slot === 'pendant') return paintPendant(ctx, w, h, item, t, revealing);
+      if (item.slot === 'tarp') return paintTarp(ctx, w, h, item, t, revealing);
       const x = w * (0.32 + Math.sin(t * 1.3) * 0.18);
       paintMarch(ctx, x, ground, h, item, t, revealing);
       if (revealing) paintBurst(ctx, w, h, t);
@@ -700,6 +707,15 @@
       ctx.fill();
       ctx.fillStyle = item.accent || '#2ee6c7';
       ctx.fillRect(x - 30 * scale, y + 8 * scale, 60 * scale, 5 * scale);
+      if (revealing) paintBurst(ctx, w, h, t);
+    }
+    function paintTarp(ctx, w, h, item, t, revealing) {
+      const x = w * 0.5;
+      const y = h * 0.46 + Math.sin(t * 2) * 2;
+      ctx.fillStyle = item.color || '#6d4cff';
+      ctx.fillRect(x - 46, y - 16, 92, 36);
+      ctx.fillStyle = item.accent || '#ff4ad2';
+      ctx.fillRect(x - 46, y + 14, 92, 8);
       if (revealing) paintBurst(ctx, w, h, t);
     }
 

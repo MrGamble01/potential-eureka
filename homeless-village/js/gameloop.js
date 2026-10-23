@@ -83,11 +83,49 @@ function refreshStructures(){
 
 // ── Night clinic ──
 var clinicMesh=null;
+var CLINIC_TARP_BARE=0xd8d4cc;
+function clinicShopLook(){
+  try {
+    if(window.EurekaCosmetics&&typeof EurekaCosmetics.look==='function'){
+      var look=EurekaCosmetics.look();
+      if(look&&look.tarp&&typeof look.tarp.color==='string') return look.tarp;
+    }
+  } catch(e) {}
+  return null;
+}
+function clinicCssHex(s, fallback){
+  if(typeof s!=='string') return fallback;
+  var m=/^#([0-9a-fA-F]{6})$/.exec(s);
+  return m ? parseInt(m[1],16) : fallback;
+}
 function buildClinic(x,z){
   if(clinicMesh){ scene.remove(clinicMesh); clinicMesh=null; }
   var grp=new THREE.Group();
-  var tarp=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,1.6), new THREE.MeshLambertMaterial({color:0xd8d4cc}));
-  tarp.position.y=1.35; grp.add(tarp);
+  var worn=clinicShopLook();
+  var tarp=new THREE.Mesh(
+    new THREE.BoxGeometry(2.2,.08,1.6),
+    worn
+      ? new THREE.MeshLambertMaterial({color:clinicCssHex(worn.color, CLINIC_TARP_BARE)})
+      : new THREE.MeshLambertMaterial({color:0xd8d4cc})
+  );
+  tarp.position.y=1.35; tarp.name='clinic-tarp'; grp.add(tarp);
+  if(worn){
+    // Unlit band on the tarp the camp camera already sees. The point
+    // light and the red cross stay put, and raising the clinic does
+    // not spend the cot.
+    var hem=new THREE.Mesh(
+      new THREE.PlaneGeometry(2.0,1.15),
+      new THREE.MeshBasicMaterial({
+        color:clinicCssHex(worn.accent, 0xff4ad2),
+        side:THREE.DoubleSide,
+        fog:false
+      })
+    );
+    hem.name='clinic-tarp-hem';
+    hem.position.set(0,1.48,0);
+    hem.rotation.x=-Math.PI/2;
+    grp.add(hem);
+  }
   [[-1,-.7],[1,-.7],[-1,.7],[1,.7]].forEach(function(p){
     var pole=new THREE.Mesh(new THREE.BoxGeometry(.06,1.35,.06), MAT.metal);
     pole.position.set(p[0],.67,p[1]); grp.add(pole);

@@ -321,6 +321,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hublinks` (catalogue cards, daily chips, Hall of Fame rows and nickname URLs open the game they name; `#game2048` / `#grow-op` / `#hof` included; 404 lists working game links)
 - `objective` (SITE-6: every arcade game states its goal and not just its keys — Crate Escape's stated goal is the one checkSolved tests, Vector Defense's wave and life counts are recomputed from the source, and a vocabulary guard catches any game that lists controls and never says what a run is for)
 - `controls` (SITE-7: every arcade game names an input and not just a goal — the seven subtitles that stated a goal and left the keys unsaid now carry them, each claim recomputed from the handler that owns it, plus a guard against a subtitle rendering a literal HTML entity)
+- `hvward` (Night Clinic tarp: a bare cot keeps the gray cloth, Ward Cloth dyes it and shows the unlit band, a rebuild keeps the dye, taking it off restores the gray, and the clinic recipe stays wood 7, scraps 5, cardboard 3, goodwill 4)
 
 - `hvcloth` (Supper Cloth: the soup-kitchen awning wears a shop hem; the pot recipe stays wood 10, scraps 8, cans 5, goodwill 5)
 ### Hearthvale suites
