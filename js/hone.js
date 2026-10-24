@@ -40,7 +40,7 @@ const HoneGame = (() => {
     flash = 0;
     verdict = '';
     y = TOP;
-    speed = 96;
+    speed = 78;
     half = 42;
     syncPause();
     const ov = document.getElementById('hone-overlay');
