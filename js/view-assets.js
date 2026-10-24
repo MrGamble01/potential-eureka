@@ -28,6 +28,7 @@
     brand: 'js/brand.js',
     stitch: 'js/stitch.js',
     hone: 'js/hone.js',
+    quench: 'js/quench.js',
   };
   const TOOLS = {
     dashboard: {
