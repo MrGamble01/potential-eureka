@@ -15,7 +15,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Thirty-three games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Thirty-four games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
@@ -320,7 +320,7 @@
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">25</span>
+          <span class="arcade-section-count">26</span>
           <span class="arcade-section-chip">Few minutes</span>
         </div>
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
@@ -677,6 +677,20 @@
           <div class="arcade-card-title">HONE</div>
           <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Hone</span><span>One tap</span></div>
           <div class="arcade-card-desc">Hone the stone in the gold.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card" href="#quench" data-view="quench" style="--accent:#2f7ea8">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/covers/quench.svg" alt="Quench cover" width="640" height="400" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="quench"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">QUENCH</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Quench</span><span>One tap</span></div>
+          <div class="arcade-card-desc">Quench the bar in the gold.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -1731,6 +1745,30 @@
     </div>
   </section>
 
+  <section id="view-quench" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">QUENCH</div>
+        <div class="game-subtitle">One bar in a trough. Tap, click, or press Space to quench it in the gold. P pauses. R restarts.</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Quenches: <strong id="quench-score">0</strong></span>
+        <span>Best: <strong id="quench-best">0</strong></span>
+        <span>State: <strong id="quench-state">Live</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="quench-canvas" class="game-canvas" role="img" aria-label="Hot bar"></canvas>
+        <div id="quench-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" type="button" onclick="QuenchGame.start()">New Game</button>
+        <button type="button" id="quench-pause" onclick="QuenchGame.togglePause()">Pause</button>
+        <button type="button" onclick="QuenchGame.restart()">Restart</button>
+      </div>
+    </div>
+  </section>
+
   <section id="view-gutterlight" class="view">
     <div class="game-container">
       <div class="game-header">
@@ -1758,7 +1796,7 @@
 
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Thirty-three browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Thirty-four browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
@@ -1803,7 +1841,7 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Thirty-three games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+        Thirty-four games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
         <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
@@ -1954,6 +1992,7 @@
       brand: () => BrandGame.destroy(),
       stitch: () => StitchGame.destroy(),
       hone: () => HoneGame.destroy(),
+      quench: () => QuenchGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
       // which view was on screen.
@@ -1968,7 +2007,7 @@
     const RETURN_KEY = 'eureka-arcade-return';
     const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
       'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
-      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch', 'hone']);
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch', 'hone', 'quench']);
     function sectionForEl(el) {
       const sec = el && el.closest && el.closest('[data-section]');
       return (sec && sec.dataset.section) || '';
@@ -2124,6 +2163,7 @@
           case 'brand':        BrandGame.init(); break;
           case 'stitch':       StitchGame.init(); break;
           case 'hone':         HoneGame.init(); break;
+          case 'quench':       QuenchGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -2141,6 +2181,7 @@
       if (name === 'brand') BrandGame.resume();
       if (name === 'stitch') StitchGame.resume();
       if (name === 'hone') HoneGame.resume();
+      if (name === 'quench') QuenchGame.resume();
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (typeof Achievements !== 'undefined') Achievements.check();
@@ -2252,6 +2293,8 @@
         best: () => { const v = Scores.num('stitch-best'); return v > 0 ? v + ' stitches' : null; } },
       { name: 'Hone',             accent: '#c46a32', rid: 'hone-best', href: '#hone', go: () => { rememberLaunch('quick'); switchView('hone'); },
         best: () => { const v = Scores.num('hone-best'); return v > 0 ? v + (v === 1 ? ' hone' : ' hones') : null; } },
+      { name: 'Quench',           accent: '#2f7ea8', rid: 'quench-best', href: '#quench', go: () => { rememberLaunch('quick'); switchView('quench'); },
+        best: () => { const v = Scores.num('quench-best'); return v > 0 ? v + (v === 1 ? ' quench' : ' quenches') : null; } },
     ];
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to
@@ -2635,6 +2678,7 @@
         brand: () => { const v = Scores.num('brand-best'); return v > 0 ? v + ' brands' : ''; },
         stitch: () => { const v = Scores.num('stitch-best'); return v > 0 ? v + ' stitches' : ''; },
         hone: () => { const v = Scores.num('hone-best'); return v > 0 ? v + (v === 1 ? ' hone' : ' hones') : ''; },
+        quench: () => { const v = Scores.num('quench-best'); return v > 0 ? v + (v === 1 ? ' quench' : ' quenches') : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
