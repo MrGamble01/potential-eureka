@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Age of War cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#3ddcff"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M0 456h480v184H0z" fill="#1a1f2b"/>
+  <path d="M0 456h480" stroke="#3ddcff" stroke-width="3"/>
+  <g fill="#c4beb2">
+    <rect x="108" y="300" width="84" height="176"/>
+    <rect x="192" y="228" width="104" height="248"/>
+    <rect x="296" y="284" width="84" height="192"/>
+  </g>
+  <g fill="#10131a">
+    <rect x="118" y="286" width="18" height="16"/><rect x="144" y="286" width="18" height="16"/><rect x="170" y="286" width="16" height="16"/>
+    <rect x="204" y="214" width="20" height="18"/><rect x="234" y="214" width="20" height="18"/><rect x="264" y="214" width="20" height="18"/>
+    <rect x="306" y="270" width="18" height="16"/><rect x="332" y="270" width="18" height="16"/><rect x="358" y="270" width="16" height="16"/>
+    <rect x="226" y="380" width="36" height="76"/>
+  </g>
+  <rect x="236" y="164" width="6" height="54" fill="#8b83ff"/>
+  <path d="M242 164h12l22 22-22 22h-12z" fill="#3ddcff"/>
+  <g fill="#f6f3ea">
+    <rect x="140" y="348" width="16" height="28"/><rect x="328" y="340" width="16" height="28"/>
+    <circle cx="78" cy="424" r="12"/><rect x="70" y="434" width="16" height="34"/>
+    <circle cx="404" cy="424" r="12"/><rect x="396" y="434" width="16" height="34"/>
+  </g>
+  <path d="M78 400v-34M404 400v-34" stroke="#3ddcff" stroke-width="3"/>
+  <path d="M68 366h20M394 366h20" stroke="#3ddcff" stroke-width="3"/>
+</svg>
