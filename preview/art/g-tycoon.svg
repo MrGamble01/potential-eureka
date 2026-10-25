@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Startup Tycoon cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#3ddcff"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M0 478h480v162H0z" fill="#1a1f2b"/>
+  <path d="M0 478h480" stroke="#3ddcff" stroke-width="3"/>
+  <rect x="78" y="248" width="196" height="246" fill="#f6f3ea"/>
+  <path d="M66 248h220l-20-40H86z" fill="#3ddcff"/>
+  <g fill="#8b83ff">
+    <rect x="98" y="276" width="36" height="28"/><rect x="146" y="276" width="36" height="28"/><rect x="194" y="276" width="36" height="28"/>
+    <rect x="98" y="320" width="36" height="28"/><rect x="146" y="320" width="36" height="28"/><rect x="194" y="320" width="36" height="28"/>
+    <rect x="98" y="364" width="36" height="28"/><rect x="194" y="364" width="36" height="28"/>
+  </g>
+  <rect x="148" y="420" width="56" height="74" fill="#10131a"/>
+  <path d="M292 430l56-150 34 16-56 150z" fill="#3ddcff"/>
+  <path d="M340 268l40-62 18 12-40 62z" fill="#f6f3ea"/>
+  <rect x="300" y="408" width="24" height="70" fill="#c4beb2"/>
+  <rect x="334" y="364" width="24" height="114" fill="#f6f3ea"/>
+  <rect x="368" y="312" width="24" height="166" fill="#3ddcff"/>
+</svg>

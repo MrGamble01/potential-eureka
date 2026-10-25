@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Snake cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#3ddcff"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M0 520h480v120H0z" fill="#1a1f2b"/>
+  <path d="M0 520h480" stroke="#3ddcff" stroke-width="3"/>
+  <path d="M110 500C110 390 230 390 230 470C230 550 340 530 360 410" fill="none" stroke="#f6f3ea" stroke-width="32" stroke-linecap="round"/>
+  <path d="M110 500C110 390 230 390 230 470C230 550 340 530 360 410" fill="none" stroke="#3ddcff" stroke-width="6" stroke-linecap="round" stroke-dasharray="3 18"/>
+  <circle cx="378" cy="392" r="24" fill="#f6f3ea"/>
+  <circle cx="388" cy="384" r="5" fill="#10131a"/>
+  <path d="M110 500l-26 12 26 14z" fill="#8b83ff"/>
+  <circle cx="168" cy="360" r="20" fill="#3ddcff"/>
+  <path d="M168 336c8 8 12 8 18-2" fill="none" stroke="#8b83ff" stroke-width="4"/>
+</svg>
