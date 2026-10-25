@@ -1,46 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
-  <title id="title">Homeless Village cover</title>
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#243044"/>
-      <stop offset="1" stop-color="#14110e"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
-      <stop offset="0" stop-color="#f0883e" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#f0883e" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
-    </linearGradient>
-  </defs>
-  <rect width="640" height="400" fill="url(#sky)"/>
-  <rect width="640" height="400" fill="url(#glow)"/>
-  
-      <path d="M0 70 H640 V230 Q480 120 320 150 Q160 180 0 110 Z" fill="#1a1814"/>
-      <path d="M0 86 H640" stroke="#3a342c" stroke-width="8"/>
-      <rect x="0" y="250" width="640" height="150" fill="#1c1814"/>
-      <g>
-        <polygon points="90,300 150,230 210,300" fill="#c4a574"/>
-        <rect x="108" y="300" width="84" height="40" fill="#8a6a42"/>
-        <polygon points="250,310 320,236 390,310" fill="#d7c3a2"/>
-        <rect x="276" y="310" width="88" height="36" fill="#6e5434"/>
-        <polygon points="430,292 500,228 570,292" fill="#b08968"/>
-        <rect x="452" y="292" width="96" height="48" fill="#7a5a38"/>
-      </g>
-      <rect x="300" y="250" width="36" height="28" rx="4" fill="#3a2a22"/>
-      <ellipse cx="318" cy="246" rx="16" ry="8" fill="#f0883e"/>
-      <ellipse cx="318" cy="238" rx="8" ry="8" fill="#ffd7a1"/>
-      <g fill="#f0c98a" opacity="0.85">
-        <circle cx="40" cy="40" r="1.5"/><circle cx="120" cy="28" r="1.5"/><circle cx="200" cy="48" r="1.2"/>
-        <circle cx="520" cy="36" r="1.5"/><circle cx="590" cy="24" r="1.2"/>
-      </g>
-      <path d="M80 168 Q200 150 320 168 Q440 186 560 160" fill="none" stroke="#f0c552" stroke-width="2" opacity="0.7"/>
-      <g fill="#f0c552">
-        <circle cx="120" cy="160" r="3"/><circle cx="220" cy="156" r="3"/><circle cx="320" cy="168" r="3"/>
-        <circle cx="420" cy="176" r="3"/><circle cx="520" cy="162" r="3"/>
-      </g>
-    
-  <rect width="640" height="400" fill="url(#shade)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Homeless Village cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#e3b341"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M40 268h400" stroke="#c4beb2" stroke-width="12"/>
+  <path d="M64 268v140M416 268v140" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M64 268c72 78 140 78 176 0" fill="none" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M240 268c72 78 140 78 176 0" fill="none" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M0 478h480v162H0z" fill="#1a1f2b"/>
+  <path d="M0 478h480" stroke="#e3b341" stroke-width="3"/>
+  <path d="M186 478l74-96 74 96z" fill="#e3b341"/>
+  <path d="M208 478l52-68 52 68z" fill="#10131a"/>
+  <circle cx="260" cy="436" r="12" fill="#e3b341"/>
+  <path d="M64 478l52-52h86l38 52z" fill="#f6f3ea"/>
+  <path d="M88 478l34-32h52l30 32z" fill="#8b83ff"/>
+  <rect x="348" y="412" width="68" height="66" fill="#c4beb2"/>
+  <path d="M338 412h88l-10-22H348z" fill="#e3b341"/>
 </svg>
