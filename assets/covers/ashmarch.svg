@@ -1,14 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
-  <defs>
-    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1a140c"/>
-      <stop offset="1" stop-color="#3a3328"/>
-    </linearGradient>
-  </defs>
-  <rect width="640" height="400" fill="url(#s)"/>
-  <path d="M40 300 Q320 250 600 310" fill="none" stroke="#e3b341" stroke-width="3" opacity="0.7"/>
-  <rect x="250" y="120" width="16" height="170" fill="#0c0c10"/>
-  <rect x="390" y="120" width="16" height="170" fill="#0c0c10"/>
-  <rect x="250" y="120" width="156" height="14" fill="#0c0c10"/>
-  <circle cx="470" cy="90" r="16" fill="#e3b341"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Ashmarch cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#e3b341"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M0 448h480v192H0z" fill="#1a1f2b"/>
+  <path d="M0 448h480" stroke="#e3b341" stroke-width="3"/>
+  <path d="M240 500C200 420 140 380 70 348" fill="none" stroke="#e3b341" stroke-width="10" stroke-linecap="round"/>
+  <path d="M240 500C280 420 350 380 430 356" fill="none" stroke="#c4beb2" stroke-width="10" stroke-linecap="round"/>
+  <path d="M132 292h216v168H132z" fill="#f6f3ea"/>
+  <path d="M132 292c36 26 72 26 108 0v168H132z" fill="#e3b341"/>
+  <path d="M160 328h56M160 354h74M160 380h46" stroke="#10131a" stroke-width="4"/>
+  <rect x="214" y="200" width="12" height="92" fill="#c4beb2"/>
+  <path d="M226 206h40l-8 22h-32z" fill="#e3b341"/>
+  <path d="M56 360h52v100H56z" fill="#8b83ff"/>
+  <path d="M44 360h76l-8-20H52z" fill="#f6f3ea"/>
+  <rect x="384" y="368" width="40" height="72" fill="#c4beb2"/>
+  <path d="M372 368h64l-8-18h-48z" fill="#e3b341"/>
 </svg>

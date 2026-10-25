@@ -1,45 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title">
-  <title id="title">Startup Tycoon cover</title>
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#123056"/>
-      <stop offset="1" stop-color="#070d16"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
-      <stop offset="0" stop-color="#58a6ff" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#58a6ff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
-    </linearGradient>
-  </defs>
-  <rect width="640" height="400" fill="url(#sky)"/>
-  <rect width="640" height="400" fill="url(#glow)"/>
-  
-      <g fill="#0e1c30">
-        <rect x="70" y="210" width="70" height="150"/>
-        <rect x="160" y="160" width="78" height="200"/>
-        <rect x="258" y="120" width="86" height="240"/>
-        <rect x="364" y="78" width="92" height="282"/>
-        <rect x="476" y="46" width="100" height="314"/>
-      </g>
-      <g fill="#58a6ff" opacity="0.85">
-        <rect x="84" y="228" width="10" height="14"/><rect x="102" y="228" width="10" height="14"/><rect x="120" y="228" width="10" height="14"/>
-        <rect x="84" y="252" width="10" height="14"/><rect x="102" y="252" width="10" height="14"/>
-        <rect x="176" y="180" width="12" height="16"/><rect x="198" y="180" width="12" height="16"/><rect x="220" y="180" width="12" height="16"/>
-        <rect x="176" y="208" width="12" height="16"/><rect x="198" y="208" width="12" height="16"/><rect x="220" y="208" width="12" height="16"/>
-        <rect x="276" y="142" width="14" height="18"/><rect x="300" y="142" width="14" height="18"/><rect x="324" y="142" width="14" height="18"/>
-        <rect x="276" y="172" width="14" height="18"/><rect x="300" y="172" width="14" height="18"/>
-        <rect x="382" y="100" width="16" height="20"/><rect x="408" y="100" width="16" height="20"/><rect x="434" y="100" width="16" height="20"/>
-        <rect x="382" y="132" width="16" height="20"/><rect x="408" y="132" width="16" height="20"/><rect x="434" y="132" width="16" height="20"/>
-        <rect x="494" y="70" width="16" height="20"/><rect x="522" y="70" width="16" height="20"/><rect x="550" y="70" width="16" height="20"/>
-        <rect x="494" y="102" width="16" height="20"/><rect x="522" y="102" width="16" height="20"/><rect x="550" y="102" width="16" height="20"/>
-      </g>
-      <path d="M80 300 C180 280 220 220 300 190 S460 90 560 70" fill="none" stroke="#9ad0ff" stroke-width="4"/>
-      <circle cx="560" cy="70" r="7" fill="#e7f3ff"/>
-      <polygon points="500,40 520,18 508,40" fill="#f0c552"/>
-    
-  <rect width="640" height="400" fill="url(#shade)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Startup Tycoon cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#e3b341"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M0 478h480v162H0z" fill="#1a1f2b"/>
+  <path d="M0 478h480" stroke="#e3b341" stroke-width="3"/>
+  <rect x="78" y="248" width="196" height="246" fill="#f6f3ea"/>
+  <path d="M66 248h220l-20-40H86z" fill="#e3b341"/>
+  <g fill="#8b83ff">
+    <rect x="98" y="276" width="36" height="28"/><rect x="146" y="276" width="36" height="28"/><rect x="194" y="276" width="36" height="28"/>
+    <rect x="98" y="320" width="36" height="28"/><rect x="146" y="320" width="36" height="28"/><rect x="194" y="320" width="36" height="28"/>
+    <rect x="98" y="364" width="36" height="28"/><rect x="194" y="364" width="36" height="28"/>
+  </g>
+  <rect x="148" y="420" width="56" height="74" fill="#10131a"/>
+  <path d="M292 430l56-150 34 16-56 150z" fill="#e3b341"/>
+  <path d="M340 268l40-62 18 12-40 62z" fill="#f6f3ea"/>
+  <rect x="300" y="408" width="24" height="70" fill="#c4beb2"/>
+  <rect x="334" y="364" width="24" height="114" fill="#f6f3ea"/>
+  <rect x="368" y="312" width="24" height="166" fill="#e3b341"/>
 </svg>
