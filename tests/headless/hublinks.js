@@ -45,12 +45,12 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 36, `catalogue exposes 36 launch links, hero and workshop included (${cards.length})`);
+  ok(cards.length === 9, `catalogue exposes 9 launch links, hero included (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
-  ok(hashCards.length === 26 && hashCards.every(c => c.view),
-    `quick-game links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 26'})`);
+  ok(hashCards.length === 4 && hashCards.every(c => c.view),
+    `quick-game links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 4'})`);
   ok(pageCards.every(c => fileExists(c.href)),
     `standalone links point at a file (${pageCards.map(c => c.href).join(', ')})`);
   ok(pageCards.some(c => c.href === 'tycoon/play.html' && /STARTUP TYCOON/.test(c.title)),
@@ -58,7 +58,8 @@ function fileExists(href) {
   ok(pageCards.some(c => c.href === 'ageofwar/' && /AGE OF WAR/.test(c.title)),
     'Age of War still links into ageofwar/');
   ok(pageCards.some(c => c.href === 'games/ashmarch/'), 'Ashmarch stays a catalogue launch link');
-  ok(pageCards.some(c => c.href === 'games/ledger/'), 'The Ledger stays a catalogue launch link');
+  ok(!pageCards.some(c => c.href === 'games/ledger/' || c.href === 'drug-lab.html' || c.href === 'agentic-os.html'),
+    'Ledger, Grow Op, and Studio are not catalogue launch links');
 
   const daily = await page.evaluate(() =>
     [...document.querySelectorAll('.daily-chip')].map(el => ({
@@ -66,11 +67,11 @@ function fileExists(href) {
       href: el.getAttribute('href'),
       name: el.childNodes[0] ? el.childNodes[0].textContent.trim() : el.textContent.trim(),
     })));
-  ok(daily.length === 7 && daily.every(d => d.tag === 'A' && d.href && d.href.startsWith('#')),
-    'today\'s seven chips are links into a hub view');
+  ok(daily.length === 4 && daily.every(d => d.tag === 'A' && d.href && d.href.startsWith('#')),
+    'today\'s four chips are links into a hub view');
   const byName = Object.fromEntries(daily.map(d => [d.name, d.href]));
-  ok(byName['Vector Storm'] === '#asteroids' && byName['Maze Runner'] === '#maze' && byName['Word Cascade'] === '#wordcascade',
-    `daily chips use the catalogue titles (${daily.map(d => d.name).join(', ')})`);
+  ok(byName['Snake'] === '#snake' && byName['Tetris'] === '#tetris' && byName['2048'] === '#2048' && byName['Minefield'] === '#minesweeper',
+    `daily chips are the listed classics (${daily.map(d => d.name).join(', ')})`);
 
   await page.click('.arcade-grid--quick a.arcade-card[href="#snake"]');
   await page.waitForTimeout(400);
@@ -125,7 +126,7 @@ function fileExists(href) {
   }));
   ok(doors.stay && doors.grow === 'drug-lab.html' && doors.snake && doors.snake.name === 'snake' && doors.nick && doors.nick.name === '2048',
     '404 keeps its own URL and the route map resolves nicknames');
-  const expected = ['/ageofwar/', '/tycoon/play.html', '/drug-lab.html', '/homeless-village.html', '/hearthvale.html', '/voxel-garden.html', '/#snake', '/#tetris', '/#2048', '/#minesweeper'];
+  const expected = ['/ageofwar/', '/tycoon/play.html', '/homeless-village.html', '/games/ashmarch/', '/#snake', '/#tetris', '/#2048', '/#minesweeper'];
   ok(expected.every(h => doors.links.includes(h)) && expected.filter(h => !h.includes('#')).every(fileExists),
     '404 lists a working door for each flagship and four quick games');
   await missing.close();

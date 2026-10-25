@@ -1,7 +1,7 @@
 /*
  * Flagship daily — one seeded sprint.
  *  A. The hub card names one flagship, the goal, the clock, the best
- *     and the streak, and leaves the quick-arcade banner at 7 chips.
+ *     and the streak, and leaves the quick-arcade banner at 4 chips.
  *  B. The same date always deals the same game, goal and board.
  *  C. A finished run on that board records the best, the history and
  *     the streak. Banking a worse replay does not erase the best.
@@ -61,7 +61,7 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
       'hub card shows the shared seed, the goal and the clock');
     ok(card.best === 'Best —' && /Streak 0/.test(card.streak), 'a fresh browser has no best and no streak');
     ok(card.href === card.expectedHref && card.href.indexOf('daily=1') >= 0, 'the play link opens that flagship seeded');
-    ok(card.chips === 7, 'the quick-arcade daily still has its 7 chips');
+    ok(card.chips === 4, 'the quick-arcade daily still has its 4 chips');
     ok(card.width <= 391, 'the card does not widen a phone');
     await ctx.close();
   }
@@ -105,14 +105,14 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
     const date = await page.evaluate(() => {
       for (let i = 0; i < 40; i++) {
         const key = FlagDaily.todayKey(new Date(2026, 0, 1 + i));
-        if (FlagDaily.challengeFor(key).game.id === 'hearthvale') return key;
+        if (FlagDaily.challengeFor(key).game.id === 'clinic') return key;
       }
       return null;
     });
-    ok(!!date, 'some date deals Hearthvale');
+    ok(!!date, 'some date deals Homeless Village');
     await ctx.close();
 
-    const play = await open('/hearthvale.html?daily=1&asof=' + date);
+    const play = await open('/homeless-village.html?daily=1&asof=' + date);
     await play.page.waitForSelector('#flag-daily-grid', { timeout: 8000 });
     const board = await play.page.evaluate(() => {
       const spec = FlagDaily.challengeFor(FlagDaily.activeDate());
@@ -125,8 +125,8 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
         official: document.getElementById('flag-daily-layer').dataset.official,
       };
     });
-    ok(board.official === '1' && board.game === 'hearthvale' && board.faces === board.expected,
-      'Hearthvale opens on the seeded morning market');
+    ok(board.official === '1' && board.game === 'clinic' && board.faces === board.expected,
+      'Homeless Village opens on the seeded shift');
 
     const tapped = await play.page.evaluate(() => {
       const btn = document.querySelector('#flag-daily-grid .fd-tile[data-trap="0"]');

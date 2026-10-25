@@ -64,7 +64,7 @@ async function free2048Sig(browser, errs) {
 // sparkle and runner idle animation that break raw screenshot equality.
 async function mazeLattice(browser, errs, viaDaily) {
   const { ctx, page } = await newPage(browser, errs);
-  if (viaDaily) await page.click('.daily-chip[data-game="maze"]');
+  if (viaDaily) await page.evaluate(() => { Daily.arm('maze'); location.hash = '#maze'; });
   else await page.evaluate(() => { location.hash = '#maze'; });
   await page.waitForTimeout(1500);
   const grid = await page.evaluate(() => {
@@ -101,7 +101,7 @@ async function mazeLattice(browser, errs, viaDaily) {
     }));
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    ok(banner.visible && banner.chips === 7, `banner renders with 7 chips`);
+    ok(banner.visible && banner.chips === 4, `banner renders with 4 chips`);
     ok(banner.date === key, `banner date is today (${banner.date})`);
     await ctx.close();
   }

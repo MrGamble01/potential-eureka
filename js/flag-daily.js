@@ -1,8 +1,7 @@
 /* ============================================
    FLAGSHIP DAILY — one seeded sprint a day.
-   The calendar picks Startup Tycoon, Beagle
-   Sim, Hearthvale, Grow Op, or Night Clinic.
-   Everyone who
+   The calendar picks Startup Tycoon or
+   Homeless Village. Everyone who
    plays that date gets the same board, goal
    and clock. Best score, history and streak
    stay in this browser (eureka-flag-daily-v1).
@@ -25,42 +24,6 @@
       good: ['📦', '🚀', '💻'],
       trap: '🐛',
       trapName: 'bug',
-    },
-    {
-      id: 'beagle',
-      name: 'Beagle Sim',
-      href: '/tycoon/play.html?theme=beagle&daily=1',
-      accent: '#E3B341',
-      unit: '',
-      title: 'Bone Run',
-      blurb: 'Dig up the good bones. The office cat swipes the score.',
-      good: ['🦴', '🎾', '🐶'],
-      trap: '🐈',
-      trapName: 'cat',
-    },
-    {
-      id: 'hearthvale',
-      name: 'Hearthvale',
-      href: '/hearthvale.html?daily=1',
-      accent: '#7DCE7A',
-      unit: '',
-      title: 'Market Morning',
-      blurb: 'Sell the morning stall. Wolves take the coin.',
-      good: ['🍎', '🪵', '🪨'],
-      trap: '🐺',
-      trapName: 'wolf',
-    },
-    {
-      id: 'growop',
-      name: 'Grow Op',
-      href: '/drug-lab.html?daily=1',
-      accent: '#3FB950',
-      unit: '$',
-      title: 'Corner Rush',
-      blurb: 'Move the bags. A badge seizes the hand.',
-      good: ['🌿', '💰', '✨'],
-      trap: '🚔',
-      trapName: 'badge',
     },
     {
       id: 'clinic',

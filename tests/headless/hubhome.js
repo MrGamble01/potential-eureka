@@ -106,17 +106,17 @@ async function openMenu(p) {
     const studio = document.querySelector('[data-section="studio"]');
     const jumps = [...document.querySelectorAll('[data-jump]')].map(b => b.dataset.jump);
     return {
-      longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /26/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
-      studio: !!(studio && /Studio/.test((studio.querySelector('.arcade-section-title') || {}).textContent || '')),
-      jumps: ['long', 'quick', 'studio'].every(k => jumps.includes(k)),
+      longTitle: !!(long && /Long games/.test(long.textContent) && /4/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /4/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
+      studio: !!studio,
+      jumps: ['long', 'quick'].every(k => jumps.includes(k)) && !jumps.includes('studio'),
       longCards: long ? long.querySelectorAll('.arcade-card').length : 0,
       quickCards: quick ? quick.querySelectorAll('.arcade-card').length : 0,
     };
   });
-  ok(scan.longTitle && scan.longCards === 6, 'Long games is labeled, counted, and holds the six flagships');
-  ok(scan.quickTitle && scan.quickCards === 26, 'Quick games is labeled, counted, and holds the twenty-six arcade titles');
-  ok(scan.studio && scan.jumps, 'Studio is labeled and the scan hops reach long, quick and studio');
+  ok(scan.longTitle && scan.longCards === 4, 'Long games is labeled, counted, and holds the four flagships');
+  ok(scan.quickTitle && scan.quickCards === 4, 'Quick games is labeled, counted, and holds the four classics');
+  ok(!scan.studio && scan.jumps, 'the Studio section is gone and the scan hops are Long and Quick');
 
   await page.click('.arcade-scan-link--quick');
   await page.waitForTimeout(1600);
@@ -136,7 +136,7 @@ async function openMenu(p) {
     scanHidden: getComputedStyle(document.querySelector('.arcade-scan')).display === 'none',
     dailyHidden: getComputedStyle(document.getElementById('daily-banner')).display === 'none',
   }));
-  ok(filtered.count === '6 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
+  ok(filtered.count === '3 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
   ok(filtered.dailyHidden, 'a hit filter tucks the daily banner so the matches come up');
 
@@ -298,16 +298,17 @@ async function openMenu(p) {
   await page.evaluate(() => { location.hash = '#arcade'; });
   await page.waitForTimeout(600);
 
-  await page.fill('#card-search', 'office');
+  await page.fill('#card-search', 'chronicle');
   await page.waitForTimeout(200);
   const descHit = await page.evaluate(() => ({
     count: document.getElementById('card-search-count').textContent,
-    studio: !document.querySelector('[data-section="studio"]').hidden,
+    longHidden: document.querySelector('[data-section="long"]').hidden,
     empty: document.getElementById('arcade-empty').hidden,
-    title: ((document.querySelector('.arcade-grid--studio .arcade-card-title') || {}).textContent || ''),
+    title: ((document.querySelector('.arcade-grid--long .arcade-card[href="games/ashmarch/"] .arcade-card-title') || {}).textContent || ''),
+    shown: document.querySelector('.arcade-grid--long .arcade-card[href="games/ashmarch/"]').style.display !== 'none',
   }));
-  ok(descHit.studio && descHit.empty && /studio/i.test(descHit.title) && descHit.count === '1 game',
-    'search "office" matches the Studio card description');
+  ok(!descHit.longHidden && descHit.shown && descHit.empty && /ASHMARCH/.test(descHit.title) && descHit.count === '1 game',
+    'search "chronicle" matches the Ashmarch card');
   await page.fill('#card-search', '');
   await page.waitForFunction(() => {
     const cards = [...document.querySelectorAll('#view-arcade .arcade-card')];
@@ -339,16 +340,8 @@ async function openMenu(p) {
       overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   });
-  ok(desktopLong.cols === 3 && desktopLong.rows === 2 && desktopLong.last === 3 && !desktopLong.overflow,
-    `1280 Long games scan as two even rows of three (${desktopLong.cols}+${desktopLong.last})`);
-
-  const desktopStudio = await page.evaluate(() => {
-    const card = document.querySelector('.arcade-grid--studio .arcade-card');
-    const r = card.getBoundingClientRect();
-    return { w: Math.round(r.width), h: Math.round(r.height) };
-  });
-  ok(desktopStudio.w >= 200 && desktopStudio.w <= 420,
-    `1280 Studio is one card wide, not a stretched banner (${desktopStudio.w}px)`);
+  ok(desktopLong.cols === 4 && desktopLong.rows === 1 && desktopLong.last === 4 && !desktopLong.overflow,
+    `1280 Long games scan as one row of four (${desktopLong.cols})`);
 
   const desktopQuick = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-section="quick"] .arcade-card')];
@@ -361,8 +354,8 @@ async function openMenu(p) {
       last: widths[widths.length - 1],
     };
   });
-  ok(desktopQuick.cols === 3 && desktopQuick.rows === 9 && desktopQuick.full === 8 && desktopQuick.last === 2,
-    `1280 Quick games scan as nine rows (${desktopQuick.cols}×${desktopQuick.full}, last ${desktopQuick.last})`);
+  ok(desktopQuick.cols === 4 && desktopQuick.rows === 1 && desktopQuick.last === 4,
+    `1280 Quick games scan as one row of four (${desktopQuick.cols})`);
 
   const titleFold = await page.evaluate(() => {
     const title = document.querySelector('.arcade-grid--long .arcade-card-title');
@@ -421,17 +414,12 @@ async function openMenu(p) {
   ok(dense.cta === 1 && dense.flagship,
     'the tablet hero still has one Age of War path');
 
-  const studioWide = await tp.evaluate(() => {
-    const card = document.querySelector('.arcade-grid--studio .arcade-card');
-    const tags = card.querySelector('.arcade-card-tags');
-    const w = card.getBoundingClientRect().width;
-    return {
-      width: w,
-      tagsFit: tags.scrollWidth <= tags.clientWidth + 1,
-    };
-  });
-  ok(studioWide.width >= 200 && studioWide.tagsFit,
-    `900×700 Studio is one card wide, not a squeezed third (${Math.round(studioWide.width)}px)`);
+  const longCount = await tp.evaluate(() => ({
+    n: document.querySelectorAll('.arcade-grid--long .arcade-card').length,
+    studio: !!document.querySelector('[data-section="studio"]'),
+  }));
+  ok(longCount.n === 4 && !longCount.studio,
+    '900×700 still lists the four long games and no Studio card');
 
   const chrome = await tp.evaluate(() => {
     const a = document.querySelector('.arcade-grid--long .arcade-card');
@@ -470,7 +458,7 @@ async function openMenu(p) {
       firstTop: first ? Math.round(first.getBoundingClientRect().top) : 0,
       onFold: first ? first.getBoundingClientRect().top < window.innerHeight : false,
       overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-      studioTint: studio ? getComputedStyle(studio).borderColor : '',
+      studioGone: !studio,
       ctaIn: !!(fr && cr && cr.bottom <= fr.bottom + 2 && cr.top >= fr.top - 2),
     };
   });
@@ -478,8 +466,7 @@ async function openMenu(p) {
     `720×700 keeps the compact flagship (${fold720.flagH}px), CTA inside, not a 16:9 stack`);
   ok(fold720.onFold,
     `720×700 first Long card stays on the fold (top ${fold720.firstTop})`);
-  ok(/188,\s*140,\s*255|210,\s*180,\s*255|d2b4ff/i.test(fold720.studioTint),
-    `Studio scan pill has the matching rail tint (${fold720.studioTint})`);
+  ok(fold720.studioGone, '720 has no Studio scan pill');
 
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const pp = await phone.newPage();
@@ -611,7 +598,7 @@ async function openMenu(p) {
       here: !!(long && long.classList.contains('is-landed')),
     };
   });
-  ok(fromAow.q === 'hours' && fromAow.count === '6 games' && fromAow.onScreen && fromAow.here,
+  ok(fromAow.q === 'hours' && fromAow.count === '3 games' && fromAow.onScreen && fromAow.here,
     'Age of War GAMES back restores the hours filter and Long scan');
   await aow.close();
 
@@ -673,22 +660,8 @@ async function openMenu(p) {
     'Jump back in → Games restores the Quick scan');
   await resu.close();
 
-  await page.fill('#card-search', 'snake');
-  await page.waitForTimeout(200);
-  await page.evaluate(() => document.querySelector('.arcade-scan-link--studio').click());
-  await page.waitForTimeout(1600);
-  const studioHop = await page.evaluate(() => {
-    const s = document.querySelector('[data-section="studio"]');
-    const r = s.getBoundingClientRect();
-    return {
-      q: document.getElementById('card-search').value,
-      shown: !s.hidden,
-      onScreen: r.top >= 0 && r.top < window.innerHeight * 0.55,
-      here: s.classList.contains('is-landed'),
-    };
-  });
-  ok(!studioHop.q && studioHop.shown && studioHop.onScreen && studioHop.here,
-    'the Studio hop during a filter clears search and lands Studio');
+  ok(!await page.$('.arcade-scan-link--studio') && !await page.$('[data-section="studio"]'),
+    'the hub has no Studio section and no Studio scan hop');
 
   const board = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const bp = await board.newPage();
@@ -700,21 +673,21 @@ async function openMenu(p) {
     // Reset progress reloads the page. The seed must not come back on that
     // reload, or the assertion that the town was cleared would be a lie.
     if (!sessionStorage.getItem('hof-reset-done')) {
-      localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17, day: 12, seenIntro: true }));
+      localStorage.setItem('snake-high', '42');
     }
   });
   await bp.goto(BASE + '/index.html', { waitUntil: 'load' });
   await bp.waitForTimeout(1800);
   const valeBadge = await bp.evaluate(() => {
-    const el = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
+    const el = document.querySelector('.arcade-card-hi[data-hi="snake"]');
     const r = el && el.getBoundingClientRect();
     return {
       text: (el && el.textContent) || '',
       shown: !!(el && r && r.height > 0 && getComputedStyle(el).display !== 'none'),
     };
   });
-  ok(valeBadge.shown && /PEAK\s*17/.test(valeBadge.text),
-    `Hearthvale catalogue badge fills from the save (${valeBadge.text})`);
+  ok(valeBadge.shown && /HI\s*42/.test(valeBadge.text),
+    `Snake catalogue badge fills from the save (${valeBadge.text})`);
 
   await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
@@ -722,15 +695,15 @@ async function openMenu(p) {
   const hofBoard = await bp.evaluate(() => {
     const rows = [...document.querySelectorAll('.hof-row')];
     const names = rows.map(r => (r.querySelector('.hof-name') || {}).textContent || '');
-    const vale = rows.find(r => /Hearthvale/.test(r.textContent));
+    const snake = rows.find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     const long = document.querySelector('.hof-lane--long');
     const quick = document.querySelector('.hof-lane--quick');
     return {
       rows: rows.length,
       names,
-      vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
-      longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
-      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /26/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
+      snake: snake ? (snake.querySelector('.hof-score') || {}).textContent : '',
+      longTitle: !!(long && /Long games/.test(long.textContent) && /4/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /4/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
       quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
       longRanks: long ? [...long.querySelectorAll('.hof-rank')].map(el => el.textContent.trim()) : [],
@@ -738,26 +711,25 @@ async function openMenu(p) {
       quickFirst: quick && ((quick.querySelector('.hof-row .hof-name') || {}).textContent || ''),
     };
   });
-  ok(hofBoard.rows === 32 && hofBoard.longRows === 6 && hofBoard.quickRows === 26 && hofBoard.longTitle && hofBoard.quickTitle,
-    `HoF board is 6 Long + 26 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
-  ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
-    `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
-  ok(hofBoard.longRanks.join() === '01,02,03,04,05,06'
-    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[25] === '26'
+  ok(hofBoard.rows === 8 && hofBoard.longRows === 4 && hofBoard.quickRows === 4 && hofBoard.longTitle && hofBoard.quickTitle,
+    `HoF board is 4 Long + 4 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
+  ok(hofBoard.names.includes('Snake') && /42 pts/.test(hofBoard.snake),
+    `HoF lists Snake with the seeded score (${hofBoard.snake})`);
+  ok(hofBoard.longRanks.join() === '01,02,03,04'
+    && hofBoard.quickRanks.join() === '01,02,03,04'
     && /Snake/.test(hofBoard.quickFirst),
-    `HoF ranks restart per lane (Quick ${hofBoard.quickRanks[0]}–${hofBoard.quickRanks[25]}, first ${hofBoard.quickFirst})`);
-
+    `HoF ranks restart per lane (Quick ${hofBoard.quickRanks.join('–')}, first ${hofBoard.quickFirst})`);
   await Promise.all([
-    bp.waitForURL(/hearthvale/, { timeout: 20000 }),
-    bp.locator('.hof-row', { hasText: 'Hearthvale' }).click(),
+    bp.waitForURL(/homeless-village/, { timeout: 20000 }),
+    bp.locator('.hof-row', { hasText: 'Homeless Village' }).click(),
   ]);
-  await bp.waitForSelector('a.ea-back', { timeout: 20000 });
+  await bp.waitForSelector('#intro-modal.open a.ea-back', { timeout: 20000 });
   await Promise.all([
     bp.waitForURL(url => {
       const u = String(url);
-      return /\/$|index\.html/.test(u) && !/hearthvale/.test(u);
+      return /\/$|index\.html/.test(u) && !/homeless-village/.test(u);
     }, { timeout: 20000 }),
-    bp.click('a.ea-back'),
+    bp.click('#intro-modal.open a.ea-back'),
   ]);
   await bp.waitForTimeout(1600);
   const fromVale = await bp.evaluate(() => {
@@ -770,7 +742,7 @@ async function openMenu(p) {
     };
   });
   ok(fromVale.onScreen && fromVale.here && fromVale.scan,
-    'HoF Hearthvale → Games restores the Long scan');
+    'HoF Homeless Village → Games restores the Long scan');
 
   await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
@@ -780,14 +752,14 @@ async function openMenu(p) {
   await bp.waitForLoadState('load');
   await bp.waitForTimeout(800);
   const afterReset = await bp.evaluate(() => {
-    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test(r.textContent));
+    const snake = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     return {
-      save: localStorage.getItem('hearthvale-v1'),
-      score: ((vale && vale.querySelector('.hof-score')) || {}).textContent || '',
+      save: localStorage.getItem('snake-high'),
+      score: ((snake && snake.querySelector('.hof-score')) || {}).textContent || '',
     };
   });
   ok(!afterReset.save && /not played/.test(afterReset.score),
-    `Reset my scores clears hearthvale-v1 (${afterReset.score})`);
+    `Reset my scores clears snake-high (${afterReset.score})`);
   await board.close();
 
   const dayHof = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
@@ -797,7 +769,7 @@ async function openMenu(p) {
   await dhp.addInitScript(() => {
     localStorage.setItem('eureka-theme', 'daylight');
     localStorage.setItem('eureka-primer-seen', '1');
-    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
+    localStorage.setItem('snake-high', '42');
   });
   await dhp.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
   await dhp.waitForTimeout(1800);
@@ -867,7 +839,7 @@ async function openMenu(p) {
   await dhp.click('button.logo');
   await dhp.waitForTimeout(500);
   const lightHi = await dhp.evaluate(() => {
-    const hi = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
+    const hi = document.querySelector('.arcade-card-hi[data-hi="snake"]');
     return {
       bg: hi ? getComputedStyle(hi).backgroundColor : '',
       shown: !!(hi && getComputedStyle(hi).display !== 'none'),
@@ -875,7 +847,7 @@ async function openMenu(p) {
     };
   });
   ok(lightHi.shown && !lightHi.midnight,
-    `daylight PEAK chip is not a midnight pill (${lightHi.bg})`);
+    `daylight score chip is not a midnight pill (${lightHi.bg})`);
   await dhp.click('[data-view="snake"]');
   await dhp.waitForTimeout(600);
   const lightOver = await dhp.evaluate(() => {
@@ -906,12 +878,12 @@ async function openMenu(p) {
   php.on('pageerror', e => errs11.push(String(e).slice(0, 300)));
   await php.addInitScript(() => {
     localStorage.setItem('eureka-primer-seen', '1');
-    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
+    localStorage.setItem('snake-high', '42');
   });
   await php.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
   await php.waitForTimeout(1800);
   const phoneBoard = await php.evaluate(() => {
-    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test(r.textContent));
+    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     const score = vale && vale.querySelector('.hof-score');
     const name = vale && vale.querySelector('.hof-name');
     const vr = vale && vale.getBoundingClientRect();
@@ -924,8 +896,8 @@ async function openMenu(p) {
       score: score ? score.textContent : '',
     };
   });
-  ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /17 villagers/.test(phoneBoard.score),
-    `390 HoF keeps the Hearthvale score on the card (overflow ${phoneBoard.overflow})`);
+  ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /42 pts/.test(phoneBoard.score),
+    `390 HoF keeps the Snake score on the card (overflow ${phoneBoard.overflow})`);
   await phoneHof.close();
 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
