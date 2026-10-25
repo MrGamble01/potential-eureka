@@ -233,3 +233,166 @@ html.eureka-booting::before {
 @media (prefers-reduced-motion: reduce) {
   html.eureka-booting::before { animation: none; width: 100%; opacity: 0.7; }
 }
+
+/* GRO-73: one header, one hero, titles on the card.
+   The giant wordmark duplicated the logo between phone and desktop. */
+#view-arcade .arcade-hero-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#view-arcade .arcade-hero {
+  margin-bottom: 12px;
+}
+
+#view-arcade .arcade-section-head {
+  margin-bottom: 8px;
+}
+
+#view-arcade .arcade-section-lede {
+  display: none;
+}
+
+/* Title sits on the poster. The old 3:4 frame put that band below
+   the fold on a laptop and a phone. 16:10 keeps the name on screen. */
+#view-arcade .arcade-card {
+  position: relative;
+  aspect-ratio: 16 / 10;
+}
+
+#view-arcade .arcade-card-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  min-height: 0;
+  gap: 2px;
+  padding: 28px 12px 10px;
+  background: linear-gradient(to top, rgba(7, 7, 12, 0.94) 0%, rgba(7, 7, 12, 0.72) 46%, rgba(7, 7, 12, 0) 100%);
+}
+
+#view-arcade .arcade-card-title {
+  color: #f6f3ea;
+  font-size: 1rem;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+#view-arcade .arcade-card-tags {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+#view-arcade .arcade-card-desc {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#view-arcade .arcade-card-play {
+  color: #f0c552;
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  #view-arcade .arcade-card {
+    aspect-ratio: 16 / 10;
+  }
+  #view-arcade .arcade-flagship {
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 0;
+    margin-top: 0;
+  }
+  #view-arcade .arcade-flagship-art {
+    height: auto;
+    min-height: 120px;
+    aspect-ratio: auto;
+  }
+  #view-arcade .arcade-flagship-copy {
+    padding: 8px 10px 10px;
+    gap: 4px;
+  }
+  #view-arcade .hero-cta--flagship,
+  #view-arcade .arcade-scan-link,
+  #view-arcade .card-search {
+    min-height: 44px;
+  }
+}
+
+/* Wide screens keep the same menu the phone already uses. */
+@media (min-width: 1100px) {
+  .hub-chrome > nav.site-nav {
+    height: 56px;
+    min-height: 56px;
+  }
+  .studio-menu {
+    display: inline-flex;
+  }
+  .hub-chrome > .arcade-shell {
+    position: absolute;
+    left: auto;
+    right: max(8px, env(safe-area-inset-right));
+    top: 100%;
+    transform: none;
+    height: 0;
+    width: min(320px, calc(100vw - 16px));
+    max-width: min(320px, calc(100vw - 16px));
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    z-index: 120;
+    pointer-events: none;
+  }
+  .hub-chrome > .arcade-shell .sec-link {
+    pointer-events: none;
+  }
+  .hub-chrome.is-menu-open > .arcade-shell {
+    height: auto;
+    padding: 8px;
+    gap: 8px;
+    overflow: visible;
+    pointer-events: auto;
+    background: var(--drawer-bg, #fff);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  }
+  .hub-chrome.is-menu-open > .arcade-shell .sec-link {
+    pointer-events: auto;
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-size: 1rem;
+  }
+}
+
+/* The open menu is a solid sheet. A translucent widget wash
+   disappeared into the daylight page. */
+.hub-chrome.is-menu-open > .arcade-shell {
+  background: var(--drawer-bg, #fff);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
