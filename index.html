@@ -52,7 +52,7 @@
     <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
     <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
   </noscript>
-  <link rel="stylesheet" href="css/studio-face.css?v=20261021cabinet">
+  <link rel="stylesheet" href="css/studio-face.css?v=20261025hub">
 </head>
 <body>
 
@@ -2034,7 +2034,7 @@
       const bar = document.querySelector('nav.site-nav');
       const shell = document.querySelector('.arcade-shell');
       const header = document.querySelector('.hub-chrome');
-      const menuOpen = !!(header && header.classList.contains('is-menu-open') && studioQuery.matches);
+      const menuOpen = !!(header && header.classList.contains('is-menu-open'));
       if (bar) document.documentElement.style.setProperty('--nav-height', bar.offsetHeight + 'px');
       const shellH = menuOpen && shell ? shell.offsetHeight : 0;
       document.documentElement.style.setProperty('--shell-height', shellH + 'px');
@@ -2056,7 +2056,7 @@
     }
     function setStudioMenu(open) {
       const header = document.querySelector('.hub-chrome');
-      if (!header || !studioMenu || !studioQuery.matches) {
+      if (!header || !studioMenu) {
         syncChrome();
         return;
       }

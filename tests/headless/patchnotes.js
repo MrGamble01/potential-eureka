@@ -23,6 +23,8 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.waitForTimeout(1500);
 
   // A. button
+  await page.click('#studio-menu');
+  await page.waitForSelector('.hub-chrome.is-menu-open #patch-notes-btn', { timeout: 4000 });
   const btn = await page.$('#patch-notes-btn');
   ok(!!btn, 'the hero carries the 📰 button');
 
@@ -50,6 +52,8 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.waitForTimeout(200);
   const closed1 = await page.evaluate(() => document.getElementById('patch-modal').style.display !== 'flex');
   ok(closed1, 'Esc closes it');
+  await page.click('#studio-menu');
+  await page.waitForSelector('.hub-chrome.is-menu-open #patch-notes-btn', { timeout: 4000 });
   await page.click('#patch-notes-btn');
   await page.waitForTimeout(200);
   await page.evaluate(() => document.getElementById('patch-modal').click());

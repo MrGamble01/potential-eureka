@@ -141,6 +141,8 @@ ok(!/e\.key === '\?'[\s\S]{0,200}primer-modal/.test(hub),
   const hintGone = await page.evaluate(() => document.getElementById('primer-hint').hidden);
   ok(hintGone, 'and the strip does not come back once it has been taken up');
 
+  await page.click('#studio-menu');
+  await page.waitForSelector('.hub-chrome.is-menu-open #primer-btn', { timeout: 4000 });
   await page.click('#primer-btn');
   await page.waitForTimeout(300);
   ok(await page.evaluate(() => document.getElementById('primer-modal').style.display === 'flex'),

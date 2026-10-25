@@ -6,7 +6,7 @@
  *  C. The hero kicker reads Eureka Studio.
  *  D. Long / Quick / Studio scan: heads, counts, jump buttons.
  *  E. Search still filters across both catalogues.
- *  F. Challenge, primer and patch notes still live in the secondary nav.
+ *  F. Challenge, primer and patch notes live in the studio menu.
  *  G. PLAY rows line up after the 16:10 normalize leftovers.
  *  H. ~900×700 lays out three long-game columns without overflowing.
  *  I. Empty filter is a state, not a blank catalogue.
@@ -54,6 +54,16 @@ const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
+async function openMenu(p) {
+  const open = await p.evaluate(() => {
+    const header = document.querySelector('.hub-chrome');
+    return !!(header && header.classList.contains('is-menu-open'));
+  });
+  if (!open) {
+    await p.click('#studio-menu');
+    await p.waitForSelector('.hub-chrome.is-menu-open .sec-link', { timeout: 4000 });
+  }
+}
 
 (async () => {
   const launch = {
@@ -233,8 +243,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     hof: !!document.querySelector('.arcade-secondary-nav [data-view="halloffame"]'),
   }));
   ok(secondary.primer && secondary.patch && secondary.challenge && secondary.hof,
-    'How it works, Patch Notes, Challenge and Hall of Fame stay in the secondary nav');
+    'How it works, Patch Notes, Challenge and Hall of Fame stay in the studio menu');
 
+  await openMenu(page);
   await page.click('#challenge-jump-btn');
   await page.waitForFunction(() => {
     const b = document.getElementById('daily-banner');
@@ -251,6 +262,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   await page.fill('#card-search', 'zzzz');
   await page.waitForTimeout(200);
+  await openMenu(page);
   await page.click('#challenge-jump-btn');
   await page.waitForFunction(() => {
     const b = document.getElementById('daily-banner');
@@ -352,8 +364,23 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(desktopQuick.cols === 3 && desktopQuick.rows === 9 && desktopQuick.full === 8 && desktopQuick.last === 2,
     `1280 Quick games scan as nine rows (${desktopQuick.cols}×${desktopQuick.full}, last ${desktopQuick.last})`);
 
+  const titleFold = await page.evaluate(() => {
+    const title = document.querySelector('.arcade-grid--long .arcade-card-title');
+    const r = title.getBoundingClientRect();
+    return {
+      text: (title.textContent || '').trim(),
+      top: Math.round(r.top),
+      bottom: Math.round(r.bottom),
+      inView: r.height > 12 && r.top >= 0 && r.bottom <= window.innerHeight,
+    };
+  });
+  ok(titleFold.inView && titleFold.text === 'AGE OF WAR',
+    `1280 first card title is above the fold (${titleFold.text} ${titleFold.top}–${titleFold.bottom})`);
+
+  await openMenu(page);
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
   await page.waitForTimeout(400);
+  await openMenu(page);
   const shellOnHof = await page.evaluate(() => {
     const primer = document.getElementById('primer-btn');
     const chal = document.getElementById('challenge-jump-btn');
@@ -367,7 +394,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     };
   });
   ok(shellOnHof.hof && shellOnHof.primer && shellOnHof.chal && shellOnHof.patch,
-    'Hall of Fame still has How it works, Challenge and Patch Notes in the shell');
+    'Hall of Fame menu still holds How it works, Challenge and Patch Notes');
   await page.click('#view-halloffame .game-back-btn');
   await page.waitForTimeout(600);
 
@@ -491,6 +518,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     `390 Long games stack in one column (second card at ${fold390.secondLeft}, card ${fold390.cardH}px)`);
   ok(fold390.hintOn && fold390.hintBelow && fold390.dailyBelow,
     '390 first-visit keeps primer and daily, but under the catalogue');
+  const phoneTitle = await pp.evaluate(() => {
+    const title = document.querySelector('.arcade-grid--long .arcade-card-title');
+    const r = title.getBoundingClientRect();
+    return {
+      text: (title.textContent || '').trim(),
+      bottom: Math.round(r.bottom),
+      inView: r.height > 12 && r.top >= 0 && r.bottom <= window.innerHeight,
+    };
+  });
+  ok(phoneTitle.inView && phoneTitle.text === 'AGE OF WAR',
+    `390 first card title is above the fold (${phoneTitle.text} bottom ${phoneTitle.bottom})`);
 
   await pp.evaluate(() => window.scrollTo(0, 400));
   await pp.waitForTimeout(200);
@@ -586,6 +624,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await hp.waitForTimeout(1800);
   await hp.fill('#card-search', 'hours');
   await hp.waitForTimeout(200);
+  await openMenu(hp);
   await hp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await hp.waitForTimeout(400);
   await hp.locator('.hof-row', { hasText: 'Snake' }).click();
@@ -677,6 +716,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(valeBadge.shown && /PEAK\s*17/.test(valeBadge.text),
     `Hearthvale catalogue badge fills from the save (${valeBadge.text})`);
 
+  await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await bp.waitForTimeout(500);
   const hofBoard = await bp.evaluate(() => {
@@ -732,6 +772,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(fromVale.onScreen && fromVale.here && fromVale.scan,
     'HoF Hearthvale → Games restores the Long scan');
 
+  await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await bp.waitForTimeout(400);
   await bp.evaluate(() => sessionStorage.setItem('hof-reset-done', '1'));
@@ -784,6 +825,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(lightHof.theme === 'daylight' && lightHof.wrapLight && lightHof.textDark && lightHof.inkTint && !lightHof.midnightWash,
     `daylight HoF input/panel use light tokens (bg ${lightHof.inputBg}, fg ${lightHof.inputFg})`);
 
+  await openMenu(dhp);
   await dhp.click('#patch-notes-btn');
   await dhp.waitForTimeout(300);
   const lightPatch = await dhp.evaluate(() => {
@@ -808,6 +850,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     `daylight Patch Notes is ink on a light sheet (bg ${lightPatch.sheetBg})`);
   await dhp.keyboard.press('Escape');
   await dhp.waitForTimeout(200);
+  await openMenu(dhp);
   await dhp.click('#primer-btn');
   await dhp.waitForTimeout(300);
   const lightPrimer = await dhp.evaluate(() => {
@@ -887,6 +930,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(200);
+  await openMenu(page);
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
   await page.waitForFunction(() => window.scrollY < 40, null, { timeout: 5000 });
   const hofTop = await page.evaluate(() => {
