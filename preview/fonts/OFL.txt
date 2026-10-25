@@ -93,3 +93,5 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 Families in this folder, each under the SIL Open Font License above: Oswald, Cormorant Garamond, Lilita One, Nunito, Press Start 2P, VT323.
+
+Also used here, under the same license: Anton, Archivo Black, Instrument Sans, Instrument Serif.
