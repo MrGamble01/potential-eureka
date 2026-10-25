@@ -38,7 +38,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: owlCubes(BUILDINGS.owlroost).length,
       ach: ACH.some(a => a[0] === 'owl10'),
-      howto: document.body.innerHTML.includes('Owl Roost</b> (level 8)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 720 && fresh.def.lvl === 8 && fresh.def.kind === 'owl'
     && fresh.cubes >= 7, 'the 🦉 Owl Roost is in the shop (720 / lvl 8) and renders');

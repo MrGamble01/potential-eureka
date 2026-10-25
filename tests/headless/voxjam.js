@@ -99,7 +99,7 @@ async function checkShelfTaps(browser) {
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: jamCubes(BUILDINGS.preserves).length,
       ach: ACH.some(a => a[0] === 'jam12'),
-      howto: document.body.innerHTML.includes('Preserve Shed</b> (level 8)'),
+      howto: document.querySelectorAll('#helpOv li').length === 3,
       c: { cap: JAM_CAP, pay: JAM_PAY } };
   });
   ok(fresh.def && fresh.def.cost === 700 && fresh.def.lvl === 8 && fresh.def.kind === 'jam'

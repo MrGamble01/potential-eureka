@@ -17,8 +17,8 @@
   --bram: #7ec8c3;
   --ness: #e07a45;
   --pell: #f2c14e;
-  --serif: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
-  --sans: "Outfit", "Inter", system-ui, sans-serif;
+  --serif: var(--ek-font, "Outfit", system-ui, sans-serif);
+  --sans: var(--ek-font, "Outfit", system-ui, sans-serif);
   --shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
 }
 

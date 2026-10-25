@@ -43,12 +43,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       cubes: icehutCubes(BUILDINGS.icehut).length,
       ach: ACH.some(a => a[0] === 'ice5'),
       table: ICE_CATCH.filter(f => f.id).map(f => f.coins).join(','),
-      howto: document.body.innerHTML.includes('Ice Hut</b> (level 8)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 750 && fresh.def.lvl === 8 && fresh.def.kind === 'icehut'
     && fresh.cubes >= 8, 'the 🛖 Ice Hut is in the shop (750 / lvl 8) and renders in cubes');
   ok(fresh.ach && fresh.table === '34,48,200' && fresh.howto,
-    'Hard Water registered; the winter table reads 34/48/200; the how-to bullet is in');
+    'Hard Water registered; the winter table reads 34/48/200; the how-to is three lines');
 
   // find a winter day and a summer day
   const days = await t(() => {

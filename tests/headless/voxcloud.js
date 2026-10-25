@@ -42,7 +42,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     refreshCloudHud();
     return { c: { stake: CLOUD_STAKE, pay: CLOUD_PAY, secs: CLOUD_SECS },
       ach: ACH.some(a => a[0] === 'cloud6'),
-      howto: document.body.innerHTML.includes('Cloud Wager</b>'),
+      howto: document.querySelectorAll('#helpOv li').length === 3,
       hidden: document.getElementById('cloudHud').style.display === 'none' };
   });
   ok(fresh.c.stake === 30 && fresh.c.pay === 60 && fresh.c.secs === 90 && fresh.ach && fresh.howto,

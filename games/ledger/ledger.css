@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  --ink: #e8e0d0;
-  --muted: #a39886;
-  --bg: #14110e;
-  --card: #221c16;
-  --line: #3a3126;
-  --gold: #e3b341;
+  --ink: var(--ek-ink, #f6f3ea);
+  --muted: var(--ek-muted, #c4beb2);
+  --bg: var(--ek-bg, #10131a);
+  --card: var(--ek-surface, #1a1f2b);
+  --line: var(--ek-line, rgba(246, 243, 234, 0.16));
+  --gold: var(--ek-gold, #e3b341);
   --heat: #e85d4c;
   --ok: #7dcea0;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
-  font: 16px/1.4 Georgia, "Iowan Old Style", serif;
+  font: 16px/1.45 var(--ek-font, system-ui, sans-serif);
   background: var(--bg);
   color: var(--ink);
 }

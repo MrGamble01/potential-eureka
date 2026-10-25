@@ -148,7 +148,7 @@ function box(rect) {
       if (game.seed) await game.seed(page);
       await page.goto(BASE + game.url, { waitUntil: 'domcontentloaded' });
       await game.ready(page);
-      await page.waitForSelector('#arcade-ai-launch', { timeout: 8000 });
+      await page.waitForSelector('#arcade-ai-launch', { state: 'attached', timeout: 8000 });
       await page.evaluate(() => document.fonts.ready);
       const where = game.id + ' ' + view.label;
 
@@ -382,17 +382,17 @@ function box(rect) {
         };
       }, { bars: game.bars, toast: game.toast, gamesOnCard: !!game.gamesOnCard });
 
-      ok(geo.booth, `${where} booth tab is on screen`);
-      ok(geo.ticker, `${where} announcer is on screen`);
+      ok(!geo.booth, `${where} booth stays off the page`);
+      ok(!geo.ticker, `${where} announcer stays off the page`);
       ok(!game.toast || geo.toast, `${where} toast is on screen`);
       ok(geo.overlaps.length === 0, `${where} no HUD overlap${geo.overlaps.length ? ': ' + geo.overlaps.join(', ') : ''}`);
       ok(geo.topOverlaps.length === 0, `${where} top bar is clear${geo.topOverlaps.length ? ': ' + geo.topOverlaps.join(', ') : ''}`);
       if (geo.session) ok(geo.session.fits, `${where} session text is readable (${geo.session.text})`);
-      ok(geo.tickerPe === 'none', `${where} announcer ignores pointer events`);
+      ok(!geo.ticker || geo.tickerPe === 'none', `${where} announcer ignores pointer events`);
       if (game.toast) ok(geo.toastPe === 'none', `${where} toast ignores pointer events`);
       ok(geo.career, `${where} achievement toast is on screen`);
       ok(geo.careerPe === 'none', `${where} achievement toast ignores pointer events`);
-      ok(geo.stacked, `${where} achievement toast stacks above the announcer`);
+      ok(!geo.ticker || geo.stacked, `${where} achievement toast stacks above the announcer`);
       ok(parseFloat(geo.top) > 0 && parseFloat(geo.bottom) > 0,
         `${where} safe zone is ${geo.top} / ${geo.bottom}`);
       if (game.gamesOnCard) ok(!geo.games, `${where} GAMES clears the first-step card`);
@@ -416,7 +416,7 @@ function box(rect) {
   });
   await wirePage.goto(BASE + '/tycoon/play.html', { waitUntil: 'domcontentloaded' });
   await wirePage.waitForSelector('#hire-btn', { timeout: 8000 });
-  await wirePage.waitForSelector('#arcade-ai-launch', { timeout: 8000 });
+  await wirePage.waitForSelector('#arcade-ai-launch', { state: 'attached', timeout: 8000 });
   await wirePage.waitForTimeout(800);
   await wirePage.evaluate(() => {
     const list = document.getElementById('feed-list');

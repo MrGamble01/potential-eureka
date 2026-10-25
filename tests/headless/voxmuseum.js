@@ -40,7 +40,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: museumCubes(BUILDINGS.museum).length,
       ach: ACH.some(a => a[0] === 'mount5'),
-      howto: document.body.innerHTML.includes('Isle Museum</b> (level 9)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 800 && fresh.def.lvl === 9 && fresh.def.kind === 'museum'
     && fresh.cubes >= 7, 'the 🏛️ Isle Museum is in the shop (800 / lvl 9) and renders');

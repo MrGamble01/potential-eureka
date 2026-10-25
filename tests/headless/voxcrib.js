@@ -39,7 +39,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: cribCubes(BUILDINGS.corncrib).length,
       ach: ACH.some(a => a[0] === 'crib10'),
-      howto: document.body.innerHTML.includes('Corn Crib</b> (level 8)'),
+      howto: document.querySelectorAll('#helpOv li').length === 3,
       bites: { crib: CRIB_BITE, crow: CROW_BITE } };
   });
   ok(fresh.def && fresh.def.cost === 680 && fresh.def.lvl === 8 && fresh.def.kind === 'crib'

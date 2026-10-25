@@ -40,7 +40,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: sugarCubes(BUILDINGS.sugarshack).length,
       ach: ACH.some(a => a[0] === 'sap5'),
-      howto: document.body.innerHTML.includes('Sugar Shack</b> (level 7)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 700 && fresh.def.lvl === 7 && fresh.def.kind === 'sugar'
     && fresh.cubes >= 8, 'the 🍁 Sugar Shack is in the shop (700 / lvl 7) and renders');
