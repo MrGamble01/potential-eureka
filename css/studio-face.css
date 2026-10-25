@@ -97,6 +97,14 @@
   }
 }
 
+/* Eight keepers read as one row once the screen can hold four cards. */
+@media (min-width: 1021px) {
+  #view-arcade .arcade-grid--long,
+  #view-arcade .arcade-grid--quick {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 /* Wide desktop hero was a 248px billboard. Shorten it so a row of
    cards sits on a 900px-tall screen. */
 @media (min-width: 1100px) {

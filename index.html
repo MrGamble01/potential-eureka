@@ -15,12 +15,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Thirty-four games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free. Age of War, Startup Tycoon, Homeless Village, Ashmarch, Snake, Tetris, 2048 and Minefield. Eight games, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
-  <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and 20 more, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
+  <meta property="og:description" content="Browser games you can play free. Age of War, Startup Tycoon, Homeless Village, Ashmarch, Snake, Tetris, 2048 and Minefield. Eight games, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
   <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
   <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/">
   <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/">
@@ -40,7 +40,7 @@
        SW_VERSION has to move in the same change or installed PWAs
        keep the previous sheet. game-cards.css stays after arcade.css.
        hub-pages.css is last so the studio subpage rules win the cascade. -->
-  <link rel="stylesheet" href="css/tokens.css?v=20261025theme">
+  <link rel="stylesheet" href="css/tokens.css?v=20261025keep">
   <link rel="stylesheet" href="css/base.css?v=20261017moments4">
   <link rel="stylesheet" href="css/effects.css?v=20261017moments4" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/arcade.css?v=20261017moments4">
@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
     <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
   </noscript>
-  <link rel="stylesheet" href="css/studio-face.css?v=20261025hub">
+  <link rel="stylesheet" href="css/studio-face.css?v=20261025keep">
 </head>
 <body>
 
@@ -97,9 +97,6 @@
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">Studio Crew</button>
     <button data-view="personal" class="nav-locked">Personal</button>
-    <div class="nav-utils-divider">toys</div>
-    <a href="#maze" data-view="maze">Maze Runner</a>
-    <a href="#life" data-view="life">Game of Life</a>
   </div>
   </header>
 
@@ -131,12 +128,11 @@
         <button type="button" class="arcade-scan-link arcade-scan-link--all" data-jump="all">All</button>
         <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">Long</button>
         <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">Quick</button>
-        <button type="button" class="arcade-scan-link arcade-scan-link--studio" data-jump="studio">Studio</button>
       </nav>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="primer-hint" role="region" aria-label="New here" hidden>
-      <span class="primer-hint-text">&#10024; <b>New here?</b> Six long games, a quick arcade, and a scoreboard that stays in this browser.</span>
+      <span class="primer-hint-text">&#10024; <b>New here?</b> Four long games, four quick classics, and a scoreboard that stays in this browser.</span>
       <button class="primer-hint-open" id="primer-hint-open">How it works &rarr;</button>
       <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
     </div>
@@ -154,10 +150,10 @@
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Long games</h2>
-          <span class="arcade-section-count">6</span>
+          <span class="arcade-section-count">4</span>
           <span class="arcade-section-chip">Hours</span>
         </div>
-        <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
+        <p class="arcade-section-lede">Save and come back.</p>
       </div>
       <div class="arcade-grid arcade-grid--long">
       <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#D29922">
@@ -191,20 +187,6 @@
         </div>
       </a>
 
-      <a class="arcade-card arcade-card-dim" href="drug-lab.html" style="--accent:#3FB950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/growop.svg" alt="Grow Op cover" width="640" height="400">
-          <video class="arcade-card-clip" src="assets/thumbs/growop.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="growop"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">GROW OP</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Risk</span></div>
-          <div class="arcade-card-desc">Expand room by room — watch the heat.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
 
       <a class="arcade-card arcade-card-dim" href="homeless-village.html" style="--accent:#F0883E">
         <div class="arcade-card-screen">
@@ -221,107 +203,31 @@
         </div>
       </a>
 
-      <a class="arcade-card arcade-card-dim" href="hearthvale.html" style="--accent:#7fbf63">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/hearthvale.svg" alt="Hearthvale cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="hearthvale"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">HEARTHVALE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span></div>
-          <div class="arcade-card-desc">Cozy riverside town — homes, trade, seasons.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
 
-      <a class="arcade-card arcade-card-dim" href="voxel-garden.html" style="--accent:#7EC8FF">
+
+      <a class="arcade-card" href="games/ashmarch/" style="--accent:#e3b341">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/voxelisle.svg" alt="Voxel Isle cover" width="640" height="400" loading="lazy">
-          <video class="arcade-card-clip" src="assets/thumbs/voxelisle.webm" muted loop playsinline preload="none"></video>
+          <img class="arcade-card-poster" src="assets/covers/ashmarch.svg" alt="Ashmarch cover" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="voxelgarden"></div>
         </div>
         <div class="arcade-card-body">
-          <div class="arcade-card-title">VOXEL ISLE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>Cozy</span></div>
-          <div class="arcade-card-desc">Till, plant, and build — a deckhand helps.</div>
+          <div class="arcade-card-title">ASHMARCH</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Story</span><span>Local</span></div>
+          <div class="arcade-card-desc">Two roads. One chronicle in this browser.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
 
             </div>
-    </div>
-
-    <div class="arcade-section arcade-section--workshop" id="arcade-workshop" data-section="workshop">
-      <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Workshop</h2>
-          <span class="arcade-section-count">2</span>
-          <span class="arcade-section-chip">Local</span>
-        </div>
-        <p class="arcade-section-lede">Ashmarch keeps a chronicle. The Ledger keeps routes, heat, and the next heir.</p>
-      </div>
-      <div class="arcade-grid arcade-grid--quick">
-        <a class="arcade-card" href="games/ashmarch/" style="--accent:#e3b341">
-          <div class="arcade-card-screen">
-            <img class="arcade-card-poster" src="assets/covers/ashmarch.svg" alt="Ashmarch cover" width="640" height="400" loading="lazy">
-            <div class="arcade-card-shine"></div>
-          </div>
-          <div class="arcade-card-body">
-            <div class="arcade-card-title">ASHMARCH</div>
-            <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Story</span><span>Local</span></div>
-            <div class="arcade-card-desc">Two roads and one Chronicle. Vellum or Lumenferry, three companions, a journal that stays in this browser.</div>
-            <div class="arcade-card-play">&#9654; PLAY</div>
-          </div>
-        </a>
-        <a class="arcade-card" href="games/ledger/" style="--accent:#e3b341">
-          <div class="arcade-card-screen">
-            <img class="arcade-card-poster" src="assets/covers/ledger.svg" alt="The Ledger cover" width="640" height="400" loading="lazy">
-            <div class="arcade-card-shine"></div>
-          </div>
-          <div class="arcade-card-body">
-            <div class="arcade-card-title">THE LEDGER</div>
-            <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Routes</span><span>Local</span></div>
-            <div class="arcade-card-desc">Move crates yard to corner. Heat brings the authorities. An heir keeps the book.</div>
-            <div class="arcade-card-play">&#9654; PLAY</div>
-          </div>
-        </a>
-      </div>
     </div>
 
     <section id="flag-daily" class="flag-daily" aria-label="Flagship daily challenge" hidden></section>
-
-    <div class="arcade-section arcade-section--studio" id="arcade-studio" data-section="studio">
-      <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Studio</h2>
-          <span class="arcade-section-chip arcade-section-chip--meta">Not a game</span>
-        </div>
-        <p class="arcade-section-lede">The live office sits between the two catalogues.</p>
-      </div>
-      <div class="arcade-grid arcade-grid--studio">
-<a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/studio.svg" alt="Eureka Studio dev office" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">EUREKA STUDIO</div>
-          <div class="arcade-card-tags"><span>Live</span><span>Real</span><span>Office</span></div>
-          <div class="arcade-card-desc">Live dev office — agents type on real PRs.</div>
-          <div class="arcade-card-play">&#9654; VISIT</div>
-        </div>
-      </a>
-
-            </div>
-    </div>
 
     <div class="arcade-section arcade-section--quick" id="arcade-quick" data-section="quick">
       <div class="arcade-section-head">
         <div class="arcade-section-label">
           <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">26</span>
+          <span class="arcade-section-count">4</span>
           <span class="arcade-section-chip">Few minutes</span>
         </div>
         <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
@@ -342,7 +248,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="#tetris" data-view="tetris" style="--accent:#F778BA">
+<a class="arcade-card" href="#tetris" data-view="tetris" style="--accent:#F778BA">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/covers/tetris.svg" alt="Tetris cover" width="641" height="482" loading="lazy" data-crop="right">
           <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
@@ -357,37 +263,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="#breakout" data-view="breakout" style="--accent:#22d3ee">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/breakout.svg" alt="Neon Breaker cover" width="640" height="463" loading="lazy">
-          <video class="arcade-card-clip" src="assets/thumbs/breakout.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="breakout"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">NEON BREAKER</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Power-ups</span></div>
-          <div class="arcade-card-desc">Smash bricks. Grab power-ups. Chase combos.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#asteroids" data-view="asteroids" style="--accent:#a78bfa">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/asteroids.svg" alt="Vector Storm cover" width="640" height="463" loading="lazy">
-          <video class="arcade-card-clip" src="assets/thumbs/asteroids.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="asteroids"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">VECTOR STORM</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Shooter</span><span>Vector</span></div>
-          <div class="arcade-card-desc">Drift, thrust, blast splitting rocks.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#2048" data-view="2048" style="--accent:#facc15">
+<a class="arcade-card" href="#2048" data-view="2048" style="--accent:#facc15">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/covers/2048.svg" alt="2048 cover" width="560" height="560" loading="lazy" data-crop="mid">
           <video class="arcade-card-clip" src="assets/thumbs/2048.webm" muted loop playsinline preload="none"></video>
@@ -402,7 +278,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="#minesweeper" data-view="minesweeper" style="--accent:#F0883E">
+<a class="arcade-card" href="#minesweeper" data-view="minesweeper" style="--accent:#F0883E">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/covers/minefield.svg" alt="Minefield cover" width="416" height="416" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -412,286 +288,6 @@
           <div class="arcade-card-title">MINEFIELD</div>
           <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Logic</span></div>
           <div class="arcade-card-desc">Flag mines. Clear the board. Beat your time.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#lightcycles" data-view="lightcycles" style="--accent:#22d3ee">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/lightcycles.svg" alt="Light Cycles cover" width="640" height="432" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="lightcycles"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">LIGHT CYCLES</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
-          <div class="arcade-card-desc">Trap the AI — or duel a friend.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#pong" data-view="pong" style="--accent:#58A6FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/pong.svg" alt="Pong++ cover" width="640" height="405" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="pong"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">PONG++</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
-          <div class="arcade-card-desc">Split balls, grow paddles. First to 7.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#stacker" data-view="stacker" style="--accent:#F7C948">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/stacker.svg" alt="Stacker cover" width="640" height="853" loading="lazy" data-crop="low">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="stacker"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">STACKER</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Timing</span><span>Zen</span></div>
-          <div class="arcade-card-desc">Drop flush. Climb the tower.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#crateescape" data-view="crateescape" style="--accent:#F0883E">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/crateescape.svg" alt="Crate Escape cover" width="640" height="560" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="crateescape"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span></div>
-          <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#vectordefense" data-view="vectordefense" style="--accent:#8B83FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/vectordefense.svg" alt="Vector Defense cover" width="640" height="480" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="vectordefense"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">VECTOR DEFENSE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Tower Defense</span><span>Waves</span></div>
-          <div class="arcade-card-desc">Turrets vs neon raiders. Ten waves.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#wordcascade" data-view="wordcascade" style="--accent:#3FB950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/wordcascade.svg" alt="Word Cascade cover" width="640" height="640" loading="lazy" data-crop="low">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="wordcascade"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">WORD CASCADE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Words</span><span>Falling</span></div>
-          <div class="arcade-card-desc">Spell falling letters. Chains multiply.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#memorymatrix" data-view="memorymatrix" style="--accent:#a78bfa">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/memorymatrix.svg" alt="Memory Matrix cover" width="640" height="640" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="memorymatrix"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">MEMORY MATRIX</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Memory</span><span>Simon</span></div>
-          <div class="arcade-card-desc">Echo the lights. How long can you hold?</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#connect4" data-view="connect4" style="--accent:#f7c948">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/dropfour.svg" alt="Drop Four cover" width="434" height="372" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="connect4"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">DROP FOUR</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Strategy</span><span>vs AI</span></div>
-          <div class="arcade-card-desc">Connect four against a thinking AI.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#word5" data-view="word5" style="--accent:#3FB950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/word5.svg" alt="Word Five cover" width="300" height="358" loading="lazy" data-crop="high">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="word5"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">WORD FIVE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Words</span></div>
-          <div class="arcade-card-desc">Guess the five-letter word in six tries.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#inkflip" data-view="inkflip" style="--accent:#e3b341">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/inkflip.svg" alt="Inkflip cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="inkflip"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">INKFLIP</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Reversi</span><span>vs House</span></div>
-          <div class="arcade-card-desc">Flip the board. Corners belong to you.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#gutterlight" data-view="gutterlight" style="--accent:#3fb950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/gutterlight.svg" alt="Gutterlight cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="gutterlight"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">GUTTERLIGHT</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Putting</span><span>Nine holes</span></div>
-          <div class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#snip" data-view="snip" style="--accent:#e3b341">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/snip.svg" alt="Snip cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="snip"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">SNIP</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Cut</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Cut the spark in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#peg" data-view="peg" style="--accent:#e3b341">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/peg.svg" alt="Peg cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="peg"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">PEG</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Drop</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Drop the ring in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#clasp" data-view="clasp" style="--accent:#9fd6c2">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/clasp.svg" alt="Clasp cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="clasp"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">CLASP</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Shut</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Shut the needle in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#rivet" data-view="rivet" style="--accent:#d4784a">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/rivet.svg" alt="Rivet cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="rivet"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">RIVET</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Drive</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Drive the hammer in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#plumb" data-view="plumb" style="--accent:#6f9ec4">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/plumb.svg" alt="Plumb cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="plumb"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">PLUMB</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Pinch</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Pinch the bob in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#brand" data-view="brand" style="--accent:#e24b3b">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/brand.svg" alt="Brand cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="brand"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">BRAND</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Sear</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Sear the iron in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#stitch" data-view="stitch" style="--accent:#c45b7a">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/stitch.svg" alt="Stitch cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="stitch"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">STITCH</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Sew</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Sew the thread in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#hone" data-view="hone" style="--accent:#c46a32">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/hone.svg" alt="Hone cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="hone"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">HONE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Hone</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Hone the stone in the gold.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#quench" data-view="quench" style="--accent:#2f7ea8">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/quench.svg" alt="Quench cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="quench"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">QUENCH</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ A minute</span><span>Quench</span><span>One tap</span></div>
-          <div class="arcade-card-desc">Quench the bar in the gold.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -1797,12 +1393,11 @@
 
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Thirty-four browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Eight browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
       <a href="ageofwar/">Age of War</a>
-      <a href="agentic-os.html">Studio</a>
       <button type="button" data-hub-open="patch-notes-btn">Patch Notes</button>
       <button type="button" data-hub-open="primer-btn">How it works</button>
       <button type="button" data-hub-open="challenge-jump-btn">Challenge</button>
@@ -1842,12 +1437,12 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Thirty-four games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+        Eight games. No account, no download, nothing to install. Everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
         <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
-          The <b>flagships</b> (<a class="hub-text-link" href="ageofwar/">Age of War</a>, Startup Tycoon, Grow Op, Homeless Village, Voxel Isle, Hearthvale) are their own
-          pages and run for hours; each opens with a crash course, and a <b>?</b> button reopens it.</div>
+          The <b>flagships</b> (<a class="hub-text-link" href="ageofwar/">Age of War</a>, Startup Tycoon, Homeless Village, Ashmarch) are their own
+          pages. Each opens with a short how to play, and a <b>?</b> button reopens it.</div>
         <div class="hub-point"><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
           everybody who plays it. It is the one honest way to compare a score with someone else.</div>
         <div class="hub-point"><strong>&#127942; <a class="hub-text-link" href="#halloffame" data-view="halloffame">The Hall of Fame</a></strong> keeps your best in every game, and hands out
@@ -2224,78 +1819,26 @@
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
       { name: 'Startup Tycoon',   accent: '#58A6FF', lane: 'long', href: 'tycoon/play.html', go: () => { rememberLaunch('long'); location.href = 'tycoon/play.html'; },
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
-      { name: 'Grow Op',          accent: '#3FB950', lane: 'long', href: 'drug-lab.html', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
-        best: () => {
-          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
-          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
-          if (v <= 0 && n <= 0) return null;
-          const parts = [];
-          if (v > 0) parts.push(Scores.fmtMoney(v) + ' earned');
-          if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
-          return parts.join(' · ');
-        } },
       { name: 'Homeless Village', accent: '#F0883E', lane: 'long', href: 'homeless-village.html', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
         best: () => {
           const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
           if (d <= 0) return null;
           return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
         } },
-      { name: 'Hearthvale',       accent: '#7fbf63', lane: 'long', rid: 'hearthvale-v1', href: 'hearthvale.html', go: () => { rememberLaunch('long'); location.href = 'hearthvale.html'; },
-        best: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? v + ' villagers at peak' : null; } },
-      { name: 'Voxel Isle',       accent: '#7EC8FF', lane: 'long', href: 'voxel-garden.html', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
-        best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
+      { name: 'Ashmarch',         accent: '#e3b341', lane: 'long', href: 'games/ashmarch/', go: () => { rememberLaunch('long'); location.href = 'games/ashmarch/'; },
+        best: () => {
+          const s = Scores.readJSON('ashmarch-chronicle-v1');
+          const n = s && Array.isArray(s.campaigns) ? s.campaigns.length : 0;
+          return n > 0 ? n + (n === 1 ? ' road' : ' roads') : null;
+        } },
       { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', href: '#snake', go: () => { rememberLaunch('quick'); switchView('snake'); },
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', href: '#tetris', go: () => { rememberLaunch('quick'); switchView('tetris'); },
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', href: '#breakout', go: () => { rememberLaunch('quick'); switchView('breakout'); },
-        best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', href: '#asteroids', go: () => { rememberLaunch('quick'); switchView('asteroids'); },
-        best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: '2048',             accent: '#facc15', rid: 'g2048-best', href: '#2048', go: () => { rememberLaunch('quick'); switchView('2048'); },
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', href: '#minesweeper', go: () => { rememberLaunch('quick'); switchView('minesweeper'); },
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', href: '#connect4', go: () => { rememberLaunch('quick'); switchView('connect4'); },
-        best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', href: '#word5', go: () => { rememberLaunch('quick'); switchView('word5'); },
-        best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', href: '#lightcycles', go: () => { rememberLaunch('quick'); switchView('lightcycles'); },
-        best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', href: '#pong', go: () => { rememberLaunch('quick'); switchView('pong'); },
-        best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', href: '#stacker', go: () => { rememberLaunch('quick'); switchView('stacker'); },
-        best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
-      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', href: '#crateescape', go: () => { rememberLaunch('quick'); switchView('crateescape'); },
-        best: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; } },
-      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', href: '#vectordefense', go: () => { rememberLaunch('quick'); switchView('vectordefense'); },
-        best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
-      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', href: '#wordcascade', go: () => { rememberLaunch('quick'); switchView('wordcascade'); },
-        best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', href: '#memorymatrix', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
-        best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
-      { name: 'Inkflip',          accent: '#e3b341', rid: 'inkflip-best', href: '#inkflip', go: () => { rememberLaunch('quick'); switchView('inkflip'); },
-        best: () => { const v = Scores.num('inkflip-best'); return v > 0 ? v + ' discs' : null; } },
-      { name: 'Gutterlight',      accent: '#3fb950', rid: 'gutter-best', href: '#gutterlight', go: () => { rememberLaunch('quick'); switchView('gutterlight'); },
-        best: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : null; } },
-      { name: 'Snip',             accent: '#e3b341', rid: 'snip-best', href: '#snip', go: () => { rememberLaunch('quick'); switchView('snip'); },
-        best: () => { const v = Scores.num('snip-best'); return v > 0 ? v + ' snips' : null; } },
-      { name: 'Peg',              accent: '#e3b341', rid: 'peg-best', href: '#peg', go: () => { rememberLaunch('quick'); switchView('peg'); },
-        best: () => { const v = Scores.num('peg-best'); return v > 0 ? v + ' pegs' : null; } },
-      { name: 'Clasp',            accent: '#9fd6c2', rid: 'clasp-best', href: '#clasp', go: () => { rememberLaunch('quick'); switchView('clasp'); },
-        best: () => { const v = Scores.num('clasp-best'); return v > 0 ? v + ' clasps' : null; } },
-      { name: 'Rivet',            accent: '#d4784a', rid: 'rivet-best', href: '#rivet', go: () => { rememberLaunch('quick'); switchView('rivet'); },
-        best: () => { const v = Scores.num('rivet-best'); return v > 0 ? v + ' rivets' : null; } },
-      { name: 'Plumb',            accent: '#6f9ec4', rid: 'plumb-best', href: '#plumb', go: () => { rememberLaunch('quick'); switchView('plumb'); },
-        best: () => { const v = Scores.num('plumb-best'); return v > 0 ? v + ' plumbs' : null; } },
-      { name: 'Brand',            accent: '#e24b3b', rid: 'brand-best', href: '#brand', go: () => { rememberLaunch('quick'); switchView('brand'); },
-        best: () => { const v = Scores.num('brand-best'); return v > 0 ? v + ' brands' : null; } },
-      { name: 'Stitch',           accent: '#c45b7a', rid: 'stitch-best', href: '#stitch', go: () => { rememberLaunch('quick'); switchView('stitch'); },
-        best: () => { const v = Scores.num('stitch-best'); return v > 0 ? v + ' stitches' : null; } },
-      { name: 'Hone',             accent: '#c46a32', rid: 'hone-best', href: '#hone', go: () => { rememberLaunch('quick'); switchView('hone'); },
-        best: () => { const v = Scores.num('hone-best'); return v > 0 ? v + (v === 1 ? ' hone' : ' hones') : null; } },
-      { name: 'Quench',           accent: '#2f7ea8', rid: 'quench-best', href: '#quench', go: () => { rememberLaunch('quick'); switchView('quench'); },
-        best: () => { const v = Scores.num('quench-best'); return v > 0 ? v + (v === 1 ? ' quench' : ' quenches') : null; } },
     ];
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to

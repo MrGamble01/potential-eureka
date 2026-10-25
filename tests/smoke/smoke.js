@@ -209,8 +209,10 @@ const TARGETS = [
       await page.waitForSelector('#view-arcade.active .arcade-card', { timeout: 15000 });
       const cards = await page.locator('#view-arcade .arcade-card').count();
       const flagship = await page.locator('a.arcade-flagship').count();
-      if (cards < 15) throw new Error(`hub rendered ${cards} cards`);
+      if (cards !== 8) throw new Error(`hub rendered ${cards} cards`);
       if (flagship < 1) throw new Error('hub did not render the flagship link');
+      const banned = await page.locator('#view-arcade a[href="drug-lab.html"], #view-arcade a[href="agentic-os.html"]').count();
+      if (banned) throw new Error('hub still links Grow Op or Studio');
     },
   },
   {
@@ -263,7 +265,7 @@ const TARGETS = [
     check: async (page) => {
       await page.waitForSelector('#view-halloffame.active #hof-board .hof-row', { timeout: 15000 });
       const rows = await page.locator('#hof-board .hof-row').count();
-      if (rows < 21) throw new Error(`Hall of Fame rendered ${rows} rows, expected 21`);
+      if (rows !== 8) throw new Error(`Hall of Fame rendered ${rows} rows, expected 8`);
     },
   },
   {

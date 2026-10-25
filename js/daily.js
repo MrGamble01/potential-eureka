@@ -26,6 +26,9 @@ const Daily = (() => {
     { id: 'minesweeper', hash: 'minesweeper', name: 'Minefield', dir: 'min' },
     { id: 'wordcascade', hash: 'wordcascade', name: 'Word Cascade' },
   ];
+  // The hub banner only offers the listed classics. The other seeds stay
+  // so a direct visit can still arm yesterday's challenge.
+  const LISTED = new Set(['snake', 'tetris', 'game2048', 'minesweeper']);
 
   // mulberry32: tiny, solid-enough 32-bit PRNG. Seeded from a string
   // hash of "<game>:<YYYY-MM-DD>", so each game gets its own daily
@@ -109,7 +112,7 @@ const Daily = (() => {
   function refreshBanner() {
     const list = document.getElementById('daily-games');
     if (!list) return;
-    list.innerHTML = GAMES.map(g => {
+    list.innerHTML = GAMES.filter(g => LISTED.has(g.id)).map(g => {
       const best = Utils.highScore.load(bestKey(g.id));
       return `<a class="daily-chip" href="#${g.hash}" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
         (best > 0 ? `<span class="daily-best">★ ${best}</span>` : '') +
