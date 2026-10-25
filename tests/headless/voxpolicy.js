@@ -38,7 +38,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const fresh = await t(() => ({
     c: { cost: POLICY_COST, pay: POLICY_PAY },
     ach: ACH.some(a => a[0] === 'policy4'),
-    howto: document.body.innerHTML.includes("Assessor's Policy</b>"),
+    howto: document.querySelectorAll('#helpOv li').length === 3,
     chip: document.getElementById('polTxt').textContent.includes('25'),
   }));
   ok(fresh.c.cost === 25 && fresh.c.pay === 50 && fresh.ach && fresh.howto,

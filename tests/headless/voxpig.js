@@ -40,7 +40,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: pigCubes(BUILDINGS.trufflepig).length,
       ach: ACH.some(a => a[0] === 'truffle5'),
-      howto: document.body.innerHTML.includes('Truffle Pig</b> (level 9)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 760 && fresh.def.lvl === 9 && fresh.def.kind === 'pig'
     && fresh.cubes >= 8, 'the 🐖 Truffle Pig is in the shop (760 / lvl 9) and renders');

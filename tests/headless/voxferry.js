@@ -40,7 +40,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return { def: d ? { cost: d.cost, lvl: d.lvl, kind: d.kind } : null,
       cubes: ferryCubes(BUILDINGS.ferry).length,
       ach: ACH.some(a => a[0] === 'ferry5'),
-      howto: document.body.innerHTML.includes('Ferry Landing</b> (level 6)') };
+      howto: document.querySelectorAll('#helpOv li').length === 3 };
   });
   ok(fresh.def && fresh.def.cost === 650 && fresh.def.lvl === 6 && fresh.def.kind === 'ferry'
     && fresh.cubes >= 9, 'the ⛴️ Ferry Landing is in the shop (650 / lvl 6) and the jetty renders');

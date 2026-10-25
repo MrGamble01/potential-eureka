@@ -3844,11 +3844,6 @@ function shell(health, error) {
         <p class="brand-kicker">Ashmarch and Lumenferry</p>
       </div>
       <div class="topbar-side">
-        <p class="chips">
-          <span>Chronicle ${escapeHtml(health.llmProvider)}</span>
-          <span>Images ${escapeHtml(health.imageProvider)}</span>
-          <span>This browser</span>
-        </p>
         <a class="ash-back" href="/">Arcade</a>
       </div>
     </header>
@@ -3904,7 +3899,7 @@ function home(state) {
           <label for="motive">${escapeHtml(book.motiveLabel)}</label>
           <input id="motive" name="motive" maxlength="200" placeholder="${escapeHtml(book.motivePlaceholder)}" required value="${escapeHtml(state.motive)}">
           <button type="submit" class="primary" ${state.busy ? "disabled" : ""}>${state.busy ? "The road is waking\u2026" : escapeHtml(book.beginLabel)}</button>
-          <p class="fine">Saved on this machine. Chronicle: stub. Pictures: a procedural plate. No key, no network. No one else is on this road.</p>
+          <p class="fine">Saved on this machine. No key, no network. No one else is on this road.</p>
         </form>
         <div class="expeditions">
           <h2>Expeditions already walked</h2>

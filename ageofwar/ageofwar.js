@@ -1188,11 +1188,9 @@ const AgeOfWarGame = (() => {
       const steps = modal.querySelector('.aow-welcome-steps');
       if (steps) {
         steps.innerHTML = `
-          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap Clubman</strong> at the bottom. Your castle is on the left — two soldiers are already marching right. Each extra unit costs gold.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the field to sweep many at once. Coins you miss collect themselves after a few seconds.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when the XP bar fills. That unlocks stronger units and a new <strong>Special</strong>.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with the <em>Hero</em> button — expensive but devastating. A new hero unlocks each era.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They shoot enemies while you collect coins.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap Clubman.</strong> Your castle is on the left. Two soldiers are already marching.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap the coins</strong> that fall when a unit goes down.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> when the bar fills, then send a hero.</div></div>
         `;
       }
     }

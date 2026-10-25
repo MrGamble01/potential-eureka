@@ -66,7 +66,9 @@ const winterHalves = /G\.season===3\?\.5:1/.test(player);
   ok(shown, 'a brand-new camp is met by the crash course');
 
   const copy = await page.$eval('#intro-body', el => el.innerText.replace(/\s+/g, ' ')).catch(() => '');
-  ok(copy.length > 200, `the panel actually says something (${copy.length} chars)`);
+  const lines = await page.$eval('#intro-body', el => el.innerHTML.split('<br>').filter(s => s.trim()).length).catch(() => 0);
+  ok(lines === 3 && copy.length > 40 && copy.length < 400,
+    `the sheet is three short lines (${lines} lines, ${copy.length} chars)`);
 
   // The day must not burn while they read about the day.
   const t0 = await page.evaluate(() => G.timeOfDay);
@@ -122,25 +124,8 @@ const winterHalves = /G\.season===3\?\.5:1/.test(player);
   });
   ok(covered === null, `dismissed, the greeting leaves the controls clear${covered ? ' — ' + covered : ''}`);
 
-  // --- B. the numbers still match the game -------------------------
-  ok(recipeIds.length > 0 && gatedCount >= 0,
-     `RECIPES parsed from source (${recipeIds.length} recipes, ${gatedCount} gated) — guards the guard`);
-
-  const gateClaim = new RegExp(`\\b${gatedCount}\\b[\\s\\S]{0,24}\\b${recipeIds.length}\\b`);
-  ok(gateClaim.test(copy),
-     `the copy's workbench-gating figure matches RECIPES (${gatedCount} of ${recipeIds.length})`);
-
-  ok(benchCost && new RegExp(`${benchCost[1]}\\s*wood`).test(copy) && new RegExp(`${benchCost[2]}\\s*scraps`).test(copy),
-     `the quoted Workbench cost matches config (${benchCost ? benchCost[1] + ' wood, ' + benchCost[2] + ' scraps' : '??'})`);
-
-  ok(coldBar && new RegExp(`${coldBar[1]}\\s*%`).test(copy),
-     `the quoted cold threshold matches the dawn code (warmth < ${coldBar ? coldBar[1] : '??'})`);
-
-  ok(winterHalves && /winter/i.test(copy),
-     'the copy mentions winter, and winter really does halve scavenging in player.js');
-
   ok(/wasd/i.test(copy) && /dumpster/i.test(copy),
-     'the copy names both halves of the gate a newcomer bounces off: how to move, and that scavenging needs a dumpster');
+     'the three lines name how to move, and that scavenging needs a dumpster');
 
   // Both sheets cover the top-bar Games link. Their own exit must be
   // visible without scrolling and navigate through the real anchor.

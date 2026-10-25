@@ -49,7 +49,7 @@ const HITS = [
       const nodes = document.querySelectorAll('#labels div');
       return Array.from(nodes).some((n) => /\d+s/.test(n.textContent));
     });
-    await page.waitForSelector('#arcade-ai-launch');
+    await page.waitForSelector('#arcade-ai-launch', { state: 'attached' });
     await page.waitForTimeout(500);
     return { ctx, page };
   }

@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800&display=swap"></noscript>
   <link rel="stylesheet" href="css/arcade-chrome.css">
+  <link rel="stylesheet" href="css/tokens.css?v=20261025theme">
   <style>
     :root {
       --panel: rgba(24, 30, 26, 0.92);
@@ -30,7 +31,7 @@
       --stone: #b7bec8;
       --food: #8ec26b;
       --line: rgba(255,255,255,0.12);
-      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --font: var(--ek-font, "Segoe UI", system-ui, sans-serif);
       --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -867,19 +868,10 @@
       <div class="welcome-body">
       <h2><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
       <div class="flavor">Build a cozy riverside town and watch it come to life.</div>
-      <div style="font-size:13.5px; line-height:1.7; margin-bottom:4px;">
-        &bull; Pick a building and click the ground &mdash; a villager will come <b>build it</b>.<br>
-        &bull; <b>Cottages</b> bring villagers; <b>farms &amp; fishing</b> feed them; workshops earn coin.<br>
-        &bull; Growing the colony <b>unlocks new buildings</b> &mdash; and winter hearths burn wood!<br>
-        &bull; Place workshops beside their <b>supplier</b> (bakery by a windmill&hellip;) for a &#9889; bonus.<br>
-        &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
-        &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
-        &bull; A <b>Stillroom</b> turns feverfew and flax into tea, linen, pies and salve for the neighbours.<br>
-        &bull; The <b>Valley Cup</b> is a daily basket. Your slip can be pasted on another town&rsquo;s board.<br>
-        &bull; Once the valley <b>knows</b> you, the <b>Lantern Hollow</b> opens. A warden waits each season.<br>
-        &bull; The gear menu's <b>Wilds Expedition</b> grows a fresh trail from a seed. Deeper pays more, and the same seed walks it again.<br>
-        &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.<br>
-        &bull; Tap <b>Elder Wren</b>, <b>Reeve Ada</b>, <b>Sable</b>, or a neighbour on the green to talk.
+      <div style="font-size:16px; line-height:1.45; margin-bottom:4px;">
+        &bull; Pick a building and click the ground. A villager comes to build it.<br>
+        &bull; Cottages bring people. Farms feed them. Workshops earn coin.<br>
+        &bull; Winter hearths burn wood. Stock food before the snow.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
       <div id="diffsel" style="display:flex; gap:6px;">

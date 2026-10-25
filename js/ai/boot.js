@@ -137,6 +137,7 @@
 
   const style = document.createElement('style');
   style.textContent = [
+    '#arcade-ai-root,#arcade-ai-launch,#arcade-ai-ticker{display:none!important}',
     '#arcade-ai-root{position:fixed;z-index:1200;left:8px;top:var(--hud-top-safe,8px)}',
     '#arcade-ai-launch{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;',
     'color:#f6f1e6;background:rgba(10,12,16,.9);border:1px solid var(--ai-accent,#e0c9a0);border-radius:999px;',

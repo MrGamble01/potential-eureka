@@ -41,7 +41,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     refreshNoteHud();
     return { c: { adv: NOTE_ADV, owed: NOTE_OWED },
       ach: ACH.some(a => a[0] === 'notes3'),
-      howto: document.body.innerHTML.includes("Trader's Note</b>"),
+      howto: document.querySelectorAll('#helpOv li').length === 3,
       hidden: document.getElementById('noteHud').style.display === 'none',
       refused: (state.traderNote || 0) === 0 };
   });

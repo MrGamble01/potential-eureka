@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/ageofwar/aow.css?v=20261018aowfield">
   <link rel="stylesheet" href="/css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="/css/arcade-chrome.css">
+  <link rel="stylesheet" href="/css/tokens.css?v=20261025theme">
   <style>
     /* Page-level styles (these were inherited from base.css in the
        parent dashboard repo; inlined here so this folder is fully
@@ -28,7 +29,7 @@
     html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
     body {
       color: var(--text);
-      font-family: var(--font-sans);
+      font-family: var(--ek-font, var(--font-sans, system-ui, sans-serif));
       line-height: 1.5;
       overflow-x: hidden;
     }
@@ -229,11 +230,9 @@
       <div class="aow-welcome-title">⚔ Age of War</div>
       <div class="aow-welcome-sub">Your castle is on the left. Send soldiers at the enemy castle on the right. Last base standing wins.</div>
       <div class="aow-welcome-steps">
-        <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Send units</strong> — two soldiers are already marching. Click <strong>Clubman</strong> or press <kbd>1</kbd> to send more. Each kind costs gold.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Click coins</strong> — kills drop gold on the field. Click one, or drag across several. Missed coins collect themselves after a few seconds.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with <kbd>Q</kbd> when the XP bar fills. That unlocks stronger units and a new <strong>Special</strong> (<kbd>Space</kbd>).</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with <kbd>H</kbd> — expensive but devastating. New hero every era.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> on your base in the <em>Turrets</em> tab. They shoot enemies while you collect coins.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Send a Clubman.</strong> Your castle is on the left. Two soldiers are already marching.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap the coins</strong> that fall when a unit goes down.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> when the bar fills, then send a hero.</div></div>
       </div>
       <div class="aow-welcome-cta">
         <button class="aow-welcome-start" id="aow-welcome-close">Let's go ⚔</button>

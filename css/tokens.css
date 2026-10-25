@@ -1,0 +1,74 @@
+/* Shared kit for the hub and the flagship games.
+   Fonts, colors, buttons, cards, and the short how-to sheet. */
+
+:root {
+  --ek-font: "Outfit", "Inter", system-ui, sans-serif;
+  --ek-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ek-bg: #10131a;
+  --ek-surface: #1a1f2b;
+  --ek-ink: #f6f3ea;
+  --ek-muted: #c4beb2;
+  --ek-line: rgba(246, 243, 234, 0.16);
+  --ek-gold: #e3b341;
+  --ek-accent: #8b83ff;
+  --ek-radius: 18px;
+}
+
+.ek-btn,
+html.hud #intro-go,
+html #aow-welcome-close,
+html #welcome-close,
+html #helpOv #helpClose {
+  font-family: var(--ek-font);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ek-gold);
+  color: #1a1408;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+html.hud #intro-panel #intro-go {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.ek-card,
+html.hud #intro-panel,
+.aow-welcome-card,
+#welcome .trader-card,
+#helpOv .card,
+html.hud-b[data-game="voxel"] #helpOv .card {
+  font-family: var(--ek-font);
+  background: var(--ek-surface);
+  color: var(--ek-ink);
+  border: 1px solid var(--ek-line);
+  border-radius: var(--ek-radius);
+}
+
+html.hud #intro-body,
+.aow-welcome-steps,
+#welcome .welcome-body,
+#helpOv .card p,
+#helpOv .card li,
+#helpOv ul {
+  font-family: var(--ek-font);
+  color: var(--ek-ink);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+html.hud #intro-title,
+.aow-welcome-title,
+#welcome h2,
+#helpOv h2 {
+  font-family: var(--ek-font);
+  letter-spacing: -0.02em;
+}
