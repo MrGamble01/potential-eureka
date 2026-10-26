@@ -113,20 +113,20 @@ export class MapScene extends window.Phaser.Scene {
       const select = this.add.ellipse(0, 12, 230, 140, 0x8ec5ff, 0.06).setStrokeStyle(2, 0x8ec5ff, 0.85).setVisible(false);
       const raid = this.add.ellipse(0, 12, 240, 150, 0xf85149, 0.1).setStrokeStyle(3, 0xf85149, 0.9).setVisible(false);
       const art = this.add.graphics();
-      const barBg = this.add.rectangle(0, -96, 90, 6, 0x10140f, 0.85);
-      const bar = this.add.rectangle(-44, -96, 4, 4, 0x7dcea0, 1).setOrigin(0, 0.5);
-      const label = this.add.container(def.x, def.y - 108).setDepth(18);
-      const nameBg = this.add.rectangle(0, 0, 112, 22, 0x10140f, 0.94).setStrokeStyle(1, 0xe7dcc4, 0.45);
+      const pulse = this.add.ellipse(0, 18, 170, 78).setStrokeStyle(3, 0x8ec5ff, 1).setVisible(false);
+      const label = this.add.container(def.x, def.y - 120).setDepth(18);
+      const plate = this.add.graphics();
+      const font = 'Outfit, Inter, sans-serif';
       const name = this.add.text(0, 0, '', {
-        fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontStyle: '700', color: '#f6f1e7'
+        fontFamily: font, fontSize: '13px', fontStyle: '700', color: '#f6f1e7'
       }).setOrigin(0.5).setResolution(2);
-      const stock = this.add.text(0, 16, '', {
-        fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#d5deea'
+      const stock = this.add.text(0, 0, '', {
+        fontFamily: font, fontSize: '11px', color: '#c5d0dc'
       }).setOrigin(0.5).setResolution(2);
-      label.add([nameBg, name, stock]);
-      root.add([select, raid, hit, art, barBg, bar]);
+      label.add([plate, name, stock]);
+      root.add([pulse, select, raid, hit, art]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, barBg, bar, label, nameBg, name, stock, key: '' };
+      this.slots[def.id] = { def, root, hit, select, raid, art, pulse, label, plate, name, stock, key: '' };
     }
   }
 
@@ -186,12 +186,19 @@ export class MapScene extends window.Phaser.Scene {
     this.cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
   }
 
+  valleyZoom() {
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    const top = vw < 700 ? 176 : 156;
+    const bottom = 84;
+    const zoom = Math.min((vw - 28) / 640, (vh - top - bottom) / 820);
+    return window.Phaser.Math.Clamp(zoom * 0.98, 0.48, 1.2);
+  }
+
   frameValley(instant) {
     const cam = this.cameras.main;
-    const vw = this.scale.width;
-    const zoom = vw < 520 ? 1.28 : vw < 900 ? 1.2 : vw < 1500 ? 1.62 : 1.9;
-    const focus = vw < 520 ? { x: 450, y: 640 } : { x: 500, y: 600 };
-    cam.setZoom(zoom);
+    cam.setZoom(this.valleyZoom());
+    const focus = { x: 470, y: 700 };
     if (instant) cam.centerOn(focus.x, focus.y);
     else cam.pan(focus.x, focus.y, 420, 'Sine.easeInOut');
   }
@@ -218,7 +225,7 @@ export class MapScene extends window.Phaser.Scene {
     if (!def) return;
     this.userPanned = true;
     const cam = this.cameras.main;
-    const zoom = this.scale.width < 520 ? 1.7 : this.scale.width < 900 ? 1.5 : 2.2;
+    const zoom = this.scale.width < 520 ? 1.05 : this.scale.width < 900 ? 1.15 : 1.7;
     cam.setZoom(zoom);
     if (instant) cam.centerOn(def.x, def.y + 20);
     else cam.pan(def.x, def.y + 20, 360, 'Sine.easeInOut');
@@ -274,72 +281,117 @@ export class MapScene extends window.Phaser.Scene {
       }).map((lt) => lt.name.split(' ')[0]);
       const heat = state.unlocked ? ` · heat ${Math.floor(state.heat)}%` : ' · locked';
       plate.sub.setText(`${PLATES[reg.id].sub}${heat}${crew.length ? ' · ' + crew[0] : ''}`);
+      const spot = this.worldToScreen(plate.bg.x, plate.bg.y);
+      const clear = !this.underHud(spot.x, spot.y, 120, 28);
+      plate.bg.setVisible(clear);
+      plate.title.setVisible(clear);
+      plate.sub.setVisible(clear);
     }
+  }
+
+  worldToScreen(x, y) {
+    const view = this.cameras.main.worldView;
+    const zoom = this.cameras.main.zoom;
+    return { x: (x - view.x) * zoom, y: (y - view.y) * zoom };
+  }
+
+  underHud(sx, sy, hw, hh) {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const top = w < 700 ? 168 : 72;
+    if (sy - hh < top) return true;
+    if (sy + hh > h - 78) return true;
+    const objBottom = top + (w < 700 ? 78 : 132);
+    if (sx - hw < 400 && sy - hh < objBottom) return true;
+    return false;
   }
 
   syncSlots() {
     const zoom = this.cameras.main.zoom;
-    const base = this.scale.width < 520 ? 1.28 : this.scale.width < 900 ? 1.2 : this.scale.width < 1500 ? 1.62 : 1.9;
-    const rel = zoom / base;
-    const names = rel >= 0.72;
-    const detail = rel >= 1.05;
+    const rel = zoom / this.valleyZoom();
+    const names = rel >= 0.82;
+    const detail = rel >= 0.92;
     const selected = this.sim.state.selectedSlotId;
+    const recommend = this.recommendedSlot();
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
       if (!state) continue;
       node.select.setVisible(id === selected);
       node.raid.setVisible(!!state.raidLocked);
       if (state.raidLocked) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
+      const built = !!state.buildingId && !state.rivalControlled;
+      node.pulse.setVisible(!built && !state.rivalControlled && id === recommend);
+      if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
       if (key !== node.key) {
         node.key = key;
         this.paintSite(node.art, state);
       }
-      const built = !!state.buildingId && !state.rivalControlled;
-      node.barBg.setVisible(detail && built);
-      node.bar.setVisible(detail && built);
-      node.bar.width = built ? Math.max(4, Math.min(86, state.progress * 86)) : 4;
       if (built) {
         const def = BUILDINGS[state.buildingId];
-        node.bar.fillColor = state.raidLocked ? 0xf85149 : (def.accentColor || 0x7dcea0);
-        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail);
+        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail, state.progress, state.raidLocked ? 0xf85149 : 0x7dcea0);
         node.name.setColor(state.raidLocked ? '#ffb4ae' : '#f6f1e7');
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.12) this.puff(node.def.x + 30, node.def.y - 70);
         }
       } else if (state.rivalControlled) {
-        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail);
+        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail, 0, 0xf85149);
         node.name.setColor('#ffb4ae');
-        node.stock.setColor('#f85149');
+        node.stock.setColor('#ffb4ae');
+      } else if (id === recommend) {
+        this.placeLabel(node, 'Open plot', '', names, false, 0, 0x8ec5ff);
+        node.name.setColor('#d5e4f5');
       } else {
-        const picked = id === selected && rel >= 1;
-        this.placeLabel(node, 'Open plot', '', picked, false);
-        node.name.setColor('#e7dcc6');
+        node.label.setVisible(false);
       }
     }
   }
 
-  placeLabel(node, title, stock, showName, showStock) {
+  recommendedSlot() {
+    const st = this.sim.state;
+    if (!st.tutorialDone && st.tutorialStep === 0) return 'slot_rp_town1';
+    const empty = Object.values(st.slots).find((s) => !s.buildingId && !s.rivalControlled && st.regions[s.regionId] && st.regions[s.regionId].unlocked);
+    return empty ? empty.slotId : null;
+  }
+
+  placeLabel(node, title, stock, showName, showStock, progress, barColor) {
+    if (!showName) {
+      node.label.setVisible(false);
+      return;
+    }
     const cam = this.cameras.main;
-    const view = cam.worldView;
-    const scale = Math.min(1, 1.2 / cam.zoom);
+    const scale = Math.min(1.45, Math.max(0.62, 1 / cam.zoom));
     node.label.setScale(scale);
     node.name.setText(title);
-    node.stock.setText(stock || '');
-    node.stock.setPosition(0, 22);
-    node.name.setVisible(!!showName);
-    node.nameBg.setVisible(!!showName);
-    node.stock.setVisible(!!showStock && !!stock);
-    const camScale = cam.zoom || 1;
-    const pad = 78 / camScale;
-    let x = node.def.x;
-    let y = node.def.y - 124;
-    const topLimit = view.y + pad;
-    const bottomLimit = view.bottom - pad;
-    if (y < topLimit) y = node.def.y + 86;
-    const inside = x > view.x + pad && x < view.right - pad && y > topLimit && y < bottomLimit;
-    node.label.setVisible(inside && !!showName);
-    node.label.setPosition(x, y);
+    const status = showStock && stock ? stock : '';
+    node.stock.setText(status);
+    node.stock.setVisible(!!status);
+    const nameW = Math.ceil(node.name.width);
+    const stockW = status ? Math.ceil(node.stock.width) : 0;
+    const w = Math.max(108, nameW + 22, stockW + 22);
+    const h = 22 + (status ? 18 : 0) + (showStock ? 12 : 0);
+    node.plate.clear();
+    node.plate.fillStyle(0x12161c, 0.94);
+    node.plate.fillRoundedRect(-w / 2, -h / 2, w, h, 9);
+    node.plate.lineStyle(1, 0x3d4c63, 1);
+    node.plate.strokeRoundedRect(-w / 2, -h / 2, w, h, 9);
+    node.name.setPosition(0, -h / 2 + 13);
+    node.stock.setPosition(0, -h / 2 + 30);
+    node.stock.setColor('#c5d0dc');
+    if (showStock) {
+      const bw = w - 16;
+      const bx = -bw / 2;
+      const by = h / 2 - 8;
+      node.plate.fillStyle(0x2a3344, 1);
+      node.plate.fillRoundedRect(bx, by, bw, 4, 2);
+      node.plate.fillStyle(barColor || 0x7dcea0, 1);
+      node.plate.fillRoundedRect(bx, by, Math.max(4, bw * Math.max(0, Math.min(1, progress || 0))), 4, 2);
+    }
+    const y = node.def.y - 118;
+    const spot = this.worldToScreen(node.def.x, y);
+    const blocked = this.underHud(spot.x, spot.y, (w * scale) / 2, (h * scale) / 2);
+    node.label.setVisible(!blocked);
+    node.label.setPosition(node.def.x, y);
   }
 
   stockLine(state, def) {
@@ -462,6 +514,16 @@ export class MapScene extends window.Phaser.Scene {
         g.lineBetween(def.x + 20, def.y - 20, def.x + 20 + Math.cos(spin) * 14, def.y - 20 + Math.sin(spin) * 6);
       }
     }
+    const hour = this.sim.state.timeOfDay || 0;
+    if (hour > 0.72 || hour < 0.18) {
+      g.fillStyle(0xffd27a, 0.9);
+      for (const slot of Object.values(this.sim.state.slots)) {
+        if (!slot.buildingId) continue;
+        const def = BUILD_SLOTS.find((s) => s.id === slot.slotId);
+        g.fillRect(def.x + 18, def.y - 28, 8, 6);
+        g.fillRect(def.x + 34, def.y - 28, 8, 6);
+      }
+    }
     this.smoke = this.smoke.filter((p) => {
       p.y -= 18 * dt;
       p.life -= dt * 0.6;
@@ -534,7 +596,7 @@ export class MapScene extends window.Phaser.Scene {
       }).setOrigin(0.5).setDepth(20);
       this.floaters.push({ node, x: def.x, y: def.y - 20, life: 1.1 });
     }
-    if (evt.type === 'raid_started') this.cameras.main.shake(280, 0.004);
+    if (evt.type === 'raid_started' || evt.type === 'rival_raid') this.cameras.main.shake(280, 0.004);
     if (evt.type === 'truck_delivered') {
       const def = BUILD_SLOTS.find((s) => s.id === evt.truck.toSlotId);
       if (def) this.puff(def.x, def.y);

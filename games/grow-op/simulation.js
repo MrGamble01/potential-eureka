@@ -409,7 +409,12 @@ export class CartelSimulation {
     if (!ltState || !ltState.hired || !reg) return { ok: false, reason: 'Cannot assign.' };
     if (!reg.unlocked) return { ok: false, reason: 'Unlock that region first.' };
     ltState.regionId = regionId;
-    this.log(`${ltDef.name} stationed in ${regDef.name}.`, 'info');
+    const bits = [];
+    if (ltDef.prodMult > 1) bits.push(`${Math.round((ltDef.prodMult - 1) * 100)}% output`);
+    if (ltDef.launderMult > 1) bits.push(`${Math.round((ltDef.launderMult - 1) * 100)}% laundering`);
+    if (ltDef.heatMult < 1) bits.push(`${Math.round((1 - ltDef.heatMult) * 100)}% less heat`);
+    if (ltDef.defensePower >= 8) bits.push('repels raids');
+    this.log(`${ltDef.name.split(' ')[0]} is in ${regDef.name}${bits.length ? ': ' + bits.join(', ') : ''}.`, 'ok');
     this.save();
     return { ok: true };
   }
@@ -711,6 +716,14 @@ export class CartelSimulation {
       }
     }
 
+    for (const slot of Object.values(this.state.slots)) {
+      if (slot.rivalLock && this.state.elapsedSeconds >= (slot.rivalUntil || 0)) {
+        slot.rivalLock = false;
+        const reg = this.state.regions[slot.regionId];
+        if (!reg || !reg.raidActive || reg.raidTargetSlot !== slot.slotId) slot.raidLocked = false;
+      }
+    }
+
     // 4. Autosave periodically
     this.saveTimer += dt;
     if (this.saveTimer >= 5) {
@@ -728,7 +741,18 @@ export class CartelSimulation {
       const rivalSlots = Object.values(this.state.slots).filter((s) => s.rivalControlled);
       if (rivalSlots.length > 0) {
         this.state.regions.rio_plata.heat = Math.min(95, this.state.regions.rio_plata.heat + 6);
-        this.log('Los Lobos scouts spotted near the valley border (+6 Heat).', 'warn');
+        const targets = Object.values(this.state.slots).filter((s) => s.buildingId && s.regionId === 'rio_plata' && !s.raidLocked);
+        const hit = targets[Math.floor(Math.random() * targets.length)];
+        if (hit) {
+          hit.raidLocked = true;
+          hit.rivalLock = true;
+          hit.rivalUntil = this.state.elapsedSeconds + 16;
+          const name = BUILDINGS[hit.buildingId] ? BUILDINGS[hit.buildingId].shortName : 'a lot';
+          this.log(`Los Lobos shut ${name} for a short raid.`, 'danger');
+          this.onEvent({ type: 'rival_raid', slotId: hit.slotId });
+        } else {
+          this.log('Los Lobos scouts spotted near the valley border (+6 Heat).', 'warn');
+        }
       }
     }
   }

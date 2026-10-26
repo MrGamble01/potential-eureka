@@ -184,6 +184,18 @@ function renderHud() {
     const latest = st.feed[0];
     $('feed-ticker').innerHTML = `<strong>[${latest.time}]</strong> ${latest.text}`;
   }
+  const route = $('route-line');
+  if (route) {
+    const moving = (st.activeTrucks || []).slice(0, 1).map((truck) => {
+      const good = GOODS[truck.goodId];
+      const from = st.slots[truck.fromSlotId];
+      const to = st.slots[truck.toSlotId];
+      const fromName = from && from.buildingId ? BUILDINGS[from.buildingId].shortName : 'Lot';
+      const toName = to && to.buildingId ? BUILDINGS[to.buildingId].shortName : 'Lot';
+      return `${truck.qty} ${good ? good.shortName : 'cargo'} · ${fromName} → ${toName}`;
+    });
+    route.textContent = moving.length ? moving.join('   ') : 'Routes quiet until a truck rolls.';
+  }
   renderTutorial();
   renderEvent();
 }

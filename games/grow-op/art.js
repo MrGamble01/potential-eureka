@@ -31,23 +31,33 @@ function poly(g, pts) {
 
 export function drawWorld(g, roads) {
   g.clear();
-  const step = 40;
-  for (let y = 0; y < WORLD_H; y += step) {
-    for (let x = 0; x < WORLD_W; x += step) {
-      const n = hash(x * 0.17, y * 0.13);
-      let color = 0x4e6438;
-      if (x > 1600) color = n > 0.55 ? 0x6d6246 : 0x556844;
-      else if (x > 860) color = n > 0.5 ? 0x6a5e40 : 0x58703c;
-      else color = n > 0.62 ? 0x6d8a48 : n > 0.3 ? 0x4f6a38 : 0x3e552c;
-      g.fillStyle(color, 1);
-      g.fillRect(x, y, step, step);
-      g.fillStyle(0x140e08, 0.035);
-      g.fillRect(x, y + step - 5, step, 5);
-      if (n > 0.82) {
-        g.fillStyle(0xc4b48a, 0.18);
-        g.fillCircle(x + 12, y + 16, 7);
-      }
-    }
+  g.fillStyle(0x4a6234, 1);
+  g.fillRect(0, 0, WORLD_W, WORLD_H);
+  g.fillStyle(0x5c5338, 1);
+  g.fillRect(860, 0, 740, WORLD_H);
+  g.fillStyle(0x5a6244, 1);
+  g.fillRect(1600, 0, WORLD_W - 1600, WORLD_H);
+  for (let i = 0; i < 420; i++) {
+    const x = hash(i, 21) * WORLD_W;
+    const y = hash(i, 22) * WORLD_H;
+    const rx = 70 + hash(i, 23) * 180;
+    const ry = 40 + hash(i, 24) * 90;
+    const sierra = x > 1600;
+    const town = x > 860 && x < 1600;
+    const roll = hash(i, 25);
+    const color = sierra
+      ? (roll > 0.55 ? 0x6e6550 : 0x4e6840)
+      : town
+        ? (roll > 0.5 ? 0x74664a : 0x5a7040)
+        : (roll > 0.66 ? 0x6d8a48 : roll > 0.33 ? 0x3e5a2e : 0xc4b48a);
+    g.fillStyle(color, 0.72);
+    g.fillEllipse(x, y, rx, ry);
+  }
+  for (let i = 0; i < 700; i++) {
+    const x = hash(i, 31) * WORLD_W;
+    const y = hash(i, 32) * WORLD_H;
+    g.fillStyle(hash(i, 33) > 0.5 ? 0x1a2414 : 0xe6d7b0, 0.07);
+    g.fillCircle(x, y, 1.5 + hash(i, 34) * 3.5);
   }
 
   // Valley crop quilts
@@ -62,9 +72,11 @@ export function drawWorld(g, roads) {
     g.fillEllipse(x + 8, y + 10, w, h);
     g.fillStyle(color, 0.92);
     g.fillEllipse(x, y, w, h);
-    g.lineStyle(2, 0x2f4a22, 0.45);
-    for (let row = -h / 2 + 14; row < h / 2; row += 14) {
-      g.lineBetween(x - w / 2 + 24, y + row, x + w / 2 - 24, y + row);
+    g.fillStyle(0x2f4a22, 0.28);
+    for (let row = -h / 2 + 16; row < h / 2 - 8; row += 16) {
+      for (let col = -w / 2 + 20; col < w / 2 - 16; col += 14) {
+        if (hash(x + col, y + row) > 0.35) g.fillCircle(x + col, y + row, 2.2);
+      }
     }
   }
 
@@ -99,10 +111,11 @@ export function drawWorld(g, roads) {
     else shrub(g, x, y, 0.6 + hash(i, 7));
   }
 
-  town(g, 500, 280, 6, 2);
-  town(g, 1080, 280, 7, 3);
-  town(g, 1540, 300, 4, 2);
-  town(g, 980, 860, 5, 2);
+  town(g, 500, 280, 6, 2, 'colonial');
+  town(g, 1080, 280, 7, 3, 'port');
+  town(g, 1540, 300, 4, 2, 'port');
+  town(g, 1880, 250, 4, 2, 'stone');
+  town(g, 980, 860, 5, 2, 'port');
   plaza(g, 1240, 340);
 
   // River banks, then water
@@ -170,8 +183,18 @@ function rock(g, x, y, s) {
   g.fillEllipse(x - 3 * s, y - 2 * s, 8 * s, 4 * s);
 }
 
-function town(g, x, y, cols, rows) {
-  const roofs = [0x8c4030, 0x3d5566, 0xc4a06a, 0x6e3458, 0x4a6740];
+function town(g, x, y, cols, rows, style) {
+  const roofs = style === 'stone'
+    ? [0x6a6258, 0x8a8074, 0x4a4038]
+    : style === 'port'
+      ? [0x3d5566, 0x8c4030, 0x2a3440]
+      : [0x8c4030, 0xc4a06a, 0x6e3458, 0x4a6740];
+  if (style === 'stone') {
+    g.fillStyle(0x6a5a40, 1);
+    g.fillRect(x - 8, y - 28, 28, 36);
+    g.fillStyle(0x3a3228, 1);
+    g.fillRect(x + 2, y - 40, 8, 16);
+  }
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const n = hash(x + c * 19, y + r * 23);
@@ -256,18 +279,28 @@ function drawPlot(g) {
 
 function drawPlantation(g) {
   shadow(g, 230, 70);
+  g.fillStyle(0x3a2a1c, 1);
+  g.fillRoundedRect(-100, 4, 150, 70, 4);
   g.fillStyle(0x5a432c, 1);
   g.fillRoundedRect(-110, -8, 140, 78, 4);
+  g.lineStyle(2, 0x8d7350, 0.7);
+  g.strokeRoundedRect(-112, -6, 146, 84, 4);
   for (let i = 0; i < 6; i++) {
     g.fillStyle(0x2c5224, 1);
     g.fillRect(-104, -2 + i * 12, 128, 8);
     g.fillStyle(0x8fd08a, 0.9);
     for (let x = -98; x < 18; x += 12) g.fillCircle(x, 2 + i * 12, 3.2);
   }
+  g.fillStyle(0xc4b496, 1);
+  g.fillRect(100, -40, 16, 58);
   g.fillStyle(0xead8b8, 1);
   g.fillRect(36, -46, 70, 64);
+  g.fillStyle(0x6a2e22, 1);
+  g.fillTriangle(40, -46, 71, -84, 112, -46);
   g.fillStyle(0x8c3a28, 1);
-  g.fillTriangle(30, -46, 71, -84, 112, -46);
+  g.fillTriangle(30, -46, 71, -84, 102, -46);
+  g.fillStyle(0xffffff, 0.16);
+  g.fillTriangle(48, -50, 71, -78, 71, -50);
   g.fillStyle(0x5a4030, 1);
   g.fillRect(60, -10, 16, 28);
   g.fillStyle(0x9fd8e8, 0.95);
@@ -278,6 +311,11 @@ function drawPlantation(g) {
   g.fillStyle(0x8a9098, 1);
   g.fillRect(-8, 28, 22, 18);
   g.fillEllipse(3, 28, 24, 10);
+  g.fillStyle(0x8d7350, 1);
+  g.fillCircle(-70, 62, 7);
+  g.fillCircle(-56, 64, 6);
+  g.fillStyle(0xc4a06a, 1);
+  g.fillRect(-40, 56, 12, 10);
 }
 
 function drawCoffee(g) {
@@ -322,6 +360,8 @@ function drawHighland(g) {
 
 function drawBarn(g) {
   shadow(g, 240, 70);
+  g.fillStyle(0xb7a88c, 1);
+  g.fillRect(70, -8, 18, 62);
   g.fillStyle(0xe6d4b4, 1);
   g.fillRect(-100, -16, 180, 70);
   g.fillStyle(0x7a3424, 1);
@@ -380,6 +420,8 @@ function drawLab(g) {
 
 function drawWarehouse(g) {
   shadow(g, 260, 80);
+  g.fillStyle(0xa89b84, 1);
+  g.fillRect(96, -16, 18, 66);
   g.fillStyle(0xd2c8b4, 1);
   g.fillRect(-120, -28, 110, 78);
   g.fillRect(0, -28, 110, 78);
@@ -519,6 +561,8 @@ function drawClub(g) {
 
 function drawBank(g) {
   shadow(g, 250, 74);
+  g.fillStyle(0xb3a890, 1);
+  g.fillRect(100, 4, 18, 52);
   g.fillStyle(0xd9d0bc, 1);
   g.fillRect(-110, -8, 220, 64);
   g.fillStyle(0x8aa0b4, 1);
