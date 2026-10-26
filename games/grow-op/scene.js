@@ -197,8 +197,11 @@ export class MapScene extends window.Phaser.Scene {
 
   frameValley(instant) {
     const cam = this.cameras.main;
-    cam.setZoom(this.valleyZoom());
-    const focus = { x: 470, y: 700 };
+    const zoom = this.valleyZoom();
+    cam.setZoom(zoom);
+    const topInset = this.scale.width < 700 ? 188 : 164;
+    const viewY = 300 - topInset / zoom;
+    const focus = { x: 470, y: viewY + (this.scale.height / zoom) / 2 };
     if (instant) cam.centerOn(focus.x, focus.y);
     else cam.pan(focus.x, focus.y, 420, 'Sine.easeInOut');
   }
