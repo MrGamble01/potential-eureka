@@ -4,7 +4,7 @@
 //   art.js      drawWorld, drawFog, drawMiniTruck, paintStructure.
 //               If it also exports textureKey(ctx) and drawKeyed(g, key, ctx),
 //               structures go through that path. ctx is
-//               { buildingId, rival, level, night, progress }.
+//               { buildingId, rival, level, night, progress, slotId }.
 //   simulation  recommendedSlot() and observeFrame(dt) are called when present.
 //   audio/juice registry key onJuice(evt) runs after the visual fx() below.
 //   registry key juice, when present, is the cashPop / shake / pulseBuilding / burst / step bag.
@@ -93,7 +93,12 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   drawHatch() {
-    Art.drawFog(this.hatch, REGIONS);
+    Art.drawFog(this.hatch, REGIONS, this.sim.state);
+    this.fogKey = this.fogSignature();
+  }
+
+  fogSignature() {
+    return REGIONS.map((r) => (this.sim.state.regions[r.id] && this.sim.state.regions[r.id].unlocked) ? '1' : '0').join('');
   }
 
   isNight() {
@@ -305,6 +310,11 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   syncRegions() {
+    const fogKey = this.fogSignature();
+    if (fogKey !== this.fogKey) {
+      this.fogKey = fogKey;
+      Art.drawFog(this.hatch, REGIONS, this.sim.state);
+    }
     for (const reg of REGIONS) {
       const state = this.sim.state.regions[reg.id];
       const badge = this.badges[reg.id];
@@ -362,7 +372,17 @@ export class MapScene extends window.Phaser.Scene {
       const built = !!state.buildingId && !state.rivalControlled;
       node.pulse.setVisible(!built && !state.rivalControlled && id === recommend);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
-      const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
+      const ctx = {
+        buildingId: state.buildingId || null,
+        rival: !!state.rivalControlled,
+        level: state.level || 1,
+        night: this.isNight(),
+        progress: state.progress || 0,
+        slotId: state.slotId || id
+      };
+      const key = typeof Art.textureKey === 'function'
+        ? Art.textureKey(ctx)
+        : `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
       if (key !== node.key) {
         node.key = key;
         this.paintSite(node.art, state);
@@ -500,6 +520,7 @@ export class MapScene extends window.Phaser.Scene {
       level: state.level || 1,
       night: this.isNight(),
       progress: state.progress || 0,
+      slotId: state.slotId || null
     };
     if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
       Art.drawKeyed(g, Art.textureKey(ctx), ctx);
@@ -608,7 +629,7 @@ export class MapScene extends window.Phaser.Scene {
       }
     }
     const hour = this.sim.state.timeOfDay || 0;
-    if (hour > 0.72 || hour < 0.18) {
+    if ((hour > 0.72 || hour < 0.18) && typeof Art.textureKey !== 'function') {
       g.fillStyle(0xffd27a, 0.9);
       for (const slot of Object.values(this.sim.state.slots)) {
         if (!slot.buildingId) continue;
@@ -625,6 +646,7 @@ export class MapScene extends window.Phaser.Scene {
       g.fillCircle(p.x, p.y, p.r + (1 - p.life) * 4);
       return true;
     });
+    if (typeof Art.paintAmbient === 'function') Art.paintAmbient(this, g);
     if (this.sim.state.weather === 'rain') {
       g.lineStyle(1, 0xc5d4e0, 0.35);
       for (let i = 0; i < 70; i++) {
