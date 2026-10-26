@@ -2,7 +2,9 @@
 
 import { GOODS, STRAINS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, LIEUTENANTS, ACTS, MISSIONS } from './data/missions.js';
+import { REGIONS, BUILD_SLOTS, LIEUTENANTS, ACTS, MISSIONS, findRoadPath } from './data/missions.js';
+import { RESEARCH } from './data/research.js';
+import { EVENTS } from './data/events.js';
 
 export const SAVE_KEY = 'growop-cartel-v1';
 
@@ -77,6 +79,17 @@ export function createInitialState() {
     },
     activeTrucks: [],
     nextTruckId: 1,
+    mode: 'campaign',
+    timeOfDay: 0.34,
+    weather: 'clear',
+    weatherTimer: 28,
+    research: {},
+    tutorialStep: 0,
+    tutorialDone: false,
+    event: null,
+    eventCooldown: 16,
+    eventsSeen: [],
+    priceMood: 1,
     feed: [
       { id: 1, time: 'Day 1', text: 'Río Plata supply chain online: Plantation → Drying Barn → Warehouse → River Pier.', kind: 'info' },
       { id: 2, time: 'Day 1', text: 'Dirty Cash pays for field expansion. Launder Dirty Cash through Fronts to earn Clean Cash.', kind: 'ok' }
@@ -132,7 +145,18 @@ export class CartelSimulation {
         lieutenants: { ...fresh.lieutenants, ...(data.lieutenants || {}) },
         rival: { ...fresh.rival, ...(data.rival || {}) },
         activeTrucks: Array.isArray(data.activeTrucks) ? data.activeTrucks : [],
-        feed: Array.isArray(data.feed) ? data.feed : fresh.feed
+        feed: Array.isArray(data.feed) ? data.feed : fresh.feed,
+        research: data.research && typeof data.research === 'object' ? data.research : {},
+        mode: data.mode === 'sandbox' ? 'sandbox' : 'campaign',
+        timeOfDay: Number.isFinite(data.timeOfDay) ? data.timeOfDay : fresh.timeOfDay,
+        weather: data.weather === 'rain' || data.weather === 'fog' ? data.weather : 'clear',
+        weatherTimer: Number.isFinite(data.weatherTimer) ? data.weatherTimer : fresh.weatherTimer,
+        tutorialStep: Math.max(0, Math.floor(Number(data.tutorialStep) || 0)),
+        tutorialDone: !!data.tutorialDone,
+        event: data.event && data.event.id ? data.event : null,
+        eventCooldown: Number.isFinite(data.eventCooldown) ? data.eventCooldown : fresh.eventCooldown,
+        eventsSeen: Array.isArray(data.eventsSeen) ? data.eventsSeen.filter((id) => typeof id === 'string') : [],
+        priceMood: Number.isFinite(data.priceMood) ? data.priceMood : 1
       };
       // Ensure every slot has clean objects
       for (const s of BUILD_SLOTS) {
@@ -152,6 +176,20 @@ export class CartelSimulation {
   resetNewGame() {
     this.state = createInitialState();
     this.state.started = true;
+    this.save();
+  }
+
+  startSandbox() {
+    this.state = createInitialState();
+    this.state.mode = 'sandbox';
+    this.state.started = true;
+    this.state.act = 3;
+    this.state.dirtyCash = 8000;
+    this.state.cleanCash = 4500;
+    this.state.tutorialDone = true;
+    this.state.tutorialStep = 99;
+    for (const region of Object.values(this.state.regions)) region.unlocked = true;
+    this.log('Sandbox open. Every district is already on the map.', 'ok');
     this.save();
   }
 
@@ -187,7 +225,18 @@ export class CartelSimulation {
         defensePower += lt.defensePower;
       }
     }
+    if (this.state.research.lights) prodMult *= 1.2;
+    if (this.state.research.filters) heatMult *= 0.75;
     return { prodMult, launderMult, heatMult, defensePower };
+  }
+
+  truckSpeed() {
+    const slots = Object.values(this.state.slots);
+    const hasDepot = slots.some((s) => s.buildingId === 'transport_depot' && !s.raidLocked);
+    let speed = hasDepot ? 210 : 165;
+    if (this.state.research.radios) speed *= 1.3;
+    if (this.state.weather === 'rain') speed *= 0.82;
+    return speed;
   }
 
   getMaxTrucks() {
@@ -223,7 +272,9 @@ export class CartelSimulation {
     if (!reg || !reg.unlocked) return { ok: false, reason: 'Unlock this region first.' };
     if (slot.rivalControlled) return { ok: false, reason: 'Clear the rival outpost on this lot first.' };
     if (slot.buildingId) return { ok: false, reason: 'Slot already occupied.' };
-    if (this.state.act < bDef.act) return { ok: false, reason: `Unlocks in Act ${bDef.act}.` };
+    if (this.state.mode !== 'sandbox' && this.state.act < bDef.act) {
+      return { ok: false, reason: `Unlocks in Act ${bDef.act}.` };
+    }
     if (this.state.dirtyCash < bDef.buildCostDirty) {
       return { ok: false, reason: `Need $${bDef.buildCostDirty - Math.floor(this.state.dirtyCash)} more Dirty Cash.` };
     }
@@ -241,6 +292,7 @@ export class CartelSimulation {
     slot.raidLocked = false;
 
     this.log(`Constructed ${bDef.name} at ${slotDef.label}.`, 'ok');
+    if (!this.state.tutorialDone && (buildingId === 'taxi_co' || bDef.role === 'launderer')) this.advanceTutorial(4);
     this.onEvent({ type: 'built', slotId, buildingId });
     this.checkMissionsAndActs();
     this.save();
@@ -457,6 +509,8 @@ export class CartelSimulation {
     if (this.state.paused || !this.state.started) return;
     const effDt = dt * (this.state.speed || 1);
     this.state.elapsedSeconds += effDt;
+    this.state.timeOfDay = (this.state.timeOfDay + effDt / 90) % 1;
+    this.advanceWorld(effDt);
     const newDay = 1 + Math.floor(this.state.elapsedSeconds / 10);
     if (newDay !== this.state.day) {
       this.state.day = newDay;
@@ -476,10 +530,13 @@ export class CartelSimulation {
 
       const mods = this.getRegionModifiers(slot.regionId);
       const levelMult = 1 + (slot.level - 1) * 0.4;
-      const speedMult = mods.prodMult * levelMult * (slot.buildingId === 'plantation' ? strain.speedMult : 1.0);
+      let speedMult = mods.prodMult * levelMult * (slot.buildingId === 'plantation' ? strain.speedMult : 1.0);
+      if (this.state.weather === 'rain') speedMult *= 0.84;
+      if (this.state.weather === 'fog') speedMult *= 0.92;
 
       // Ambient heat contribution
-      const heatDelta = (bDef.heatRate || 0) * effDt * mods.heatMult * (slot.buildingId === 'plantation' ? strain.heatMult : 1.0);
+      const night = this.state.timeOfDay > 0.72 || this.state.timeOfDay < 0.18;
+      const heatDelta = (bDef.heatRate || 0) * effDt * mods.heatMult * (night ? 0.8 : 1) * (slot.buildingId === 'plantation' ? strain.heatMult : 1.0);
       reg.heat = Math.max(0, Math.min(100, (Number(reg.heat) || 0) + heatDelta * 0.35));
 
       if (bDef.role === 'producer') {
@@ -540,9 +597,13 @@ export class CartelSimulation {
               shippedUnits += take;
 
               const strainPriceMult = (goodId === 'raw_herb' || goodId === 'cured_pack') ? strain.valueMult : 1.0;
-              earnedDirty += Math.round(take * gDef.unitValueDirty * bDef.priceMultiplier * strainPriceMult);
-              earnedClean += Math.round(take * gDef.unitValueClean * bDef.priceMultiplier);
-              reg.heat = Math.min(100, reg.heat + take * gDef.heatPerUnit * bDef.heatPerExport * mods.heatMult);
+              const seal = this.state.research.seal ? 1.2 : 1;
+              const pilots = this.state.research.pilots && slot.buildingId === 'aerodrome' ? 1.15 : 1;
+              const mood = this.state.priceMood || 1;
+              earnedDirty += Math.round(take * gDef.unitValueDirty * bDef.priceMultiplier * strainPriceMult * seal * pilots * mood);
+              earnedClean += Math.round(take * gDef.unitValueClean * bDef.priceMultiplier * mood);
+              const manifest = this.state.research.manifests ? 0.7 : 1;
+              reg.heat = Math.min(100, reg.heat + take * gDef.heatPerUnit * bDef.heatPerExport * mods.heatMult * manifest);
             }
 
             if (shippedUnits > 0) {
@@ -668,8 +729,7 @@ export class CartelSimulation {
     if (this.state.activeTrucks.length >= maxTrucks) return;
 
     const slots = Object.values(this.state.slots);
-    const hasDepot = slots.some((s) => s.buildingId === 'transport_depot' && !s.raidLocked);
-    const truckSpeed = hasDepot ? 210 : 165;
+    const truckSpeed = this.truckSpeed();
 
     // 1. Producers/Warehouses with outputBuffer -> Processors needing input OR Warehouses OR Smuggling points
     for (const src of slots) {
@@ -726,6 +786,8 @@ export class CartelSimulation {
           const srcSlotDef = BUILD_SLOTS.find((s) => s.id === src.slotId);
           const dstSlotDef = BUILD_SLOTS.find((s) => s.id === bestDest.slot.slotId);
 
+          const path = findRoadPath(src.slotId, bestDest.slot.slotId);
+          const last = path[path.length - 1] || { x: dstSlotDef.x, y: dstSlotDef.y };
           this.state.activeTrucks.push({
             id: this.state.nextTruckId++,
             fromSlotId: src.slotId,
@@ -735,8 +797,10 @@ export class CartelSimulation {
             qty: carryQty,
             x: srcSlotDef.x,
             y: srcSlotDef.y,
-            tx: dstSlotDef.x,
-            ty: dstSlotDef.y,
+            tx: last.x,
+            ty: last.y,
+            path,
+            pathIndex: 0,
             speed: truckSpeed
           });
           break;
@@ -748,26 +812,145 @@ export class CartelSimulation {
   updateTrucks(effDt) {
     const remaining = [];
     for (const t of this.state.activeTrucks) {
-      const dx = t.tx - t.x;
-      const dy = t.ty - t.y;
+      if (!t.path || !t.path.length) {
+        t.path = [{ x: t.tx, y: t.ty }];
+        t.pathIndex = 0;
+      }
+      const target = t.path[t.pathIndex] || { x: t.tx, y: t.ty };
+      const dx = target.x - t.x;
+      const dy = target.y - t.y;
       const dist = Math.hypot(dx, dy);
       const stepDist = t.speed * effDt;
-
-      if (dist <= stepDist + 4) {
-        // Arrived at destination
-        const dst = this.state.slots[t.toSlotId];
-        if (dst && dst.buildingId) {
-          const buf = t.targetBuffer === 'output' ? dst.outputBuffer : dst.inputBuffer;
-          buf[t.goodId] = (buf[t.goodId] || 0) + t.qty;
-          this.onEvent({ type: 'truck_delivered', truck: t });
+      if (dist <= stepDist + 3) {
+        t.x = target.x;
+        t.y = target.y;
+        t.pathIndex += 1;
+        if (t.pathIndex >= t.path.length) {
+          const dst = this.state.slots[t.toSlotId];
+          if (dst && dst.buildingId) {
+            const buf = t.targetBuffer === 'output' ? dst.outputBuffer : dst.inputBuffer;
+            buf[t.goodId] = (buf[t.goodId] || 0) + t.qty;
+            this.onEvent({ type: 'truck_delivered', truck: t });
+            if (!this.state.tutorialDone && this.state.tutorialStep < 2) this.state.tutorialStep = 2;
+          }
+        } else {
+          remaining.push(t);
         }
       } else {
         t.x += (dx / dist) * stepDist;
         t.y += (dy / dist) * stepDist;
+        t.heading = Math.atan2(dy, dx);
         remaining.push(t);
       }
     }
     this.state.activeTrucks = remaining;
+  }
+
+  advanceWorld(effDt) {
+    this.state.weatherTimer -= effDt;
+    if (this.state.weatherTimer <= 0) {
+      this.state.weatherTimer = 26 + Math.random() * 18;
+      const roll = Math.random();
+      const next = roll < 0.55 ? 'clear' : roll < 0.82 ? 'rain' : 'fog';
+      if (next !== this.state.weather) {
+        this.state.weather = next;
+        const label = next === 'clear' ? 'The ridge clears.' : next === 'rain' ? 'Rain walks down the valley. Fields slow.' : 'Fog sits on the river. Trucks take the long bends.';
+        this.log(label, 'info');
+        this.onEvent({ type: 'weather', weather: next });
+      }
+    }
+    if (this.state.priceMood > 1) this.state.priceMood = Math.max(1, this.state.priceMood - effDt * 0.01);
+    if (!this.state.tutorialDone && this.state.mode === 'campaign') {
+      if (this.state.elapsedSeconds > 20 && this.state.tutorialStep < 1) this.state.tutorialStep = 1;
+      if (this.state.elapsedSeconds > 70 && this.state.tutorialStep < 3) this.state.tutorialStep = 3;
+      if (this.state.elapsedSeconds > 130 && this.state.tutorialStep < 4) this.state.tutorialStep = 4;
+      if (this.state.elapsedSeconds > 170) this.state.tutorialDone = true;
+    }
+    if (this.state.event) return;
+    this.state.eventCooldown -= effDt;
+    if (this.state.eventCooldown > 0) return;
+    if (!this.state.tutorialDone && this.state.elapsedSeconds < 45) return;
+    const unseen = EVENTS.filter((card) => !this.state.eventsSeen.includes(card.id));
+    const pool = unseen.length ? unseen : EVENTS;
+    const card = pool[Math.floor(Math.random() * pool.length)];
+    this.state.event = { id: card.id, title: card.title, body: card.body, choices: card.choices.map((c) => ({ label: c.label, effect: c.effect })) };
+    this.onEvent({ type: 'event', event: this.state.event });
+  }
+
+  buyResearch(id) {
+    const node = RESEARCH.find((item) => item.id === id);
+    if (!node) return { ok: false, reason: 'Unknown research.' };
+    if (this.state.research[id]) return { ok: false, reason: 'Already on the books.' };
+    if (node.requires && !this.state.research[node.requires]) {
+      const prev = RESEARCH.find((item) => item.id === node.requires);
+      return { ok: false, reason: `Research ${prev ? prev.name : node.requires} first.` };
+    }
+    if (this.state.cleanCash < node.cost) return { ok: false, reason: `Need $${node.cost - Math.floor(this.state.cleanCash)} more Clean Cash.` };
+    this.state.cleanCash -= node.cost;
+    this.state.research[id] = true;
+    this.log(`Research complete: ${node.name}.`, 'ok');
+    this.onEvent({ type: 'research', id });
+    this.save();
+    return { ok: true };
+  }
+
+  resolveEvent(index) {
+    const card = this.state.event;
+    if (!card) return { ok: false, reason: 'No open card.' };
+    const choice = card.choices[index];
+    if (!choice) return { ok: false, reason: 'That choice is not on the card.' };
+    const effect = choice.effect;
+    const valley = this.state.regions.rio_plata;
+    if (effect === 'fiesta_pay') {
+      if (this.state.cleanCash < 220) return { ok: false, reason: 'Need $220 Clean Cash.' };
+      this.state.cleanCash -= 220;
+      valley.loyalty = Math.min(100, valley.loyalty + 12);
+      valley.heat = Math.max(0, valley.heat - 8);
+      this.log('The band plays. Puerto Plata stays friendly.', 'ok');
+    } else if (effect === 'fiesta_skip') {
+      valley.loyalty = Math.max(0, valley.loyalty - 6);
+      this.log('The plaza notices the empty envelope.', 'warn');
+    } else if (effect === 'checkpoint_pay') {
+      if (this.state.dirtyCash < 180) return { ok: false, reason: 'Need $180 Dirty Cash.' };
+      this.state.dirtyCash -= 180;
+      valley.heat = Math.max(0, valley.heat - 10);
+      this.log('The captain waves the next trucks through.', 'ok');
+    } else if (effect === 'checkpoint_wait') {
+      valley.heat = Math.min(100, valley.heat + 8);
+      this.log('The line sits. Heat climbs while the tent stays up.', 'warn');
+    } else if (effect === 'surge_on') {
+      this.state.priceMood = 1.35;
+      this.log('Coast buyers are paying 35% over list.', 'ok');
+    } else if (effect === 'storm_on') {
+      this.state.weather = 'rain';
+      this.state.weatherTimer = 20;
+      this.log('Crews stay on the plots through the rain.', 'info');
+    } else if (effect === 'storm_hide') {
+      this.state.weather = 'fog';
+      this.state.weatherTimer = 16;
+      valley.heat = Math.max(0, valley.heat - 12);
+      this.log('Crews lay low. The valley cools under the fog.', 'ok');
+    } else if (effect === 'informant_buy') {
+      if (this.state.cleanCash < 300) return { ok: false, reason: 'Need $300 Clean Cash.' };
+      this.state.cleanCash -= 300;
+      const cesar = this.state.lieutenants.cesar;
+      if (cesar) cesar.loyalty = Math.max(20, cesar.loyalty - 4);
+      this.log('A gate on the ridge is marked. The assault will be cheaper.', 'ok');
+      this.state.informant = true;
+    }
+    this.state.eventsSeen.push(card.id);
+    this.state.event = null;
+    this.state.eventCooldown = 24;
+    this.onEvent({ type: 'event_resolved', id: card.id, effect });
+    this.save();
+    return { ok: true };
+  }
+
+  advanceTutorial(step) {
+    if (this.state.tutorialDone) return;
+    if (step > this.state.tutorialStep) this.state.tutorialStep = step;
+    if (step >= 5) this.state.tutorialDone = true;
+    this.save();
   }
 
   getCurrentMission() {

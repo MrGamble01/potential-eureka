@@ -11,8 +11,10 @@ export const REGIONS = [
     fertilityBonus: 1.15,
     baseHeatDecay: 0.45,
     townName: 'Puerto Plata',
-    bounds: { x: 120, y: 140, w: 680, h: 640 },
-    tint: 0x5d7042,
+    bounds: { x: 140, y: 210, w: 680, h: 860 },
+    headerPos: { x: 530, y: 258 },
+    unlockPos: { x: 530, y: 312 },
+    tint: 0x4c5e35,
     borderColor: 0x7fa668,
     desc: 'Lush alluvial valley where your operation begins. Ideal for Botanical Plantations, Drying Barns, and River Pier exports.'
   },
@@ -25,9 +27,11 @@ export const REGIONS = [
     fertilityBonus: 1.0,
     baseHeatDecay: 0.55,
     townName: 'Ciudad San Marco',
-    bounds: { x: 820, y: 140, w: 680, h: 640 },
-    tint: 0x6e6547,
-    borderColor: 0x7aa2f7,
+    bounds: { x: 850, y: 210, w: 680, h: 860 },
+    headerPos: { x: 1190, y: 258 },
+    unlockPos: { x: 1190, y: 316 },
+    tint: 0x5c533b,
+    borderColor: 0x58a6ff,
     desc: 'Bustling urban corridor and customs port. Prime territory for Taxi Fronts, Salsa Clubs, Packaging Mills, and high-volume laundering.'
   },
   {
@@ -39,22 +43,24 @@ export const REGIONS = [
     fertilityBonus: 1.25,
     baseHeatDecay: 0.35,
     townName: 'Villa Dorada',
-    bounds: { x: 1520, y: 140, w: 660, h: 640 },
-    tint: 0x586651,
+    bounds: { x: 1560, y: 210, w: 680, h: 860 },
+    headerPos: { x: 1900, y: 258 },
+    unlockPos: { x: 1900, y: 316 },
+    tint: 0x475442,
     borderColor: 0xd98a4e,
     desc: 'Remote mountain plateaus contested by Los Lobos Syndicate. Home to Highland Alkaloid Terraces, Synthesis Labs, and Bush Aerodromes.'
   }
 ];
 
-// Build slots across the 3 regions (pre-surveyed clearings along the road network)
+// Build slots across the 3 regions (collision-free layout with >=180px separation and clear of district headers)
 export const BUILD_SLOTS = [
   // ── Region 1: Río Plata Valley (Starter region) ──
   {
     id: 'slot_rp_farm1',
     regionId: 'rio_plata',
     label: 'Old Garage Clearing',
-    x: 270,
-    y: 310,
+    x: 310,
+    y: 450,
     allowedCategories: ['production', 'processing', 'logistics'],
     starterBuilding: 'plantation'
   },
@@ -62,8 +68,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_barn1',
     regionId: 'rio_plata',
     label: 'Creekside Mill Lot',
-    x: 470,
-    y: 260,
+    x: 590,
+    y: 430,
     allowedCategories: ['processing', 'production', 'logistics'],
     starterBuilding: 'drying_barn'
   },
@@ -71,37 +77,37 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_wh1',
     regionId: 'rio_plata',
     label: 'Crossroads Depot',
-    x: 450,
-    y: 440,
+    x: 440,
+    y: 605,
     allowedCategories: ['logistics', 'processing', 'laundering'],
     starterBuilding: 'warehouse'
-  },
-  {
-    id: 'slot_rp_pier',
-    regionId: 'rio_plata',
-    label: 'Río Plata Embarcadero',
-    x: 280,
-    y: 610,
-    allowedCategories: ['export'],
-    starterBuilding: 'river_pier'
-  },
-  {
-    id: 'slot_rp_town1',
-    regionId: 'rio_plata',
-    label: 'Puerto Plata Plaza',
-    x: 650,
-    y: 560,
-    allowedCategories: ['laundering', 'logistics', 'production'],
-    starterBuilding: null
   },
   {
     id: 'slot_rp_south',
     regionId: 'rio_plata',
     label: 'South Valley Terrace',
-    x: 660,
-    y: 330,
+    x: 685,
+    y: 585,
     allowedCategories: ['production', 'processing', 'logistics'],
     starterBuilding: null
+  },
+  {
+    id: 'slot_rp_town1',
+    regionId: 'rio_plata',
+    label: 'Puerto Plata Plaza',
+    x: 615,
+    y: 775,
+    allowedCategories: ['laundering', 'logistics', 'production'],
+    starterBuilding: null
+  },
+  {
+    id: 'slot_rp_pier',
+    regionId: 'rio_plata',
+    label: 'Río Plata Embarcadero',
+    x: 320,
+    y: 805,
+    allowedCategories: ['export'],
+    starterBuilding: 'river_pier'
   },
 
   // ── Region 2: San Marco District ──
@@ -109,8 +115,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_west',
     regionId: 'san_marco',
     label: 'Highway 4 Industrial Lot',
-    x: 960,
-    y: 290,
+    x: 980,
+    y: 455,
     allowedCategories: ['processing', 'logistics', 'production'],
     starterBuilding: null
   },
@@ -118,8 +124,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_plaza',
     regionId: 'san_marco',
     label: 'Avenida Central Front',
-    x: 1170,
-    y: 260,
+    x: 1290,
+    y: 445,
     allowedCategories: ['laundering', 'logistics'],
     starterBuilding: null
   },
@@ -127,8 +133,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_hub',
     regionId: 'san_marco',
     label: 'San Marco Freight Yard',
-    x: 1080,
-    y: 450,
+    x: 1115,
+    y: 625,
     allowedCategories: ['logistics', 'processing', 'laundering'],
     starterBuilding: null
   },
@@ -136,8 +142,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_bank',
     regionId: 'san_marco',
     label: 'Cathedral Financial Block',
-    x: 1350,
-    y: 360,
+    x: 1385,
+    y: 615,
     allowedCategories: ['laundering', 'processing'],
     starterBuilding: null
   },
@@ -145,8 +151,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_port',
     regionId: 'san_marco',
     label: 'San Marco Customs Pier',
-    x: 1220,
-    y: 630,
+    x: 1215,
+    y: 825,
     allowedCategories: ['export', 'logistics'],
     starterBuilding: null
   },
@@ -156,8 +162,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_ridge1',
     regionId: 'sierra_alta',
     label: 'Cordillera North Terrace',
-    x: 1660,
-    y: 260,
+    x: 1715,
+    y: 465,
     allowedCategories: ['production', 'processing'],
     starterBuilding: null,
     rivalControlled: true
@@ -166,8 +172,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_lab1',
     regionId: 'sierra_alta',
     label: 'Canyon Hideout',
-    x: 1880,
-    y: 320,
+    x: 2045,
+    y: 475,
     allowedCategories: ['processing', 'production', 'logistics'],
     starterBuilding: null,
     rivalControlled: true
@@ -176,8 +182,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_town',
     regionId: 'sierra_alta',
     label: 'Villa Dorada Outpost',
-    x: 1710,
-    y: 490,
+    x: 1755,
+    y: 675,
     allowedCategories: ['laundering', 'logistics', 'processing'],
     starterBuilding: null
   },
@@ -185,65 +191,169 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_airstrip',
     regionId: 'sierra_alta',
     label: 'Mesa Grande Runway',
-    x: 1980,
-    y: 580,
+    x: 2040,
+    y: 780,
     allowedCategories: ['export'],
     starterBuilding: null
   }
 ];
 
-// Road network waypoints connecting regions and slots
+// Road network waypoints connecting regions, towns, and build slots
 export const ROAD_NETWORK = [
-  // Main trunk highway across all 3 regions
+  // Pan-Provincial Trunk Highway (Río Plata -> San Marco -> Sierra Alta)
   [
-    { x: 270, y: 310 },
-    { x: 470, y: 260 },
-    { x: 660, y: 330 },
-    { x: 960, y: 290 },
-    { x: 1170, y: 260 },
-    { x: 1350, y: 360 },
-    { x: 1660, y: 260 },
-    { x: 1880, y: 320 }
-  ],
-  // Southern valley & river road
-  [
-    { x: 270, y: 310 },
+    { x: 310, y: 450 },
     { x: 450, y: 440 },
-    { x: 280, y: 610 }
+    { x: 590, y: 430 },
+    { x: 685, y: 585 },
+    { x: 835, y: 520 },
+    { x: 980, y: 455 },
+    { x: 1135, y: 450 },
+    { x: 1290, y: 445 },
+    { x: 1385, y: 615 },
+    { x: 1545, y: 540 },
+    { x: 1715, y: 465 },
+    { x: 1880, y: 470 },
+    { x: 2045, y: 475 }
   ],
-  // Valley to San Marco freight corridor
+  // Río Plata Valley internal loop to Crossroads Depot, Embarcadero & Puerto Plata Plaza
   [
-    { x: 470, y: 260 },
-    { x: 450, y: 440 },
-    { x: 650, y: 560 },
-    { x: 1080, y: 450 },
-    { x: 1220, y: 630 }
-  ],
-  // San Marco internal connector
-  [
-    { x: 660, y: 330 },
-    { x: 650, y: 560 }
-  ],
-  [
-    { x: 960, y: 290 },
-    { x: 1080, y: 450 },
-    { x: 1350, y: 360 }
-  ],
-  // Highland pass to Airstrip
-  [
-    { x: 1350, y: 360 },
-    { x: 1710, y: 490 },
-    { x: 1980, y: 580 }
+    { x: 310, y: 450 },
+    { x: 375, y: 528 },
+    { x: 440, y: 605 },
+    { x: 380, y: 705 },
+    { x: 320, y: 805 }
   ],
   [
-    { x: 1880, y: 320 },
-    { x: 1710, y: 490 }
+    { x: 590, y: 430 },
+    { x: 515, y: 518 },
+    { x: 440, y: 605 },
+    { x: 528, y: 690 },
+    { x: 615, y: 775 },
+    { x: 468, y: 790 },
+    { x: 320, y: 805 }
   ],
   [
-    { x: 1880, y: 320 },
-    { x: 1980, y: 580 }
+    { x: 685, y: 585 },
+    { x: 562, y: 595 },
+    { x: 440, y: 605 }
+  ],
+  [
+    { x: 685, y: 585 },
+    { x: 650, y: 680 },
+    { x: 615, y: 775 }
+  ],
+  // Southern Coastal Road linking Puerto Plata to San Marco Freight & Port
+  [
+    { x: 615, y: 775 },
+    { x: 865, y: 700 },
+    { x: 1115, y: 625 },
+    { x: 1215, y: 825 }
+  ],
+  // San Marco urban grid connectors
+  [
+    { x: 980, y: 455 },
+    { x: 1115, y: 625 },
+    { x: 1290, y: 445 }
+  ],
+  [
+    { x: 1115, y: 625 },
+    { x: 1385, y: 615 },
+    { x: 1215, y: 825 }
+  ],
+  // Sierra Alta mountain switchbacks
+  [
+    { x: 1385, y: 615 },
+    { x: 1755, y: 675 },
+    { x: 2040, y: 780 }
+  ],
+  [
+    { x: 1715, y: 465 },
+    { x: 1755, y: 675 }
+  ],
+  [
+    { x: 2045, y: 475 },
+    { x: 1900, y: 575 },
+    { x: 1755, y: 675 }
+  ],
+  [
+    { x: 2045, y: 475 },
+    { x: 2040, y: 780 }
   ]
 ];
+
+// Compute road path between two build slots so trucks drive along road segments
+export function findRoadPath(fromSlotId, toSlotId) {
+  const fromSlot = BUILD_SLOTS.find((s) => s.id === fromSlotId);
+  const toSlot = BUILD_SLOTS.find((s) => s.id === toSlotId);
+  if (!fromSlot || !toSlot) return [];
+
+  // Build adjacency graph from ROAD_NETWORK vertices
+  const nodes = [];
+  const adj = new Map();
+  const keyOf = (pt) => `${Math.round(pt.x)},${Math.round(pt.y)}`;
+
+  const ensureNode = (pt) => {
+    const k = keyOf(pt);
+    if (!adj.has(k)) {
+      adj.set(k, []);
+      nodes.push({ key: k, x: pt.x, y: pt.y });
+    }
+    return k;
+  };
+
+  for (const poly of ROAD_NETWORK) {
+    for (let i = 0; i < poly.length - 1; i++) {
+      const ka = ensureNode(poly[i]);
+      const kb = ensureNode(poly[i + 1]);
+      const d = Math.hypot(poly[i + 1].x - poly[i].x, poly[i + 1].y - poly[i].y);
+      adj.get(ka).push({ to: kb, cost: d });
+      adj.get(kb).push({ to: ka, cost: d });
+    }
+  }
+
+  const startKey = ensureNode(fromSlot);
+  const endKey = ensureNode(toSlot);
+  if (startKey === endKey) return [{ x: toSlot.x, y: toSlot.y }];
+
+  const dist = new Map();
+  const prev = new Map();
+  const visited = new Set();
+  for (const n of nodes) dist.set(n.key, Infinity);
+  dist.set(startKey, 0);
+
+  while (visited.size < nodes.length) {
+    let u = null;
+    let best = Infinity;
+    for (const [k, d] of dist.entries()) {
+      if (!visited.has(k) && d < best) {
+        best = d;
+        u = k;
+      }
+    }
+    if (!u || u === endKey) break;
+    visited.add(u);
+    for (const edge of adj.get(u) || []) {
+      const alt = best + edge.cost;
+      if (alt < dist.get(edge.to)) {
+        dist.set(edge.to, alt);
+        prev.set(edge.to, u);
+      }
+    }
+  }
+
+  const path = [];
+  let curr = endKey;
+  while (curr && curr !== startKey) {
+    const [nx, ny] = curr.split(',').map(Number);
+    path.unshift({ x: nx, y: ny });
+    curr = prev.get(curr);
+  }
+  if (path.length === 0) {
+    return [{ x: toSlot.x, y: toSlot.y }];
+  }
+  return path;
+}
 
 // Lieutenants with Cartel Tycoon-inspired perks, loyalty, upkeep, and regional assignment
 export const LIEUTENANTS = [
@@ -253,7 +363,7 @@ export const LIEUTENANTS = [
     role: 'Logistics & Fleet Chief',
     perkName: 'Truck Supplier & Route Master',
     perkDesc: '+35% production & transport speed in assigned region; +2 fleet trucks.',
-    hireCostClean: 0, // Starter lieutenant / Capo right-hand
+    hireCostClean: 0,
     upkeepClean: 15,
     power: 4,
     loyalty: 85,
@@ -321,7 +431,6 @@ export const LIEUTENANTS = [
   }
 ];
 
-// Acts & Missions (Bridging Grow Op's 3-Act structure with Cartel Tycoon's campaign objectives)
 export const ACTS = {
   1: {
     id: 1,
