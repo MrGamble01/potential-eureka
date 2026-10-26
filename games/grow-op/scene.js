@@ -15,7 +15,7 @@
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
 import { REGIONS, BUILD_SLOTS, ROAD_NETWORK } from './data/missions.js';
-import { LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
+import { DISTRICT_EDGE, LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
 import { drawExtended, paintOpen, paintProperty } from './map-draw.js';
 import { artURL, iconKeyForBuilding, iconKeyForProperty, iconKeyForRole } from './art-keys.js';
 import * as Art from './art.js';
@@ -23,6 +23,32 @@ import * as Art from './art.js';
 const PIN_MARK = '<img alt="" width="64" height="64" draggable="false"><svg class="go-glyph go-glyph-plus" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="go-glyph go-glyph-crane" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17h14M5 17V9h7l3-5h3M8 9v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong hidden></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
 
 const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
+
+const SOFT_EDGE = new Map();
+
+function softEdge(poly) {
+  const cached = SOFT_EDGE.get(poly);
+  if (cached) return cached;
+  const n = poly.length;
+  const out = [];
+  const steps = 4;
+  for (let i = 0; i < n; i++) {
+    const prev = poly[(i - 1 + n) % n];
+    const c = poly[i];
+    const nxt = poly[(i + 1) % n];
+    const x0 = (prev[0] + c[0]) / 2;
+    const y0 = (prev[1] + c[1]) / 2;
+    const x1 = (c[0] + nxt[0]) / 2;
+    const y1 = (c[1] + nxt[1]) / 2;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      out.push([u * u * x0 + 2 * u * t * c[0] + t * t * x1, u * u * y0 + 2 * u * t * c[1] + t * t * y1]);
+    }
+  }
+  SOFT_EDGE.set(poly, out);
+  return out;
+}
 
 export class MapScene extends window.Phaser.Scene {
   constructor() {
@@ -795,11 +821,15 @@ export class MapScene extends window.Phaser.Scene {
       g.fillCircle(p.x, p.y, p.r + (1 - p.life) * 4);
       return true;
     });
+    if (typeof Art.paintAmbient === 'function') Art.paintAmbient(this, g);
     if (this.sim.state.weather === 'rain') {
+      const view = this.cameras.main.worldView;
       g.lineStyle(1, 0xc5d4e0, 0.35);
-      for (let i = 0; i < 70; i++) {
-        const x = (i * 97 + this.phase * 240) % WORLD_W;
-        const y = (i * 53 + this.phase * 520) % WORLD_H;
+      const spanW = view.width + 24;
+      const spanH = view.height + 24;
+      for (let i = 0; i < 80; i++) {
+        const x = view.x + ((i * 97 + this.phase * 240) % spanW);
+        const y = view.y + ((i * 53 + this.phase * 520) % spanH);
         g.lineBetween(x, y, x - 3, y + 10);
       }
     }
@@ -827,7 +857,9 @@ export class MapScene extends window.Phaser.Scene {
     if (this.sim.state.weather === 'rain') { color = 0x243044; alpha = Math.max(alpha, 0.18); }
     this.sky.clear();
     this.sky.fillStyle(color, alpha);
-    this.sky.fillRect(0, 0, MAP_W, MAP_H);
+    const view = this.cameras.main.worldView;
+    const pad = 12;
+    this.sky.fillRect(view.x - pad, view.y - pad, view.width + pad * 2, view.height + pad * 2);
   }
 
   syncFloaters(dt) {
@@ -1009,8 +1041,8 @@ export class MapScene extends window.Phaser.Scene {
     const cam = this.cameras.main;
     const zoom = window.Phaser.Math.Clamp(Math.min(this.scale.width / (box.w + 180), this.scale.height / (box.h + 220)), this.minZoom(), 1.4);
     cam.setZoom(zoom);
-    const x = box.x + box.w / 2;
-    const y = box.y + box.h / 2;
+    const x = box.focusX != null ? box.focusX : box.x + box.w / 2;
+    const y = box.focusY != null ? box.focusY : box.y + box.h / 2;
     if (instant) cam.centerOn(x, y);
     else cam.pan(x, y, 420, 'Sine.easeInOut');
   }
@@ -1037,40 +1069,89 @@ export class MapScene extends window.Phaser.Scene {
     this.settleMarks();
   }
 
+  fillPoly(g, poly) {
+    g.beginPath();
+    g.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) g.lineTo(poly[i][0], poly[i][1]);
+    g.closePath();
+    g.fillPath();
+  }
+
+  strokePoly(g, poly) {
+    g.beginPath();
+    g.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) g.lineTo(poly[i][0], poly[i][1]);
+    g.closePath();
+    g.strokePath();
+  }
+
+  veilZone(g, poly, alpha) {
+    if (!poly || poly.length < 3 || alpha < 0.02) return;
+    g.fillStyle(0x1a221c, 0.34 * alpha);
+    this.fillPoly(g, poly);
+    g.lineStyle(28, 0x101612, 0.22 * alpha);
+    this.strokePoly(g, poly);
+  }
+
+  dashZone(g, poly, alpha) {
+    if (!poly || poly.length < 3 || alpha < 0.02) return;
+    g.lineStyle(5, 0xc5d6b0, 0.1 * alpha);
+    this.strokePoly(g, poly);
+    g.lineStyle(1.5, 0xe7f2df, 0.42 * alpha);
+    const dash = 16;
+    const gap = 12;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      let walked = 0;
+      while (walked < len) {
+        const end = Math.min(len, walked + dash);
+        g.lineBetween(
+          a[0] + (dx * walked) / len,
+          a[1] + (dy * walked) / len,
+          a[0] + (dx * end) / len,
+          a[1] + (dy * end) / len
+        );
+        walked += dash + gap;
+      }
+    }
+  }
+
   syncFog(view) {
     const g = this.zoneFog;
     if (!g) return;
     g.clear();
     const chart = this.chartAlpha;
-    if (chart > 0.02) {
-      this.veil(g, 0, 1360, MAP_W, MAP_H - 1360, chart * 0.55);
-      this.veil(g, 2520, 0, MAP_W - 2520, 1360, chart * 0.55);
-    }
     for (const zone of view.zones) {
       const box = ZONE_LAYOUT[zone.id];
-      if (!box || zone.starter) continue;
+      if (!box || !box.poly) continue;
       const target = zone.unlocked ? 0 : 1;
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      if (this.fogAlpha[zone.id] > 0.02 && this.chartAlpha < 0.2) {
-        this.veil(g, box.x, box.y, box.w, box.h, this.fogAlpha[zone.id] * 0.7);
-      }
+      const edge = softEdge(box.poly);
+      if (!zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.85);
+      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.72);
+      const ink = this.fogAlpha[zone.id] > 0.15 ? 0.42 + this.fogAlpha[zone.id] * 0.28 : 0.28;
+      this.dashZone(g, edge, ink * (1 - chart * 0.45));
     }
     for (const reg of REGIONS) {
       if (!reg.unlockCostClean) continue;
       const state = this.sim.state.regions[reg.id];
       if (!state || state.unlocked) continue;
-      const b = reg.bounds;
-      this.veil(g, b.x, b.y, b.w, b.h, 0.65);
+      const poly = DISTRICT_EDGE[reg.id];
+      if (poly) this.veilZone(g, softEdge(poly), 0.7);
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
         if (!zone.unlocked) continue;
         const box = ZONE_LAYOUT[zone.id];
-        if (!box) continue;
-        g.fillStyle(0x58a6ff, 0.14);
-        g.fillRect(box.x, box.y, box.w, box.h);
+        if (!box || !box.poly) continue;
+        g.fillStyle(0x58a6ff, 0.12);
+        this.fillPoly(g, softEdge(box.poly));
       }
     }
   }

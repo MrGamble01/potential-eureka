@@ -3,14 +3,10 @@
 // graphics layer through drawMiniTruck.
 
 import { canvas } from './kit.js';
-import { LOT_POS } from '../map-layout.js';
+import { CITY_AVENUES, CITY_LOOP, HARBOR_PTS, LOT_POS } from '../map-layout.js';
 
-const LOOP = [
-  [3060, 420],
-  [5300, 420],
-  [5300, 740],
-  [3060, 740]
-];
+const VALLEY_WALK = [[420, 432], [760, 420], [1100, 448], [1480, 436], [1860, 470]];
+import { driftAtmosphere } from '../map-draw.js';
 
 function lotGlow(id, dy, color) {
   const pos = LOT_POS[id];
@@ -231,8 +227,33 @@ export function drawMiniTruck(g, x, y, color) {
   g.fillCircle(x + 2, y + 6, 2.2);
 }
 
+function alongOpen(pts, t) {
+  const segLens = [];
+  let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const len = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+    segLens.push(len);
+    total += len;
+  }
+  let dist = Math.max(0, Math.min(1, t)) * total;
+  for (let i = 0; i < segLens.length; i++) {
+    if (dist <= segLens[i] || i === segLens.length - 1) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const f = segLens[i] ? dist / segLens[i] : 0;
+      return {
+        x: a[0] + (b[0] - a[0]) * f,
+        y: a[1] + (b[1] - a[1]) * f,
+        a: Math.atan2(b[1] - a[1], b[0] - a[0])
+      };
+    }
+    dist -= segLens[i];
+  }
+  return { x: pts[0][0], y: pts[0][1], a: 0 };
+}
+
 function loopPoint(t) {
-  const pts = LOOP;
+  const pts = CITY_LOOP;
   const segLens = [];
   let total = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -306,11 +327,10 @@ function bootFleet(scene) {
     const city = i < 3;
     walkers.push({
       img,
-      axis: 'x',
-      origin: city ? 3200 + i * 220 : 980 + (i - 3) * 120,
-      cross: city ? 400 : 318,
-      span: 110,
-      speed: 18 + i * 4,
+      path: city ? CITY_AVENUES[i % 2] : VALLEY_WALK,
+      at: (i * 0.17) % 1,
+      speed: 0.012 + i * 0.002,
+      side: i % 2 ? 1 : -1,
       frame: 0,
       keys: [`go-ped-${i}-0`, `go-ped-${i}-1`]
     });
@@ -358,11 +378,14 @@ export function paintAmbient(scene, g) {
 
   for (let i = 0; i < life.walkers.length; i++) {
     const ped = life.walkers[i];
-    const wave = Math.sin(t * ped.speed * 0.05 + i);
-    const dir = Math.cos(t * ped.speed * 0.05 + i) >= 0 ? 1 : -1;
-    if (ped.axis === 'x') ped.img.setPosition(ped.origin + wave * ped.span, ped.cross);
-    else ped.img.setPosition(ped.cross, ped.origin + wave * 70);
-    ped.img.setScale(dir * 0.95, 0.95);
+    if (ped.path) {
+      ped.at = (ped.at + ped.speed * dt) % 1;
+      const p = alongOpen(ped.path, ped.at);
+      const ox = Math.cos(p.a + Math.PI / 2) * 26 * ped.side;
+      const oy = Math.sin(p.a + Math.PI / 2) * 26 * ped.side;
+      ped.img.setPosition(p.x + ox, p.y + oy);
+      ped.img.setScale(Math.cos(p.a) >= 0 ? 0.95 : -0.95, 0.95);
+    }
     if (ped.frame !== frame) {
       ped.frame = frame;
       ped.img.setTexture(ped.keys[frame]);
@@ -372,7 +395,7 @@ export function paintAmbient(scene, g) {
   for (let i = 0; i < life.workers.length; i++) {
     const w = life.workers[i];
     const u = (t * 0.05 + w.at) % 1;
-    w.img.setPosition(3380 + u * 280, 1490 + i * 12);
+    w.img.setPosition(3340 + u * 240, 1632 + i * 6);
     w.img.setScale(0.95, 0.95);
     if (w.frame !== frame) {
       w.frame = frame;
@@ -380,9 +403,11 @@ export function paintAmbient(scene, g) {
     }
   }
 
-  const boatU = (t * 0.03) % 2;
+  const boatU = (t * 0.04) % 2;
   const boatP = boatU < 1 ? boatU : 2 - boatU;
-  life.boat.setPosition(760 + boatP * 700, 1266 + Math.sin(t * 2) * 3);
+  const boatAt = alongOpen(HARBOR_PTS, boatP);
+  life.boat.setPosition(boatAt.x, boatAt.y + Math.sin(t * 2) * 3);
+  life.boat.setRotation(boatAt.a);
   life.boat.setScale(boatU < 1 ? 0.9 : -0.9, 0.9);
   life.boat.setTexture(frame ? 'go-boat-1' : 'go-boat-0');
 
@@ -422,4 +447,5 @@ export function paintAmbient(scene, g) {
     }
   }
   for (let i = used; i < life.windows.length; i++) life.windows[i].setVisible(false);
+  driftAtmosphere(scene);
 }
