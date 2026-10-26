@@ -165,7 +165,11 @@ export function normalize(raw) {
   g.cooldowns = raw.cooldowns && typeof raw.cooldowns === 'object' ? { ...raw.cooldowns } : {};
   g.log = Array.isArray(raw.log) ? raw.log.slice(-14) : [];
   if (raw.activeCraft && raw.activeCraft.id && typeof raw.activeCraft.start === 'number') {
-    g.activeCraft = { id: raw.activeCraft.id, start: raw.activeCraft.start, duration: raw.activeCraft.duration || 1000 };
+    const duration = raw.activeCraft.duration || 1000;
+    const left = typeof raw.activeCraft.left === 'number'
+      ? raw.activeCraft.left
+      : Math.max(0, raw.activeCraft.start + duration - Date.now());
+    g.activeCraft = { id: raw.activeCraft.id, start: raw.activeCraft.start, duration, left };
   }
   if (raw.favor && FAVORS[raw.favor.who]) g.favor = { who: raw.favor.who, day: raw.favor.day || 0 };
   if (raw.storm && typeof raw.storm.phase === 'number') g.storm = raw.storm;
@@ -328,7 +332,9 @@ export function hudModel(g) {
 function craftProgress(g) {
   if (!g.activeCraft) return null;
   const rec = RECIPES.find((r) => r.id === g.activeCraft.id);
-  const p = clamp((Date.now() - g.activeCraft.start) / g.activeCraft.duration, 0, 1);
+  const byDt = typeof g.activeCraft.left === 'number' ? 1 - g.activeCraft.left / g.activeCraft.duration : null;
+  const byWall = (Date.now() - g.activeCraft.start) / g.activeCraft.duration;
+  const p = clamp(byDt == null ? byWall : Math.max(byDt, byWall), 0, 1);
   return { id: g.activeCraft.id, name: rec ? rec.name : 'Work', p };
 }
 
@@ -946,7 +952,7 @@ export function startCraft(g, id) {
   let dur = r.time * 0.55;
   if (g.workers.builder) dur *= BUILDER_CRAFT_MULT;
   if (g.injuredUntil > Date.now()) dur *= 1.4;
-  g.activeCraft = { id: r.id, start: Date.now(), duration: dur };
+  g.activeCraft = { id: r.id, start: Date.now(), duration: dur, left: dur };
   say(g, logs, 'Working on ' + r.name + '.');
   return result(g, logs, { floats: [r.name] });
 }
@@ -1405,7 +1411,11 @@ export function tick(g, dt, rng) {
     return { logs: stepped.logs, dawn: false, built: stepped.built || null, over: g.health <= 0, sweep: false, open: 'storm' };
   }
   let built = null;
-  if (g.activeCraft && Date.now() >= g.activeCraft.start + g.activeCraft.duration) {
+  if (g.activeCraft) {
+    const left = (typeof g.activeCraft.left === 'number' ? g.activeCraft.left : g.activeCraft.duration) - dt;
+    g.activeCraft.left = left;
+  }
+  if (g.activeCraft && (g.activeCraft.left <= 0 || Date.now() >= g.activeCraft.start + g.activeCraft.duration)) {
     const crafted = finishCraft(g);
     built = crafted._built || null;
     crafted.forEach((line) => logs.push(line));
