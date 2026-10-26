@@ -47,6 +47,9 @@
 // Failing the campaign sets status and does not stop the clock.
 // Sandbox never fails. assignLieutenant accepts a zone id or a region id.
 //
+// presentEvent(audio, juice, evt, sim) and attachFeel(sim, audio, getJuice, getFrame)
+// stay the map's sound and juice hooks. They are not campaign state.
+//
 // Lots with slotId are the plots already on the map. Lots without a
 // slotId are rural prizes and Puerto Sol properties waiting for a pin.
 // Occupied lots: buyAndConvert (fast, type fit) or buyLot + startDemolish
