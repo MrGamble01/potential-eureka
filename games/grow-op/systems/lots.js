@@ -4,6 +4,8 @@
 import { BUILDINGS } from '../data/buildings.js';
 import { LIEUTENANTS } from '../data/missions.js';
 import { zoneById } from '../data/zones.js';
+import { launderTake } from './chains.js';
+import { crewMods } from './lieutenants.js';
 import {
   BUILDING_SIZE,
   PROPERTY_TYPES,
@@ -268,6 +270,7 @@ export function tickLots(state, dt) {
       }
       continue;
     }
+    if (lot.stormTimer > 0) lot.stormTimer = Math.max(0, lot.stormTimer - dt);
     if (lot.phase === 'operating' && !lot.slotId) tickOperation(state, lot, dt);
   }
 }
@@ -307,24 +310,27 @@ function takeRural(state, goodId, qty) {
 function tickOperation(state, lot, dt) {
   const def = lotDef(lot.id);
   if (!def) return;
+  if (lot.disabledUntil && state.elapsedSeconds < lot.disabledUntil) return;
+  if (lot.stormTimer > 0) return;
   const type = PROPERTY_TYPES[lot.propertyType] || null;
   const mods = type ? conversionMods(lot.propertyType, lot.role) : { speed: 1, capacity: 1, heat: 1, suspicion: 0.1 };
   const bonus = def.bonus || {};
+  const crew = crewMods(state, lot.zoneId);
   const live = state.zones[lot.zoneId];
   if (live && type) {
-    const heat = (type.upkeep ? 0.02 : 0.01) * mods.heat * (bonus.heatMult || 1) * dt;
+    const heat = (type.upkeep ? 0.02 : 0.01) * mods.heat * (bonus.heatMult || 1) * crew.heatMult * dt;
     live.heat = Math.max(0, Math.min(100, (Number(live.heat) || 0) + heat));
   }
   if (type && state.dirtyCash > 0) {
     state.dirtyCash = Math.max(0, state.dirtyCash - (type.upkeep * dt) / 20);
   }
   const speed = (mods.speed || 1) * (bonus.growMult || 1);
-  if (lot.role === 'launder' && state.dirtyCash >= 20) {
-    lot.progress += (dt * speed) / 5;
+  if (lot.role === 'launder' && launderTake(state.dirtyCash, 80) > 0) {
+    lot.progress += (dt * speed * crew.launderMult) / 5;
     if (lot.progress >= 1) {
       lot.progress = 0;
       const cap = Math.round((type ? type.capacity : 12) * (mods.capacity || 1));
-      const dirty = Math.min(Math.floor(state.dirtyCash), cap * 8);
+      const dirty = launderTake(state.dirtyCash, cap * 8);
       const clean = Math.round(dirty * 0.9 * (mods.fit === 'boost' ? 1.1 : mods.fit === 'limit' ? 0.8 : 1));
       state.dirtyCash -= dirty;
       state.cleanCash += clean;
@@ -357,7 +363,7 @@ function tickOperation(state, lot, dt) {
   } else if (lot.role === 'produce') {
     const cap = Math.round((type ? type.capacity : 10) * (mods.capacity || 1) + (bonus.storage || 0));
     if (bufferCount(lot.outputBuffer) < cap) {
-      lot.progress += (dt * speed) / 6;
+      lot.progress += (dt * speed * crew.prodMult) / 6;
       if (lot.progress >= 1) {
         lot.progress = 0;
         lot.outputBuffer.raw_herb = Math.min(cap, (lot.outputBuffer.raw_herb || 0) + 2);

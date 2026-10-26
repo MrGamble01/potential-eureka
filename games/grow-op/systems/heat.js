@@ -27,7 +27,10 @@ export function hide(state, id) {
   reg.hiddenUntil = state.elapsedSeconds + 18;
   const had = !!(reg.patrol && reg.patrol.active);
   reg.patrol = null;
-  if (had) state.heatHandled = (state.heatHandled || 0) + 1;
+  if (had) {
+    state.heatHandled = (state.heatHandled || 0) + 1;
+    if (state.dea) state.dea.case = Math.max(0, (Number(state.dea.case) || 0) - 4);
+  }
   state.patrolsHandled = (state.patrolsHandled || 0) + (had ? 1 : 0);
   return { ok: true, slipped: had };
 }

@@ -38,6 +38,16 @@ export const CHAINS = [
   }
 ];
 
+// Fronts leave this much dirty cash alone so a rural deed can still be paid.
+export const DIRTY_RESERVE = 400;
+
+export function launderTake(dirtyCash, maxTake) {
+  const dirty = Math.floor(Number(dirtyCash) || 0);
+  const max = Math.max(0, Math.floor(Number(maxTake) || 0));
+  if (dirty <= DIRTY_RESERVE || max <= 0) return 0;
+  return Math.min(max, dirty - DIRTY_RESERVE);
+}
+
 export function storageCap(def, level = 1, extra = 0) {
   const base = Number(def && def.storageCap) || 0;
   const scaled = Math.round(base * (1 + Math.max(0, level - 1) * 0.35));

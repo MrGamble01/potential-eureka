@@ -2,19 +2,20 @@
 
 import { GOODS, STRAINS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, LIEUTENANTS, ACTS, MISSIONS, findRoadPath } from './data/missions.js';
+import { REGIONS, BUILD_SLOTS, LIEUTENANTS, MISSIONS, findRoadPath } from './data/missions.js';
 import { RESEARCH } from './data/research.js';
-import { DIFFICULTIES, createZoneBook } from './data/zones.js';
+import { DIFFICULTIES, createZoneBook, zoneById } from './data/zones.js';
 import { createLotBook, roleForBuilding } from './data/lots.js';
 import { createRivalBook } from './data/rivals.js';
-import { storageCap, capExtra } from './systems/chains.js';
+import { storageCap, capExtra, launderTake } from './systems/chains.js';
 import { buyAndConvert, buyLot, startDemolish, buildNew, buildOnPlot, negotiate, intimidate, tickLots } from './systems/lots.js';
 import { unlockZone, refreshControl, syncMap, measureControl } from './systems/zones.js';
 import { notePatrol, tickPatrol, hide, hiddenNow } from './systems/heat.js';
 import { planRoute, tickShipments } from './systems/routes.js';
 import { tickRivals } from './systems/rivals.js';
-import { crewMods, tickLoyalty } from './systems/lieutenants.js';
+import { crewMods, tickLoyalty, tickBetrayal } from './systems/lieutenants.js';
 import { nextEvent, applyEffect } from './systems/events.js';
+import { campaignFailure } from './systems/campaign.js';
 import { gameplayView } from './systems/hooks.js';
 
 export const SAVE_KEY = 'growop-cartel-v1';
@@ -54,9 +55,11 @@ export function createInitialState() {
     lieutenants[lt.id] = {
       id: lt.id,
       hired: !!lt.unlockedAtStart,
-      regionId: lt.unlockedAtStart ? 'rio_plata' : 'rio_plata',
+      regionId: lt.unlockedAtStart ? 'rio_plata' : null,
+      zoneId: lt.unlockedAtStart ? 'rio_plata' : null,
       loyalty: lt.loyalty,
-      cooldown: 0
+      cooldown: 0,
+      betrayed: false
     };
   }
 
@@ -106,6 +109,12 @@ export function createInitialState() {
     patrolsHandled: 0,
     routesCompleted: 0,
     routesLost: 0,
+    boatRuns: 0,
+    valleySeizures: 0,
+    campaignStatus: 'playing',
+    failReason: null,
+    failId: null,
+    dea: { agent: 'Helen Ruiz', case: 0 },
     routeLuck: null,
     event: null,
     eventCooldown: 16,
@@ -206,6 +215,21 @@ export class CartelSimulation {
       this.state.reputation = Number(this.state.reputation) || 0;
       this.state.heatHandled = Number(this.state.heatHandled) || 0;
       this.state.routesCompleted = Number(this.state.routesCompleted) || 0;
+      this.state.boatRuns = Number(this.state.boatRuns) || 0;
+      this.state.valleySeizures = Number(this.state.valleySeizures) || 0;
+      this.state.dea = {
+        agent: 'Helen Ruiz',
+        case: Math.max(0, Math.min(100, Number(this.state.dea && this.state.dea.case) || 0))
+      };
+      if (this.state.campaignStatus !== 'failed' && this.state.campaignStatus !== 'complete') {
+        this.state.campaignStatus = 'playing';
+      }
+      this.state.failReason = this.state.failReason || null;
+      this.state.failId = this.state.failId || null;
+      for (const row of Object.values(this.state.lieutenants)) {
+        row.betrayed = !!row.betrayed;
+        if (!row.zoneId && row.regionId) row.zoneId = row.regionId;
+      }
       refreshControl(this.state);
       return true;
     } catch (e) {
@@ -459,6 +483,7 @@ export class CartelSimulation {
     const ltDef = LIEUTENANTS.find((l) => l.id === ltId);
     const ltState = this.state.lieutenants[ltId];
     if (!ltDef || !ltState) return { ok: false, reason: 'Invalid lieutenant.' };
+    if (ltState.betrayed) return { ok: false, reason: 'They already walked.' };
     if (ltState.hired) return { ok: false, reason: 'Already on the payroll.' };
     if (this.state.cleanCash < ltDef.hireCostClean) {
       return { ok: false, reason: `Requires $${ltDef.hireCostClean} Clean Cash retainer.` };
@@ -473,20 +498,27 @@ export class CartelSimulation {
     return { ok: true };
   }
 
-  assignLieutenant(ltId, regionId) {
+  assignLieutenant(ltId, placeId) {
     const ltState = this.state.lieutenants[ltId];
-    const reg = this.state.regions[regionId];
     const ltDef = LIEUTENANTS.find((l) => l.id === ltId);
-    const regDef = REGIONS.find((r) => r.id === regionId);
-    if (!ltState || !ltState.hired || !reg) return { ok: false, reason: 'Cannot assign.' };
-    if (!reg.unlocked) return { ok: false, reason: 'Unlock that region first.' };
-    ltState.regionId = regionId;
+    const zone = this.state.zones && this.state.zones[placeId];
+    const reg = this.state.regions[placeId];
+    if (!ltState || !ltState.hired || ltState.betrayed || !ltDef) return { ok: false, reason: 'Cannot assign.' };
+    if (!zone && !reg) return { ok: false, reason: 'Unknown zone.' };
+    if (zone && !zone.unlocked) return { ok: false, reason: 'Unlock that zone first.' };
+    if (!zone && reg && !reg.unlocked) return { ok: false, reason: 'Unlock that region first.' };
+    ltState.regionId = placeId;
+    ltState.zoneId = placeId;
+    const zoneDef = zoneById(placeId);
+    const regDef = REGIONS.find((item) => item.id === placeId);
+    const placeName = (zoneDef && zoneDef.name) || (regDef && regDef.name) || placeId;
     const bits = [];
     if (ltDef.prodMult > 1) bits.push(`${Math.round((ltDef.prodMult - 1) * 100)}% output`);
     if (ltDef.launderMult > 1) bits.push(`${Math.round((ltDef.launderMult - 1) * 100)}% laundering`);
     if (ltDef.heatMult < 1) bits.push(`${Math.round((1 - ltDef.heatMult) * 100)}% less heat`);
     if (ltDef.defensePower >= 8) bits.push('repels raids');
-    this.log(`${ltDef.name.split(' ')[0]} is in ${regDef.name}${bits.length ? ': ' + bits.join(', ') : ''}.`, 'ok');
+    this.log(`${ltDef.name.split(' ')[0]} is in ${placeName}${bits.length ? ': ' + bits.join(', ') : ''}.`, 'ok');
+    this.checkMissionsAndActs();
     this.save();
     return { ok: true };
   }
@@ -525,8 +557,8 @@ export class CartelSimulation {
     const reg = this.state.regions[regionId];
     const regDef = REGIONS.find((r) => r.id === regionId);
     if (!reg) return { ok: false };
-    const cleanCost = reg.raidActive ? 250 : 160;
-    const dirtyCost = reg.raidActive ? 350 : 200;
+    let cleanCost = reg.raidActive ? 250 : 160;
+    let dirtyCost = reg.raidActive ? 350 : 200;
 
     if (this.state.research && this.state.research.bribe_net) {
       cleanCost = Math.round(cleanCost * 0.8);
@@ -543,6 +575,7 @@ export class CartelSimulation {
 
     const drop = this.state.research && this.state.research.bribe_net ? 56 : 48;
     reg.heat = Math.max(5, reg.heat - drop);
+    if (this.state.dea) this.state.dea.case = Math.max(0, (Number(this.state.dea.case) || 0) - 6);
     reg.loyalty = Math.min(100, reg.loyalty + 10);
     const zoneMirror = this.state.zones && this.state.zones[regionId];
     if (zoneMirror) zoneMirror.heat = reg.heat;
@@ -566,6 +599,7 @@ export class CartelSimulation {
       this.log(`Donated civic funds in ${regDef.townName} (-${drop} Regional Heat).`, 'ok');
     }
     this.onEvent({ type: 'bribed', regionId });
+    this.checkMissionsAndActs();
     this.save();
     return { ok: true };
   }
@@ -740,11 +774,11 @@ export class CartelSimulation {
       } else if (bDef.role === 'launderer') {
         // Convert Dirty Cash into Clean Cash
         const maxLaunder = Math.round(bDef.launderPerCycle * levelMult * mods.launderMult);
-        if (this.state.dirtyCash >= 25) {
+        if (launderTake(this.state.dirtyCash, maxLaunder) > 0) {
           slot.progress += (effDt * levelMult) / bDef.cycleSeconds;
           if (slot.progress >= 1) {
             slot.progress = 0;
-            const dirtyToConvert = Math.min(Math.floor(this.state.dirtyCash), maxLaunder);
+            const dirtyToConvert = launderTake(this.state.dirtyCash, maxLaunder);
             if (dirtyToConvert > 0) {
               const cleanOut = Math.round(dirtyToConvert * bDef.launderRatio);
               this.state.dirtyCash -= dirtyToConvert;
@@ -820,6 +854,8 @@ export class CartelSimulation {
             target.outputBuffer = {};
           }
           reg.raidTargetSlot = null;
+          if (this.state.dea) this.state.dea.case = Math.min(100, (Number(this.state.dea.case) || 0) + 8);
+          if (reg.id === 'rio_plata') this.state.valleySeizures = (this.state.valleySeizures || 0) + 1;
           this.log(`DEA raid seized stock and $${fineDirty} Dirty Cash in ${regDef.name}.`, 'danger');
           this.onEvent({ type: 'raid_seized', regionId: reg.id, fineDirty });
         }
@@ -855,8 +891,24 @@ export class CartelSimulation {
     }
   }
 
+  noteCampaignFailure() {
+    const failure = campaignFailure(this.state);
+    if (!failure) return;
+    this.state.campaignStatus = 'failed';
+    this.state.failId = failure.id;
+    this.state.failReason = failure.text;
+    this.log(failure.text, 'danger');
+    this.onEvent({ type: 'campaign_failed', id: failure.id });
+  }
+
   onDailyTick() {
+    this.noteCampaignFailure();
     tickLoyalty(this.state);
+    const betrayals = tickBetrayal(this.state);
+    for (const note of betrayals) {
+      this.log(`${note.name} walked with $${note.skim} and talked to Ruiz.`, 'danger');
+      this.onEvent({ type: 'betrayed', ltId: note.id, zoneId: note.zoneId });
+    }
     const notes = tickRivals(this.state, this.state.elapsedSeconds);
     for (const note of notes) {
       this.log(note.text, note.slotId || note.lotId ? 'danger' : 'warn');
@@ -1086,6 +1138,47 @@ export class CartelSimulation {
       }).length;
     } else if (mission.metric === 'cityControl') {
       current = Math.max(0, ...Object.values(this.state.zones).filter((zone) => String(zone.id).startsWith('ps_')).map((zone) => zone.control || 0));
+    } else if (mission.metric === 'heatHandled') {
+      current = this.state.heatHandled || 0;
+    } else if (mission.metric === 'zoneUnlocked') {
+      const live = this.state.zones[mission.zoneId];
+      current = live && live.unlocked ? 1 : 0;
+    } else if (mission.metric === 'ruralOperations') {
+      current = Object.values(this.state.lots).filter((lot) => {
+        if (!lot.owned || lot.phase !== 'operating') return false;
+        const zone = zoneById(lot.zoneId);
+        return !!(zone && zone.kind === 'rural' && zone.id !== 'rio_plata');
+      }).length;
+    } else if (mission.metric === 'assignedOutside') {
+      current = Object.values(this.state.lieutenants).filter((row) => {
+        if (!row.hired || row.betrayed) return false;
+        const place = row.zoneId || row.regionId;
+        return !!place && place !== 'rio_plata';
+      }).length;
+    } else if (mission.metric === 'boatRuns') {
+      current = this.state.boatRuns || 0;
+    } else if (mission.metric === 'zoneProperty') {
+      current = Object.values(this.state.lots).filter((lot) => {
+        if (lot.zoneId !== mission.zoneId || !lot.owned) return false;
+        return lot.phase === 'operating' || lot.phase === 'building';
+      }).length;
+    } else if (mission.metric === 'zoneRole') {
+      current = Object.values(this.state.lots).filter((lot) => {
+        return lot.zoneId === mission.zoneId && lot.owned && lot.phase === 'operating' && lot.role === mission.role;
+      }).length;
+    } else if (mission.metric === 'lotOwned') {
+      const lot = this.state.lots[mission.lotId];
+      current = lot && lot.owned && (lot.phase === 'operating' || lot.phase === 'building') ? 1 : 0;
+    } else if (mission.metric === 'zoneControl') {
+      current = measureControl(this.state, mission.zoneId);
+    } else if (mission.metric === 'cityNeighborhoods') {
+      const ids = new Set();
+      for (const lot of Object.values(this.state.lots)) {
+        if (!lot.owned || !String(lot.zoneId).startsWith('ps_')) continue;
+        if (lot.phase !== 'operating' && lot.phase !== 'building') continue;
+        ids.add(lot.zoneId);
+      }
+      current = ids.size;
     }
 
     let extraMet = true;
@@ -1141,10 +1234,16 @@ export class CartelSimulation {
   }
 
   checkMissionsAndActs() {
-    const mission = this.getCurrentMission();
-    if (!mission) return;
-    const prog = this.getMissionProgress(mission);
-    if (prog.done && !this.state.completedMissions.includes(mission.id)) {
+    let guard = 0;
+    while (guard < 8) {
+      guard += 1;
+      const mission = this.getCurrentMission();
+      if (!mission) {
+        if (this.state.campaignStatus !== 'failed') this.state.campaignStatus = 'complete';
+        return;
+      }
+      const prog = this.getMissionProgress(mission);
+      if (!prog.done || this.state.completedMissions.includes(mission.id)) return;
       this.state.completedMissions.push(mission.id);
       this.state.cleanCash += mission.rewardClean;
       this.state.dirtyCash += mission.rewardDirty;
@@ -1154,9 +1253,8 @@ export class CartelSimulation {
       this.state.reputation = (this.state.reputation || 0) + 6;
 
       const nextM = this.getCurrentMission();
-      if (nextM && nextM.act > this.state.act) {
-        this.state.act = nextM.act;
-      }
+      if (nextM && nextM.act > this.state.act) this.state.act = nextM.act;
+      if (!nextM && this.state.campaignStatus !== 'failed') this.state.campaignStatus = 'complete';
       this.log(`Objective Complete: ${mission.title} (+$${mission.rewardClean} Clean Cash)!`, 'ok');
       this.onEvent({ type: 'mission_completed', mission });
     }
@@ -1284,6 +1382,8 @@ export class CartelSimulation {
     }
     this.log(result.slipped ? 'Lights out. The patrol rolled past.' : 'The block goes quiet.', result.slipped ? 'ok' : 'info');
     this.onEvent({ type: 'hid', id });
+    refreshControl(this.state);
+    this.checkMissionsAndActs();
     this.save();
     return result;
   }
