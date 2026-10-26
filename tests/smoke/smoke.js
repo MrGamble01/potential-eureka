@@ -149,15 +149,6 @@ const TARGETS = [
   hubCanvas({ name: 'Memory Matrix', view: 'memorymatrix', canvas: '#mm-canvas', start: clickSel('#mm-canvas') }),
   hubCanvas({ name: 'Inkflip', view: 'inkflip', canvas: '#inkflip-canvas', start: press('ArrowRight') }),
   hubCanvas({ name: 'Gutterlight', view: 'gutterlight', canvas: '#gutter-canvas', start: press('ArrowRight') }),
-  hubCanvas({ name: 'Snip', view: 'snip', canvas: '#snip-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Peg', view: 'peg', canvas: '#peg-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Clasp', view: 'clasp', canvas: '#clasp-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Rivet', view: 'rivet', canvas: '#rivet-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Plumb', view: 'plumb', canvas: '#plumb-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Brand', view: 'brand', canvas: '#brand-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Stitch', view: 'stitch', canvas: '#stitch-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Hone', view: 'hone', canvas: '#hone-canvas', start: press(' ') }),
-  hubCanvas({ name: 'Quench', view: 'quench', canvas: '#quench-canvas', start: press(' ') }),
   hubCanvas({
     name: 'Maze Runner',
     view: 'maze',
@@ -778,7 +769,6 @@ const PHONE_BOARDS = [
   ['life', '#life-canvas'],
   ['inkflip', '#inkflip-canvas'],
   ['gutterlight', '#gutter-canvas'],
-  ['snip', '#snip-canvas'],
 ];
 
 function phoneTarget(name, viewport) {

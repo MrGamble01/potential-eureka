@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
   <title>Tetris cover</title>
   <rect width="480" height="640" fill="#10131a"/>
-  <circle cx="372" cy="108" r="30" fill="#e3b341"/>
+  <circle cx="372" cy="108" r="30" fill="#3ddcff"/>
   <circle cx="360" cy="100" r="22" fill="#10131a"/>
-  <rect x="116" y="168" width="248" height="400" fill="#1a1f2b" stroke="#e3b341" stroke-width="3"/>
+  <rect x="116" y="168" width="248" height="400" fill="#1a1f2b" stroke="#3ddcff" stroke-width="3"/>
   <rect x="140" y="460" width="44" height="88" fill="#f6f3ea"/>
-  <rect x="184" y="416" width="88" height="88" fill="#e3b341"/>
+  <rect x="184" y="416" width="88" height="88" fill="#3ddcff"/>
   <rect x="140" y="372" width="132" height="44" fill="#8b83ff"/>
   <rect x="184" y="328" width="44" height="44" fill="#8b83ff"/>
   <rect x="272" y="372" width="44" height="176" fill="#c4beb2"/>
-  <rect x="196" y="200" width="44" height="88" fill="#e3b341"/>
-  <rect x="240" y="244" width="44" height="44" fill="#e3b341"/>
+  <rect x="196" y="200" width="44" height="88" fill="#3ddcff"/>
+  <rect x="240" y="244" width="44" height="44" fill="#3ddcff"/>
 </svg>

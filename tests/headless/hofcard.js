@@ -27,9 +27,9 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
     const errs = [];
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
     await page.addInitScript(() => {
-      localStorage.setItem('snake-high', '42');
+      localStorage.setItem('gutter-best', '38');
       localStorage.setItem('tetris-high', '9001');
-      localStorage.setItem('g2048-best', '1234');
+      localStorage.setItem('crate-best', '14');
     });
     await page.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
     await page.waitForTimeout(1200);

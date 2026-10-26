@@ -26,7 +26,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
-const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'GROW OP', 'HOMELESS VILLAGE', 'HEARTHVALE', 'VOXEL ISLE'];
+const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
 
 (async () => {
   const launch = {
@@ -55,7 +55,7 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'GROW OP', 'HOMELESS VILLAGE'
   }));
 
   const games = cards.filter(c => c.title !== 'EUREKA STUDIO');
-  ok(games.length >= 21, `the grid holds the catalogue the hero claims (${games.length} games)`);
+  ok(games.length === 8, `the grid holds the 8 showcase games (${games.length} games)`);
   ok(games.every(c => c.sessionCount === 1),
     'every game card carries exactly one session tag');
   ok(games.every(c => c.leads === true),
@@ -63,20 +63,16 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'GROW OP', 'HOMELESS VILLAGE'
 
   const hours = games.filter(c => /Hours/.test(c.sessionText || ''));
   const mins = games.filter(c => /Few minutes/.test(c.sessionText || ''));
-  ok(hours.length === 6 && FLAGSHIPS.every(f => hours.some(h => h.title === f)),
-    `the six flagships are the six marked Hours (${hours.map(h => h.title).join(', ')})`);
-  ok(mins.length === games.length - 6,
-    `every other game is marked Few minutes (${mins.length})`);
-
-  const studio = cards.find(c => c.title === 'EUREKA STUDIO');
-  ok(studio && studio.sessionCount === 0,
-    'the studio makes no play-length claim — it is not a game');
+  ok(hours.length === 4 && FLAGSHIPS.every(f => hours.some(h => h.title === f)),
+    `the four long showcase games are marked Hours (${hours.map(h => h.title).join(', ')})`);
+  ok(mins.length === 4,
+    `every other showcase game is marked Few minutes (${mins.length})`);
 
   // C. the filter the hub already had understands the new tag for free.
   await page.fill('#card-search', 'hours');
   await page.waitForTimeout(400);
   const hoursHits = await page.evaluate(() => document.getElementById('card-search-count').textContent);
-  ok(hoursHits === '6 games', `searching "hours" narrows to the long games (${hoursHits})`);
+  ok(hoursHits === '4 games', `searching "hours" narrows to the long games (${hoursHits})`);
 
   await page.fill('#card-search', 'few minutes');
   await page.waitForTimeout(400);
@@ -98,7 +94,7 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'GROW OP', 'HOMELESS VILLAGE'
     overflow: document.documentElement.scrollWidth > window.innerWidth,
     tagged: [...document.querySelectorAll('.arcade-grid .tag-session')].length,
   }));
-  ok(!narrow.overflow && narrow.tagged >= 21,
+  ok(!narrow.overflow && narrow.tagged === 8,
     `the tags survive a 400px phone without overflowing the page (${narrow.tagged} tagged)`);
 
   await browser.close();

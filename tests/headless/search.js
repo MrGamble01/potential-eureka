@@ -15,17 +15,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     [...document.querySelectorAll('.arcade-grid .arcade-card')].filter(c => c.style.display !== 'none').length);
 
   const total = await visible();
-  ok(total >= 18, `all cards visible initially (${total})`);
+  ok(total === 8, `all 8 showcase cards visible initially (${total})`);
 
-  await page.fill('#card-search', 'snake');
-  const bySnake = await visible();
-  ok(bySnake === 1, `"snake" filters to 1 (${bySnake})`);
+  await page.fill('#card-search', 'tetris');
+  const byTetris = await visible();
+  ok(byTetris === 1, `"tetris" filters to 1 (${byTetris})`);
 
-  await page.fill('#card-search', '2p');   // tag search
-  const by2p = await visible();
-  ok(by2p >= 2, `tag "2P" finds the duels (${by2p})`);
+  await page.fill('#card-search', 'cozy');   // tag search
+  const byCozy = await visible();
+  ok(byCozy === 2, `tag "Cozy" finds Hearthvale and Voxel Isle (${byCozy})`);
   const count = await page.evaluate(() => document.getElementById('card-search-count').textContent);
-  ok(new RegExp(by2p + ' games').test(count), `count readout live (${count})`);
+  ok(new RegExp(byCozy + ' games').test(count), `count readout live (${count})`);
 
   await page.fill('#card-search', 'zzzz');
   ok(await visible() === 0, 'no matches hides everything');

@@ -38,7 +38,7 @@ const boardSig = page => page.evaluate(() => {
 
 async function daily2048Sig(browser, errs) {
   const { ctx, page } = await newPage(browser, errs);
-  await page.click('.daily-chip[data-game="game2048"]');
+  await page.evaluate(() => { Daily.arm('game2048'); location.hash = '#2048'; });
   await page.waitForTimeout(900);
   await page.keyboard.press(' ');
   await page.waitForTimeout(700);
@@ -101,7 +101,7 @@ async function mazeLattice(browser, errs, viaDaily) {
     }));
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    ok(banner.visible && banner.chips === 4, `banner renders with 4 chips`);
+    ok(banner.visible && banner.chips === 3, `banner renders with 3 chips`);
     ok(banner.date === key, `banner date is today (${banner.date})`);
     await ctx.close();
   }
@@ -132,7 +132,7 @@ async function mazeLattice(browser, errs, viaDaily) {
   // D. Snake end-to-end: wrap is off, snake drives into the right wall
   {
     const { ctx, page } = await newPage(browser, errs);
-    await page.click('.daily-chip[data-game="snake"]');
+    await page.evaluate(() => { Daily.arm('snake'); location.hash = '#snake'; });
     await page.waitForTimeout(600);
     await page.keyboard.press(' ');
     await page.waitForTimeout(4000); // 15 cells at 120ms < 2s; margin for speed
@@ -151,15 +151,15 @@ async function mazeLattice(browser, errs, viaDaily) {
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
     await page.goto(BASE + '/index.html', { waitUntil: 'load' });
     await page.evaluate(() => {
-      localStorage.setItem('arcade-daily-snake-2020-01-01', '99');
-      localStorage.setItem('arcade-daily-snake-' + Utils.todayKey(), '7');
+      localStorage.setItem('arcade-daily-tetris-2020-01-01', '99');
+      localStorage.setItem('arcade-daily-tetris-' + Utils.todayKey(), '7');
     });
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(1000);
     const keys = await page.evaluate(() => ({
-      stale: localStorage.getItem('arcade-daily-snake-2020-01-01'),
-      today: localStorage.getItem('arcade-daily-snake-' + Utils.todayKey()),
-      chipShowsBest: document.querySelector('.daily-chip[data-game="snake"] .daily-best') !== null,
+      stale: localStorage.getItem('arcade-daily-tetris-2020-01-01'),
+      today: localStorage.getItem('arcade-daily-tetris-' + Utils.todayKey()),
+      chipShowsBest: document.querySelector('.daily-chip[data-game="tetris"] .daily-best') !== null,
     }));
     ok(keys.stale === null, 'stale daily key swept on boot');
     ok(keys.today === '7', "today's daily key survives the sweep");

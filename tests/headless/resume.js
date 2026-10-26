@@ -13,8 +13,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.waitForTimeout(1200);
   ok(await page.evaluate(() => document.getElementById('jump-back-in').hidden), 'hidden on a fresh profile');
 
-  // Play snake then tetris briefly
-  await page.evaluate(() => { location.hash = '#snake'; });
+  // Play crateescape then tetris briefly
+  await page.evaluate(() => { location.hash = '#crateescape'; });
   await page.waitForTimeout(2500);
   await page.evaluate(() => { location.hash = '#tetris'; });
   await page.waitForTimeout(1000);

@@ -20,6 +20,7 @@ const CrateEscapeGame = (() => {
   let moves, pushes, history, solvedNow;
   let best, bestMoves;      // best: levels solved (HOF); bestMoves: {level: moves}
   let bound = false;
+  let dailyRun = false;
   const sfx = Utils.sfx;
 
   // Same mulberry32 the daily uses; the seed is a pure function of the
@@ -120,6 +121,7 @@ const CrateEscapeGame = (() => {
   }
 
   function loadLevel(n, keepHistory) {
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('crateescape');
     level = Math.max(1, Math.min(MAX_LEVEL, n));
     const L = genLevel(level);
     wall = L.wall; goals = L.goals; gw = L.gw; gh = L.gh;
@@ -192,6 +194,7 @@ const CrateEscapeGame = (() => {
     updateInfo();
     const lines = [`Solved in ${moves} moves (${pushes} pushes)`,
       `Level best: ${bestMoves[level]} moves &nbsp;·&nbsp; Ladder: ${best} solved`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('crateescape', moves, 'min'));
     Utils.showGameOver('crate-overlay', {
       lines,
       hint: level < MAX_LEVEL ? 'Press SPACE or tap for the next puzzle' : 'Ladder complete — press R to replay',
