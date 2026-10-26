@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <script>
-    // Theme boot (SITE-6): applied before first paint so there's no flash.
-    // Stored pick wins; otherwise light-preferring systems get daylight.
+    // Theme boot: default to the neutral dark studio frame unless a theme
+    // was explicitly chosen and stored in localStorage.
     document.documentElement.classList.add('eureka-booting');
     try {
       var t = localStorage.getItem('eureka-theme');
-      if (t === null && matchMedia('(prefers-color-scheme: light)').matches) t = 'daylight';
       if (t) document.documentElement.dataset.theme = t;
     } catch (e) {}
   </script>
@@ -53,7 +52,7 @@
     <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
     <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
   </noscript>
-  <link rel="stylesheet" href="css/studio-face.css?v=20261026no">
+  <link rel="stylesheet" href="css/studio-face.css?v=20261026h2">
 </head>
 <body>
 
@@ -68,9 +67,16 @@
 
   <!-- NAVIGATION -->
   <header class="hub-chrome">
-  <nav class="site-nav">
-    <button class="logo logo-btn" data-view="arcade">EUREKA</button>
+  <nav class="site-nav" aria-label="Studio">
+    <button class="logo logo-btn" data-view="arcade"><i class="brand-dot" aria-hidden="true"></i>EUREKA</button>
     <div class="nav-spacer"></div>
+    <div class="studio-nav-links">
+      <a class="studio-nav-link" href="#arcade" data-view="arcade">Games</a>
+      <a class="studio-nav-link" href="#halloffame" data-view="halloffame">Hall of Fame</a>
+    </div>
+  </nav>
+
+  <nav class="arcade-secondary-nav arcade-shell" id="studio-links" aria-label="Studio tools" hidden>
     <a class="career-chip" href="#trophy" data-view="trophy" id="career-chip" aria-label="Your profile and trophy room">
       <span class="career-chip-face" aria-hidden="true">&#127918;</span>
       <span class="career-chip-text">Lv 1</span>
@@ -81,16 +87,13 @@
       <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
     </div>
     <button type="button" class="studio-menu" id="studio-menu" aria-controls="studio-links" aria-expanded="false" aria-label="Open studio menu">Menu</button>
-  </nav>
-
-  <nav class="arcade-secondary-nav arcade-shell" id="studio-links" aria-label="Studio links">
     <a class="sec-link" href="#halloffame" data-view="halloffame">&#127942; Hall of Fame</a>
     <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
     <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
     <button type="button" class="sec-link" id="challenge-jump-btn">&#128197; Challenge</button>
   </nav>
 
-  <!-- Tucked-away utility views + toys — not games, kept out of the way -->
+  <!-- Tucked-away utility views — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
     <div id="nav-audio"></div>
     <button data-view="dashboard">Dashboard</button>
@@ -100,28 +103,23 @@
   </div>
   </header>
 
-  <!-- ===================== ARCADE (HOME) ===================== -->
+  <!-- ===================== ARCADE (STUDIO MAIN MENU) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">Eureka Studio</div>
-      <div class="arcade-hero-title glitch" data-text="EUREKA">EUREKA</div>
-      <p class="arcade-hero-sub">A house of browser games. Pick a card and play — nothing to install, nothing to sign.</p>
-
-      <a class="arcade-flagship" href="ageofwar/" aria-label="Play Age of War">
-        <div class="arcade-flagship-art" aria-hidden="true">
-          <img class="arcade-flagship-poster" src="assets/covers/ageofwar.svg?v=20261026no" alt="" width="642" height="280">
+      <div class="arcade-hero-inner">
+        <div class="arcade-hero-copy">
+          <p class="arcade-hero-kicker">INDEPENDENT GAME STUDIO</p>
+          <h1 class="arcade-hero-title">EUREKA</h1>
+          <p class="arcade-hero-sub">Eight original games built for the browser. Instant play, no install.</p>
         </div>
-        <div class="arcade-flagship-copy">
-          <div class="arcade-flagship-kicker">Flagship &middot; Hours</div>
-          <div class="arcade-flagship-name">AGE OF WAR</div>
-          <p class="arcade-flagship-pitch">March through the ages. Crush the enemy base.</p>
-          <span class="hero-cta hero-cta--flagship">&#9654; Play Age of War</span>
+        <div class="arcade-hero-actions">
+          <a class="studio-explore-btn" href="#arcade-games">Explore games</a>
         </div>
-      </a>
+      </div>
     </div>
 
-    <div class="card-search-wrap">
-      <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
+    <div class="card-search-wrap" hidden>
+      <input id="card-search" class="card-search" type="search" placeholder="Filter games…"
              aria-label="Filter games" autocomplete="off">
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
       <nav class="arcade-scan" aria-label="Show games">
@@ -132,159 +130,137 @@
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="primer-hint" role="region" aria-label="New here" hidden>
-      <span class="primer-hint-text">&#10024; <b>New here?</b> Four long games, four quick classics, and a scoreboard that stays in this browser.</span>
+      <span class="primer-hint-text">Eight browser games. Scores and saves stay in this browser.</span>
       <button class="primer-hint-open" id="primer-hint-open">How it works &rarr;</button>
       <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
     </div>
-    <div id="daily-banner" class="hub-challenge" role="region" aria-label="Today's challenge">
-      <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
-      <span class="daily-sub">Same seed for everyone — set today's mark:</span>
+    <div id="daily-banner" class="hub-challenge" role="region" aria-label="Today's challenge" hidden>
+      <span class="daily-title">TODAY'S CHALLENGE <span id="daily-date"></span></span>
+      <span class="daily-sub">Same seed for everyone:</span>
       <span id="daily-games"></span>
     </div>
     <div id="arcade-empty" class="arcade-empty" hidden>
       <p class="arcade-empty-copy">No games match that filter.</p>
       <button type="button" class="arcade-empty-clear" id="arcade-empty-clear">Clear filter</button>
     </div>
-
-    <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
-      <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Long games</h2>
-          <span class="arcade-section-count">4</span>
-          <span class="arcade-section-chip">Hours</span>
-        </div>
-        <p class="arcade-section-lede">Save and come back.</p>
-      </div>
-      <div class="arcade-grid arcade-grid--long">
-      <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#3ddcff">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/ageofwar.svg?v=20261026no" alt="Age of War cover" width="642" height="280" data-crop="wide">
-          <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-flag">Flagship</div>
-          <div class="arcade-card-hi" data-hi="ageofwar"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">AGE OF WAR</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span></div>
-          <div class="arcade-card-desc">March through the ages. Crush the enemy base.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="tycoon/play.html" style="--accent:#58A6FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/tycoon.svg?v=20261026no" alt="Startup Tycoon cover" width="640" height="400">
-          <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="tycoon"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">STARTUP TYCOON</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Idle</span><span>Story</span></div>
-          <div class="arcade-card-desc">Hire, ship, grind your way to IPO.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card arcade-card-dim" href="hearthvale.html" style="--accent:#7fbf63">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/hearthvale.svg" alt="Hearthvale cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="hearthvale"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">HEARTHVALE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span></div>
-          <div class="arcade-card-desc">Cozy riverside town — homes, trade, seasons.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card arcade-card-dim" href="voxel-garden.html" style="--accent:#7EC8FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/voxelisle.svg" alt="Voxel Isle cover" width="640" height="400" loading="lazy">
-          <video class="arcade-card-clip" src="assets/thumbs/voxelisle.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="voxelgarden"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">VOXEL ISLE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>Cozy</span></div>
-          <div class="arcade-card-desc">Till, plant, and build — a deckhand helps.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-      </div>
-    </div>
-
     <section id="flag-daily" class="flag-daily" aria-label="Flagship daily challenge" hidden></section>
 
-    <div class="arcade-section arcade-section--quick" id="arcade-quick" data-section="quick">
+    <div class="arcade-section arcade-section--showcase" id="arcade-games" data-section="long">
       <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">4</span>
-          <span class="arcade-section-chip">Few minutes</span>
-        </div>
-        <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
+        <h2 class="arcade-section-title">OUR GAMES</h2>
+        <span class="arcade-section-count">08</span>
       </div>
-      <div class="arcade-grid arcade-grid--quick">
-      <a class="arcade-card" href="games/ashmarch/" style="--accent:#8b83ff">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/ashmarch.svg?v=20261026no" alt="Ashmarch cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">ASHMARCH</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Story</span><span>Local</span></div>
-          <div class="arcade-card-desc">Two roads. One chronicle in this browser.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
+      <div class="arcade-grid arcade-grid--showcase">
+        <a class="arcade-card" href="voxel-garden.html">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-voxel.jpg" alt="Voxel Isle cover" width="960" height="540">
+            <div class="arcade-card-hi" data-hi="voxelgarden"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Voxel Isle</h3>
+              <span class="arcade-card-genre">Voxel Builder</span>
+            </div>
+            <p class="arcade-card-desc">Till, plant, and build a floating sky island.</p>
+          </div>
+        </a>
 
-      <a class="arcade-card" href="#gutterlight" data-view="gutterlight" style="--accent:#3fb950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/gutterlight.svg?v=20261026no" alt="Gutterlight cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="gutterlight"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">GUTTERLIGHT</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Putting</span><span>Nine holes</span></div>
-          <div class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
+        <a class="arcade-card" href="games/ashmarch/">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-ashmarch.jpg" alt="Ashmarch cover" width="960" height="540">
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Ashmarch</h3>
+              <span class="arcade-card-genre">Narrative RPG</span>
+            </div>
+            <p class="arcade-card-desc">Two roads. One chronicle in this browser.</p>
+          </div>
+        </a>
 
-      <a class="arcade-card" href="#crateescape" data-view="crateescape" style="--accent:#58A6FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/crateescape.svg" alt="Crate Escape cover" width="640" height="560" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="crateescape"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span></div>
-          <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
+        <a class="arcade-card" href="ageofwar/">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-ageofwar.jpg" alt="Age of War cover" width="960" height="540">
+            <div class="arcade-card-hi" data-hi="ageofwar"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Age of War</h3>
+              <span class="arcade-card-genre">Lane Strategy</span>
+            </div>
+            <p class="arcade-card-desc">March through the ages. Crush the enemy base.</p>
+          </div>
+        </a>
 
-      <a class="arcade-card" href="#tetris" data-view="tetris" style="--accent:#F778BA">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/covers/tetris.svg?v=20261026no" alt="Tetris cover" width="641" height="482" loading="lazy" data-crop="right">
-          <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="tetris"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">TETRIS</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Puzzle</span></div>
-          <div class="arcade-card-desc">Stack blocks. Clear lines. Don't top out.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
+        <a class="arcade-card" href="tycoon/play.html">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-tycoon.jpg" alt="Startup Tycoon cover" width="960" height="540">
+            <div class="arcade-card-hi" data-hi="tycoon"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Startup Tycoon</h3>
+              <span class="arcade-card-genre">Office Sim</span>
+            </div>
+            <p class="arcade-card-desc">Hire, ship, grind your way to IPO.</p>
+          </div>
+        </a>
+
+        <a class="arcade-card" href="hearthvale.html">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-hearthvale.jpg" alt="Hearthvale cover" width="960" height="540" loading="lazy">
+            <div class="arcade-card-hi" data-hi="hearthvale"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Hearthvale</h3>
+              <span class="arcade-card-genre">Colony Builder</span>
+            </div>
+            <p class="arcade-card-desc">Grow a cozy riverside town across seasons.</p>
+          </div>
+        </a>
+
+        <a class="arcade-card" href="#gutterlight" data-view="gutterlight">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-gutterlight.jpg" alt="Gutterlight cover" width="960" height="540" loading="lazy">
+            <div class="arcade-card-hi" data-hi="gutterlight"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Gutterlight</h3>
+              <span class="arcade-card-genre">Table Golf</span>
+            </div>
+            <p class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</p>
+          </div>
+        </a>
+
+        <a class="arcade-card" href="#crateescape" data-view="crateescape">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-crateescape.jpg" alt="Crate Escape cover" width="960" height="540" loading="lazy">
+            <div class="arcade-card-hi" data-hi="crateescape"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Crate Escape</h3>
+              <span class="arcade-card-genre">Sokoban Puzzle</span>
+            </div>
+            <p class="arcade-card-desc">Push crates onto pads. Undo included.</p>
+          </div>
+        </a>
+
+        <a class="arcade-card" href="#tetris" data-view="tetris">
+          <div class="arcade-card-screen">
+            <img class="arcade-card-poster" src="assets/covers/h2-tetris.jpg" alt="Tetris cover" width="960" height="540" loading="lazy">
+            <div class="arcade-card-hi" data-hi="tetris"></div>
+          </div>
+          <div class="arcade-card-body">
+            <div class="arcade-card-head">
+              <h3 class="arcade-card-title">Tetris</h3>
+              <span class="arcade-card-genre">Block Puzzle</span>
+            </div>
+            <p class="arcade-card-desc">Stack blocks. Clear lines. Don't top out.</p>
+          </div>
+        </a>
       </div>
     </div>
   </section>
@@ -1169,16 +1145,11 @@
   </section>
 
   <footer class="hub-footer">
-    <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Eight browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
-      <a href="ageofwar/">Age of War</a>
-      <button type="button" data-hub-open="patch-notes-btn">Patch Notes</button>
-      <button type="button" data-hub-open="primer-btn">How it works</button>
-      <button type="button" data-hub-open="challenge-jump-btn">Challenge</button>
     </nav>
+    <p class="hub-footer-tag">Eureka. Eight games.</p>
   </footer>
 
   <!-- GOOGLE TASKS SETTINGS MODAL -->
@@ -1327,50 +1298,30 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.remove('eureka-booting');
     if (typeof HubRoutes !== 'undefined' && typeof HubRoutes.showcaseGames === 'function') {
-      const cardHtml = g => {
-        const cls = ['arcade-card'];
-        if (g.flagship) cls.push('arcade-card--flagship');
-        if (g.dim) cls.push('arcade-card-dim');
+      const cardHtml = (g, idx) => {
         const viewAttr = g.view ? ` data-view="${g.view}"` : '';
-        const cropAttr = g.crop ? ` data-crop="${g.crop}"` : '';
-        const lazyAttr = g.flagship || g.id === 'tycoon' ? '' : ' loading="lazy"';
-        const clipHtml = g.clip ? `<video class="arcade-card-clip" src="${g.clip}" muted loop playsinline preload="none"></video>` : '';
-        const flagHtml = g.flagship ? '<div class="arcade-card-flag">Flagship</div>' : '';
+        const lazyAttr = idx < 4 ? '' : ' loading="lazy"';
         const hiHtml = g.hi ? `<div class="arcade-card-hi" data-hi="${g.hi}"></div>` : '';
-        const tagsHtml = (g.tags || []).map((t, idx) => {
-          if (idx === 0) {
-            const longCls = g.lane === 'long' ? ' tag-session--long' : '';
-            return `<span class="tag-session${longCls}">${t}</span>`;
-          }
-          return `<span>${t}</span>`;
-        }).join('');
-        return `<a class="${cls.join(' ')}" href="${g.href}"${viewAttr} style="--accent:${g.accent}">` +
+        const genre = g.genre || (g.tags && g.tags[1]) || 'Game';
+        return `<a class="arcade-card" href="${g.href}"${viewAttr}>` +
           `<div class="arcade-card-screen">` +
-            `<img class="arcade-card-poster" src="${g.poster}" alt="${g.name} cover" width="${g.posterW || 640}" height="${g.posterH || 400}"${lazyAttr}${cropAttr}>` +
-            clipHtml +
-            `<div class="arcade-card-shine"></div>` +
-            flagHtml +
+            `<img class="arcade-card-poster" src="${g.poster}" alt="${g.name} cover" width="${g.posterW || 960}" height="${g.posterH || 540}"${lazyAttr}>` +
             hiHtml +
           `</div>` +
           `<div class="arcade-card-body">` +
-            `<div class="arcade-card-title">${g.title}</div>` +
-            `<div class="arcade-card-tags">${tagsHtml}</div>` +
-            `<div class="arcade-card-desc">${g.desc}</div>` +
-            `<div class="arcade-card-play">&#9654; PLAY</div>` +
+            `<div class="arcade-card-head">` +
+              `<h3 class="arcade-card-title">${g.name}</h3>` +
+              `<span class="arcade-card-genre">${genre}</span>` +
+            `</div>` +
+            `<p class="arcade-card-desc">${g.desc}</p>` +
           `</div>` +
         `</a>`;
       };
       const all = HubRoutes.showcaseGames();
-      const longGames = all.filter(g => g.lane === 'long');
-      const quickGames = all.filter(g => g.lane !== 'long');
-      const longGrid = document.querySelector('.arcade-grid--long');
-      const quickGrid = document.querySelector('.arcade-grid--quick');
-      if (longGrid) longGrid.innerHTML = longGames.map(cardHtml).join('\n');
-      if (quickGrid) quickGrid.innerHTML = quickGames.map(cardHtml).join('\n');
-      const longCount = document.querySelector('#arcade-long .arcade-section-count');
-      const quickCount = document.querySelector('#arcade-quick .arcade-section-count');
-      if (longCount) longCount.textContent = String(longGames.length);
-      if (quickCount) quickCount.textContent = String(quickGames.length);
+      const grid = document.querySelector('.arcade-grid--showcase');
+      if (grid) grid.innerHTML = all.map(cardHtml).join('\n');
+      const countEl = document.querySelector('#arcade-games .arcade-section-count');
+      if (countEl) countEl.textContent = String(all.length).padStart(2, '0');
     }
     const navButtons = document.querySelectorAll('[data-view]');
     let applyingHash = false;
@@ -1451,16 +1402,7 @@
     }
     function placeStudioChrome() {
       if (!iconCluster || !studioLinks || !studioMenu) return;
-      const header = document.querySelector('.hub-chrome');
-      if (studioQuery.matches) {
-        if (iconCluster.parentElement !== studioLinks) studioLinks.appendChild(iconCluster);
-      } else {
-        const nav = document.querySelector('nav.site-nav');
-        if (nav && iconCluster.parentElement !== nav) nav.insertBefore(iconCluster, studioMenu);
-        if (header) header.classList.remove('is-menu-open');
-        studioMenu.setAttribute('aria-expanded', 'false');
-        studioMenu.setAttribute('aria-label', 'Open studio menu');
-      }
+      if (iconCluster.parentElement !== studioLinks) studioLinks.appendChild(iconCluster);
       syncChrome();
     }
     function setStudioMenu(open) {
@@ -1594,10 +1536,12 @@
             switchView(view);
           });
         }
-        if (searchEl && (searchEl.value || pending)) applyFilter();
-        else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
-        if (pending && pending.section) landSection(pending.section, { smooth: false });
-        else window.scrollTo(0, 0);
+        if (resumeRow) resumeRow.hidden = true;
+        if (dailyBanner) dailyBanner.hidden = true;
+        const flagDaily = document.getElementById('flag-daily');
+        if (flagDaily) flagDaily.hidden = true;
+        if (primerHint) primerHint.hidden = true;
+        window.scrollTo(0, 0);
       } else {
         // Leftover after HoF became site shell: a scrolled catalogue
         // handed its offset to the board, so the title sat off-screen.
