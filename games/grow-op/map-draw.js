@@ -122,7 +122,7 @@ function roadLine(g, pts, width) {
   g.save();
   g.lineCap = 'butt';
   g.setLineDash([14, 18]);
-  g.strokeStyle = 'rgba(244,236,210,0.72)';
+  g.strokeStyle = 'rgba(230,196,84,0.9)';
   g.lineWidth = 2;
   g.beginPath();
   g.moveTo(flat[0][0], flat[0][1]);
@@ -193,6 +193,19 @@ function patch(g, x, y, rx, ry, rot, color) {
     g.stroke();
   }
   g.restore();
+}
+
+function farmstead(g, x, y, rot, seed) {
+  g.fillStyle = 'rgba(214,186,130,0.5)';
+  g.beginPath();
+  g.ellipse(x, y + 6, 86, 52, rot, 0, Math.PI * 2);
+  g.fill();
+  const crops = ['#7f9a3c', '#c6b15a', '#6e8a38', '#d8c56a'];
+  for (let i = 0; i < 4; i++) {
+    const along = -34 + i * 22;
+    patch(g, x + Math.cos(rot) * along, y + Math.sin(rot) * along, 20, 12, rot + 0.15, crops[i]);
+  }
+  house(g, x + Math.cos(rot + 1.4) * 48, y + Math.sin(rot + 1.4) * 34, seed, 0.58);
 }
 
 function house(g, x, y, seed, scale) {
@@ -443,9 +456,9 @@ function offsetChain(pts, dist) {
 function paintCoast(g) {
   const shore = coastChain();
   if (shore.length < 2) return;
-  ribbon(g, offsetChain(shore, 70), 130, 'rgba(78,196,206,0.88)');
-  ribbon(g, offsetChain(shore, 120), 100, 'rgba(22,110,142,0.5)');
-  ribbon(g, offsetChain(shore, 18), 70, '#ead7ae');
+  ribbon(g, offsetChain(shore, 70), 130, 'rgba(64,206,214,0.9)');
+  ribbon(g, offsetChain(shore, 130), 110, 'rgba(18,96,140,0.55)');
+  ribbon(g, offsetChain(shore, 16), 78, '#f0ddb4');
   ribbon(g, offsetChain(shore, -6), 14, 'rgba(255,252,245,0.72)');
   g.fillStyle = 'rgba(255,252,245,0.82)';
   for (let i = 0; i < shore.length; i += 2) {
@@ -584,16 +597,34 @@ function paintFull(roads) {
     g.fill();
   }
 
-  ribbon(g, RIVER_PTS, 92, '#6a5438');
-  ribbon(g, RIVER_PTS, 58, '#124e66');
-  ribbon(g, RIVER_PTS, 34, '#1c7894');
-  ribbon(g, RIVER_PTS, 8, 'rgba(226,246,248,0.55)');
-  ribbon(g, INLET_PTS, 36, '#6a5438');
-  ribbon(g, INLET_PTS, 20, '#187088');
-  ribbon(g, [[1760, 1980], [1640, 2160], [1500, 2320]], 18, '#6a5438');
-  ribbon(g, [[1760, 1980], [1640, 2160], [1500, 2320]], 9, '#1a6e86');
-  ribbon(g, [[2220, 1880], [2400, 2060], [2340, 2260]], 16, '#6a5438');
-  ribbon(g, [[2220, 1880], [2400, 2060], [2340, 2260]], 8, '#187488');
+  const river = curveSamples(RIVER_PTS);
+  ribbon(g, river, 128, '#f0ddb4');
+  ribbon(g, river, 96, '#c6a56c');
+  ribbon(g, river, 54, '#0c6280');
+  ribbon(g, river, 30, '#2aa4bc');
+  ribbon(g, river, 8, 'rgba(232,250,250,0.7)');
+  for (let i = 3; i < river.length; i += 6) {
+    const p = river[i];
+    const q = river[Math.min(river.length - 1, i + 1)];
+    const dx = q[0] - p[0];
+    const dy = q[1] - p[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const n = hash(i, 55);
+    const side = n > 0.5 ? 1 : -1;
+    g.fillStyle = n > 0.72 ? '#f6e8c8' : '#e4cc90';
+    g.beginPath();
+    g.ellipse(p[0] + (-dy / len) * 50 * side, p[1] + (dx / len) * 50 * side, 26 + n * 22, 12 + n * 8, Math.atan2(dy, dx), 0, Math.PI * 2);
+    g.fill();
+  }
+  const inlet = curveSamples(INLET_PTS);
+  ribbon(g, inlet, 48, '#f0ddb4');
+  ribbon(g, inlet, 22, '#187088');
+  const deltaA = curveSamples([[1760, 1980], [1640, 2160], [1500, 2320]]);
+  ribbon(g, deltaA, 28, '#f0ddb4');
+  ribbon(g, deltaA, 12, '#1a6e86');
+  const deltaB = curveSamples([[2220, 1880], [2400, 2060], [2340, 2260]]);
+  ribbon(g, deltaB, 26, '#e7d2a4');
+  ribbon(g, deltaB, 10, '#187488');
 
   ribbon(g, RIDGE, 22, '#4a4038');
   ribbon(g, RIDGE, 6, '#d9d0c2');
@@ -628,6 +659,14 @@ function paintFull(roads) {
   for (let i = 0; i < SCENIC_ROADS.length; i++) roadLine(g, SCENIC_ROADS[i], i === 2 ? 12 : 14);
   for (let i = 0; i < CITY_AVENUES.length; i++) roadLine(g, CITY_AVENUES[i], i < 3 ? 16 : 12);
 
+  const farms = [[180, 1320, -0.4], [980, 1480, 0.3], [1480, 2140, 0.55], [2060, 2280, -0.2], [640, 1980, 0.15], [1760, 1280, -0.5], [2480, 1480, 0.4]];
+  for (let i = 0; i < farms.length; i++) {
+    const spot = farms[i];
+    if (!onLand(spot[0], spot[1]) || contains(COVE, spot[0], spot[1]) || contains(CITY_GROUND, spot[0], spot[1])) continue;
+    if (blocked(spot[0], spot[1], 10) || nearPath(spot[0], spot[1], roadPaths, 48)) continue;
+    farmstead(g, spot[0], spot[1], spot[2], 30 + i);
+  }
+
   g.fillStyle = '#3e4650';
   g.save();
   g.translate(3480, 2280);
@@ -645,6 +684,13 @@ function paintFull(roads) {
   for (let i = 0; i < 9; i++) g.fillRect(-230 + i * 54, -2, 20, 3);
   g.restore();
 
+  g.save();
+  trace(g, ZONE_LAYOUT.jungle_alta.poly);
+  g.clip();
+  g.fillStyle = 'rgba(10,36,18,0.42)';
+  g.fillRect(0, 1300, 1700, 1400);
+  g.restore();
+
   for (let i = 0; i < 160; i++) {
     const x = 60 + hash(i, 81) * 2500;
     const y = 40 + hash(i, 82) * 1600;
@@ -659,6 +705,13 @@ function paintFull(roads) {
     if (contains(MESA, x, y) && hash(i, 33) > 0.22) continue;
     if (contains(CITY_GROUND, x, y)) continue;
     canopy(g, x, y, i + 3);
+  }
+  for (let i = 0; i < 120; i++) {
+    const x = 80 + hash(i, 101) * 1280;
+    const y = 1480 + hash(i, 102) * 1080;
+    if (!contains(ZONE_LAYOUT.jungle_alta.poly, x, y) || !onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 24)) continue;
+    canopy(g, x, y, i + 210);
+    if (hash(i, 104) > 0.45) canopy(g, x + 22, y + 8, i + 410);
   }
   for (let i = 0; i < 220; i++) {
     const x = hash(i, 61) * 4300;
@@ -698,14 +751,22 @@ function paintFull(roads) {
       const ny = dx / len;
       for (let side = -1; side <= 1; side += 2) {
         houseN += 1;
-        const gap = 52 + hash(houseN, 1) * 22;
+        const downtown = p[0] > 3920 && p[1] < 760;
+        const gap = downtown ? 40 + hash(houseN, 1) * 14 : 56 + hash(houseN, 1) * 20;
         const x = p[0] + nx * gap * side;
         const y = p[1] + ny * gap * side;
         if (!contains(CITY_GROUND, x, y) || !onLand(x, y) || contains(COVE, x, y)) continue;
         if (blocked(x, y) || nearPath(x, y, roadPaths, 30)) continue;
-        const downtown = x > 3920 && y < 760;
-        const scale = downtown ? 1.7 + hash(houseN, 2) * 1.05 : 0.78 + hash(houseN, 3) * 0.45;
+        const scale = downtown ? 1.55 + hash(houseN, 2) * 0.85 : 0.72 + hash(houseN, 3) * 0.4;
         house(g, x, y, houseN + 4, scale);
+        if (downtown && hash(houseN, 8) > 0.35) {
+          const packed = 18 + hash(houseN, 9) * 10;
+          const px = x + nx * packed * side;
+          const py = y + ny * packed * side;
+          if (contains(CITY_GROUND, px, py) && onLand(px, py) && !blocked(px, py)) {
+            house(g, px, py, houseN + 80, 1.15 + hash(houseN, 6) * 0.7);
+          }
+        }
       }
     }
   }
