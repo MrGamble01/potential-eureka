@@ -438,6 +438,49 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
   #mateBubble{left:112px;bottom:72px}
   html.hud-b[data-game="voxel"] #hotbar{padding:2px 6px}
 }
+
+.isle-kicker{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#7ec8ff}
+.isle-mark{width:54px;height:42px;margin:0 0 10px;position:relative}
+.isle-mark:before,.isle-mark:after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:16px;background:#7fd370;border-radius:2px;box-shadow:0 0 0 2px #12141c}
+.isle-mark:after{left:16px;right:16px;bottom:16px;height:16px;background:#7ec8ff}
+html.hud-b[data-game="voxel"] #helpOv .card{
+  background:radial-gradient(120% 80% at 100% 0%,rgba(126,200,255,.18),transparent 46%),#12141c;
+  border:1px solid rgba(126,200,255,.32)}
+html.hud-b[data-game="voxel"] #helpOv h2{
+  font-family:'Outfit',var(--font-display),sans-serif;font-weight:800;font-size:40px;
+  letter-spacing:-0.04em;color:#f4f8fc;margin:0 0 8px;line-height:1}
+html.hud-b[data-game="voxel"] #helpOv #helpClose,
+html.hud-b[data-game="voxel"] #pauseOv #pauseClose{
+  background:#7ec8ff;color:#071018}
+html.hud-b[data-game="voxel"] #helpOv .help-ghost{
+  background:transparent;color:#9fb0bf;border:1px solid rgba(255,255,255,.16)}
+#pauseOv{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(2,2,3,.8)}
+#pauseOv.open{display:flex}
+#pauseOv .card{background:#12141c;border:1px solid rgba(126,200,255,.32);border-radius:20px;
+  padding:22px 24px;width:min(440px,92vw);max-height:86vh;overflow:auto;
+  background:radial-gradient(120% 70% at 0% 0%,rgba(126,200,255,.16),transparent 42%),#12141c}
+#pauseOv h2{font-family:'Outfit',var(--font-display),sans-serif;font-weight:800;font-size:32px;letter-spacing:-0.04em;color:#f4f8fc;margin:0 0 8px}
+#pauseStat,#pauseSaveNote{font-size:14px;color:#9fb0bf;line-height:1.45}
+.pause-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pause-actions button{min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+  background:#1a222c;color:#e8eef4;font-weight:700;cursor:pointer}
+#coach{display:none;position:fixed;z-index:14;left:8px;bottom:calc(188px + env(safe-area-inset-bottom));
+  width:min(220px,58vw);padding:8px 10px;border-radius:14px;pointer-events:none;
+  background:rgba(8,14,22,.92);border:1px solid rgba(126,200,255,.4);box-shadow:0 8px 20px rgba(0,0,0,.4)}
+#coach .coach-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7ec8ff}
+#coachText{font-size:13px;line-height:1.35;color:#f4f8fc;margin-top:2px}
+#coachNext{font-size:11px;color:#9fd4ff;margin-top:4px}
+#coachNext:empty{display:none}
+#coach[hidden]{display:none!important}
+@media (max-width:640px),(max-height:480px){
+  #coach:not([hidden]){display:block}
+}
+body:has(#helpOv.open) #coach,body:has(#pauseOv.open) #coach{display:none!important}
+#saveFlag{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:18;pointer-events:none;background:rgba(8,14,22,.92);color:#d7ecff;
+  border:1px solid rgba(126,200,255,.45);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+#saveFlag[hidden]{display:none!important}
+body.photo #pauseOv,body.photo #coach,body.photo #saveFlag{display:none!important}
 </style>
 </head>
 <body>
@@ -472,6 +515,7 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
     <button id="musicBtn" type="button" title="Music on/off" aria-label="Music"><span class="ico">🎵</span></button>
     <button id="muteBtn" type="button" title="Mute (M)" aria-label="Mute"><span class="ico">🔊</span></button>
     <button id="helpBtn" type="button" title="Help (H)" aria-label="Help">?</button>
+    <button id="menuBtn" type="button" title="Menu" aria-label="Menu"><span class="ico">☰</span><span class="lbl">Menu</span></button>
     <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
   </div>
   <div id="vox-audio"></div>
@@ -539,8 +583,33 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
   </div>
   <div id="almBody"></div>
 </div></div>
+<div id="coach" hidden>
+  <div class="coach-kicker">First morning</div>
+  <div id="coachText"></div>
+  <div id="coachNext"></div>
+</div>
+<div id="saveFlag" hidden>Saved</div>
+<div id="pauseOv"><div class="card">
+  <p class="isle-kicker">Paused</p>
+  <h2>Voxel Isle</h2>
+  <p id="pauseStat"></p>
+  <div class="help-cta-row">
+    <button type="button" id="pauseClose">Back to the garden</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
+  <div class="pause-actions">
+    <button type="button" id="pauseMute">Sound on</button>
+    <button type="button" id="pauseMusic">Music on</button>
+    <button type="button" id="pausePhoto">Photo</button>
+    <button type="button" id="pauseHelp">How to play</button>
+    <button type="button" id="pauseNew">New isle</button>
+  </div>
+  <p id="pauseSaveNote"></p>
+</div></div>
 <div id="helpOv"><div class="card">
-  <h2>🏝️ Voxel Isle</h2>
+  <p class="isle-kicker">A sky garden</p>
+  <div class="isle-mark" aria-hidden="true"></div>
+  <h2>Voxel Isle</h2>
   <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
   <div class="help-cta-row">
     <button id="helpClose">Let's grow</button>
@@ -548,8 +617,8 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
     <button type="button" class="help-ghost" id="helpNewIsle" hidden>New isle</button>
   </div>
   <ul>
-    <li><b>Drag</b> to look. <b>Scroll</b> or pinch to zoom.</li>
-    <li><b>Till</b>, plant, and water. Tap a ripe plant to harvest.</li>
+    <li><b>Drag</b> to look. <b>Scroll</b> or pinch to zoom. <b>Q</b> and <b>E</b> turn.</li>
+    <li><b>Till</b>, plant, and water. Tap a ripe plant to harvest. Keys <b>1–5</b> pick a tool.</li>
     <li><b>Deckhand</b> is with you from the first morning. Follow, Gather, Build, and Wait.</li>
   </ul>
 </div></div>
@@ -4560,7 +4629,7 @@ function refreshPlantMesh(p){
 }
 
 /* ============================== scene ============================== */
-let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
+let scene,camera,renderer,sunLight,fillLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
 let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
 // VOX-11: the Weather Vane calls the shower before it lands
@@ -4573,20 +4642,23 @@ function initScene(){
   scene.fog=new THREE.Fog(0x8ec9ea,70,180);
   camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,400);
   renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(innerWidth,innerHeight);
+  fitRenderer();
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   chunkMat=new THREE.MeshLambertMaterial({vertexColors:true});
-  hemiLight=new THREE.HemisphereLight(0xbfe3ff,0x6b5a42,0.75);scene.add(hemiLight);
-  ambLight=new THREE.AmbientLight(0x404860,0.4);scene.add(ambLight);
-  sunLight=new THREE.DirectionalLight(0xfff2d0,1.05);
+  hemiLight=new THREE.HemisphereLight(0xc8e8ff,0x6b5340,0.82);scene.add(hemiLight);
+  ambLight=new THREE.AmbientLight(0x4a5870,0.42);scene.add(ambLight);
+  sunLight=new THREE.DirectionalLight(0xfff2d0,1.12);
   sunLight.castShadow=true;
-  sunLight.shadow.mapSize.set(2048,2048);
+  const shadowTex=Math.min(innerWidth,innerHeight)<800?1024:1536;
+  sunLight.shadow.mapSize.set(shadowTex,shadowTex);
   const sc=sunLight.shadow.camera;
   sc.left=-48;sc.right=48;sc.top=48;sc.bottom=-48;sc.near=10;sc.far=240;
   scene.add(sunLight);scene.add(sunLight.target);
+  fillLight=new THREE.DirectionalLight(0x9ecbff,0.28);
+  fillLight.position.set(-48,28,-24);
+  scene.add(fillLight);
   // sun & moon billboards
   sunMesh=new THREE.Mesh(new THREE.SphereGeometry(4,12,12),new THREE.MeshBasicMaterial({color:0xffe9a8,fog:false}));
   moonMesh=new THREE.Mesh(new THREE.SphereGeometry(3,12,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,fog:false}));
@@ -4733,7 +4805,9 @@ function updatePops(dt){
   for(let i=pops.length-1;i>=0;i--){
     const p=pops[i];p.t+=dt*2.6;
     if(p.t>=1){p.mesh.scale.setScalar(1);pops.splice(i,1);continue;}
-    p.mesh.scale.setScalar(lerp(p.from,1,easeOutBack(p.t)));
+    const s=lerp(p.from,1,easeOutBack(p.t));
+    const squash=1+Math.sin(p.t*Math.PI)*0.12;
+    p.mesh.scale.set(s/squash,s*squash,s/squash);
   }
 }
 
@@ -4940,8 +5014,8 @@ function updateDay(dt){
   // dawn mist — fog draws in tight at sunrise then burns off (thicker in spring/autumn)
   const sk=seasonOf(state.day).key;
   const mist=gaussish(frac,0.075,0.05)*(sk==='autumn'||sk==='spring'?1:sk==='winter'?0.85:0.65);
-  scene.fog.near=70-mist*46;
-  scene.fog.far=180-mist*84;
+  scene.fog.near=78-mist*40;
+  scene.fog.far=210-mist*70;
   if(mist>0.02)scene.fog.color.lerp(_mist,mist*0.5);
   // sun path
   const sa=Math.PI*frac/NIGHT_AT;              // 0..pi across daytime
@@ -4960,8 +5034,12 @@ function updateDay(dt){
     sunLight.intensity=0.18;
     sunLight.color.setHex(0x9db8ff);
   }
-  hemiLight.intensity=0.25+daylight*0.55;
-  ambLight.intensity=0.32+daylight*0.18;
+  hemiLight.intensity=0.28+daylight*0.58;
+  ambLight.intensity=0.34+daylight*0.16;
+  if(fillLight){
+    fillLight.intensity=(0.16+daylight*0.2)*(1-rainAmt*0.35);
+    fillLight.color.setHex(night>0.6?0x6a7cff:0x9ecbff);
+  }
   starMat.opacity=night*0.9;
   ffMat.opacity=night*0.95;
   el.dayIco.textContent=frac<NIGHT_AT?'☀️':'🌙';
@@ -5026,7 +5104,8 @@ function updatePlants(dt,dn){
     if(ns!==p.stage){
       p.stage=ns;refreshPlantMesh(p);popMesh(p.mesh,0.5);
       if(ns===2){
-        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,10,{up:1.6,g:2});
+        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,8,{up:1.8,g:2});
+        burst(p.x+0.5,p.y+0.45,p.z+0.5,0x7ec8ff,4,{up:1.1,g:2.4,spread:1.2});
         SFX.play('grow');
         // ~8% of crops ripen GOLDEN — worth double when harvested
         if(Math.random()<0.08){p.golden=true;
@@ -5648,6 +5727,7 @@ function refreshQuestHud(){
   const nxt=UNLOCKS[(state.level|0)+1];
   const qn=$('qNext');
   if(qn)qn.textContent=nxt?('Next · LV '+((state.level|0)+1)+' · '+nxt):'';
+  refreshCoach(nxt);
 }
 
 /* ============================== actions ============================== */
@@ -5719,7 +5799,8 @@ function doAction(hit){
       if(!spendCoins(def.cost))return;
       addPlant(x,y+1,z,state.seedSel);
       state.planted++;SFX.play('plant');feel('plant');
-      burst(x+0.5,y+1.2,z+0.5,0x7fd370,6,{up:1.4,g:4});
+      burst(x+0.5,y+1.2,z+0.5,0x7fd370,7,{up:1.6,g:4});
+      burst(x+0.5,y+1.05,z+0.5,0x7ec8ff,4,{up:0.9,g:3,spread:0.7});
       if(def.night&&!isNight())toast('🌙 Moonpetals only grow at night…');
       questCheck();
     } else {toast('Plant in tilled soil — use the ⚒️ hoe first');SFX.play('error');}
@@ -5802,7 +5883,8 @@ function actOnPlant(p){
     SFX.play('harvest');
     feel('harvest');
     setTimeout(()=>SFX.play('coin'),140);
-    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
+    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,10,{up:2.4,g:6});
+    burst(p.x+0.5,p.y+0.4,p.z+0.5,0x7ec8ff,5,{up:1.3,g:3,spread:1.35});
     if(def.multi){
       p.harvested++;p.prog=def.grow-def.regrow;p.stage=1;
       refreshPlantMesh(p);popMesh(p.mesh,0.6);
@@ -6117,7 +6199,8 @@ function overlayOpen(){
   const ach=$('achOv')&&$('achOv').classList.contains('open');
   const alm=$('almanacOv')&&$('almanacOv').classList.contains('open');
   const shore=$('chain-modal')&&$('chain-modal').classList.contains('open');
-  return !!(help||ach||alm||shore);
+  const pause=$('pauseOv')&&$('pauseOv').classList.contains('open');
+  return !!(help||ach||alm||shore||pause);
 }
 function raycastAt(clientX,clientY){
   ptr.x=(clientX/innerWidth)*2-1;ptr.y=-(clientY/innerHeight)*2+1;
@@ -6211,10 +6294,14 @@ function bindInput(){
     if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
     else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
-    else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
-    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
+    else if(e.key==='h'||e.key==='H'||e.key==='?'){if(islePaused)setPaused(false);el.helpOv.classList.toggle('open');}
+    else if(e.key==='Escape'){
+      const was=overlayOpen()||document.body.classList.contains('photo')||islePaused;
+      el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
       const shore=document.getElementById('chain-modal');if(shore)shore.classList.remove('open');
-      document.body.classList.remove('photo');closePanels();}
+      document.body.classList.remove('photo');closePanels();setPaused(false);
+      if(!was)openPause();
+    }
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
@@ -6233,8 +6320,7 @@ function bindInput(){
   });
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    fitRenderer();
     fitCamera();
     if(typeof placePhoneBack==='function')placePhoneBack();
   });
@@ -6372,17 +6458,22 @@ function initHud(){
   const buildCancelBtn=$('buildCancel');
   if(buildCancelBtn)buildCancelBtn.addEventListener('click',()=>cancelBuildAnchor());
   refreshSeasonHud();
-  $('musicBtn').addEventListener('click',()=>{
-    state.musicOff=!state.musicOff;
-    try{
-      if(window.EurekaPersist){
-        EurekaPersist.settings.update({musicOn:!state.musicOff,muted:!!state.muted,touched:true});
-      }
-    }catch(e){}
-    $('musicBtn').style.opacity=state.musicOff?0.4:1;
-    SFX.play('click');
-  });
+  $('musicBtn').addEventListener('click',()=>{toggleMusic();SFX.play('click');});
   $('musicBtn').style.opacity=state.musicOff?0.4:1;
+  const menuBtn=$('menuBtn');
+  if(menuBtn)menuBtn.addEventListener('click',()=>{SFX.play('click');openPause();});
+  const pauseClose=$('pauseClose');
+  if(pauseClose)pauseClose.addEventListener('click',()=>{setPaused(false);SFX.play('click');});
+  const pauseMute=$('pauseMute');
+  if(pauseMute)pauseMute.addEventListener('click',()=>{toggleMute();paintPause();SFX.play('click');});
+  const pauseMusic=$('pauseMusic');
+  if(pauseMusic)pauseMusic.addEventListener('click',()=>{toggleMusic();paintPause();SFX.play('click');});
+  const pausePhoto=$('pausePhoto');
+  if(pausePhoto)pausePhoto.addEventListener('click',()=>{setPaused(false);const m=$('momentsBtn');if(m)m.click();});
+  const pauseHelp=$('pauseHelp');
+  if(pauseHelp)pauseHelp.addEventListener('click',()=>{setPaused(false);el.helpOv.classList.add('open');SFX.play('click');});
+  const pauseNew=$('pauseNew');
+  if(pauseNew)pauseNew.addEventListener('click',dropKeptIsle);
   buildSeedPanel();buildBlockPanel();
   refreshXpHud();refreshQuestHud();refreshGoodsHud();
   el.coins.textContent=state.coins;el.day.textContent=state.day;
@@ -6393,6 +6484,63 @@ function applySharedAudio(){
   if(!window.EurekaPersist||!state)return;
   const heard=EurekaPersist.audio.apply(state.muted,state.musicOff);
   state.muted=heard.muted;state.musicOff=heard.musicOff;
+}
+let islePaused=false;
+let saveArmed=false;
+const COACH_STEPS=[
+  'Tap grass with the hoe to till a plot.',
+  'Choose Plant, then tap the soil. A sunflower costs 5 coins.',
+  'Water the soil. Wet earth grows twice as fast.',
+  'When the flower ripens, tap it to harvest.',
+];
+function refreshCoach(nxt){
+  const box=$('coach');if(!box)return;
+  const step=COACH_STEPS[state.questIdx|0];
+  if(!step){box.hidden=true;return;}
+  box.hidden=false;
+  const t=$('coachText');if(t)t.textContent=step;
+  const n=$('coachNext');if(n)n.textContent=nxt?('Next · LV '+((state.level|0)+1)+' · '+nxt):'';
+}
+function setPaused(on){
+  islePaused=!!on;
+  const ov=$('pauseOv');
+  if(ov)ov.classList.toggle('open',islePaused);
+  if(islePaused){closePanels();paintPause();}
+}
+function openPause(){
+  if(fp.on)toggleFP(false);
+  setPaused(true);
+}
+function paintPause(){
+  const next=UNLOCKS[(state.level|0)+1];
+  const p=$('pauseStat');
+  if(p)p.textContent='Day '+(state.day||1)+' · LV '+(state.level||1)+' · '+(state.coins|0)+' coins'+(next?(' · '+next):'');
+  const note=$('pauseSaveNote');
+  if(note)note.textContent='The garden saves itself. Continue is the chip along the top when you come back.';
+  const mb=$('pauseMute');if(mb)mb.textContent=state.muted?'Sound off':'Sound on';
+  const mu=$('pauseMusic');if(mu)mu.textContent=state.musicOff?'Music off':'Music on';
+}
+function toggleMusic(){
+  state.musicOff=!state.musicOff;
+  try{
+    if(window.EurekaPersist){
+      EurekaPersist.settings.update({musicOn:!state.musicOff,muted:!!state.muted,touched:true});
+    }
+  }catch(e){}
+  const b=$('musicBtn');if(b)b.style.opacity=state.musicOff?0.4:1;
+}
+function flashSaved(){
+  if(!saveArmed)return;
+  const f=$('saveFlag');if(!f)return;
+  f.hidden=false;
+  clearTimeout(flashSaved._t);
+  flashSaved._t=setTimeout(()=>{f.hidden=true;},1400);
+}
+function fitRenderer(){
+  if(!renderer)return;
+  const cap=Math.min(innerWidth,innerHeight)<800?1.25:1.75;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,cap));
+  renderer.setSize(innerWidth,innerHeight);
 }
 function paintMute(){
   const b=$('muteBtn');if(!b)return;
@@ -6522,6 +6670,7 @@ function save(){
       workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+    flashSaved();
     if(window.EurekaPersist){
       EurekaPersist.progress.note('voxel',{day:state.day|0,level:state.level|0,coins:state.coins|0});
     }
@@ -7887,6 +8036,11 @@ function boot(){
       if(window.EurekaMoments)EurekaMoments.afterFrame();
       return;
     }
+    if(islePaused){
+      renderer.render(scene,camera);
+      if(window.EurekaMoments)EurekaMoments.afterFrame();
+      return;
+    }
     perf+=dt;
     const dn=updateDay(dt);
     MUSIC.tick(dt,dn);
@@ -7980,6 +8134,7 @@ function boot(){
     });
   } catch (e) {}
   requestAnimationFrame(frame);
+  setTimeout(()=>{saveArmed=true;},2500);
 }
 boot();
 // VOX-50: the Shore -- the memory chain, in order, with live state.
