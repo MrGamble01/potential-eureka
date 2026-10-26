@@ -431,8 +431,10 @@ export class MapScene extends window.Phaser.Scene {
 
   syncSlots() {
     const zoom = this.cameras.main.zoom;
-    const names = zoom >= 0.62;
-    const detail = zoom >= 0.88;
+    const base = this.scale.width < 520 ? 0.9 : this.scale.width < 900 ? 0.82 : this.scale.width < 1500 ? 1.12 : 1.28;
+    const rel = zoom / base;
+    const names = rel >= 0.92;
+    const detail = rel >= 1.02;
     const selected = this.sim.state.selectedSlotId;
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
@@ -466,11 +468,20 @@ export class MapScene extends window.Phaser.Scene {
       } else if (state.rivalControlled) {
         node.name.setText('Los Lobos');
         node.name.setColor('#ffb4ae');
+        node.nameBg.setVisible(names);
+        node.name.setVisible(names);
         node.stock.setText('Hostile gate');
         node.stock.setColor('#f85149');
+        node.stockBg.setVisible(detail);
+        node.stock.setVisible(detail);
       } else {
-        node.name.setText(names && detail ? node.def.label : '');
+        const picked = id === selected;
+        node.name.setText(node.def.label);
         node.name.setColor('#e7dcc6');
+        node.nameBg.setVisible(picked);
+        node.name.setVisible(picked);
+        node.stockBg.setVisible(false);
+        node.stock.setVisible(false);
         node.barBg.setVisible(false);
         node.bar.setVisible(false);
       }
@@ -743,7 +754,7 @@ export class MapScene extends window.Phaser.Scene {
       node.cab.setRotation(angle);
       node.cab.setPosition(Math.cos(angle) * 10, Math.sin(angle) * 10);
       node.label.setText(`${truck.qty} ${good ? good.shortName : ''}`);
-      node.label.setVisible(this.cameras.main.zoom >= 0.8);
+      node.label.setVisible(this.cameras.main.zoom / (this.scale.width < 520 ? 0.9 : 1.12) >= 0.95);
     }
     for (const [id, node] of Object.entries(this.trucks)) {
       if (!live.has(Number(id))) {

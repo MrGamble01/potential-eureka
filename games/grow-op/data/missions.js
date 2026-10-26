@@ -198,83 +198,56 @@ export const BUILD_SLOTS = [
   }
 ];
 
-// Road network waypoints connecting regions, towns, and build slots
+// A highway and short spurs. Every build slot is a vertex so trucks
+// stay on the pavement instead of cutting across the districts.
 export const ROAD_NETWORK = [
-  // Pan-Provincial Trunk Highway (Río Plata -> San Marco -> Sierra Alta)
   [
     { x: 310, y: 450 },
-    { x: 450, y: 440 },
+    { x: 440, y: 450 },
     { x: 590, y: 430 },
-    { x: 685, y: 585 },
-    { x: 835, y: 520 },
     { x: 980, y: 455 },
-    { x: 1135, y: 450 },
+    { x: 1115, y: 450 },
     { x: 1290, y: 445 },
-    { x: 1385, y: 615 },
-    { x: 1545, y: 540 },
     { x: 1715, y: 465 },
-    { x: 1880, y: 470 },
+    { x: 1755, y: 465 },
     { x: 2045, y: 475 }
   ],
-  // Río Plata Valley internal loop to Crossroads Depot, Embarcadero & Puerto Plata Plaza
   [
-    { x: 310, y: 450 },
-    { x: 375, y: 528 },
+    { x: 440, y: 450 },
     { x: 440, y: 605 },
-    { x: 380, y: 705 },
     { x: 320, y: 805 }
+  ],
+  [
+    { x: 440, y: 605 },
+    { x: 615, y: 775 },
+    { x: 1215, y: 825 }
   ],
   [
     { x: 590, y: 430 },
-    { x: 515, y: 518 },
-    { x: 440, y: 605 },
-    { x: 528, y: 690 },
-    { x: 615, y: 775 },
-    { x: 468, y: 790 },
-    { x: 320, y: 805 }
+    { x: 685, y: 585 }
   ],
   [
     { x: 685, y: 585 },
-    { x: 562, y: 595 },
-    { x: 440, y: 605 }
-  ],
-  [
-    { x: 685, y: 585 },
-    { x: 650, y: 680 },
     { x: 615, y: 775 }
   ],
-  // Southern Coastal Road linking Puerto Plata to San Marco Freight & Port
   [
-    { x: 615, y: 775 },
-    { x: 865, y: 700 },
+    { x: 1115, y: 450 },
     { x: 1115, y: 625 },
     { x: 1215, y: 825 }
   ],
-  // San Marco urban grid connectors
   [
-    { x: 980, y: 455 },
-    { x: 1115, y: 625 },
-    { x: 1290, y: 445 }
+    { x: 1290, y: 445 },
+    { x: 1385, y: 615 }
   ],
   [
-    { x: 1115, y: 625 },
     { x: 1385, y: 615 },
     { x: 1215, y: 825 }
-  ],
-  // Sierra Alta mountain switchbacks
-  [
-    { x: 1385, y: 615 },
-    { x: 1755, y: 675 },
-    { x: 2040, y: 780 }
   ],
   [
     { x: 1715, y: 465 },
-    { x: 1755, y: 675 }
-  ],
-  [
-    { x: 2045, y: 475 },
-    { x: 1900, y: 575 },
-    { x: 1755, y: 675 }
+    { x: 1755, y: 465 },
+    { x: 1755, y: 675 },
+    { x: 2040, y: 780 }
   ],
   [
     { x: 2045, y: 475 },

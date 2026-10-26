@@ -34,7 +34,6 @@ const ok = (cond, name) => {
   const herb = sim.state.slots.slot_rp_farm1.outputBuffer.raw_herb || 0;
   const hauled = sim.state.activeTrucks.some((t) => t.goodId === 'raw_herb');
   const barn = sim.state.slots.slot_rp_barn1.inputBuffer.raw_herb || 0;
-  console.log('grow check', herb, before, hauled, JSON.stringify(sim.state.activeTrucks.map((t) => t.goodId)));
   ok(herb > before || hauled || barn > 0, 'plantation grows raw crop');
 
   sim.step(30);
