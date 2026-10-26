@@ -21,8 +21,33 @@ export function nextEvent(state) {
     id: card.id,
     title: card.title,
     body: card.body,
+    speaker: card.speaker || null,
     choices: card.choices.map((choice) => ({ label: choice.label, effect: choice.effect }))
   };
+}
+
+function bumpCase(state, delta) {
+  if (!state.dea) state.dea = { agent: 'Helen Ruiz', case: 0 };
+  state.dea.case = Math.max(0, Math.min(100, (Number(state.dea.case) || 0) + delta));
+}
+
+function bumpHeat(state, id, delta) {
+  const zone = state.zones && state.zones[id];
+  const region = state.regions && state.regions[id];
+  if (zone) zone.heat = Math.max(0, Math.min(100, (Number(zone.heat) || 0) + delta));
+  if (region) region.heat = Math.max(0, Math.min(100, (Number(region.heat) || 0) + delta));
+}
+
+function bumpThreat(state, id, delta) {
+  const row = state.rivals && state.rivals[id];
+  if (!row) return;
+  row.threat = Math.max(0, row.threat + delta);
+}
+
+function bumpLoyalty(state, id, delta) {
+  const row = state.lieutenants && state.lieutenants[id];
+  if (!row || !row.hired || row.betrayed) return;
+  row.loyalty = Math.max(0, Math.min(100, row.loyalty + delta));
 }
 
 export function applyEffect(state, effect) {
@@ -102,6 +127,115 @@ export function applyEffect(state, effect) {
   if (effect === 'sol_rumor') {
     state.reputation = (state.reputation || 0) + 2;
     return { ok: true, text: 'A name in Puerto Sol gets you a nod. Reputation ticks up.' };
+  }
+  if (effect === 'inspection_pay') {
+    if (state.cleanCash < 240) return { ok: false, reason: 'Need $240 Clean Cash.' };
+    state.cleanCash -= 240;
+    bumpHeat(state, 'ps_barrio', -12);
+    bumpCase(state, -10);
+    bumpLoyalty(state, 'nia', 2);
+    return { ok: true, text: 'Ruiz pockets the inspection fee. The file gets thinner.' };
+  }
+  if (effect === 'inspection_refuse') {
+    bumpHeat(state, 'ps_barrio', 14);
+    bumpHeat(state, 'rio_plata', 6);
+    bumpCase(state, 18);
+    state.reputation = Math.max(0, (state.reputation || 0) - 1);
+    return { ok: true, text: 'Ruiz writes the refusal into the case file. Barrio Sol gets hotter.', kind: 'warn' };
+  }
+  if (effect === 'turf_costa') {
+    if (state.dirtyCash < 200) return { ok: false, reason: 'Need $200 Dirty Cash.' };
+    state.dirtyCash -= 200;
+    bumpThreat(state, 'costa', 18);
+    bumpHeat(state, 'ps_beach', -6);
+    bumpHeat(state, 'ps_barrio', -4);
+    state.reputation = (state.reputation || 0) + 1;
+    return { ok: true, text: 'Reina Solano takes the envelope. Costa Negra waits.' };
+  }
+  if (effect === 'turf_lobos') {
+    if (state.dirtyCash < 200) return { ok: false, reason: 'Need $200 Dirty Cash.' };
+    state.dirtyCash -= 200;
+    bumpThreat(state, 'lobos', 18);
+    bumpHeat(state, 'ps_hills', -6);
+    bumpLoyalty(state, 'valeria', 2);
+    return { ok: true, text: 'Don Emilio Garza takes the envelope. Los Lobos hold off.' };
+  }
+  if (effect === 'turf_ignore') {
+    bumpThreat(state, 'costa', -12);
+    bumpThreat(state, 'lobos', -12);
+    bumpHeat(state, 'ps_barrio', 10);
+    bumpCase(state, 5);
+    return { ok: true, text: 'Both crews take the silence as a clock. They will not wait.', kind: 'warn' };
+  }
+  if (effect === 'witness_pay') {
+    if (state.cleanCash < 280) return { ok: false, reason: 'Need $280 Clean Cash.' };
+    state.cleanCash -= 280;
+    bumpCase(state, -16);
+    bumpLoyalty(state, 'nia', -3);
+    bumpHeat(state, 'ps_downtown', -4);
+    return { ok: true, text: 'Ruiz\'s witness goes quiet. Nia hates paying a fed.' };
+  }
+  if (effect === 'books_buy') {
+    if (state.dirtyCash < 220) return { ok: false, reason: 'Need $220 Dirty Cash.' };
+    state.dirtyCash -= 220;
+    bumpThreat(state, 'costa', 12);
+    bumpCase(state, 6);
+    state.reputation = (state.reputation || 0) + 2;
+    bumpLoyalty(state, 'cesar', 2);
+    return { ok: true, text: 'Costa\'s books name Ruiz\'s source. She notices the books moved.', kind: 'warn' };
+  }
+  if (effect === 'informants_talk') {
+    bumpCase(state, 14);
+    bumpThreat(state, 'costa', -8);
+    state.reputation = Math.max(0, (state.reputation || 0) - 2);
+    bumpHeat(state, 'ps_barrio', 8);
+    return { ok: true, text: 'Both informants talk. The case file and Costa Negra get louder.', kind: 'danger' };
+  }
+  if (effect === 'hurricane_secure') {
+    if (state.dirtyCash < 300) return { ok: false, reason: 'Need $300 Dirty Cash.' };
+    state.dirtyCash -= 300;
+    bumpHeat(state, 'ps_docks', -10);
+    bumpLoyalty(state, 'cesar', 4);
+    state.reputation = (state.reputation || 0) + 1;
+    for (const lot of Object.values(state.lots || {})) {
+      if (lot.zoneId === 'ps_docks') lot.stormTimer = 0;
+    }
+    return { ok: true, text: 'The docks are boarded. César\'s crews stay dry.' };
+  }
+  if (effect === 'hurricane_ride') {
+    bumpHeat(state, 'ps_docks', 16);
+    bumpHeat(state, 'ps_beach', 8);
+    bumpLoyalty(state, 'cesar', -5);
+    state.reputation = Math.max(0, (state.reputation || 0) - 1);
+    const loss = Math.floor((state.dirtyCash || 0) * 0.08);
+    state.dirtyCash = Math.max(0, state.dirtyCash - loss);
+    for (const lot of Object.values(state.lots || {})) {
+      if (lot.zoneId === 'ps_docks' && lot.phase === 'operating') lot.stormTimer = 25;
+    }
+    return { ok: true, text: 'The hurricane takes a cut of the docks and the street cash.', kind: 'danger' };
+  }
+  if (effect === 'election_donate') {
+    if (state.cleanCash < 350) return { ok: false, reason: 'Need $350 Clean Cash.' };
+    state.cleanCash -= 350;
+    bumpCase(state, -12);
+    state.reputation = (state.reputation || 0) + 1;
+    for (const zone of Object.values(state.zones || {})) {
+      if (String(zone.id).startsWith('ps_')) zone.heat = Math.max(0, (Number(zone.heat) || 0) - 8);
+    }
+    return { ok: true, text: 'The mayor\'s dinner buys a quieter month. Ruiz hates the optics.' };
+  }
+  if (effect === 'election_dark') {
+    bumpCase(state, 8);
+    state.reputation = Math.max(0, (state.reputation || 0) - 4);
+    bumpThreat(state, 'costa', -10);
+    bumpThreat(state, 'lobos', -10);
+    bumpLoyalty(state, 'valeria', -4);
+    for (const zone of Object.values(state.zones || {})) {
+      if (!String(zone.id).startsWith('ps_')) continue;
+      zone.heat = Math.max(0, (Number(zone.heat) || 0) - 6);
+      zone.hiddenUntil = (state.elapsedSeconds || 0) + 30;
+    }
+    return { ok: true, text: 'The city goes dark. Cooler streets, a thicker file, and both crews move up their clocks.', kind: 'warn' };
   }
   return { ok: true };
 }

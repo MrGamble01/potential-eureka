@@ -228,6 +228,299 @@ const ok = (cond, name) => {
   ok(!broke && opening.state.totalDirtyEarned > 1200, 'the opening still earns and stays solvent');
   ok(opening.state.day > 20, 'fifteen minutes is a long stretch of days');
 
+  const { EVENTS } = await import(path.join(root, 'data/events.js'));
+  const { crewMods } = await import(path.join(root, 'systems/lieutenants.js'));
+
+  const script = new CartelSimulation();
+  const openingMission = script.getCurrentMission();
+  const scriptView = script.gameplayView();
+  ok(openingMission && openingMission.id === 'm1_first_export' && openingMission.act === 1, 'act 1 starts on the river');
+  ok(openingMission.beat && openingMission.beat.includes('César'), 'the first beat is César at the pier');
+  ok(scriptView.campaign.dea.agent.includes('Ruiz') && scriptView.campaign.dea.case === 0, 'Ruiz starts a case file');
+  ok(scriptView.campaign.cast.some((person) => person.name.includes('Garza')), 'Don Emilio is on the cast');
+  ok(scriptView.campaign.cast.some((person) => person.name.includes('Reina')), 'Reina Solano is on the cast');
+  ok(scriptView.campaign.chapters.filter((chapter) => chapter.act === 2).length >= 4, 'act 2 is rural expansion');
+  ok(scriptView.campaign.chapters.filter((chapter) => chapter.act === 3).length >= 5, 'act 3 takes the city neighborhood by neighborhood');
+  ok(scriptView.campaign.fails.some((fail) => fail.id === 'indictment' && fail.limit === 100), 'the indictment is a fail state');
+
+  const posted = new CartelSimulation();
+  posted.state.cleanCash = 8000;
+  posted.state.dirtyCash = 8000;
+  posted.state.mapOpen = true;
+  posted.state.tutorialDone = true;
+  posted.state.reputation = 30;
+  posted.state.completedMissions.push('m1_first_export', 'm2_first_front');
+  ok(posted.hireLieutenant('nia').ok, 'nia hires');
+  ok(!posted.assignLieutenant('nia', 'river_delta').ok, 'nia cannot take a locked zone');
+  ok(posted.unlockZone('river_delta').ok, 'the delta opens for a posting');
+  ok(posted.assignLieutenant('nia', 'river_delta').ok, 'nia takes the delta');
+  const niaCard = posted.gameplayView().lieutenants.find((row) => row.id === 'nia');
+  ok(niaCard.zoneId === 'river_delta' && niaCard.betrayalRisk < 50, 'hooks show her zone and a calm betrayal risk');
+  ok(crewMods(posted.state, 'river_delta').launderMult > 1, 'a lieutenant posted to a zone changes that zone');
+
+  const law = new CartelSimulation();
+  law.state.dea.case = 30;
+  law.state.cleanCash = 10;
+  law.state.dirtyCash = 0;
+  const inspection = EVENTS.find((card) => card.id === 'inspection');
+  law.state.event = {
+    id: inspection.id,
+    title: inspection.title,
+    body: inspection.body,
+    speaker: inspection.speaker,
+    choices: inspection.choices.map((choice) => ({ label: choice.label, effect: choice.effect }))
+  };
+  ok(!law.resolveEvent(0).ok, 'paying Ruiz is a real cost');
+  ok(law.resolveEvent(1).ok && law.state.dea.case > 30, 'refusing the inspection builds the case');
+  const turf = EVENTS.find((card) => card.id === 'turf_war');
+  law.state.event = {
+    id: turf.id,
+    title: turf.title,
+    body: turf.body,
+    speaker: turf.speaker,
+    choices: turf.choices.map((choice) => ({ label: choice.label, effect: choice.effect }))
+  };
+  ok(law.resolveEvent(2).ok, 'ignoring the turf war is a choice');
+  ok(law.state.rivals.costa.threat < 40 && law.state.rivals.lobos.threat < 48, 'ignoring the turf war brings both crews in faster');
+  const stormCard = EVENTS.find((card) => card.id === 'hurricane');
+  const docksHeat = law.state.zones.ps_docks.heat;
+  law.state.event = {
+    id: stormCard.id,
+    title: stormCard.title,
+    body: stormCard.body,
+    speaker: stormCard.speaker,
+    choices: stormCard.choices.map((choice) => ({ label: choice.label, effect: choice.effect }))
+  };
+  ok(law.resolveEvent(1).ok && law.state.zones.ps_docks.heat > docksHeat, 'riding out the hurricane hits the docks');
+  ok(law.gameplayView().card === null, 'a resolved card leaves the hook empty');
+
+  const turncoat = new CartelSimulation();
+  turncoat.state.started = true;
+  turncoat.state.eventCooldown = 999;
+  turncoat.state.cleanCash = 5000;
+  ok(turncoat.hireLieutenant('mateo').ok, 'mateo hires for the loyalty clock');
+  turncoat.state.lieutenants.mateo.loyalty = 10;
+  ok(turncoat.gameplayView().lieutenants.find((row) => row.id === 'mateo').betrayalRisk === 100, 'mateo at the floor is a certain betrayal');
+  turncoat.step(10);
+  ok(turncoat.state.lieutenants.mateo.betrayed && !turncoat.state.lieutenants.mateo.hired, 'mateo betrays on the day he hits the floor');
+  ok(turncoat.state.campaignStatus !== 'failed', 'one betrayal leaves César running the campaign');
+  turncoat.state.lieutenants.cesar.hired = false;
+  turncoat.state.lieutenants.cesar.betrayed = true;
+  turncoat.step(10);
+  ok(turncoat.state.campaignStatus === 'failed' && /lieutenant/i.test(turncoat.state.failReason), 'the last lieutenant walking fails the campaign');
+  const stillRunning = turncoat.state.elapsedSeconds;
+  turncoat.step(1);
+  ok(turncoat.state.elapsedSeconds > stillRunning, 'a failed campaign keeps the clock running');
+
+  const indictment = new CartelSimulation();
+  indictment.state.started = true;
+  indictment.state.eventCooldown = 999;
+  indictment.state.dea.case = 100;
+  indictment.step(10);
+  ok(indictment.state.campaignStatus === 'failed' && indictment.state.failReason.includes('Ruiz'), 'Ruiz files the indictment at a full case file');
+
+  const quiet = new CartelSimulation();
+  quiet.state.started = true;
+  quiet.state.eventCooldown = 999;
+  quiet.state.elapsedSeconds = 80;
+  quiet.state.day = 9;
+  quiet.state.dirtyCash = 5;
+  quiet.state.cleanCash = 5;
+  for (const slot of Object.values(quiet.state.slots)) slot.buildingId = null;
+  for (const lot of Object.values(quiet.state.lots)) {
+    lot.owned = false;
+    lot.phase = 'wild';
+    lot.buildingId = null;
+    lot.role = null;
+  }
+  quiet.step(10);
+  ok(quiet.state.campaignStatus === 'failed' && quiet.state.failId === 'broke', 'an empty operation with no production fails');
+
+  const sandLaw = new CartelSimulation();
+  sandLaw.startSandbox('casual');
+  sandLaw.state.dea.case = 100;
+  sandLaw.state.eventCooldown = 999;
+  sandLaw.step(10);
+  ok(sandLaw.state.campaignStatus !== 'failed', 'sandbox does not file the indictment');
+
+  function clearCard(sim) {
+    const card = sim.state.event;
+    if (!card) return;
+    const prefer = ['inspection_pay', 'witness_pay', 'election_donate', 'hurricane_secure', 'turf_costa', 'books_buy', 'army_pay', 'checkpoint_pay', 'storm_hide', 'widow_pay', 'fiesta_pay', 'informant_buy', 'sol_rumor', 'surge_on'];
+    for (const effect of prefer) {
+      const index = card.choices.findIndex((choice) => choice.effect === effect);
+      if (index >= 0 && sim.resolveEvent(index).ok) return;
+    }
+    for (let i = 0; i < card.choices.length; i += 1) {
+      if (sim.resolveEvent(i).ok) return;
+    }
+    sim.state.event = null;
+    sim.state.eventCooldown = 12;
+  }
+
+  function tend(sim) {
+    clearCard(sim);
+    const valleyHeat = sim.state.regions.rio_plata.heat;
+    if (valleyHeat >= 55 && (sim.state.cleanCash >= 160 || sim.state.dirtyCash >= 200)) sim.bribeRegionAuthorities('rio_plata');
+    else if (valleyHeat >= 70) sim.hideFromPatrol('rio_plata');
+    for (const row of Object.values(sim.state.lieutenants)) {
+      if (row.hired && !row.betrayed && row.loyalty < 55 && sim.state.cleanCash >= 500) sim.payLieutenantBonus(row.id);
+    }
+    const barrio = sim.state.zones.ps_barrio;
+    if (barrio && barrio.unlocked && barrio.heat >= 30) sim.hideFromPatrol('ps_barrio');
+  }
+
+  function stocked(sim, goodId) {
+    for (const slot of Object.values(sim.state.slots)) {
+      if (!slot.buildingId) continue;
+      const have = (slot.outputBuffer[goodId] || 0) + (slot.inputBuffer[goodId] || 0);
+      if (have >= 1) return slot.slotId;
+    }
+    return null;
+  }
+
+  function boatLoad(sim) {
+    for (const goodId of ['cured_pack', 'raw_herb', 'coffee_cherry']) {
+      const fromId = stocked(sim, goodId);
+      if (fromId) return { fromId, goodId };
+    }
+    return null;
+  }
+
+  function convertMarket(sim, lotId, role) {
+    const lot = sim.state.lots[lotId];
+    if (!lot || lot.owned) return;
+    sim.buyAndConvert(lotId, role);
+  }
+
+  function pursue(sim) {
+    const mission = sim.getCurrentMission();
+    if (!mission) return;
+    if (!sim.state.slots.slot_rp_town1.buildingId && (mission.id === 'm2_first_front' || sim.state.dirtyCash >= 1000)) {
+      sim.buildOnSlot('slot_rp_town1', 'taxi_co');
+    }
+    if (mission.id === 'm1_heat') {
+      const valley = sim.state.regions.rio_plata;
+      const hot = valley.heat >= 40 || valley.patrol || sim.state.heatIntro;
+      if (hot && (sim.state.cleanCash >= 160 || sim.state.dirtyCash >= 200)) sim.bribeRegionAuthorities('rio_plata');
+      else if (hot) sim.hideFromPatrol('rio_plata');
+      return;
+    }
+    if (mission.id === 'm2_open_delta') {
+      sim.unlockZone('river_delta');
+      return;
+    }
+    if (mission.id === 'm2_delta_work') {
+      convertMarket(sim, 'lot_rd_mill', 'warehouse');
+      return;
+    }
+    if (mission.id === 'm2_second_country') {
+      sim.unlockZone('jungle_alta');
+      return;
+    }
+    if (mission.id === 'm2_second_lieutenant') {
+      if (!sim.state.lieutenants.nia.hired) sim.hireLieutenant('nia');
+      else sim.assignLieutenant('nia', 'river_delta');
+      return;
+    }
+    if (mission.id === 'm2_boat_run') {
+      if ((sim.state.shipments || []).some((shipment) => shipment.vehicleId === 'boat')) return;
+      const load = boatLoad(sim);
+      if (load) sim.planRoute({ fromId: load.fromId, vehicleId: 'boat', goodId: load.goodId, qty: 4 });
+      return;
+    }
+    if (mission.id === 'm3_barrio') {
+      if (sim.unlockZone('ps_barrio').ok || sim.state.zones.ps_barrio.unlocked) convertMarket(sim, 'lot_ba_laundry', 'launder');
+      return;
+    }
+    if (mission.id === 'm3_docks') {
+      if (sim.unlockZone('ps_docks').ok || sim.state.zones.ps_docks.unlocked) convertMarket(sim, 'lot_dk_garage', 'distribution');
+      return;
+    }
+    if (mission.id === 'm3_downtown') {
+      if (sim.unlockZone('ps_downtown').ok || sim.state.zones.ps_downtown.unlocked) convertMarket(sim, 'lot_dt_cars', 'launder');
+      return;
+    }
+    if (mission.id === 'm3_beach') {
+      if (sim.unlockZone('ps_beach').ok || sim.state.zones.ps_beach.unlocked) convertMarket(sim, 'lot_bh_motel', 'safehouse');
+      return;
+    }
+    if (mission.id === 'm3_hold_barrio') {
+      if (sim.zoneControl('ps_barrio') >= 40) return;
+      if (sim.state.zones.ps_barrio.heat > 16) sim.hideFromPatrol('ps_barrio');
+      if (!sim.state.lots.lot_ba_pawn.owned) {
+        convertMarket(sim, 'lot_ba_pawn', 'stash');
+        return;
+      }
+      if (!sim.state.lots.lot_ba_diner.owned) {
+        if (sim.state.lots.lot_ba_diner.access === 'locked') sim.negotiate('lot_ba_diner');
+        else convertMarket(sim, 'lot_ba_diner', 'launder');
+        return;
+      }
+      if (!sim.state.lots.lot_ba_apts.owned) {
+        if (sim.state.lots.lot_ba_apts.access === 'locked') sim.negotiate('lot_ba_apts');
+        else convertMarket(sim, 'lot_ba_apts', 'safehouse');
+      }
+      return;
+    }
+    if (mission.id === 'm3_hills') {
+      if (sim.unlockZone('ps_hills').ok || sim.state.zones.ps_hills.unlocked) convertMarket(sim, 'lot_hi_motel', 'safehouse');
+    }
+  }
+
+  const player = new CartelSimulation();
+  player.state.started = true;
+  player.state.routeLuck = 0.55;
+  player.state.eventCooldown = 14;
+  let stuckOn = null;
+  let stuckFor = 0;
+  while (player.getCurrentMission() && player.state.elapsedSeconds < 2600 && player.state.campaignStatus !== 'failed') {
+    const currentId = player.getCurrentMission().id;
+    if (currentId === stuckOn) stuckFor += 1;
+    else {
+      stuckOn = currentId;
+      stuckFor = 0;
+    }
+    tend(player);
+    pursue(player);
+    player.step(2);
+  }
+  const finishedMission = player.getCurrentMission();
+  if (finishedMission || player.state.campaignStatus === 'failed' || player.state.elapsedSeconds > 2400) {
+    console.log('BOT', finishedMission && finishedMission.id, 'stuckSteps', stuckFor, 't', Math.round(player.state.elapsedSeconds), 'clean', Math.round(player.state.cleanCash), 'dirty', Math.round(player.state.dirtyCash), 'rep', player.state.reputation, 'status', player.state.campaignStatus, player.state.failReason || '', 'done', player.state.completedMissions.join(','));
+  }
+  ok(!finishedMission && player.state.completedMissions.includes('m3_city'), 'the bot finishes all three acts');
+  ok(player.state.act >= 3 && player.state.campaignStatus === 'complete', 'the campaign completes in act 3');
+  ok(player.state.campaignStatus !== 'failed', 'the playthrough never fails');
+  ok(player.state.elapsedSeconds > 60 && player.state.elapsedSeconds <= 2400, `the campaign finishes in a sensible time (${Math.round(player.state.elapsedSeconds)}s)`);
+  ok(player.state.boatRuns >= 1, 'act 2 landed a boat');
+  const cityChapters = player.gameplayView().campaign.chapters.filter((chapter) => chapter.act === 3);
+  ok(cityChapters.every((chapter) => chapter.done), 'every Puerto Sol chapter is done');
+
+  const hour = new CartelSimulation();
+  hour.startSandbox('standard');
+  hour.state.routeLuck = 0.55;
+  hour.state.eventCooldown = 18;
+  const hourDirty = hour.state.totalDirtyEarned;
+  const hourExports = hour.state.totalExportedUnits;
+  let hourHeat = false;
+  for (let tick = 0; tick < 720; tick += 1) {
+    tend(hour);
+    const packs = hour.state.slots.slot_rp_wh1.outputBuffer.cured_pack || 0;
+    if (packs >= 2 && !(hour.state.shipments || []).length) {
+      hour.planRoute({ fromId: 'slot_rp_wh1', vehicleId: 'truck', goodId: 'cured_pack', qty: 2 });
+    }
+    hour.step(5);
+    if (hour.state.regions.rio_plata.heat >= 40 || hour.state.heatHandled > 0) hourHeat = true;
+  }
+  const hourAlive = Object.values(hour.state.slots).some((slot) => slot.buildingId && !slot.raidLocked);
+  ok(hour.state.elapsedSeconds >= 3600 && hour.state.day > 200, `sandbox runs a full hour of days (day ${hour.state.day})`);
+  ok(hour.state.totalDirtyEarned > hourDirty && hour.state.totalExportedUnits > hourExports, 'the hour keeps producing and paying');
+  ok(hourHeat && hour.state.eventsSeen.length >= 3, 'heat and event cards keep showing up');
+  ok(hour.state.routesCompleted > 0, 'the hour still moves shipments');
+  ok(hourAlive && hour.state.dirtyCash >= 0 && hour.state.cleanCash >= 0, 'the hour stays solvent with buildings running');
+  ok(hour.state.campaignStatus !== 'failed', 'sandbox stays out of the fail states');
+
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);
 })().catch((err) => {

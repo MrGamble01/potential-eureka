@@ -1,7 +1,8 @@
 // UI hooks for the scene and HUD agents.
 //
-// Read sim.gameplayView(). Do not reimplement prices, fits, or gates.
-// Call the methods. Every one returns { ok, reason }.
+// Read sim.gameplayView(). Do not reimplement prices, fits, gates,
+// betrayal, or mission progress. Call the methods. Every mutating
+// method returns { ok, reason }.
 //
 //   sim.unlockZone(zoneId)
 //   sim.buyAndConvert(lotId, role)
@@ -14,10 +15,40 @@
 //   sim.planRoute({ fromId, vehicleId, goodId, qty })
 //   sim.hideFromPatrol(regionOrZoneId)
 //   sim.bribeRegionAuthorities(regionId)
+//   sim.hireLieutenant(ltId)
+//   sim.assignLieutenant(ltId, zoneOrRegionId)
+//   sim.payLieutenantBonus(ltId)
+//   sim.resolveEvent(choiceIndex)
 //   sim.startSandbox(difficultyId)   // casual | standard | brutal
 //   sim.setDifficulty(difficultyId)  // sandbox only
 //   sim.recommendedSlot()
 //   sim.observeFrame(dt)
+//
+// gameplayView() fields the scene can render without reading sim.state:
+//
+//   campaign.status       'playing' | 'failed' | 'complete'
+//   campaign.failReason   sentence, or null
+//   campaign.failId       indictment | valley_seized | betrayed | broke
+//   campaign.act / actInfo
+//   campaign.mission      current mission, with speaker id, beat, rewards
+//   campaign.progress     { current, target, pct, done, progressText }
+//   campaign.beat         the line to show under the objective
+//   campaign.speaker      { id, name, title, side } or null
+//   campaign.dea          { agent, case }  case is 0–100; 100 is the indictment
+//   campaign.cast         named people (crew, Ruiz, Garza, Reina)
+//   campaign.fails        the four fail states, with meter/limit when they have one
+//   campaign.chapters     act 1 valley, act 2 rural expansion, act 3 Puerto Sol
+//   card                  open event, or null. choices[].effect is for the sim.
+//                         Pass the choice index to resolveEvent. speaker is CAST.
+//   lieutenants[]         hired, loyalty, zoneId, regionId, traits, betrayed,
+//                         betrayalRisk (0–100; 100 walks on the next day)
+//   routes.boats          successful boat runs (the Act II objective)
+//
+// Failing the campaign sets status and does not stop the clock.
+// Sandbox never fails. assignLieutenant accepts a zone id or a region id.
+//
+// presentEvent(audio, juice, evt, sim) and attachFeel(sim, audio, getJuice, getFrame)
+// stay the map's sound and juice hooks. They are not campaign state.
 //
 // Lots with slotId are the plots already on the map. Lots without a
 // slotId are rural prizes and Puerto Sol properties waiting for a pin.
@@ -29,15 +60,19 @@ import { BUILDINGS } from '../data/buildings.js';
 import { DIFFICULTIES, ZONES, zoneById } from '../data/zones.js';
 import { VEHICLE_LIST } from '../data/routes.js';
 import { RIVALS } from '../data/rivals.js';
-import { BUILD_SLOTS, LIEUTENANTS } from '../data/missions.js';
+import { ACTS, BUILD_SLOTS, CAST, FAIL_STATES, LIEUTENANTS } from '../data/missions.js';
 import { LOT_POS } from '../map-layout.js';
 import { RESEARCH } from '../data/research.js';
 import { PROPERTY_TYPES, ROLES, buildingFits, lotDef } from '../data/lots.js';
 import { conversionMods, quote } from './lots.js';
 import { unlockBlockers } from './zones.js';
 import { chainReport } from './chains.js';
-import { loyaltyScale } from './lieutenants.js';
+import { betrayalRisk, loyaltyScale } from './lieutenants.js';
 import { zoneAnchor, crossedControl } from '../audio/zones.js';
+
+function castMember(id) {
+  return CAST.find((person) => person.id === id) || null;
+}
 
 function lotActions(state, def, lot) {
   const actions = [];
@@ -129,7 +164,8 @@ export function gameplayView(sim) {
       vehicles: VEHICLE_LIST,
       shipments: state.shipments || [],
       completed: state.routesCompleted || 0,
-      lost: state.routesLost || 0
+      lost: state.routesLost || 0,
+      boats: state.boatRuns || 0
     },
     rivals: Object.values(RIVALS).map((rival) => ({
       id: rival.id,
@@ -142,12 +178,17 @@ export function gameplayView(sim) {
       return {
         id: lt.id,
         name: lt.name,
+        role: lt.role,
         hired: !!(row && row.hired),
-        loyalty: row ? row.loyalty : lt.loyalty,
+        betrayed: !!(row && row.betrayed),
+        loyalty: row ? Math.round(row.loyalty) : lt.loyalty,
         scale: row && row.hired ? loyaltyScale(row.loyalty) : 0,
+        betrayalRisk: betrayalRisk(lt, row),
         regionId: row ? row.regionId : null,
+        zoneId: row ? (row.zoneId || row.regionId || null) : null,
         traits: lt.traits || [],
-        perk: lt.perkName
+        perk: lt.perkName,
+        hireCost: lt.hireCostClean
       };
     }),
     research: RESEARCH.map((node) => ({
@@ -159,11 +200,8 @@ export function gameplayView(sim) {
       requires: node.requires,
       desc: node.desc
     })),
-    campaign: {
-      mission: sim.getCurrentMission ? sim.getCurrentMission() : null,
-      progress: sim.getCurrentMission ? sim.getMissionProgress(sim.getCurrentMission()) : null,
-      chapters: chapters(state)
-    },
+    campaign: campaignSnapshot(sim, state),
+    card: openCard(state),
     heatHandled: state.heatHandled || 0
   };
 }
@@ -255,15 +293,73 @@ export function attachFeel(sim, audio, getJuice, getFrame) {
   };
 }
 
+function openCard(state) {
+  const card = state.event;
+  if (!card) return null;
+  return {
+    id: card.id,
+    title: card.title,
+    body: card.body,
+    speaker: castMember(card.speaker),
+    choices: (card.choices || []).map((choice) => ({ label: choice.label, effect: choice.effect }))
+  };
+}
+
+function campaignSnapshot(sim, state) {
+  const mission = sim.getCurrentMission ? sim.getCurrentMission() : null;
+  const rows = Object.values(state.lieutenants || {});
+  const betrayed = rows.filter((row) => row.betrayed).length;
+  return {
+    status: state.campaignStatus || 'playing',
+    failReason: state.failReason || null,
+    failId: state.failId || null,
+    act: state.act,
+    actInfo: ACTS[state.act] || null,
+    mission,
+    progress: mission && sim.getMissionProgress ? sim.getMissionProgress(mission) : null,
+    beat: mission ? mission.beat : null,
+    speaker: mission ? castMember(mission.speaker) : null,
+    dea: {
+      agent: state.dea && state.dea.agent ? state.dea.agent : 'Helen Ruiz',
+      case: state.dea ? Math.max(0, Math.min(100, Math.round(state.dea.case || 0))) : 0
+    },
+    cast: CAST,
+    fails: FAIL_STATES.map((fail) => ({
+      id: fail.id,
+      title: fail.title,
+      text: fail.text,
+      speaker: castMember(fail.speaker),
+      active: state.failId === fail.id,
+      meter: fail.id === 'indictment'
+        ? (state.dea ? state.dea.case : 0)
+        : fail.id === 'valley_seized'
+          ? (state.valleySeizures || 0)
+          : fail.id === 'betrayed'
+            ? betrayed
+            : null,
+      limit: fail.id === 'indictment' ? 100 : fail.id === 'valley_seized' ? 5 : fail.id === 'betrayed' ? 1 : null
+    })),
+    chapters: chapters(state)
+  };
+}
+
 function chapters(state) {
-  const rural = ['jungle_alta', 'river_delta', 'mesa_strip'].filter((id) => state.zones[id] && state.zones[id].unlocked).length;
-  const cityLots = Object.values(state.lots || {}).filter((lot) => lot.owned && zoneById(lot.zoneId) && zoneById(lot.zoneId).kind === 'city').length;
-  const bestControl = Math.max(0, ...Object.values(state.zones || {}).map((zone) => zone.control || 0));
+  const done = new Set(state.completedMissions || []);
   return [
-    { id: 'valley', act: 1, title: 'Run farm, barn, warehouse, pier', done: state.totalExportedUnits >= 4 },
-    { id: 'wash', act: 1, title: 'Launder once and face the heat', done: (state.heatHandled || 0) >= 1 && state.totalCleanEarned >= 80 },
-    { id: 'rural', act: 2, title: 'Unlock another rural zone', done: rural >= 1 },
-    { id: 'city', act: 2, title: 'Buy a Puerto Sol property', done: cityLots >= 1 },
-    { id: 'hold', act: 3, title: 'Hold a neighborhood', done: bestControl >= 45 && cityLots >= 2 }
+    { id: 'export', act: 1, title: 'First river export', done: done.has('m1_first_export') },
+    { id: 'heat', act: 1, title: 'Face Ruiz and the heat', done: done.has('m1_heat') },
+    { id: 'front', act: 1, title: 'Open a legal front', done: done.has('m2_first_front') },
+    { id: 'delta', act: 2, title: 'Open Boca del Río', done: done.has('m2_open_delta') },
+    { id: 'work', act: 2, title: 'A rural site outside the valley', done: done.has('m2_delta_work') },
+    { id: 'country', act: 2, title: 'A second stretch of country', done: done.has('m2_second_country') },
+    { id: 'crew', act: 2, title: 'A lieutenant on the new ground', done: done.has('m2_second_lieutenant') },
+    { id: 'boat', act: 2, title: 'Land a boat', done: done.has('m2_boat_run') },
+    { id: 'barrio', act: 3, title: 'Take Barrio Sol', done: done.has('m3_barrio') },
+    { id: 'docks', act: 3, title: 'Take the Docks', done: done.has('m3_docks') },
+    { id: 'downtown', act: 3, title: 'Take Downtown', done: done.has('m3_downtown') },
+    { id: 'beach', act: 3, title: 'Take the Beach', done: done.has('m3_beach') },
+    { id: 'hold', act: 3, title: 'Hold Barrio Sol', done: done.has('m3_hold_barrio') },
+    { id: 'hills', act: 3, title: 'Take the Hills', done: done.has('m3_hills') },
+    { id: 'city', act: 3, title: 'Puerto Sol, neighborhood by neighborhood', done: done.has('m3_city') }
   ];
 }

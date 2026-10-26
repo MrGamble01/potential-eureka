@@ -1,5 +1,6 @@
-// Grow Op: San Verde '84 — Lieutenants, Regions, Rival Cartel & Act/Mission Progression
-// Grounded in Cartel Tycoon's capo/lieutenant succession, territory contest, and regional heat.
+// Grow Op: San Verde '84 — Lieutenants, the drawn regions, and the campaign.
+// Act I is the valley, Act II is the other countryside, Act III is Puerto Sol
+// neighborhood by neighborhood. REGIONS and BUILD_SLOTS stay the drawn map.
 
 export const REGIONS = [
   {
@@ -403,24 +404,62 @@ export const LIEUTENANTS = [
   }
 ];
 
+// People the campaign can put on a card. Lieutenants are also payroll.
+export const CAST = [
+  { id: 'cesar', name: 'César "El Ingeniero" Vega', title: 'Logistics chief', side: 'crew' },
+  { id: 'nia', name: 'Nia "La Contadora" Morales', title: 'Books', side: 'crew' },
+  { id: 'mateo', name: 'Mateo "El Químico" Solís', title: 'Chemist', side: 'crew' },
+  { id: 'valeria', name: 'Comandante Valeria Cruz', title: 'Security', side: 'crew' },
+  { id: 'ruiz', name: 'Special Agent Helen Ruiz', title: 'DEA, Miami field office', side: 'law' },
+  { id: 'garza', name: 'Don Emilio "El Lobo" Garza', title: 'Boss, Los Lobos', side: 'lobos' },
+  { id: 'reina', name: 'Reina Solano', title: 'Boss, Costa Negra', side: 'costa' }
+];
+
+export const FAIL_STATES = [
+  {
+    id: 'indictment',
+    speaker: 'ruiz',
+    title: 'The indictment',
+    text: 'Special Agent Helen Ruiz files the indictment. The case file is full.'
+  },
+  {
+    id: 'valley_seized',
+    speaker: 'cesar',
+    title: 'The valley is gone',
+    text: 'Five seizures in Río Plata. César says the starter chain is finished.'
+  },
+  {
+    id: 'betrayed',
+    speaker: 'nia',
+    title: 'Empty payroll',
+    text: 'Every lieutenant you hired has walked. There is nobody left to run it.'
+  },
+  {
+    id: 'broke',
+    speaker: 'nia',
+    title: 'Nothing growing',
+    text: 'The purses are empty and nothing on the plots is producing.'
+  }
+];
+
 export const ACTS = {
   1: {
     id: 1,
-    badge: 'ACT I — THE VALLEY FOOTPRINT',
-    name: 'Act I: The Valley Footprint',
-    summary: 'Establish your first botanical supply chain in Río Plata Valley and open a laundering front to turn street bills into clean capital.'
+    badge: 'ACT I — THE VALLEY',
+    name: 'Act I: The Valley',
+    summary: 'César runs the Río Plata chain from the farm to the pier. Special Agent Helen Ruiz is already writing your name down. Open a front before the heat does.'
   },
   2: {
     id: 2,
-    badge: 'ACT II — LOGISTICS & LAUNDERING',
-    name: 'Act II: Logistics & Laundering',
-    summary: 'Expand into San Marco District, recruit specialist lieutenants, and scale legal fronts to fund high-purity processing.'
+    badge: 'ACT II — THE COUNTRY',
+    name: 'Act II: Rural Expansion',
+    summary: 'Take Boca del Río, then a second stretch of country. Put a lieutenant on the new ground and land a boat before Reina Solano and Don Emilio Garza decide the rivers are theirs.'
   },
   3: {
     id: 3,
-    badge: 'ACT III — SYNDICATE SOVEREIGNTY',
-    name: 'Act III: Syndicate Sovereignty',
-    summary: 'Seize Sierra Alta Highlands from Los Lobos Syndicate, build a Bush Aerodrome, and cement an untouchable regional empire.'
+    badge: 'ACT III — PUERTO SOL',
+    name: 'Act III: Puerto Sol',
+    summary: 'Take the city neighborhood by neighborhood: Barrio Sol, the Docks, Downtown, the Beach, then the Hills. Hold a block. Do not let Ruiz close the case.'
   }
 };
 
@@ -428,97 +467,206 @@ export const MISSIONS = [
   {
     id: 'm1_first_export',
     act: 1,
+    speaker: 'cesar',
     title: 'First River Export',
-    desc: 'Run your Río Plata supply chain (Plantation → Drying Barn → River Pier) until you accumulate $1,200 in total Dirty Cash.',
+    beat: 'César stands on the embarcadero. "If the river pays, we stay. If it doesn\'t, Ruiz already has the plate number."',
+    desc: 'Run the valley chain — farm, barn, warehouse, pier — until lifetime dirty cash reaches $800.',
+    failHint: 'A dead pier and an empty purse is how the valley ends.',
     rewardClean: 250,
     rewardDirty: 200,
-    targetValue: 1200,
+    targetValue: 800,
     metric: 'totalDirtyEarned'
+  },
+  {
+    id: 'm1_heat',
+    act: 1,
+    speaker: 'ruiz',
+    title: 'Ruiz Writes It Down',
+    beat: 'A sedan with government plates idles on the plaza. Special Agent Helen Ruiz has a notepad, not a warrant. Yet. Bribe the commandante or kill the lights.',
+    desc: 'Handle the valley heat once: pay the authorities, or slip a patrol.',
+    failHint: 'Ignore her and the seizures stack toward an empty valley.',
+    rewardClean: 180,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'heatHandled'
   },
   {
     id: 'm2_first_front',
     act: 1,
+    speaker: 'nia',
     title: 'Open a Legal Front',
-    desc: 'Build a San Verde Taxi Fleet on an open lot (such as Puerto Plata Plaza) and launder $500 in Clean Cash.',
+    beat: 'Nia will not touch the books until a taxi fleet exists. "The city takes clean cash. Street bills are how you get arrested."',
+    desc: 'Build a taxi fleet on an open valley lot and launder lifetime clean cash to $900.',
+    failHint: 'No front means no city, and a broke crew walks.',
     rewardClean: 400,
     rewardDirty: 0,
-    targetValue: 500,
+    targetValue: 900,
     metric: 'totalCleanEarned',
     requireBuilding: 'taxi_co'
   },
   {
-    id: 'm3_expand_san_marco',
+    id: 'm2_open_delta',
     act: 2,
-    title: 'Cross into San Marco',
-    desc: 'Unlock the San Marco District, recruit a second Lieutenant, and operate at least 6 facilities across the map.',
-    rewardClean: 750,
-    rewardDirty: 500,
-    targetValue: 6,
-    metric: 'buildingCount',
-    requireRegion: 'san_marco',
-    requireLieutenants: 2
-  },
-  {
-    id: 'm4_industrial_scale',
-    act: 2,
-    title: 'High-Purity Operations',
-    desc: 'Construct an Extraction Lab or Coffee Packer Mill and launder $3,500 lifetime Clean Cash.',
-    rewardClean: 1200,
-    rewardDirty: 800,
-    targetValue: 3500,
-    metric: 'totalCleanEarned',
-    requireAnyBuilding: ['chem_lab', 'packaging_mill']
-  },
-  {
-    id: 'm5_contest_sierra',
-    act: 3,
-    title: 'Break Los Lobos in Sierra Alta',
-    desc: 'Unlock Sierra Alta Highlands, neutralize Los Lobos Syndicate outposts, and build a Bush Aerodrome.',
-    rewardClean: 2500,
-    rewardDirty: 2000,
+    speaker: 'cesar',
+    title: 'Open Boca del Río',
+    beat: 'César wants the delta. "The valley road is a confession. Boats leave Boca quieter, and Costa Negra already knows the bends."',
+    desc: 'Unlock Boca del Río. It takes clean cash, a name, and the first export behind you.',
+    failHint: 'Stay in the valley and Reina Solano keeps the water.',
+    rewardClean: 200,
+    rewardDirty: 0,
     targetValue: 1,
-    metric: 'aerodromeBuilt',
-    requireRegion: 'sierra_alta',
-    requireRivalCleared: true
+    metric: 'zoneUnlocked',
+    zoneId: 'river_delta'
   },
   {
-    id: 'm6_cartel_sovereign',
-    act: 3,
-    title: 'Sovereign of San Verde',
-    desc: 'Accumulate $15,000 lifetime Clean Cash through banks, clubs, and legal exports to secure permanent regional dominance.',
-    rewardClean: 5000,
-    rewardDirty: 5000,
-    targetValue: 15000,
-    metric: 'totalCleanEarned'
-  },
-  {
-    id: 'm7_rural_zone',
+    id: 'm2_delta_work',
     act: 2,
-    title: 'Another stretch of country',
-    desc: 'Unlock Selva Alta, Boca del Río, or Mesa Grande. Open plots are cheap. Standing farms cost more and come ready.',
-    rewardClean: 900,
-    rewardDirty: 400,
+    speaker: 'mateo',
+    title: 'A Site Outside the Valley',
+    beat: 'Mateo wants dirt that is not the starter farm. "Buy the sawmill or raise a new plot in the delta. I will not cook in a rented barn forever."',
+    desc: 'Own a working operation in a rural zone that is not Río Plata. The delta sawmill converts today. An open plot takes build time.',
+    failHint: 'One valley farm is not an expansion.',
+    rewardClean: 250,
+    rewardDirty: 150,
     targetValue: 1,
+    metric: 'ruralOperations'
+  },
+  {
+    id: 'm2_second_country',
+    act: 2,
+    speaker: 'garza',
+    title: 'A Second Stretch of Country',
+    beat: 'Don Emilio "El Lobo" Garza sends word from Selva Alta. "The highlands are mine until you pay the gate. Bring a second countryside or stay a valley rumor."',
+    desc: 'Unlock a second rural zone beyond the valley. Selva Alta is the cheaper gate. Mesa Grande can wait.',
+    failHint: 'One new river is not the country.',
+    rewardClean: 300,
+    rewardDirty: 0,
+    targetValue: 2,
     metric: 'ruralZones'
   },
   {
-    id: 'm8_buy_city',
+    id: 'm2_second_lieutenant',
     act: 2,
-    title: 'A deed in Puerto Sol',
-    desc: 'Buy a standing city building and convert it, or clear the lot and build to fit.',
-    rewardClean: 1200,
-    rewardDirty: 600,
+    speaker: 'nia',
+    title: 'Someone on the New Ground',
+    beat: 'Nia will take Boca if you put her on the payroll and send her. "César in the valley is one man. One man is how lieutenants start skimming."',
+    desc: 'Hire a second lieutenant and assign them to a zone that is not the valley.',
+    failHint: 'An unpaid, unposted crew is how betrayal starts.',
+    rewardClean: 200,
+    rewardDirty: 0,
     targetValue: 1,
-    metric: 'cityProperties'
+    metric: 'assignedOutside',
+    requireLieutenants: 2
   },
   {
-    id: 'm9_hold_block',
+    id: 'm2_boat_run',
+    act: 2,
+    speaker: 'reina',
+    title: 'Land a Boat',
+    beat: 'Reina Solano hears you have water. "If the boat lands, Costa Negra knows your name. If it sinks, Helen Ruiz does. I prefer the first."',
+    desc: 'Finish one boat run. Load cured packs, or whatever the chain is holding, from a lot you operate.',
+    failHint: 'A lost load feeds Ruiz\'s file.',
+    rewardClean: 400,
+    rewardDirty: 200,
+    targetValue: 1,
+    metric: 'boatRuns'
+  },
+  {
+    id: 'm3_barrio',
     act: 3,
-    title: 'Hold the block',
-    desc: 'Own enough of a Puerto Sol neighborhood to push control to 45%.',
-    rewardClean: 2000,
-    rewardDirty: 1000,
-    targetValue: 45,
-    metric: 'cityControl'
+    speaker: 'reina',
+    title: 'Barrio Sol',
+    beat: 'Reina taps the map at Calle 8. "Puerto Sol starts in the barrio. Buy the laundromat and wash there, or you are a tourist with a boat."',
+    desc: 'Unlock Barrio Sol and own a working property there. The Calle 8 laundromat will take a laundry conversion.',
+    failHint: 'No barrio deed and the city never opens.',
+    rewardClean: 300,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneProperty',
+    zoneId: 'ps_barrio'
+  },
+  {
+    id: 'm3_docks',
+    act: 3,
+    speaker: 'cesar',
+    title: 'The Docks',
+    beat: 'César wants the docks moving valley crates. "A garage or a warehouse, I don\'t care, as long as it distributes. Postcards do not pay the pier."',
+    desc: 'Unlock the docks and run a distribution front there.',
+    failHint: 'Rural crates with nowhere to land just sit and rot.',
+    rewardClean: 350,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneRole',
+    zoneId: 'ps_docks',
+    role: 'distribution'
+  },
+  {
+    id: 'm3_downtown',
+    act: 3,
+    speaker: 'nia',
+    title: 'Downtown',
+    beat: 'Nia will not call it a city until Downtown has your name on a deed. "The car lot washes better than the bank, and the bank asks worse questions."',
+    desc: 'Unlock Downtown and own a working property on that grid.',
+    failHint: 'A city without the grid is still a neighborhood.',
+    rewardClean: 400,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneProperty',
+    zoneId: 'ps_downtown'
+  },
+  {
+    id: 'm3_beach',
+    act: 3,
+    speaker: 'reina',
+    title: 'The Beach',
+    beat: 'The beach is Reina\'s living room. "Take the Sea Breeze motel. Leave Club Marea until you can afford Don Emilio\'s kind of fight and mine."',
+    desc: 'Unlock the beach and own the Sea Breeze motel. The rival nightclub is a different war.',
+    failHint: 'The motel is the deed. The club is how you pick a fight you cannot finish.',
+    rewardClean: 350,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'lotOwned',
+    lotId: 'lot_bh_motel'
+  },
+  {
+    id: 'm3_hold_barrio',
+    act: 3,
+    speaker: 'ruiz',
+    title: 'Hold Barrio Sol',
+    beat: 'Ruiz\'s informant says a neighborhood is yours when the block answers to you. "Forty percent and I have to admit it in the file. Under that, you are a guest."',
+    desc: 'Push Barrio Sol to 40% control. More deeds raise it. Heat and the local crew pull it down.',
+    failHint: 'Lose the block and the indictment writes itself.',
+    rewardClean: 500,
+    rewardDirty: 0,
+    targetValue: 40,
+    metric: 'zoneControl',
+    zoneId: 'ps_barrio'
+  },
+  {
+    id: 'm3_hills',
+    act: 3,
+    speaker: 'garza',
+    title: 'The Hills',
+    beat: 'Don Emilio watches Los Cerros. "The villas are mine to look at. Open the hills and put any deed in your pocket, or stay down in the heat."',
+    desc: 'Unlock the Hills and own a working property there. The market motel is enough. The villa can wait.',
+    failHint: 'Leave the hills and Los Lobos keep the quiet ground.',
+    rewardClean: 400,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneProperty',
+    zoneId: 'ps_hills'
+  },
+  {
+    id: 'm3_city',
+    act: 3,
+    speaker: 'valeria',
+    title: 'Neighborhood by Neighborhood',
+    beat: 'Valeria counts the deeds out loud. Barrio, docks, downtown, beach, hills. "Five. Puerto Sol is no longer a rumor. Ruiz can file whatever she wants."',
+    desc: 'Hold working properties in five Puerto Sol neighborhoods.',
+    failHint: 'A city you do not hold is just a place Ruiz can search.',
+    rewardClean: 1200,
+    rewardDirty: 600,
+    targetValue: 5,
+    metric: 'cityNeighborhoods'
   }
 ];
