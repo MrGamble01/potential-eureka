@@ -1,112 +1,839 @@
-// Ground and lot silhouettes outside the original valley art.
-// Structures stay simple so a later art pass can replace them via drawKeyed.
+// San Verde ground. One continuous landmass is baked into a handful of
+// textures. Zone edges are the polygons in map-layout.js, not rectangles.
+// Lot silhouettes below stay as the fallback when the texture hook is absent.
 
-import { LOT_POS, ZONE_LAYOUT } from './map-layout.js';
+import { BUILD_SLOTS, ROAD_NETWORK } from './data/missions.js';
+import {
+  CITY_AVENUES,
+  CITY_GROUND,
+  CITY_LOOP,
+  COVE,
+  contains,
+  HARBOR_PTS,
+  INLET_PTS,
+  LAND,
+  LOT_POS,
+  MAP_H,
+  MAP_W,
+  MESA,
+  onLand,
+  RIDGE,
+  RIVER_PTS,
+  SCENIC_ROADS,
+  ZONE_LAYOUT
+} from './map-layout.js';
+import { hash, palm } from './art/kit.js';
 
-function box(g, x, y, w, h, fill, alpha) {
-  g.fillStyle(fill, alpha == null ? 1 : alpha);
-  g.fillRect(x, y, w, h);
+const TILE_W = 1600;
+const TILE_H = 1340;
+
+function trace(g, pts) {
+  const n = pts.length;
+  if (n < 3) return;
+  g.beginPath();
+  g.moveTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2);
+  for (let i = 1; i < n; i++) {
+    const c = pts[i];
+    const nxt = pts[(i + 1) % n];
+    g.quadraticCurveTo(c[0], c[1], (c[0] + nxt[0]) / 2, (c[1] + nxt[1]) / 2);
+  }
+  const c0 = pts[0];
+  const n1 = pts[1];
+  g.quadraticCurveTo(c0[0], c0[1], (c0[0] + n1[0]) / 2, (c0[1] + n1[1]) / 2);
+  g.closePath();
 }
 
-function ellipse(g, x, y, w, h, fill, alpha) {
-  g.fillStyle(fill, alpha == null ? 1 : alpha);
-  g.fillEllipse(x, y, w, h);
+function fillShape(g, pts, color) {
+  g.fillStyle = color;
+  trace(g, pts);
+  g.fill();
+}
+
+function ribbon(g, pts, width, color) {
+  if (!pts || pts.length < 2) return;
+  g.save();
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.strokeStyle = color;
+  g.lineWidth = width;
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.stroke();
+  g.restore();
+}
+
+function curveSamples(pts) {
+  const flat = pts[0] && pts[0].x != null ? pts.map((p) => [p.x, p.y]) : pts;
+  if (flat.length < 3) return flat;
+  const out = [];
+  const n = flat.length;
+  const slices = 6;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = flat[Math.max(0, i - 1)];
+    const p1 = flat[i];
+    const p2 = flat[i + 1];
+    const p3 = flat[Math.min(n - 1, i + 2)];
+    for (let s = 0; s < slices; s++) {
+      const t = s / slices;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      out.push([
+        0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+        0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+      ]);
+    }
+  }
+  out.push(flat[n - 1]);
+  return out;
+}
+
+function filletPts(flat, radius) {
+  if (flat.length < 3) return flat;
+  const out = [flat[0]];
+  for (let i = 1; i < flat.length - 1; i++) {
+    const prev = flat[i - 1];
+    const cur = flat[i];
+    const next = flat[i + 1];
+    const d1 = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]) || 1;
+    const d2 = Math.hypot(next[0] - cur[0], next[1] - cur[1]) || 1;
+    const r = Math.min(radius, d1 * 0.45, d2 * 0.45);
+    const ax = cur[0] + ((prev[0] - cur[0]) * r) / d1;
+    const ay = cur[1] + ((prev[1] - cur[1]) * r) / d1;
+    const bx = cur[0] + ((next[0] - cur[0]) * r) / d2;
+    const by = cur[1] + ((next[1] - cur[1]) * r) / d2;
+    out.push([ax, ay]);
+    for (let s = 1; s <= 5; s++) {
+      const t = s / 6;
+      const u = 1 - t;
+      out.push([u * u * ax + 2 * u * t * cur[0] + t * t * bx, u * u * ay + 2 * u * t * cur[1] + t * t * by]);
+    }
+    out.push([bx, by]);
+  }
+  out.push(flat[flat.length - 1]);
+  return out;
+}
+
+function roadLine(g, pts, width) {
+  const src = pts[0] && pts[0].x != null ? pts.map((p) => [p.x, p.y]) : pts;
+  const flat = curveSamples(filletPts(src, width >= 16 ? 96 : 58));
+  ribbon(g, flat, width + 14, '#b7a078');
+  ribbon(g, flat, width, '#3a4148');
+  g.save();
+  g.lineCap = 'butt';
+  g.setLineDash([14, 18]);
+  g.strokeStyle = 'rgba(244,236,210,0.72)';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(flat[0][0], flat[0][1]);
+  for (let i = 1; i < flat.length; i++) g.lineTo(flat[i][0], flat[i][1]);
+  g.stroke();
+  g.restore();
+}
+
+function nearPath(x, y, paths, r) {
+  const r2 = r * r;
+  for (let p = 0; p < paths.length; p++) {
+    const poly = paths[p];
+    for (let i = 0; i < poly.length - 1; i++) {
+      const a = poly[i];
+      const b = poly[i + 1];
+      const ax = a.x != null ? a.x : a[0];
+      const ay = a.y != null ? a.y : a[1];
+      const bx = b.x != null ? b.x : b[0];
+      const by = b.y != null ? b.y : b[1];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len = dx * dx + dy * dy || 1;
+      let t = ((x - ax) * dx + (y - ay) * dy) / len;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const px = ax + dx * t - x;
+      const py = ay + dy * t - y;
+      if (px * px + py * py < r2) return true;
+    }
+  }
+  return false;
+}
+
+function blocked(x, y, pad) {
+  const extra = pad || 0;
+  for (let i = 0; i < BUILD_SLOTS.length; i++) {
+    const s = BUILD_SLOTS[i];
+    const dx = s.x - x;
+    const dy = s.y - y;
+    if (dx * dx + dy * dy < (110 + extra) * (110 + extra)) return true;
+  }
+  const lots = Object.values(LOT_POS);
+  for (let i = 0; i < lots.length; i++) {
+    const dx = lots[i].x - x;
+    const dy = lots[i].y - y;
+    if (dx * dx + dy * dy < (140 + extra) * (140 + extra)) return true;
+  }
+  return false;
+}
+
+function patch(g, x, y, rx, ry, rot, color) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(rot);
+  g.fillStyle = 'rgba(20,16,8,0.2)';
+  g.beginPath();
+  g.ellipse(8, 8, rx, ry, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = color;
+  g.beginPath();
+  g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = 'rgba(36,58,22,0.38)';
+  g.lineWidth = 2;
+  for (let row = -ry + 10; row < ry - 6; row += 12) {
+    g.beginPath();
+    g.moveTo(-rx + 12, row);
+    g.quadraticCurveTo(0, row + (row > 0 ? 5 : -4), rx - 12, row - 1);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function house(g, x, y, seed, scale) {
+  const s = scale || 1;
+  const tall = scale > 1.25 || (hash(seed, 3) > 0.78 && y < 780 && x > 3900);
+  const w = (26 + hash(seed, 1) * 24) * s;
+  const h = (18 + hash(seed, 2) * (tall ? 56 : 28)) * s;
+  const faces = ['#f4e2c6', '#f7c9d4', '#e7f4f2', '#f7e7c4', '#e7d4f2', '#efe6dc'];
+  const roofs = ['#c25038', '#8a3224', '#3d5566', '#6b4428', '#2a3440', '#c47a3a'];
+  const face = faces[Math.floor(hash(seed, 4) * faces.length) % faces.length];
+  const roof = roofs[Math.floor(hash(seed, 5) * roofs.length) % roofs.length];
+  g.fillStyle = 'rgba(20,16,8,0.26)';
+  g.beginPath();
+  g.ellipse(x + w * 0.5, y + 7 * s, w * 0.72, 9 * s, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#b89a78';
+  g.fillRect(x + w - 5 * s, y - h + 4 * s, 7 * s, h - 4 * s);
+  g.fillStyle = face;
+  g.fillRect(x, y - h, w, h);
+  g.fillStyle = roof;
+  if (tall) {
+    g.fillRect(x - 2, y - h - 6 * s, w + 8, 7 * s);
+  } else {
+    g.beginPath();
+    g.moveTo(x - 3, y - h + 3);
+    g.lineTo(x + w * 0.5, y - h - 12 * s);
+    g.lineTo(x + w + 4, y - h + 3);
+    g.closePath();
+    g.fill();
+  }
+  const rows = Math.max(1, Math.floor((h - 8) / (11 * s)));
+  for (let r = 0; r < rows; r++) {
+    g.fillStyle = hash(seed + r, 7) > 0.58 ? '#ffd27a' : '#8ec4d4';
+    g.fillRect(x + 4 * s, y - 9 * s - r * 11 * s, 5 * s, 6 * s);
+    if (w > 32 * s) g.fillRect(x + w * 0.58, y - 9 * s - r * 11 * s, 5 * s, 6 * s);
+  }
+  g.fillStyle = '#4e3018';
+  g.fillRect(x + w * 0.38, y - 11 * s, 7 * s, 11 * s);
+}
+
+function canopy(g, x, y, seed) {
+  const big = hash(seed, 9) > 0.7;
+  const rx = (big ? 54 : 24) + hash(seed, 1) * (big ? 46 : 26);
+  const ry = (big ? 24 : 12) + hash(seed, 2) * (big ? 18 : 12);
+  g.fillStyle = 'rgba(10,18,8,0.34)';
+  g.beginPath();
+  g.ellipse(x + 8, y + 12, rx * 0.92, ry * 0.62, 0, 0, Math.PI * 2);
+  g.fill();
+  const greens = ['#14381e', '#1d4a28', '#2f6b34', '#3d7a3e', '#16321c', '#4e8a42'];
+  const blobs = big ? 5 : 3;
+  for (let i = 0; i < blobs; i++) {
+    g.fillStyle = greens[Math.floor(hash(seed, 3 + i) * greens.length) % greens.length];
+    g.beginPath();
+    g.ellipse(
+      x + (hash(seed, 10 + i) - 0.5) * rx,
+      y - i * 4,
+      rx * (0.5 + hash(seed, 20 + i) * 0.38),
+      ry * (0.7 + hash(seed, 30 + i) * 0.35),
+      hash(seed, 8 + i),
+      0,
+      Math.PI * 2
+    );
+    g.fill();
+  }
+  g.fillStyle = 'rgba(190,214,126,0.38)';
+  g.beginPath();
+  g.ellipse(x - rx * 0.18, y - ry * 0.4, rx * 0.26, ry * 0.2, 0, 0, Math.PI * 2);
+  g.fill();
+}
+
+function rock(g, x, y, s) {
+  g.fillStyle = 'rgba(20,16,8,0.25)';
+  g.beginPath();
+  g.ellipse(x + 4, y + 4, 16 * s, 8 * s, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#6e675c';
+  g.beginPath();
+  g.ellipse(x, y, 16 * s, 9 * s, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#b1a898';
+  g.beginPath();
+  g.ellipse(x - 4 * s, y - 2 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
+  g.fill();
+}
+
+function coastEdges() {
+  const edges = [];
+  for (let i = 0; i < LAND.length; i++) {
+    const a = LAND[i];
+    const b = LAND[(i + 1) % LAND.length];
+    if (a[1] < 40 && b[1] < 40) continue;
+    if (a[1] > 2640 && b[1] > 2640) continue;
+    if (a[0] < 40 && b[0] < 40) continue;
+    const mx = (a[0] + b[0]) / 2;
+    if (mx < 4300) continue;
+    edges.push([a, b]);
+  }
+  return edges;
+}
+
+function paintMottle(g) {
+  for (let y = 24; y < MAP_H; y += 44) {
+    for (let x = 24; x < 5720; x += 44) {
+      if (!onLand(x, y) || contains(CITY_GROUND, x, y)) continue;
+      const n = hash(x * 0.02, y * 0.02);
+      const mesa = contains(MESA, x, y);
+      const lift = n > 0.66 ? 26 : 0;
+      g.fillStyle = mesa
+        ? `rgba(${150 + lift},${120 + Math.floor(lift * 0.4)},${72},0.48)`
+        : `rgba(${12 + Math.floor(n * 40)},${58 + Math.floor(n * 70)},${16},0.5)`;
+      g.beginPath();
+      g.ellipse(x + (n - 0.5) * 10, y, 28 + n * 18, 16 + n * 12, n * 2.6, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+}
+
+function paintRelief(g) {
+  const bowls = [
+    [420, 760, 560, 300, 0.15],
+    [980, 1280, 480, 200, -0.2],
+    [1900, 1960, 640, 240, 0.2],
+    [2860, 1640, 420, 160, -0.1]
+  ];
+  const crests = [
+    [1980, 260, 520, 180],
+    [2360, 420, 340, 150],
+    [860, 1980, 280, 140],
+    [3280, 1980, 480, 200]
+  ];
+  g.save();
+  g.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < bowls.length; i++) {
+    const b = bowls[i];
+    const rad = g.createRadialGradient(b[0], b[1], 30, b[0], b[1], Math.max(b[2], b[3]));
+    rad.addColorStop(0, 'rgba(58,74,46,0.78)');
+    rad.addColorStop(1, 'rgba(255,255,255,1)');
+    g.fillStyle = rad;
+    g.beginPath();
+    g.ellipse(b[0], b[1], b[2], b[3], b[4], 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalCompositeOperation = 'soft-light';
+  for (let i = 0; i < crests.length; i++) {
+    const peak = crests[i];
+    const rad = g.createRadialGradient(peak[0], peak[1], 12, peak[0], peak[1], Math.max(peak[2], peak[3]));
+    rad.addColorStop(0, 'rgba(236,226,186,0.9)');
+    rad.addColorStop(1, 'rgba(128,128,128,0)');
+    g.fillStyle = rad;
+    g.beginPath();
+    g.ellipse(peak[0], peak[1], peak[2], peak[3], 0.18, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+}
+
+function cliffFace(g, pts) {
+  g.save();
+  g.lineCap = 'round';
+  g.strokeStyle = 'rgba(232,224,206,0.5)';
+  g.lineWidth = 4;
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.stroke();
+  g.strokeStyle = 'rgba(36,28,18,0.55)';
+  g.lineWidth = 2;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const steps = Math.max(1, Math.floor(len / 14));
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const x = a[0] + dx * t;
+      const y = a[1] + dy * t;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + 8, y + 22);
+      g.stroke();
+    }
+  }
+  g.restore();
+}
+
+function bush(g, x, y, seed) {
+  g.fillStyle = 'rgba(12,20,10,0.22)';
+  g.beginPath();
+  g.ellipse(x + 3, y + 4, 11, 6, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = hash(seed, 2) > 0.5 ? '#3f7a3a' : '#1f4e28';
+  g.beginPath();
+  g.ellipse(x, y, 10, 6, hash(seed, 4), 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = hash(seed, 6) > 0.7 ? '#6a8f3a' : '#2f6b34';
+  g.beginPath();
+  g.ellipse(x - 4, y - 2, 6, 4, 0, 0, Math.PI * 2);
+  g.fill();
+}
+
+function paintCoast(g) {
+  const edges = coastEdges();
+  for (let i = 0; i < edges.length; i++) {
+    const a = edges[i][0];
+    const b = edges[i][1];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const ox = (dy / len) * 36;
+    const oy = (-dx / len) * 36;
+    ribbon(g, [[a[0] + ox, a[1] + oy], [b[0] + ox, b[1] + oy]], 120, 'rgba(78,196,206,0.9)');
+    ribbon(g, [[a[0] + ox * 1.7, a[1] + oy * 1.7], [b[0] + ox * 1.7, b[1] + oy * 1.7]], 90, 'rgba(26,120,150,0.55)');
+    ribbon(g, [[a[0] + ox * 0.28, a[1] + oy * 0.28], [b[0] + ox * 0.28, b[1] + oy * 0.28]], 64, '#ead7ae');
+    ribbon(g, [[a[0] - ox * 0.12, a[1] - oy * 0.12], [b[0] - ox * 0.12, b[1] - oy * 0.12]], 12, 'rgba(255,252,245,0.7)');
+    const steps = Math.max(1, Math.floor(len / 28));
+    g.fillStyle = 'rgba(255,252,245,0.8)';
+    for (let s = 0; s < steps; s++) {
+      const t = (s + 0.35) / steps;
+      const j = hash(i + 3, s + 1);
+      g.beginPath();
+      g.ellipse(a[0] + dx * t + ox * 0.15, a[1] + dy * t + oy * 0.15, 7 + j * 8, 3, Math.atan2(dy, dx), 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+}
+
+function paintFull(roads) {
+  const c = document.createElement('canvas');
+  c.width = MAP_W;
+  c.height = MAP_H;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = true;
+
+  const sea = g.createLinearGradient(4200, 0, MAP_W, MAP_H);
+  sea.addColorStop(0, '#1a7e9a');
+  sea.addColorStop(0.45, '#0e5674');
+  sea.addColorStop(1, '#072c44');
+  g.fillStyle = sea;
+  g.fillRect(0, 0, MAP_W, MAP_H);
+  g.fillStyle = 'rgba(86,206,206,0.28)';
+  g.beginPath();
+  g.ellipse(5980, 640, 460, 220, 0.5, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath();
+  g.ellipse(6120, 1680, 520, 240, -0.3, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = 'rgba(10,40,64,0.45)';
+  g.beginPath();
+  g.ellipse(6300, 2200, 380, 260, 0.2, 0, Math.PI * 2);
+  g.fill();
+
+  paintCoast(g);
+  fillShape(g, LAND, '#24562c');
+  paintMottle(g);
+
+  for (let i = 0; i < 56; i++) {
+    const x = hash(i, 11) * MAP_W;
+    const y = hash(i, 12) * MAP_H;
+    if (!onLand(x, y)) continue;
+    const city = contains(CITY_GROUND, x, y);
+    const mesa = contains(MESA, x, y);
+    const jungle = contains(ZONE_LAYOUT.jungle_alta.poly, x, y);
+    g.fillStyle = city
+      ? 'rgba(196,164,112,0.42)'
+      : mesa
+        ? 'rgba(176,146,96,0.5)'
+        : jungle
+          ? 'rgba(14,42,22,0.48)'
+          : 'rgba(86,140,58,0.32)';
+    g.beginPath();
+    g.ellipse(x, y, 160 + hash(i, 13) * 260, 70 + hash(i, 14) * 110, hash(i, 15) * 2.2, 0, Math.PI * 2);
+    g.fill();
+  }
+  paintRelief(g);
+
+  for (let i = 0; i < 70; i++) {
+    const x = 2460 + hash(i, 71) * 1620;
+    const y = 1680 + hash(i, 72) * 920;
+    if (!contains(MESA, x, y) || !onLand(x, y)) continue;
+    const n = hash(i, 73);
+    g.fillStyle = n > 0.5 ? `rgba(214,184,120,${0.55 + n * 0.35})` : `rgba(150,112,64,${0.4 + n * 0.3})`;
+    g.beginPath();
+    g.ellipse(x, y, 80 + n * 150, 40 + n * 60, n * 2.2, 0, Math.PI * 2);
+    g.fill();
+  }
+  cliffFace(g, MESA.slice(0, 4));
+  cliffFace(g, RIDGE);
+
+  for (let i = 0; i < 78; i++) {
+    const x = 2840 + hash(i, 91) * 2550;
+    const y = 100 + hash(i, 92) * 1080;
+    if (!contains(CITY_GROUND, x, y) || !onLand(x, y)) continue;
+    const downtown = x > 3900 && y < 820;
+    const n = hash(i, 93);
+    g.fillStyle = downtown ? `rgba(226,208,176,${0.72 + n * 0.2})` : `rgba(186,164,124,${0.35 + n * 0.3})`;
+    g.beginPath();
+    g.ellipse(x, y, 70 + n * 150, 36 + n * 48, n * 2, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 22; i++) {
+    const x = 2920 + hash(i, 21) * 2300;
+    const y = 160 + hash(i, 22) * 980;
+    if (!contains(CITY_GROUND, x, y) || !onLand(x, y)) continue;
+    const park = hash(i, 26) > 0.45;
+    g.fillStyle = park ? 'rgba(78,122,52,0.72)' : 'rgba(150,112,72,0.4)';
+    g.beginPath();
+    g.ellipse(x, y, 80 + hash(i, 23) * 120, 40 + hash(i, 24) * 36, hash(i, 25), 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 16; i++) {
+    const x = 3080 + i * 140;
+    const y = 1040 + hash(i, 27) * 90;
+    if (!onLand(x, y) || contains(COVE, x, y)) continue;
+    g.fillStyle = i % 3 === 0 ? '#f3e6c4' : '#e4cfa6';
+    g.beginPath();
+    g.ellipse(x, y, 100, 42, hash(i, 28) * 0.4, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  fillShape(g, COVE, '#0e5870');
+  g.fillStyle = 'rgba(92,214,206,0.55)';
+  g.beginPath();
+  g.ellipse(4140, 1440, 460, 150, -0.28, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = 'rgba(186,236,228,0.35)';
+  g.beginPath();
+  g.ellipse(3900, 1380, 220, 70, -0.2, 0, Math.PI * 2);
+  g.fill();
+  ribbon(g, COVE.concat([COVE[0]]), 22, '#ead7ae');
+
+  ribbon(g, RIVER_PTS, 92, '#6a5438');
+  ribbon(g, RIVER_PTS, 58, '#124e66');
+  ribbon(g, RIVER_PTS, 34, '#1c7894');
+  ribbon(g, RIVER_PTS, 8, 'rgba(226,246,248,0.55)');
+  ribbon(g, INLET_PTS, 36, '#6a5438');
+  ribbon(g, INLET_PTS, 20, '#187088');
+  ribbon(g, [[1540, 1760], [1780, 1960], [1960, 2140], [2140, 2280]], 22, '#6a5438');
+  ribbon(g, [[1540, 1760], [1780, 1960], [1960, 2140], [2140, 2280]], 12, '#1a6e86');
+  ribbon(g, [[1540, 1760], [1680, 1880], [1600, 2060], [1480, 2220]], 16, '#6a5438');
+  ribbon(g, [[1540, 1760], [1680, 1880], [1600, 2060], [1480, 2220]], 8, '#1a6e86');
+  ribbon(g, [[1980, 1860], [2200, 1980], [2360, 2140], [2280, 2320]], 16, '#6a5438');
+  ribbon(g, [[1980, 1860], [2200, 1980], [2360, 2140], [2280, 2320]], 8, '#187488');
+
+  ribbon(g, RIDGE, 22, '#4a4038');
+  ribbon(g, RIDGE, 6, '#d9d0c2');
+  for (let i = 0; i < RIDGE.length - 1; i++) {
+    const a = RIDGE[i];
+    const b = RIDGE[i + 1];
+    g.strokeStyle = 'rgba(40,32,24,0.45)';
+    g.lineWidth = 2;
+    for (let t = 0.15; t < 1; t += 0.22) {
+      const x = a[0] + (b[0] - a[0]) * t;
+      const y = a[1] + (b[1] - a[1]) * t;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + 10, y + 16);
+      g.stroke();
+    }
+  }
+
+  patch(g, 280, 640, 170, 78, -0.35, '#c2b15a');
+  patch(g, 200, 860, 120, 58, 0.25, '#8eaa48');
+  patch(g, 460, 340, 100, 48, 0.2, '#d2c06a');
+  patch(g, 720, 2080, 180, 70, -0.18, '#7f9a3c');
+  patch(g, 1680, 2100, 200, 72, 0.28, '#c6b25e');
+  patch(g, 2140, 2180, 130, 52, -0.4, '#9aaa46');
+  patch(g, 1040, 1720, 150, 52, 0.12, '#6e8a38');
+  patch(g, 2480, 2060, 110, 46, 0.4, '#b7a84e');
+
+  const roadPaths = ROAD_NETWORK.concat(SCENIC_ROADS.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] })))).concat(CITY_AVENUES.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] }))));
+  if (roads) {
+    for (let i = 0; i < roads.length; i++) roadLine(g, roads[i], i === 0 ? 18 : 12);
+  }
+  for (let i = 0; i < SCENIC_ROADS.length; i++) roadLine(g, SCENIC_ROADS[i], i === 2 ? 12 : 14);
+  for (let i = 0; i < CITY_AVENUES.length; i++) roadLine(g, CITY_AVENUES[i], i < 3 ? 16 : 12);
+
+  g.fillStyle = '#3e4650';
+  g.save();
+  g.translate(3480, 2280);
+  g.rotate(-0.08);
+  g.fillRect(-280, -12, 560, 22);
+  g.fillStyle = '#f4f1ea';
+  for (let i = 0; i < 10; i++) g.fillRect(-250 + i * 52, -2, 22, 4);
+  g.restore();
+  g.fillStyle = '#3e4650';
+  g.save();
+  g.translate(4680, 1748);
+  g.rotate(-0.04);
+  g.fillRect(-260, -11, 540, 20);
+  g.fillStyle = '#f7f4ee';
+  for (let i = 0; i < 9; i++) g.fillRect(-230 + i * 54, -2, 20, 3);
+  g.restore();
+
+  for (let i = 0; i < 160; i++) {
+    const x = 60 + hash(i, 81) * 2500;
+    const y = 40 + hash(i, 82) * 1600;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 26)) continue;
+    if (contains(CITY_GROUND, x, y) || contains(MESA, x, y)) continue;
+    canopy(g, x, y, i + 90);
+  }
+  for (let i = 0; i < 280; i++) {
+    const x = hash(i, 31) * 4300;
+    const y = 80 + hash(i, 32) * 2500;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 28)) continue;
+    if (contains(MESA, x, y) && hash(i, 33) > 0.22) continue;
+    if (contains(CITY_GROUND, x, y)) continue;
+    canopy(g, x, y, i + 3);
+  }
+  for (let i = 0; i < 220; i++) {
+    const x = hash(i, 61) * 4300;
+    const y = 80 + hash(i, 62) * 2500;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 22)) continue;
+    if (contains(CITY_GROUND, x, y)) continue;
+    bush(g, x, y, i + 9);
+  }
+  for (let i = 0; i < 40; i++) {
+    const x = 1500 + hash(i, 41) * 1100;
+    const y = 160 + hash(i, 42) * 1100;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 36)) continue;
+    if (contains(CITY_GROUND, x, y)) continue;
+    rock(g, x, y, 0.55 + hash(i, 43));
+  }
+
+  const villages = [[440, 1080], [780, 2040], [1860, 2140]];
+  for (let v = 0; v < villages.length; v++) {
+    for (let k = 0; k < 5; k++) {
+      const x = villages[v][0] + (hash(v, k) - 0.5) * 90;
+      const y = villages[v][1] + (hash(k, v) - 0.5) * 60;
+      if (!onLand(x, y) || blocked(x, y, 20)) continue;
+      house(g, x, y, v * 20 + k, 0.72);
+    }
+  }
+
+  let houseN = 0;
+  for (let a = 0; a < CITY_AVENUES.length; a++) {
+    const poly = curveSamples(CITY_AVENUES[a]);
+    for (let i = 0; i < poly.length - 1; i += 1) {
+      const p = poly[i];
+      const q = poly[Math.min(poly.length - 1, i + 1)];
+      const dx = q[0] - p[0];
+      const dy = q[1] - p[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      for (let side = -1; side <= 1; side += 2) {
+        houseN += 1;
+        const gap = 52 + hash(houseN, 1) * 22;
+        const x = p[0] + nx * gap * side;
+        const y = p[1] + ny * gap * side;
+        if (!contains(CITY_GROUND, x, y) || !onLand(x, y) || contains(COVE, x, y)) continue;
+        if (blocked(x, y) || nearPath(x, y, roadPaths, 30)) continue;
+        const downtown = x > 3920 && y < 760;
+        const scale = downtown ? 1.7 + hash(houseN, 2) * 1.05 : 0.78 + hash(houseN, 3) * 0.45;
+        house(g, x, y, houseN + 4, scale);
+      }
+    }
+  }
+
+  for (let i = 0; i < 28; i++) {
+    const x = 200 + hash(i, 51) * 900;
+    const y = 200 + hash(i, 52) * 1000;
+    if (blocked(x, y) || !onLand(x, y)) continue;
+    palm(g, x, y, 0.48 + hash(i, 53) * 0.4);
+  }
+  const edges = coastEdges();
+  for (let e = 0; e < edges.length; e++) {
+    const a = edges[e][0];
+    const b = edges[e][1];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const steps = Math.max(1, Math.floor(len / 70));
+    const ix = (-dy / len) * 48;
+    const iy = (dx / len) * 48;
+    for (let s = 0; s < steps; s++) {
+      const t = (s + 0.5) / steps;
+      const x = a[0] + dx * t + ix;
+      const y = a[1] + dy * t + iy;
+      if (!onLand(x, y) || blocked(x, y)) continue;
+      palm(g, x, y, 0.62);
+    }
+  }
+
+  for (let i = 0; i < 4; i++) {
+    const x = 3480 + i * 70;
+    g.strokeStyle = '#8a6238';
+    g.lineWidth = 6;
+    g.beginPath();
+    g.moveTo(x, 1300);
+    g.lineTo(x + 8, 1420);
+    g.stroke();
+    g.strokeStyle = '#c4a06a';
+    g.lineWidth = 3;
+    for (let k = 0; k < 5; k++) {
+      g.beginPath();
+      g.moveTo(x - 16, 1320 + k * 16);
+      g.lineTo(x + 28, 1332 + k * 16);
+      g.stroke();
+    }
+  }
+  g.strokeStyle = '#e6b84a';
+  g.lineWidth = 4;
+  g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(3640, 1340);
+  g.lineTo(3660, 1220);
+  g.lineTo(3760, 1210);
+  g.stroke();
+  g.beginPath();
+  g.moveTo(3900, 1360);
+  g.lineTo(3920, 1240);
+  g.lineTo(4020, 1230);
+  g.stroke();
+
+  const crates = ['#c25038', '#3d6ea8', '#e6c35a', '#7d3b5c'];
+  for (let i = 0; i < crates.length; i++) {
+    const x = 3560 + i * 46;
+    const y = 1270;
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(x + 3, y + 3, 34, 16);
+    g.fillStyle = crates[i];
+    g.fillRect(x, y, 34, 16);
+  }
+
+  g.save();
+  g.globalCompositeOperation = 'soft-light';
+  const sun = g.createLinearGradient(0, 0, MAP_W, MAP_H);
+  sun.addColorStop(0, 'rgba(255,236,200,0.45)');
+  sun.addColorStop(0.55, 'rgba(255,255,255,0)');
+  sun.addColorStop(1, 'rgba(30,40,60,0.22)');
+  g.fillStyle = sun;
+  g.fillRect(0, 0, MAP_W, MAP_H);
+  g.restore();
+  return c;
+}
+
+export function paintTerrainTiles(roads) {
+  const full = paintFull(roads || []);
+  const tiles = [];
+  for (let row = 0; row < MAP_H / TILE_H; row++) {
+    for (let col = 0; col < MAP_W / TILE_W; col++) {
+      const tile = document.createElement('canvas');
+      tile.width = TILE_W;
+      tile.height = TILE_H;
+      const g = tile.getContext('2d');
+      g.drawImage(full, col * TILE_W, row * TILE_H, TILE_W, TILE_H, 0, 0, TILE_W, TILE_H);
+      tiles.push({ canvas: tile, x: col * TILE_W, y: row * TILE_H, key: `go-world-${col}-${row}` });
+    }
+  }
+  return tiles;
 }
 
 export function drawExtended(g) {
   g.clear();
-  const alta = ZONE_LAYOUT.jungle_alta;
-  const delta = ZONE_LAYOUT.river_delta;
-  const mesa = ZONE_LAYOUT.mesa_strip;
-  box(g, 0, 1360, 6400, 1320, 0x243628);
-  ellipse(g, alta.x + 400, alta.y + 420, 980, 720, 0x1e3d28);
-  ellipse(g, alta.x + 780, alta.y + 300, 640, 480, 0x2c5434);
-  ellipse(g, alta.x + 260, alta.y + 700, 420, 280, 0x3d6a3a, 0.85);
-  for (let i = 0; i < 18; i++) {
-    ellipse(g, alta.x + 80 + (i % 6) * 170, alta.y + 180 + Math.floor(i / 6) * 240, 90, 50, 0x14301c, 0.55);
-  }
-
-  box(g, delta.x, delta.y + 80, delta.w, delta.h - 80, 0x2a6e72, 0.55);
-  ellipse(g, delta.x + 520, delta.y + 560, 900, 420, 0x1a5560, 0.8);
-  box(g, delta.x + 80, delta.y + 200, delta.w - 160, 36, 0x6a5a3e);
-  box(g, 1680, delta.y + 360, 28, 420, 0x8d7350);
-
-  box(g, mesa.x, mesa.y + 40, mesa.w, mesa.h - 80, 0x6d6248);
-  ellipse(g, mesa.x + 500, mesa.y + 280, 860, 360, 0x7d7054);
-  box(g, mesa.x + 180, mesa.y + 620, 760, 28, 0x3e4650);
-  box(g, mesa.x + 180, mesa.y + 600, 760, 6, 0xe7e1d4, 0.7);
-
-  const cityX = 2860;
-  box(g, cityX, 140, 3520, 1680, 0xc4b8a4);
-  box(g, 5520, 140, 880, 1100, 0x1d6d8c);
-  box(g, 5340, 200, 220, 980, 0xe4d2b0);
-  ellipse(g, 5480, 700, 180, 900, 0x2f86a4, 0.45);
-  box(g, 2920, 1000, 2480, 90, 0x2a6a78, 0.85);
-
-  strokeGrid(g, ZONE_LAYOUT.ps_downtown, 150);
-  g.lineStyle(8, 0x3a414c, 0.95);
-  g.lineBetween(3100, 420, 3600, 420);
-  g.lineBetween(3280, 260, 3280, 860);
-  g.lineBetween(4880, 280, 4880, 960);
-  box(g, 4700, 300, 22, 680, 0x4a4038);
-  box(g, 3000, 1180, 980, 16, 0x8a8175);
-  box(g, 3180, 1280, 18, 280, 0x6d6256);
-  box(g, 3480, 1280, 18, 220, 0x6d6256);
-  box(g, 4380, 1320, 920, 26, 0x2c343c);
-  box(g, 4380, 1308, 920, 5, 0xf4f7fb, 0.75);
-  box(g, 4700, 1260, 70, 150, 0xd9c6a3);
-
-  ellipse(g, ZONE_LAYOUT.ps_hills.x + 480, ZONE_LAYOUT.ps_hills.y + 280, 980, 420, 0x3d5a34);
-  ellipse(g, ZONE_LAYOUT.ps_hills.x + 200, ZONE_LAYOUT.ps_hills.y + 180, 360, 220, 0x4e6b3c);
-
-  g.lineStyle(10, 0x5c5346, 0.9);
+  g.fillStyle(0x0c4a62, 1);
+  g.fillRect(0, 0, MAP_W, MAP_H);
+  g.fillStyle(0x2f6b34, 1);
   g.beginPath();
-  g.moveTo(900, 1280);
-  g.lineTo(520, 1620);
-  g.lineTo(900, 1760);
-  g.lineTo(2000, 1760);
-  g.lineTo(3300, 1760);
-  g.strokePath();
-  g.lineStyle(12, 0x3a414c, 1);
+  g.moveTo(LAND[0][0], LAND[0][1]);
+  for (let i = 1; i < LAND.length; i++) g.lineTo(LAND[i][0], LAND[i][1]);
+  g.closePath();
+  g.fillPath();
+  g.fillStyle(0x14627a, 1);
   g.beginPath();
-  g.moveTo(2480, 500);
-  g.lineTo(3100, 480);
-  g.lineTo(4300, 460);
-  g.lineTo(5200, 500);
-  g.strokePath();
-
-  fillerBlocks(g);
+  g.moveTo(COVE[0][0], COVE[0][1]);
+  for (let i = 1; i < COVE.length; i++) g.lineTo(COVE[i][0], COVE[i][1]);
+  g.closePath();
+  g.fillPath();
 }
 
-function strokeGrid(g, zone, step) {
-  g.lineStyle(8, 0x3a414c, 0.95);
-  for (let x = zone.x + 40; x < zone.x + zone.w - 20; x += step) {
-    g.lineBetween(x, zone.y + 24, x, zone.y + zone.h - 24);
+export function bootAtmosphere(scene) {
+  if (!scene || scene._goSky) return;
+  const cloud = document.createElement('canvas');
+  cloud.width = 256;
+  cloud.height = 140;
+  const cg = cloud.getContext('2d');
+  const rad = cg.createRadialGradient(128, 70, 8, 128, 70, 120);
+  rad.addColorStop(0, 'rgba(36,44,32,0.22)');
+  rad.addColorStop(1, 'rgba(36,44,32,0)');
+  cg.fillStyle = rad;
+  cg.fillRect(0, 0, 256, 140);
+  if (!scene.textures.exists('go-cloud')) scene.textures.addCanvas('go-cloud', cloud);
+  const bird = document.createElement('canvas');
+  bird.width = 28;
+  bird.height = 16;
+  const bg = bird.getContext('2d');
+  bg.strokeStyle = '#24180f';
+  bg.lineWidth = 2;
+  bg.lineCap = 'round';
+  bg.beginPath();
+  bg.moveTo(2, 11);
+  bg.quadraticCurveTo(8, 2, 14, 9);
+  bg.quadraticCurveTo(20, 2, 26, 11);
+  bg.stroke();
+  if (!scene.textures.exists('go-bird')) scene.textures.addCanvas('go-bird', bird);
+  const clouds = [];
+  for (let i = 0; i < 4; i++) {
+    clouds.push(scene.add.image(600 + i * 1500, 360 + (i % 2) * 700, 'go-cloud').setDepth(1).setScale(5 + i * 0.35).setAlpha(0.7));
   }
-  for (let y = zone.y + 36; y < zone.y + zone.h - 16; y += step) {
-    g.lineBetween(zone.x + 16, y, zone.x + zone.w - 16, y);
+  const birds = [];
+  for (let i = 0; i < 5; i++) birds.push(scene.add.image(0, 0, 'go-bird').setDepth(8));
+  const shimmer = scene.add.graphics().setDepth(1);
+  scene._goSky = { clouds, birds, shimmer };
+}
+
+export function driftAtmosphere(scene) {
+  if (!scene) return;
+  bootAtmosphere(scene);
+  const sky = scene._goSky;
+  if (!sky) return;
+  const t = scene.phase || 0;
+  for (let i = 0; i < sky.clouds.length; i++) {
+    const img = sky.clouds[i];
+    img.x = ((i * 1600 + t * (16 + i * 5)) % (MAP_W + 700)) - 200;
+    img.y = 260 + (i % 3) * 560 + Math.sin(t * 0.12 + i) * 26;
+  }
+  for (let i = 0; i < sky.birds.length; i++) {
+    const u = (t * 0.018 + i * 0.19) % 1;
+    sky.birds[i].setPosition(180 + u * 5000, 160 + (i * 210) % 1200 + Math.sin(t * 0.7 + i) * 20);
+    sky.birds[i].setScale(Math.cos(t * 0.4 + i) >= 0 ? 1 : -1, 1);
+  }
+  const sg = sky.shimmer;
+  sg.clear();
+  sg.fillStyle(0xf4fbfd, 0.55);
+  for (let i = 0; i < RIVER_PTS.length - 1; i++) {
+    const a = RIVER_PTS[i];
+    const b = RIVER_PTS[i + 1];
+    const u = (t * 0.2 + i * 0.17) % 1;
+    sg.fillCircle(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, 3);
+  }
+  for (let i = 0; i < HARBOR_PTS.length - 1; i++) {
+    const a = HARBOR_PTS[i];
+    const b = HARBOR_PTS[i + 1];
+    const u = (t * 0.25 + i * 0.2) % 1;
+    sg.fillCircle(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, 2.4);
   }
 }
 
-function fillerBlocks(g) {
-  const specs = [
-    [3080, 520, 46, 34, 0x8d7358],
-    [3380, 560, 54, 40, 0xb9a48c],
-    [3960, 560, 40, 64, 0x6e8eae],
-    [4580, 280, 36, 70, 0x7f93a8],
-    [5080, 280, 48, 28, 0xd27a62],
-    [3040, 1500, 70, 36, 0x6a6258],
-    [5600, 420, 30, 18, 0xf2efe6]
-  ];
-  for (const [x, y, w, h, color] of specs) {
-    if (nearLot(x, y)) continue;
-    box(g, x, y, w, h, color);
-  }
-}
-
-function nearLot(x, y) {
-  return Object.values(LOT_POS).some((lot) => Math.hypot(lot.x - x, lot.y - y) < 120);
-}
+export { CITY_LOOP };
 
 export function paintOpen(g) {
   g.clear();

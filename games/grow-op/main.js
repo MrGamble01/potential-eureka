@@ -1418,6 +1418,18 @@ window.__growOp = {
   openZone: (id) => openZone(id),
   frameLot: (id) => { if (mapScene) mapScene.frameLot(id, true); },
   frameZone: (id) => { if (mapScene) mapScene.frameZone(id, true); },
+  frameAt: (x, y, zoom) => {
+    if (!mapScene) return false;
+    mapScene.userPanned = true;
+    mapScene.holdMapReveal = true;
+    mapScene.didReveal = true;
+    mapScene.chartAlpha = 0;
+    mapScene.applyBounds();
+    const cam = mapScene.cameras.main;
+    cam.setZoom(zoom);
+    cam.centerOn(x, y);
+    return true;
+  },
   revealMap: () => {
     if (phaserGame) phaserGame.registry.set('holdMapReveal', false);
     if (!mapScene) return;
