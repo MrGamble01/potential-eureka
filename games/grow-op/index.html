@@ -73,7 +73,15 @@
         <span>Pause</span>
       </button>
       <button type="button" class="go-icon-btn" id="btn-speed" aria-label="Simulation Speed">1×</button>
-      <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Mute sound">Sound</button>
+      <div class="go-mix" id="go-mix">
+        <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Sound mix" aria-expanded="false" aria-controls="mix-panel">Sound</button>
+        <div class="go-mix-panel" id="mix-panel" hidden>
+          <label class="go-mix-row"><span>Mute</span><input type="checkbox" id="mix-muted"></label>
+          <label class="go-mix-row"><span>Master</span><input type="range" id="mix-master" min="0" max="100" value="80"></label>
+          <label class="go-mix-row"><span>Music</span><input type="range" id="mix-music" min="0" max="100" value="62"></label>
+          <label class="go-mix-row"><span>SFX</span><input type="range" id="mix-sfx" min="0" max="100" value="85"></label>
+        </div>
+      </div>
       <button type="button" class="go-icon-btn" id="btn-briefing" aria-label="Open Operation Briefing">Brief</button>
     </div>
   </header>

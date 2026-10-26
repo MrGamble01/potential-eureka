@@ -278,6 +278,46 @@ html, body {
   height: 16px;
 }
 
+.go-mix {
+  position: relative;
+}
+
+.go-mix-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(200px, calc(100vw - 24px));
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--go-surface);
+  border: 1px solid var(--go-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.go-mix-panel[hidden] {
+  display: none;
+}
+
+.go-mix-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--go-ink);
+  font-family: var(--go-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.go-mix-row input[type="range"] {
+  width: 112px;
+  accent-color: var(--go-clean);
+}
+
 /* ── PROMINENT OBJECTIVE BANNER & RAID ALERT STRIP ───────────────────────── */
 .go-subhud {
   position: fixed;

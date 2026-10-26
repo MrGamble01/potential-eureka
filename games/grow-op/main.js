@@ -8,6 +8,7 @@ import { RESEARCH } from './data/research.js';
 import { CartelSimulation } from './simulation.js';
 import { MapScene } from './scene.js';
 import { createAudio } from './audio.js';
+import { createJuice } from './audio/juice.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -42,8 +43,17 @@ if (hasSave) {
   sim.load();
 }
 
+function anyRaid() {
+  return Object.values(sim.state.regions).some((region) => region.raidActive);
+}
+
 function handleSimEvent(evt) {
-  if (mapScene && mapScene.sys && mapScene.sys.isActive()) mapScene.fx(evt);
+  const sceneLive = mapScene && mapScene.sys && mapScene.sys.isActive();
+  if (sceneLive) mapScene.fx(evt);
+  else {
+    audio.cue(evt);
+    audio.setTension(anyRaid());
+  }
   if (
     evt.type === 'built' ||
     evt.type === 'upgraded' ||
@@ -601,17 +611,42 @@ function wireEvents() {
   $('event-actions').addEventListener('click', (e) => {
     const choice = e.target.closest('[data-choice]');
     if (!choice) return;
-    audio.click();
     sim.resolveEvent(Number(choice.dataset.choice));
     renderHud();
     renderDrawerContent();
   });
-  $('btn-mute').addEventListener('click', () => {
-    const muted = audio.toggle();
-    $('btn-mute').textContent = muted ? 'Muted' : 'Sound';
-    $('btn-mute').setAttribute('aria-pressed', muted ? 'true' : 'false');
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || btn.disabled) return;
+    audio.click();
   });
-  if (audio.muted) $('btn-mute').textContent = 'Muted';
+  function syncMuteLabel() {
+    $('btn-mute').textContent = audio.mix.muted ? 'Muted' : 'Sound';
+    $('btn-mute').setAttribute('aria-pressed', audio.mix.muted ? 'true' : 'false');
+    $('mix-muted').checked = audio.mix.muted;
+  }
+  $('mix-master').value = String(Math.round(audio.mix.master * 100));
+  $('mix-music').value = String(Math.round(audio.mix.music * 100));
+  $('mix-sfx').value = String(Math.round(audio.mix.sfx * 100));
+  syncMuteLabel();
+  $('btn-mute').addEventListener('click', () => {
+    const panel = $('mix-panel');
+    panel.hidden = !panel.hidden;
+    $('btn-mute').setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+  });
+  document.addEventListener('click', (e) => {
+    const panel = $('mix-panel');
+    if (panel.hidden || e.target.closest('#go-mix')) return;
+    panel.hidden = true;
+    $('btn-mute').setAttribute('aria-expanded', 'false');
+  });
+  $('mix-muted').addEventListener('change', () => {
+    audio.setMuted($('mix-muted').checked);
+    syncMuteLabel();
+  });
+  $('mix-master').addEventListener('input', () => audio.setMaster(Number($('mix-master').value) / 100));
+  $('mix-music').addEventListener('input', () => audio.setMusic(Number($('mix-music').value) / 100));
+  $('mix-sfx').addEventListener('input', () => audio.setSfx(Number($('mix-sfx').value) / 100));
 
   const resetBtn = $('btn-new-operation');
   if (resetBtn) {
@@ -743,10 +778,8 @@ function bootPhaser() {
 
   phaserGame = new window.Phaser.Game(config);
   phaserGame.registry.set('onJuice', (evt) => {
-    if (!evt) return;
-    if (evt.type === 'exported' || evt.type === 'laundered') audio.coin();
-    if (evt.type === 'built') audio.build();
-    if (evt.type === 'raid_started' || evt.type === 'rival_raid') audio.siren();
+    audio.cue(evt);
+    audio.setTension(anyRaid());
   });
   phaserGame.registry.set('sim', sim);
   phaserGame.registry.set('onSlotSelected', (slotId) => {
@@ -755,7 +788,10 @@ function bootPhaser() {
   phaserGame.registry.set('onRegionSelected', (regionId) => {
     selectRegion(regionId);
   });
-  phaserGame.registry.set('bindScene', (scene) => { mapScene = scene; });
+  phaserGame.registry.set('bindScene', (scene) => {
+    mapScene = scene;
+    if (!scene.registry.get('juice')) scene.registry.set('juice', createJuice(scene));
+  });
 
   phaserGame.events.on('ready', () => {
     mapScene = phaserGame.scene.getScene('MapScene');
