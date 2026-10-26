@@ -10,8 +10,19 @@ export const SFX_NAMES = [
   'siren',
   'bribe',
   'research',
-  'click'
+  'click',
+  'unlock',
+  'buy',
+  'convert',
+  'demolish',
+  'negotiateOk',
+  'negotiateFail',
+  'intimidate',
+  'intimidateFail',
+  'control'
 ];
+
+export const WORK_HZ = 97;
 
 const low = (freq, q = 0.7) => ({ type: 'lowpass', freq, q });
 
@@ -56,5 +67,49 @@ export const SFX = {
   })),
   click: [
     { at: 0, wave: 'square', freq: 740, dur: 0.035, gain: 0.02, filter: { type: 'highpass', freq: 400, q: 0.4 } }
+  ],
+  unlock: [
+    { at: 0, wave: 'noise', dur: 0.55, gain: 0.05, filter: { type: 'bandpass', freq: 400, freqTo: 2200, q: 0.7 } },
+    { at: 0.08, wave: 'triangle', freq: 523.25, dur: 0.2, gain: 0.05 },
+    { at: 0.22, wave: 'triangle', freq: 659.25, dur: 0.2, gain: 0.05 },
+    { at: 0.36, wave: 'sine', freq: 783.99, dur: 0.28, gain: 0.055 },
+    { at: 0.5, wave: 'sine', freq: 1046.5, dur: 0.4, gain: 0.04 }
+  ],
+  buy: [
+    { at: 0, wave: 'noise', dur: 0.08, gain: 0.035, filter: { type: 'highpass', freq: 1500, q: 0.5 } },
+    { at: 0.06, wave: 'sine', freq: 988, dur: 0.1, gain: 0.045 },
+    { at: 0.14, wave: 'sine', freq: 1318, dur: 0.14, gain: 0.04 }
+  ],
+  convert: [
+    { at: 0, wave: 'sawtooth', freq: 180, freqTo: 90, dur: 0.16, gain: 0.04, filter: low(600, 0.6) },
+    { at: 0.12, wave: 'triangle', freq: 440, dur: 0.1, gain: 0.04 },
+    { at: 0.2, wave: 'sine', freq: 660, dur: 0.16, gain: 0.045 }
+  ],
+  demolish: [
+    { at: 0, wave: 'sine', freq: 60, freqTo: 36, dur: 0.28, gain: 0.1 },
+    { at: 0.02, wave: 'noise', dur: 0.4, gain: 0.07, filter: { type: 'lowpass', freq: 900, freqTo: 240, q: 0.6 } },
+    { at: 0.16, wave: 'noise', dur: 0.22, gain: 0.04, filter: { type: 'bandpass', freq: 1400, q: 0.8 } }
+  ],
+  negotiateOk: [
+    { at: 0, wave: 'sine', freq: 392, dur: 0.1, gain: 0.04 },
+    { at: 0.1, wave: 'sine', freq: 523.25, dur: 0.16, gain: 0.045 }
+  ],
+  negotiateFail: [
+    { at: 0, wave: 'triangle', freq: 196, freqTo: 110, dur: 0.22, gain: 0.05 },
+    { at: 0.04, wave: 'noise', dur: 0.1, gain: 0.03, filter: low(500, 0.5) }
+  ],
+  intimidate: [
+    { at: 0, wave: 'sawtooth', freq: 90, dur: 0.2, gain: 0.06, filter: low(280, 0.7) },
+    { at: 0.16, wave: 'sine', freq: 60, dur: 0.18, gain: 0.05 },
+    { at: 0.32, wave: 'sine', freq: 64, dur: 0.16, gain: 0.04 }
+  ],
+  intimidateFail: [
+    { at: 0, wave: 'square', freq: 220, freqTo: 140, dur: 0.18, gain: 0.03, filter: low(700, 0.5) },
+    { at: 0.08, wave: 'noise', dur: 0.12, gain: 0.025, filter: { type: 'bandpass', freq: 900, q: 1 } }
+  ],
+  control: [
+    { at: 0, wave: 'triangle', freq: 349.23, dur: 0.14, gain: 0.045 },
+    { at: 0.1, wave: 'triangle', freq: 440, dur: 0.14, gain: 0.045 },
+    { at: 0.2, wave: 'sine', freq: 523.25, dur: 0.28, gain: 0.05 }
   ]
 };

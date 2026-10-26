@@ -46,6 +46,7 @@ class FakeAudio {
     this.destination = node();
     this.voices = 0;
     this.gains = [];
+    this.freqs = [];
     FakeAudio.instances.push(this);
     FakeAudio.made += 1;
   }
@@ -60,6 +61,12 @@ class FakeAudio {
     const osc = node();
     osc.type = 'sine';
     osc.frequency = new Param();
+    const write = osc.frequency.setValueAtTime.bind(osc.frequency);
+    const freqs = this.freqs;
+    osc.frequency.setValueAtTime = (v, t) => {
+      freqs.push(v);
+      return write(v, t);
+    };
     return osc;
   }
   createBufferSource() {
@@ -89,6 +96,10 @@ FakeAudio.made = 0;
   const { createAudio } = await import(path.join(root, 'audio/index.js'));
   const { createJuice } = await import(path.join(root, 'audio/juice.js'));
   const { CartelSimulation } = await import(path.join(root, 'simulation.js'));
+  const { zoneMix, ambienceLevels, crossedControl, ZONE_ANCHORS } = await import(path.join(root, 'audio/zones.js'));
+  const { cityNotesForStep } = await import(path.join(root, 'audio/city.js'));
+  const { WORK_HZ } = await import(path.join(root, 'audio/sfx.js'));
+  const { attachFeel, presentEvent } = await import(path.join(root, 'systems/hooks.js'));
 
   let clave = 0;
   let tension = 0;
@@ -223,6 +234,113 @@ FakeAudio.made = 0;
   juice.burst({ x: 12, y: 18 }, 0xe7d3a1);
   juice.step(0.016);
   ok(circles.length >= 8, 'arrival throws particles');
+
+  const valleyAt = ZONE_ANCHORS.rio_plata;
+  const downtownAt = ZONE_ANCHORS.ps_downtown;
+  const valley = zoneMix(valleyAt.x, valleyAt.y);
+  const downtown = zoneMix(downtownAt.x, downtownAt.y);
+  const between = zoneMix((valleyAt.x * 2 + downtownAt.x) / 3, (valleyAt.y * 2 + downtownAt.y) / 3);
+  ok(valley.rural > 0.6 && valley.city < valley.rural, 'the valley stays on the Latin bed');
+  ok(downtown.city > downtown.rural, 'downtown is the synthwave side');
+  const cityFlavors = Object.entries(downtown.flavors);
+  cityFlavors.sort((a, b) => b[1] - a[1]);
+  ok(cityFlavors[0][0] === 'downtown', 'standing downtown hears the downtown variation');
+  ok(between.city > valley.city && between.rural > downtown.rural, 'a pan between valley and downtown is a crossfade');
+
+  function peakFreq(flavor) {
+    let peak = 0;
+    for (let i = 0; i < 64; i++) {
+      for (const note of cityNotesForStep(i, flavor)) peak = Math.max(peak, note.freq || 0);
+    }
+    return peak;
+  }
+  ok(peakFreq('downtown') > peakFreq('docks'), 'downtown sits higher than the docks');
+
+  const nightCity = ambienceLevels(downtown, true);
+  const dayCity = ambienceLevels(downtown, false);
+  const nightValley = ambienceLevels(valley, true);
+  const dayValley = ambienceLevels(valley, false);
+  const docks = zoneMix(ZONE_ANCHORS.ps_docks.x, ZONE_ANCHORS.ps_docks.y);
+  const dayDocks = ambienceLevels(docks, false);
+  const nightDocks = ambienceLevels(docks, true);
+  ok(nightCity.neon > dayCity.neon, 'neon hum rises after dark');
+  ok(nightValley.insects > dayValley.insects, 'countryside insects thicken at night');
+  ok(dayDocks.gulls > 0.3 && nightDocks.gulls < dayDocks.gulls, 'gulls work the docks by day');
+  ok(dayValley.river > dayCity.river, 'the river stays with the valley');
+  ok(dayCity.traffic > dayValley.traffic, 'traffic belongs to the city');
+  ok(crossedControl(40, 50) === true, 'control crossing 45 is a gain');
+  ok(crossedControl(50, 40) === false && crossedControl(45, 50) === false, 'control only announces a rising mark');
+
+  saveMix(globalThis.localStorage, { master: 0.8, music: 0.7, sfx: 0.8, muted: false });
+  const zoneTimers = [];
+  const zoned = createAudio({
+    AudioContext: FakeAudio,
+    storage: globalThis.localStorage,
+    schedule(fn) { zoneTimers.push(fn); return zoneTimers.length; },
+    clear(id) { zoneTimers[id - 1] = null; }
+  });
+  zoned.setWork(true, false);
+  zoned.start();
+  const cityCtx = FakeAudio.instances[FakeAudio.instances.length - 1];
+  ok(cityCtx.freqs.includes(WORK_HZ), 'construction hammers while a lot is building');
+  ok(cityCtx.gains[3].gain.value === 0 || cityCtx.gains[3].gain.value === 1, 'tension is still the fourth bus');
+  zoned.followCamera(downtownAt.x, downtownAt.y, true);
+  ok(zoned.sceneMix.city > zoned.sceneMix.rural, 'the camera pulls the city bus up');
+  const neonNight = cityCtx.gains[12].gain.value;
+  zoned.followCamera(downtownAt.x, downtownAt.y, false);
+  ok(neonNight > cityCtx.gains[12].gain.value, 'the neon bed follows the night flag');
+  cityCtx.currentTime = 2;
+  zoneTimers[0]();
+  const cityVoices = cityCtx.voices;
+  ok(cityVoices > 4, 'the city clock schedules neighborhood notes');
+  zoned.followCamera(valleyAt.x, valleyAt.y, false);
+  ok(zoned.sceneMix.rural > zoned.sceneMix.city, 'panning home brings the Latin bed back');
+  zoned.stop();
+
+  const heard = [];
+  const feelTimers = [];
+  const feelAudio = createAudio({
+    AudioContext: FakeAudio,
+    storage: globalThis.localStorage,
+    schedule(fn) { feelTimers.push(fn); return feelTimers.length; },
+    clear(id) { feelTimers[id - 1] = null; }
+  });
+  const cue = feelAudio.cue.bind(feelAudio);
+  feelAudio.cue = (evt) => { heard.push(evt && evt.type); return cue(evt); };
+  feelAudio.start();
+  const feelCtx = FakeAudio.instances[FakeAudio.instances.length - 1];
+  const beforeUnlock = feelCtx.voices;
+  const feelJuice = createJuice(scene);
+  const sweepsBefore = feelJuice.sweeps.length;
+  presentEvent(feelAudio, feelJuice, { type: 'zone_unlocked', zoneId: 'ps_downtown' }, null);
+  ok(heard.includes('zone_unlocked') && feelCtx.voices > beforeUnlock, 'unlock plays the fanfare');
+  ok(feelJuice.sweeps.some((row) => row.kind === 'fog') && feelJuice.sweeps.length > sweepsBefore, 'unlock lifts a fog sweep');
+  const drawn = circles.length;
+  feelJuice.step(0.05);
+  ok(circles.length > drawn, 'the reveal sweep draws');
+  const dustAt = feelJuice.parts.length;
+  presentEvent(feelAudio, feelJuice, { type: 'demolish_started', lotId: 'lot_rp_hacienda' }, null);
+  ok(feelJuice.parts.length - dustAt >= 16, 'demolition throws a dust burst');
+  presentEvent(feelAudio, feelJuice, { type: 'control_gained', zoneId: 'ps_docks' }, null);
+  ok(feelJuice.sweeps.some((row) => row.kind === 'flash'), 'taking a neighborhood flashes it');
+
+  const feel = new CartelSimulation(() => {});
+  attachFeel(feel, feelAudio, () => feelJuice, () => ({ x: 480, y: 640, night: false }));
+  feel.state.cleanCash = 5000;
+  const deal = feel.negotiate('lot_rp_hacienda');
+  ok(deal.ok && heard.includes('negotiate_ok'), 'a successful negotiation cues');
+  const shove = feel.intimidate('lot_ja_hacienda', 0);
+  ok(shove.ok === false && heard.includes('intimidate_fail'), 'a failed lean cues');
+  feel.observeFrame(0.016);
+  for (const lot of Object.values(feel.state.lots)) {
+    if (lot.zoneId !== 'ps_downtown') continue;
+    lot.owned = true;
+    lot.phase = 'operating';
+  }
+  feel.state.zones.ps_downtown.heat = 0;
+  feel.observeFrame(0.016);
+  ok(heard.includes('control_gained'), 'crossing a control mark cues from the frame hook');
+  feelAudio.stop();
 
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);

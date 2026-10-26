@@ -17,6 +17,7 @@ function pointOf(scene, target) {
 export function createJuice(scene) {
   const floaters = [];
   const parts = [];
+  const sweeps = [];
   let graphics = null;
   if (scene.add && scene.add.graphics) {
     graphics = scene.add.graphics();
@@ -90,6 +91,46 @@ export function createJuice(scene) {
     while (parts.length > 80) parts.shift();
   }
 
+  function demolishDust(target) {
+    const p = pointOf(scene, target);
+    if (!p) return;
+    for (let i = 0; i < 16; i++) {
+      const a = (Math.PI * 2 * i) / 16 + Math.random() * 0.3;
+      const speed = 20 + Math.random() * 50;
+      parts.push({
+        x: p.x + (Math.random() - 0.5) * 20,
+        y: p.y,
+        vx: Math.cos(a) * speed,
+        vy: -20 - Math.random() * 40,
+        life: 0.85 + Math.random() * 0.4,
+        r: 3 + Math.random() * 3,
+        color: i % 2 ? 0xc4b6a2 : 0x8d8376
+      });
+    }
+    while (parts.length > 80) parts.shift();
+  }
+
+  function unlockSweep(target, label) {
+    const p = pointOf(scene, target) || { x: 480, y: 640 };
+    sweeps.push({ kind: 'fog', x: p.x, y: p.y, life: 1.35, r: 70 });
+    if (label && scene.add && scene.add.text) {
+      const text = scene.add.text(p.x, p.y - 30, label, {
+        fontFamily: 'Outfit, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700',
+        color: '#e7f6ff'
+      });
+      if (text.setOrigin) text.setOrigin(0.5);
+      if (text.setDepth) text.setDepth(33);
+      floaters.push({ node: text, slotId: label, x: p.x, y: p.y - 30, life: 1.35, vy: 22 });
+    }
+  }
+
+  function controlFlash(target) {
+    const p = pointOf(scene, target) || { x: 480, y: 640 };
+    sweeps.push({ kind: 'flash', x: p.x, y: p.y, life: 0.7, r: 36 });
+  }
+
   function step(dt) {
     const stepDt = Math.max(0, Number(dt) || 0);
     if (graphics && graphics.clear) graphics.clear();
@@ -103,8 +144,22 @@ export function createJuice(scene) {
       p.x += p.vx * stepDt;
       p.y += p.vy * stepDt;
       p.vy += 40 * stepDt;
+      if (!graphics) continue;
       if (graphics.fillStyle) graphics.fillStyle(p.color, Math.max(0, p.life));
       if (graphics.fillCircle) graphics.fillCircle(p.x, p.y, p.r);
+    }
+    for (let i = sweeps.length - 1; i >= 0; i--) {
+      const s = sweeps[i];
+      s.life -= stepDt;
+      if (s.life <= 0) {
+        sweeps.splice(i, 1);
+        continue;
+      }
+      const grow = s.kind === 'fog' ? (1.35 - s.life) * 180 : (0.7 - s.life) * 220;
+      const alpha = Math.max(0, s.life) * (s.kind === 'fog' ? 0.22 : 0.4);
+      if (!graphics) continue;
+      if (graphics.fillStyle) graphics.fillStyle(s.kind === 'fog' ? 0xd5e4ee : 0x8ec5ff, alpha);
+      if (graphics.fillCircle) graphics.fillCircle(s.x, s.y - (s.kind === 'fog' ? (1.35 - s.life) * 40 : 0), s.r + grow);
     }
     for (let i = floaters.length - 1; i >= 0; i--) {
       const f = floaters[i];
@@ -119,5 +174,5 @@ export function createJuice(scene) {
     }
   }
 
-  return { cashPop, shake, pulseBuilding, burst, step, floaters, parts };
+  return { cashPop, shake, pulseBuilding, burst, demolishDust, unlockSweep, controlFlash, step, floaters, parts, sweeps };
 }

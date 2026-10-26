@@ -11,6 +11,7 @@ import { createAudio } from './audio.js';
 import { createJuice } from './audio/juice.js';
 import { lotDef } from './data/lots.js';
 import { buildSeconds } from './systems/lots.js';
+import { attachFeel, presentEvent } from './systems/hooks.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -63,17 +64,10 @@ if (hasSave) {
   sim.load();
 }
 
-function anyRaid() {
-  return Object.values(sim.state.regions).some((region) => region.raidActive);
-}
-
 function handleSimEvent(evt) {
   const sceneLive = mapScene && mapScene.sys && mapScene.sys.isActive();
   if (sceneLive) mapScene.fx(evt);
-  else {
-    audio.cue(evt);
-    audio.setTension(anyRaid());
-  }
+  else presentEvent(audio, null, evt, sim);
   if (
     evt.type === 'built' ||
     evt.type === 'upgraded' ||
@@ -1104,8 +1098,8 @@ function bootPhaser() {
 
   phaserGame = new window.Phaser.Game(config);
   phaserGame.registry.set('onJuice', (evt) => {
-    audio.cue(evt);
-    audio.setTension(anyRaid());
+    const juice = mapScene && mapScene.registry ? mapScene.registry.get('juice') : null;
+    presentEvent(audio, juice, evt, sim);
   });
   phaserGame.registry.set('sim', sim);
   phaserGame.registry.set('onSlotSelected', (slotId) => {
@@ -1124,6 +1118,19 @@ function bootPhaser() {
   phaserGame.registry.set('bindScene', (scene) => {
     mapScene = scene;
     if (!scene.registry.get('juice')) scene.registry.set('juice', createJuice(scene));
+    attachFeel(
+      sim,
+      audio,
+      () => scene.registry.get('juice'),
+      () => {
+        const mid = scene.cameras && scene.cameras.main && scene.cameras.main.midPoint;
+        return {
+          x: mid ? mid.x : 480,
+          y: mid ? mid.y : 640,
+          night: !!(scene.isNight && scene.isNight())
+        };
+      }
+    );
   });
 
   phaserGame.events.on('ready', () => {
