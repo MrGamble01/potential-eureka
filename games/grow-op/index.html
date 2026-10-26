@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Grow Op: San Verde '84 — Cartel Logistics &amp; Laundering Sim</title>
+  <meta name="description" content="Build botanical plantations, processing labs, warehouses, and laundering fronts across a 1980s Latin American region. A Phaser 3 management sim.">
+  <meta name="theme-color" content="#12151c">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2312151c'/><path d='M32 12L14 22v20l18 10 18-10V22L32 12z' fill='none' stroke='%233ddc97' stroke-width='4'/><circle cx='32' cy='32' r='6' fill='%2358a6ff'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@700;800&display=swap">
+  <link rel="stylesheet" href="grow-op.css">
+</head>
+<body>
+  <!-- Full-viewport Phaser 3 Regional Map Canvas -->
+  <div id="phaser-mount" aria-label="San Verde 1984 Regional Operations Map"></div>
+  <div id="go-pins" aria-hidden="true"></div>
+
+  <!-- Top Studio Command Bar (Dirty Cash vs Clean Cash, Regional Heat, Act/Day, Speed) -->
+  <header class="go-topbar" role="banner">
+    <div class="go-brand-group">
+      <a class="go-back-link" href="/" aria-label="Back to Arcade">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4L6 10l6 6"/></svg>
+        <span>ARCADE</span>
+      </a>
+      <div class="go-act-pill">
+        <span class="go-act-kicker" id="act-kicker">ACT I — THE VALLEY FOOTPRINT</span>
+        <span class="go-day-sub" id="day-sub">Day 1 · Fleet 0/6 Trucks</span>
+      </div>
+    </div>
+
+    <div class="go-meters" role="region" aria-label="Financial &amp; Heat Telemetry">
+      <div class="go-meter go-meter--dirty" title="Dirty Cash: Earned from smuggling exports. Spent on field construction and upkeep.">
+        <span class="go-meter-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="16" height="10" rx="2"/><circle cx="10" cy="10" r="2.2"/><path d="M5 8v4M15 8v4"/></svg>
+        </span>
+        <div class="go-meter-body">
+          <span class="go-meter-label">Dirty Cash</span>
+          <strong class="go-meter-val" id="dirty-cash-val">$850</strong>
+        </div>
+      </div>
+
+      <div class="go-meter go-meter--clean" title="Clean Cash: Laundered through legal fronts (Taxi Co, Salsa Club, Bank) or Coffee exports. Unlocks regions, upgrades, and lieutenants.">
+        <span class="go-meter-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7-5 7 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z"/><path d="M7 18v-6h6v6"/></svg>
+        </span>
+        <div class="go-meter-body">
+          <span class="go-meter-label">Clean Cash</span>
+          <strong class="go-meter-val" id="clean-cash-val">$350</strong>
+        </div>
+      </div>
+
+      <div class="go-meter go-meter--heat" id="heat-meter" title="Regional Heat: High heat triggers DEA &amp; Policía raids. Lower with legal fronts, bribes, or security lieutenants.">
+        <span class="go-meter-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2.5 16.5h15L10 2z"/><path d="M10 8v4"/><circle cx="10" cy="14.5" r="0.6" fill="currentColor"/></svg>
+        </span>
+        <div class="go-meter-body">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
+            <span class="go-meter-label">Heat</span>
+            <strong class="go-meter-val" id="heat-val">14%</strong>
+          </div>
+          <div class="go-heat-bar-track" aria-hidden="true">
+            <div class="go-heat-bar-fill" id="heat-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="go-top-actions">
+      <button type="button" class="go-icon-btn" id="btn-pause" aria-label="Pause or Resume Simulation">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5v10M13 5v10"/></svg>
+        <span>Pause</span>
+      </button>
+      <button type="button" class="go-icon-btn" id="btn-speed" aria-label="Simulation Speed">1×</button>
+      <div class="go-mix" id="go-mix">
+        <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Sound mix" aria-expanded="false" aria-controls="mix-panel">Sound</button>
+        <div class="go-mix-panel" id="mix-panel" hidden>
+          <label class="go-mix-row"><span>Mute</span><input type="checkbox" id="mix-muted"></label>
+          <label class="go-mix-row"><span>Master</span><input type="range" id="mix-master" min="0" max="100" value="80"></label>
+          <label class="go-mix-row"><span>Music</span><input type="range" id="mix-music" min="0" max="100" value="62"></label>
+          <label class="go-mix-row"><span>SFX</span><input type="range" id="mix-sfx" min="0" max="100" value="85"></label>
+        </div>
+      </div>
+      <button type="button" class="go-icon-btn" id="btn-briefing" aria-label="Open Operation Briefing">Brief</button>
+    </div>
+  </header>
+
+  <!-- Prominent Current Objective Card & Raid Alert Strip -->
+  <section class="go-subhud" aria-label="Current Objective &amp; Alerts">
+    <article class="go-objective-card" id="objective-card">
+      <div class="go-obj-header">
+        <span class="go-obj-kicker">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="10" r="3.5"/></svg>
+          CURRENT OBJECTIVE
+        </span>
+        <span class="go-obj-reward" id="obj-reward">+$250 Clean</span>
+      </div>
+      <h2 class="go-obj-title" id="obj-title">First River Export</h2>
+      <p class="go-obj-desc" id="obj-desc">Run your Río Plata supply chain (Plantation → Drying Barn → River Pier) until you accumulate $1,200 in total Dirty Cash.</p>
+      <div class="go-obj-prog-row">
+        <div class="go-obj-bar" aria-hidden="true">
+          <div class="go-obj-bar-fill" id="obj-bar-fill"></div>
+        </div>
+        <span id="obj-prog-text">150 / 1,200</span>
+      </div>
+      <p id="route-line">Routes quiet until a truck rolls.</p>
+    </article>
+
+    <article class="go-raid-banner" id="raid-banner" role="alert">
+      <div class="go-raid-info">
+        <span class="go-raid-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a4 4 0 0 1 8 0v4H6V9z"/><path d="M4 13h12v2.5H4z"/><path d="M10 2v2.5M3.5 4.5l1.8 1.8M16.5 4.5l-1.8 1.8"/></svg>
+        </span>
+        <div>
+          <h3 class="go-raid-title" id="raid-title">DEA &amp; POLICÍA RAID: RÍO PLATA</h3>
+          <p class="go-raid-sub" id="raid-sub">Confiscation imminent — Pay off commandante to lift lockdown.</p>
+        </div>
+      </div>
+      <button type="button" class="go-raid-btn" id="raid-action-btn" data-region="rio_plata">Bribe Officials</button>
+    </article>
+  </section>
+
+  <!-- Contextual Build & Facility Inspector Drawer -->
+  <aside class="go-drawer" id="go-drawer" aria-label="Facility Inspector &amp; Build Menu">
+    <div class="go-drawer-header">
+      <div class="go-drawer-title-wrap">
+        <span class="go-drawer-kicker" id="drawer-kicker">Río Plata Valley · Puerto Plata</span>
+        <h2 class="go-drawer-title" id="drawer-title">Botanical Plantation</h2>
+      </div>
+      <button type="button" class="go-drawer-close" id="drawer-close" aria-label="Close Inspector">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg>
+      </button>
+    </div>
+
+    <div class="go-drawer-tabs" role="tablist">
+      <button type="button" class="go-tab-btn is-active" data-tab="slot" role="tab">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2L2.5 6.2v7.6L10 18l7.5-4.2V6.2L10 2z"/></svg>
+        <span>Site</span>
+      </button>
+      <button type="button" class="go-tab-btn" data-tab="lieutenants" role="tab">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
+        <span>Crew</span>
+      </button>
+      <button type="button" class="go-tab-btn" data-tab="territory" role="tab">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17.5s5.5-4.8 5.5-9A5.5 5.5 0 0 0 4.5 8.5c0 4.2 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>
+        <span>Land</span>
+      </button>
+      <button type="button" class="go-tab-btn" data-tab="research" role="tab">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 3h5M8.5 3v4.5L4 15.5a1.5 1.5 0 0 0 1.3 2.2h9.4a1.5 1.5 0 0 0 1.3-2.2L11.5 7.5V3"/></svg>
+        <span>Lab</span>
+      </button>
+    </div>
+
+    <div class="go-drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <!-- Bottom Action Dock & Live Logistics Ticker -->
+  <footer class="go-bottom-bar">
+    <div class="go-quick-dock" role="toolbar" aria-label="Syndicate Operations">
+      <button type="button" class="go-dock-btn is-active" id="dock-build-btn" data-tab="slot" aria-label="Build and inspect">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 4v12M4 10h12"/></svg>
+        <span>Build</span>
+      </button>
+      <button type="button" class="go-dock-btn" id="dock-lt-btn" data-tab="lieutenants" aria-label="Lieutenants">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
+        <span>Crew</span>
+      </button>
+      <button type="button" class="go-dock-btn" id="dock-territory-btn" data-tab="territory" aria-label="Territory">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17.5s5.5-4.8 5.5-9A5.5 5.5 0 0 0 4.5 8.5c0 4.2 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>
+        <span>Land</span>
+      </button>
+      <button type="button" class="go-dock-btn" id="dock-lab-btn" data-tab="research" aria-label="Research">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 3h5M8.5 3v4.5L4 15.5a1.5 1.5 0 0 0 1.3 2.2h9.4a1.5 1.5 0 0 0 1.3-2.2L11.5 7.5V3"/></svg>
+        <span>Lab</span>
+      </button>
+    </div>
+
+    <div class="go-feed-ticker" id="feed-ticker" role="status" aria-live="polite">
+      <strong>[Day 1]</strong> Río Plata supply chain online: Plantation → Drying Barn → Warehouse → River Pier.
+    </div>
+  </footer>
+
+  <!-- Title / Operation Briefing Modal -->
+  <div class="go-modal-backdrop" id="title-modal" role="dialog" aria-modal="true" aria-labelledby="title-heading">
+    <div class="go-title-card">
+      <div class="go-title-eyebrow">SAN VERDE PROVINCE · 1984 LOGISTICS &amp; LAUNDERING SIM</div>
+      <h1 class="go-title-heading" id="title-heading">Grow Op: Cartel Tycoon</h1>
+      <p class="go-title-lead">
+        From a single valley clearing to a three-province logistics network. Cultivate high-altitude botanicals, process and conceal cargo, route truck fleets to river piers and bush aerodromes, and launder street bills through legal fronts before federal heat brings a raid.
+      </p>
+
+      <div class="go-pillar-grid">
+        <div class="go-pillar">
+          <div class="go-pillar-head">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="5" width="10.5" height="8.5" rx="1"/><path d="M12 8h3.5l2.5 3v2.5h-6V8z"/><circle cx="5.5" cy="15" r="1.8"/><circle cx="15" cy="15" r="1.8"/></svg>
+            <span>Visible Supply Chains</span>
+          </div>
+          <p>Plantations &amp; Coffee Estates feed Drying Barns, Packer Mills, and Synthesis Labs. Cargo trucks haul crates along regional highways to River Piers and Aerodromes.</p>
+        </div>
+
+        <div class="go-pillar">
+          <div class="go-pillar-head">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8l7-5 7 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z"/><path d="M7 18v-6h6v6"/></svg>
+            <span>Dirty vs. Clean Cash</span>
+          </div>
+          <p>Smuggling pays Dirty Cash for field construction. Launder Dirty Cash through Taxi Fleets, Salsa Clubs, and Regional Banks to fund upgrades, territory, and lieutenants.</p>
+        </div>
+
+        <div class="go-pillar">
+          <div class="go-pillar-head">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2L2.5 16.5h15L10 2z"/><path d="M10 8v4"/><circle cx="10" cy="14.5" r="0.6" fill="currentColor"/></svg>
+            <span>Regional Heat &amp; Raids</span>
+          </div>
+          <p>Unmasked exports raise regional heat. When heat peaks, DEA &amp; Policía lock down facilities until bribed or repelled by your security enforcers.</p>
+        </div>
+
+        <div class="go-pillar">
+          <div class="go-pillar-head">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
+            <span>Lieutenants &amp; Rivals</span>
+          </div>
+          <p>Station specialist lieutenants across provinces for production, laundering, and defense buffs—and push Los Lobos Syndicate out of Sierra Alta.</p>
+        </div>
+      </div>
+
+      <div class="go-title-actions">
+        <button type="button" class="go-cta-btn" id="btn-start-operation">Launch Operation</button>
+        <button type="button" class="go-secondary-btn" id="btn-sandbox">Sandbox</button>
+        <button type="button" class="go-secondary-btn" id="btn-new-operation" hidden>Reset &amp; Start Fresh</button>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="go-control-toggle" id="btn-control" aria-pressed="false" aria-label="Neighborhood control">Control</button>
+  <div class="go-reveal" id="reveal-banner" hidden>
+    <strong>The coast is open</strong>
+    <span>Selva Alta, Boca del Río, Mesa Grande, then Puerto Sol. Unlock a zone, then buy a lot or tear one down.</span>
+  </div>
+  <div class="go-sheet" id="lot-card" hidden>
+    <div class="go-sheet-card" role="dialog" aria-modal="true" aria-labelledby="lot-title">
+      <header class="go-sheet-head">
+        <div>
+          <p class="go-sheet-kicker" id="lot-kicker"></p>
+          <h2 id="lot-title"></h2>
+        </div>
+        <button type="button" class="go-drawer-close" data-close aria-label="Close lot">×</button>
+      </header>
+      <p class="go-sheet-meta" id="lot-meta"></p>
+      <div class="go-sheet-gate" id="lot-gate" hidden></div>
+      <div class="go-lot-paths" id="lot-paths"></div>
+      <p class="go-sheet-note" id="lot-note"></p>
+    </div>
+  </div>
+  <div class="go-sheet" id="zone-card" hidden>
+    <div class="go-sheet-card" role="dialog" aria-modal="true" aria-labelledby="zone-title">
+      <header class="go-sheet-head">
+        <div>
+          <p class="go-sheet-kicker" id="zone-kicker"></p>
+          <h2 id="zone-title"></h2>
+        </div>
+        <button type="button" class="go-drawer-close" data-close aria-label="Close zone">×</button>
+      </header>
+      <div id="zone-body"></div>
+      <p class="go-sheet-note" id="zone-note"></p>
+    </div>
+  </div>
+  <div class="go-tutorial" id="tutorial-bar" hidden>
+    <p id="tutorial-text"></p>
+    <button type="button" id="tutorial-next">Next</button>
+  </div>
+  <div class="go-event" id="event-card" hidden>
+    <p class="go-event-kicker">Dispatch</p>
+    <h3 id="event-title"></h3>
+    <p id="event-body"></p>
+    <div class="go-event-actions" id="event-actions"></div>
+  </div>
+  <script src="vendor/phaser.min.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

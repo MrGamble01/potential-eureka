@@ -338,6 +338,24 @@ const TARGETS = [
     },
   },
   {
+    name: 'Grow Op Cartel Tycoon',
+    path: '/games/grow-op/index.html',
+    file: 'games/grow-op/index.html',
+    check: async (page) => {
+      await page.waitForSelector('#phaser-mount canvas', { timeout: 20000 });
+      const first = await assertPainted(page, '#phaser-mount canvas', 'Grow Op Cartel Tycoon');
+      await page.locator('#btn-start-operation').click({ timeout: 8000 });
+      await page.waitForFunction(() => {
+        const m = document.getElementById('title-modal');
+        return m && m.hidden === true;
+      });
+      const dirty = (await page.locator('#dirty-cash-val').innerText()).replace(/[^0-9]/g, '');
+      const clean = (await page.locator('#clean-cash-val').innerText()).replace(/[^0-9]/g, '');
+      if (!dirty || !clean) throw new Error('Grow Op Cartel Tycoon cash HUD did not render');
+      await assertMoves(page, '#phaser-mount canvas', first.hash, 'Grow Op Cartel Tycoon');
+    },
+  },
+  {
     name: 'Homeless Village',
     path: '/homeless-village.html',
     file: 'homeless-village.html',
