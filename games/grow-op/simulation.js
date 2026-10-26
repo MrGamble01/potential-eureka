@@ -42,7 +42,7 @@ export function createInitialState() {
     regions[r.id] = {
       id: r.id,
       unlocked: r.actUnlock === 1 && r.unlockCostClean === 0,
-      heat: r.id === 'rio_plata' ? 14 : 6,
+      heat: 0,
       loyalty: r.id === 'rio_plata' ? 62 : 50,
       raidActive: false,
       raidTimer: 0,
@@ -63,7 +63,7 @@ export function createInitialState() {
     };
   }
 
-  return {
+  const state = {
     version: 1,
     started: false,
     paused: false,
@@ -105,6 +105,7 @@ export function createInitialState() {
     difficulty: 'standard',
     difficultyMods: null,
     heatIntro: false,
+    noSeizure: true,
     heatHandled: 0,
     patrolsHandled: 0,
     routesCompleted: 0,
@@ -129,6 +130,28 @@ export function createInitialState() {
       { id: 2, time: 'Day 1', text: 'Dirty Cash pays for field expansion. Launder Dirty Cash through Fronts to earn Clean Cash.', kind: 'ok' }
     ]
   };
+  settlePeace(state);
+  return state;
+}
+
+function settlePeace(state) {
+  if (!state || !state.noSeizure) return;
+  for (const reg of Object.values(state.regions || {})) {
+    reg.heat = 0;
+    reg.patrol = null;
+    reg.raidActive = false;
+    reg.raidTimer = 0;
+    if (reg.raidTargetSlot && state.slots && state.slots[reg.raidTargetSlot]) {
+      state.slots[reg.raidTargetSlot].raidLocked = false;
+    }
+    reg.raidTargetSlot = null;
+  }
+  for (const zone of Object.values(state.zones || {})) {
+    zone.heat = 0;
+    zone.patrol = null;
+    zone.raidActive = false;
+    zone.raidTimer = 0;
+  }
 }
 
 export class CartelSimulation {
@@ -231,6 +254,7 @@ export class CartelSimulation {
         if (!row.zoneId && row.regionId) row.zoneId = row.regionId;
       }
       refreshControl(this.state);
+      settlePeace(this.state);
       return true;
     } catch (e) {
       return false;
@@ -753,7 +777,7 @@ export class CartelSimulation {
               this.state.totalDirtyEarned += earnedDirty;
               this.state.totalCleanEarned += earnedClean;
               this.state.totalExportedUnits += shippedUnits;
-              if (!this.state.tutorialDone && !this.state.heatIntro) {
+              if (!this.state.noSeizure && !this.state.tutorialDone && !this.state.heatIntro) {
                 this.state.heatIntro = true;
                 reg.heat = Math.min(92, reg.heat + 28);
                 this.advanceTutorial(3);
@@ -806,6 +830,7 @@ export class CartelSimulation {
     // 3. Update Regional Heat & Raids
     for (const reg of Object.values(this.state.regions)) {
       if (!reg.unlocked) continue;
+      if (this.state.noSeizure) continue;
       const regDef = REGIONS.find((r) => r.id === reg.id);
       const mods = this.getRegionModifiers(reg.id);
 
@@ -882,6 +907,7 @@ export class CartelSimulation {
     }
     refreshControl(this.state);
     syncMap(this.state);
+    settlePeace(this.state);
 
     // 4. Autosave periodically
     this.saveTimer += dt;
@@ -909,7 +935,7 @@ export class CartelSimulation {
       this.log(`${note.name} walked with $${note.skim} and talked to Ruiz.`, 'danger');
       this.onEvent({ type: 'betrayed', ltId: note.id, zoneId: note.zoneId });
     }
-    const notes = tickRivals(this.state, this.state.elapsedSeconds);
+    const notes = this.state.noSeizure ? [] : tickRivals(this.state, this.state.elapsedSeconds);
     for (const note of notes) {
       this.log(note.text, note.slotId || note.lotId ? 'danger' : 'warn');
       if (note.slotId || note.lotId) this.onEvent({ type: 'rival_raid', slotId: note.slotId || null, lotId: note.lotId || null, rivalId: note.rivalId });
@@ -1101,6 +1127,7 @@ export class CartelSimulation {
     this.state.event = null;
     this.state.eventCooldown = 24;
     this.onEvent({ type: 'event_resolved', id: card.id, effect: choice.effect });
+    settlePeace(this.state);
     this.save();
     return { ok: true };
   }

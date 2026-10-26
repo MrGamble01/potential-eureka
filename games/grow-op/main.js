@@ -1167,6 +1167,11 @@ window.__growOp = {
   focusSmuggle: () => { if (mapScene) mapScene.focusOnSlot('slot_rp_pier', true); },
   frameOverview: () => { if (mapScene) mapScene.frameOverview(); },
   frameValley: () => { if (mapScene) mapScene.frameValley(true); },
+  camera: () => {
+    if (!mapScene) return null;
+    const cam = mapScene.cameras.main;
+    return { x: cam.scrollX, y: cam.scrollY, zoom: cam.zoom };
+  },
   frameClose: () => { if (mapScene) mapScene.frameClose(true); },
   openPanel: (tab) => {
     activeTab = tab;

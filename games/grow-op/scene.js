@@ -174,9 +174,23 @@ export class MapScene extends window.Phaser.Scene {
     return !(canvas && (el === canvas || canvas.contains(el)));
   }
 
+  haltCamera() {
+    const cam = this.cameras.main;
+    if (cam.panEffect && cam.panEffect.isRunning) cam.panEffect.reset();
+    if (cam.zoomEffect && cam.zoomEffect.isRunning) cam.zoomEffect.reset();
+  }
+
+  clampCamera() {
+    const cam = this.cameras.main;
+    const open = this.sim && this.sim.state && this.sim.state.mapOpen;
+    cam.setBounds(0, 0, open ? MAP_W : WORLD_W, open ? MAP_H : WORLD_H);
+  }
+
   bindCamera() {
+    if (this.input.addPointer) this.input.addPointer(1);
     this.input.on('pointerdown', (p) => {
       if (this.pointingAtUi(p)) return;
+      this.haltCamera();
       this.drag = true;
       this.dragMoved = false;
       this.dragFrom = { x: p.x, y: p.y, sx: this.cameras.main.scrollX, sy: this.cameras.main.scrollY };
@@ -184,11 +198,13 @@ export class MapScene extends window.Phaser.Scene {
     this.input.on('pointermove', (p) => {
       const a = this.input.pointer1;
       const b = this.input.pointer2;
-      if (a.isDown && b.isDown) {
+      if (a && b && a.isDown && b.isDown) {
+        this.haltCamera();
         const d = window.Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
         if (this.pinch != null) {
           const zoom = window.Phaser.Math.Clamp(this.cameras.main.zoom + (d - this.pinch) * 0.003, this.minZoom(), 2.8);
           this.cameras.main.setZoom(zoom);
+          this.clampCamera();
         }
         this.pinch = d;
         this.dragMoved = true;
@@ -207,12 +223,15 @@ export class MapScene extends window.Phaser.Scene {
         const z = this.cameras.main.zoom;
         this.cameras.main.scrollX = this.dragFrom.sx - dx / z;
         this.cameras.main.scrollY = this.dragFrom.sy - dy / z;
+        this.clampCamera();
       }
     });
     this.input.on('pointerup', () => { this.drag = false; this.pinch = null; });
     this.input.on('wheel', (_p, _o, _dx, dy) => {
+      this.haltCamera();
       this.userPanned = true;
       this.cameras.main.setZoom(window.Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.0008, this.minZoom(), 2.8));
+      this.clampCamera();
     });
     this.cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
   }
@@ -294,6 +313,7 @@ export class MapScene extends window.Phaser.Scene {
       if (this.cursors.right.isDown) this.cameras.main.scrollX += step;
       if (this.cursors.up.isDown) this.cameras.main.scrollY -= step;
       if (this.cursors.down.isDown) this.cameras.main.scrollY += step;
+      this.clampCamera();
     }
     this.syncRegions();
     this.syncSlots();
