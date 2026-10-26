@@ -425,12 +425,16 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
     top:var(--vox-quests-tablet, 168px);bottom:auto;right:auto;left:10px;
     width:min(250px,42vw)}
 }
+@media (min-width:641px) and (max-width:1024px){
+  #back{top:var(--vox-back-top, 64px)}
+  #goodsHud{top:var(--vox-goods-top, 112px)}
+}
 @media (max-width:640px){
   #quests{display:none!important}
   html.hud-b[data-game="voxel"] #back button,
   html.hud-b[data-game="voxel"] #back a{min-height:44px}
   #mateBubble{left:8px;bottom:calc(188px + env(safe-area-inset-bottom));max-width:min(200px,58vw)}
-  #toasts{top:22%}
+  #toasts{top:var(--vox-toast-top, 300px);max-width:min(240px,62vw)}
   html.hud-b[data-game="voxel"] #hotbar{padding:3px 5px}
 }
 @media (max-height:480px){
@@ -6692,7 +6696,11 @@ function placeQuestCard(){
     document.documentElement.style.removeProperty('--vox-quests-top');
   }
   if(innerWidth>640&&innerWidth<=1024&&innerHeight>800){
-    const next=Math.round(back.getBoundingClientRect().bottom+12)+'px';
+    const goods=document.getElementById('goodsHud');
+    const shown=goods&&getComputedStyle(goods).display!=='none';
+    const gb=shown?goods.getBoundingClientRect():null;
+    const floor=Math.max(back.getBoundingClientRect().bottom, gb&&gb.height?gb.bottom:0);
+    const next=Math.round(floor+12)+'px';
     if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')!==next)
       document.documentElement.style.setProperty('--vox-quests-tablet', next);
   } else if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')){
@@ -6704,24 +6712,30 @@ function placePhoneBack(){
   const back=document.getElementById('back');
   const topbar=document.getElementById('topbar');
   if(!back)return;
-  if(innerWidth<=640){
+  const root=document.documentElement.style;
+  if(innerWidth<=1024){
     const bar=topbar?topbar.getBoundingClientRect():null;
     const chipBox=chip&&!chip.hidden?chip.getBoundingClientRect():null;
     const floor=Math.max(bar&&bar.height?bar.bottom:0, chipBox?chipBox.bottom:0);
     if(floor>0){
       const next=Math.round(floor+8)+'px';
-      if(document.documentElement.style.getPropertyValue('--vox-back-top')!==next)
-        document.documentElement.style.setProperty('--vox-back-top', next);
+      if(root.getPropertyValue('--vox-back-top')!==next)root.setProperty('--vox-back-top', next);
     }
-    // Keep banked goods below both New isle and the relocated nav rail.
-    const goods=Math.ceil(Math.max(floor, back.getBoundingClientRect().bottom)+8)+'px';
-    if(document.documentElement.style.getPropertyValue('--vox-goods-top')!==goods)
-      document.documentElement.style.setProperty('--vox-goods-top', goods);
+    // Goods and phone toasts sit under the nav rail, which wraps once the
+    // chips take more than one line.
+    const under=Math.ceil(Math.max(floor, back.getBoundingClientRect().bottom)+8)+'px';
+    if(innerWidth<=640){
+      if(root.getPropertyValue('--vox-goods-top')!==under)root.setProperty('--vox-goods-top', under);
+      const toast=Math.ceil(back.getBoundingClientRect().bottom+10)+'px';
+      if(root.getPropertyValue('--vox-toast-top')!==toast)root.setProperty('--vox-toast-top', toast);
+    } else {
+      if(root.getPropertyValue('--vox-goods-top')!==under)root.setProperty('--vox-goods-top', under);
+      if(root.getPropertyValue('--vox-toast-top'))root.removeProperty('--vox-toast-top');
+    }
   } else {
-    if(document.documentElement.style.getPropertyValue('--vox-back-top'))
-      document.documentElement.style.removeProperty('--vox-back-top');
-    if(document.documentElement.style.getPropertyValue('--vox-goods-top'))
-      document.documentElement.style.removeProperty('--vox-goods-top');
+    ['--vox-back-top','--vox-goods-top','--vox-toast-top'].forEach(name=>{
+      if(root.getPropertyValue(name))root.removeProperty(name);
+    });
   }
   placeQuestCard();
 }
