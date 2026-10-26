@@ -42,6 +42,13 @@ export class MapScene extends window.Phaser.Scene {
     this.life = this.add.graphics();
     this.flow = this.add.graphics();
     this.sky = this.add.graphics().setDepth(30);
+    this.fontsReady = !!(document.fonts && document.fonts.status === 'loaded');
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { this.fontsReady = true; });
+    } else {
+      this.fontsReady = true;
+    }
+    this.pinHost = document.getElementById('go-pins');
     this.drawTerrain();
     this.drawHatch();
     this.createPlates();
@@ -66,36 +73,26 @@ export class MapScene extends window.Phaser.Scene {
   createPlates() {
     this.plates = {};
     for (const [id, plate] of Object.entries(PLATES)) {
-      const bg = this.add.rectangle(plate.x, plate.y, 210, 36, 0x141910, 0.72).setStrokeStyle(1, 0xe7d7b8, 0.35);
-      const title = this.add.text(plate.x, plate.y - 6, plate.title, {
-        fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontStyle: '700', color: '#f4efe4'
-      }).setOrigin(0.5);
-      const sub = this.add.text(plate.x, plate.y + 10, plate.sub, {
-        fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#d5c7a4'
-      }).setOrigin(0.5);
-      this.plates[id] = { bg, title, sub };
+      const el = document.createElement('div');
+      el.className = 'go-plate';
+      el.innerHTML = '<strong></strong><span></span>';
+      el.hidden = true;
+      this.pinHost.appendChild(el);
+      this.plates[id] = { el, x: plate.x, y: plate.y, title: plate.title, sub: plate.sub };
     }
   }
 
   createBadges() {
     for (const reg of REGIONS) {
       if (!reg.unlockCostClean) continue;
-      const at = reg.unlockPos;
-      const root = this.add.container(at.x, at.y);
-      const bg = this.add.rectangle(0, 0, 250, 48, 0x121820, 0.94).setStrokeStyle(1.5, 0x79b8ff, 0.9);
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerup', () => {
-        if (!this.dragMoved) this.onRegionSelected(reg.id);
-      });
-      const title = this.add.text(0, -8, `Unlock ${reg.name}`, {
-        fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontStyle: '700', color: '#f4efe4'
-      }).setOrigin(0.5);
-      const cost = this.add.text(0, 10, `$${reg.unlockCostClean} clean cash`, {
-        fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#8ec5ff'
-      }).setOrigin(0.5);
-      root.add([bg, title, cost]);
-      root.setDepth(5);
-      this.badges[reg.id] = root;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'go-badge';
+      el.innerHTML = `<strong>Unlock ${reg.name}</strong><span>$${reg.unlockCostClean} clean cash</span>`;
+      el.addEventListener('click', () => this.onRegionSelected(reg.id));
+      el.hidden = true;
+      this.pinHost.appendChild(el);
+      this.badges[reg.id] = { el, x: reg.unlockPos.x, y: reg.unlockPos.y };
     }
   }
 
@@ -114,19 +111,14 @@ export class MapScene extends window.Phaser.Scene {
       const raid = this.add.ellipse(0, 12, 240, 150, 0xf85149, 0.1).setStrokeStyle(3, 0xf85149, 0.9).setVisible(false);
       const art = this.add.graphics();
       const pulse = this.add.ellipse(0, 18, 170, 78).setStrokeStyle(3, 0x8ec5ff, 1).setVisible(false);
-      const label = this.add.container(def.x, def.y - 120).setDepth(18);
-      const plate = this.add.graphics();
-      const font = 'Outfit, Inter, sans-serif';
-      const name = this.add.text(0, 0, '', {
-        fontFamily: font, fontSize: '13px', fontStyle: '700', color: '#f6f1e7'
-      }).setOrigin(0.5).setResolution(2);
-      const stock = this.add.text(0, 0, '', {
-        fontFamily: font, fontSize: '11px', color: '#c5d0dc'
-      }).setOrigin(0.5).setResolution(2);
-      label.add([plate, name, stock]);
+      const pin = document.createElement('div');
+      pin.className = 'go-pin';
+      pin.innerHTML = '<strong></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
+      pin.hidden = true;
+      this.pinHost.appendChild(pin);
       root.add([pulse, select, raid, hit, art]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, pulse, label, plate, name, stock, key: '' };
+      this.slots[def.id] = { def, root, hit, select, raid, art, pulse, pin, key: '' };
     }
   }
 
@@ -275,20 +267,24 @@ export class MapScene extends window.Phaser.Scene {
     for (const reg of REGIONS) {
       const state = this.sim.state.regions[reg.id];
       const badge = this.badges[reg.id];
-      if (badge) badge.setVisible(state && !state.unlocked);
+      if (badge) {
+        badge.el.hidden = !(state && !state.unlocked && this.fontsReady);
+        if (!badge.el.hidden) this.placeScreen(badge.el, badge.x, badge.y);
+      }
       const plate = this.plates[reg.id];
-      if (!plate || !state) continue;
+      if (!plate || !state || !this.fontsReady) {
+        if (plate) plate.el.hidden = true;
+        continue;
+      }
       const crew = LIEUTENANTS.filter((lt) => {
         const row = this.sim.state.lieutenants[lt.id];
         return row && row.hired && row.regionId === reg.id;
       }).map((lt) => lt.name.split(' ')[0]);
       const heat = state.unlocked ? ` · heat ${Math.floor(state.heat)}%` : ' · locked';
-      plate.sub.setText(`${PLATES[reg.id].sub}${heat}${crew.length ? ' · ' + crew[0] : ''}`);
-      const spot = this.worldToScreen(plate.bg.x, plate.bg.y);
-      const clear = !this.underHud(spot.x, spot.y, 120, 28);
-      plate.bg.setVisible(clear);
-      plate.title.setVisible(clear);
-      plate.sub.setVisible(clear);
+      plate.el.querySelector('strong').textContent = plate.title;
+      plate.el.querySelector('span').textContent = `${plate.sub}${heat}${crew.length ? ' · ' + crew[0] : ''}`;
+      plate.el.hidden = false;
+      this.placeScreen(plate.el, plate.x, plate.y);
     }
   }
 
@@ -332,22 +328,22 @@ export class MapScene extends window.Phaser.Scene {
       }
       if (built) {
         const def = BUILDINGS[state.buildingId];
-        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail, state.progress, state.raidLocked ? 0xf85149 : 0x7dcea0);
-        node.name.setColor(state.raidLocked ? '#ffb4ae' : '#f6f1e7');
+        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail, state.progress, state.raidLocked ? '#f85149' : '#7dcea0');
+        node.pin.classList.toggle('is-hot', !!state.raidLocked);
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.12) this.puff(node.def.x + 30, node.def.y - 70);
         }
       } else if (state.rivalControlled) {
-        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail, 0, 0xf85149);
-        node.name.setColor('#ffb4ae');
-        node.stock.setColor('#ffb4ae');
+        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail, 0, '#f85149');
+        node.pin.classList.add('is-hot');
       } else if (id === recommend) {
-        this.placeLabel(node, 'Open plot', '', names, false, 0, 0x8ec5ff);
-        node.name.setColor('#d5e4f5');
+        this.placeLabel(node, 'Open plot', '', names, false, 0, '#8ec5ff');
+        node.pin.classList.remove('is-hot');
       } else {
-        node.label.setVisible(false);
+        node.pin.hidden = true;
       }
     }
+    this.separatePins();
   }
 
   recommendedSlot() {
@@ -358,43 +354,84 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   placeLabel(node, title, stock, showName, showStock, progress, barColor) {
-    if (!showName) {
-      node.label.setVisible(false);
+    const el = node.pin;
+    if (!showName || !this.fontsReady) {
+      el.hidden = true;
       return;
     }
-    const cam = this.cameras.main;
-    const scale = Math.min(1.45, Math.max(0.62, 1 / cam.zoom));
-    node.label.setScale(scale);
-    node.name.setText(title);
-    const status = showStock && stock ? stock : '';
-    node.stock.setText(status);
-    node.stock.setVisible(!!status);
-    const nameW = Math.ceil(node.name.width);
-    const stockW = status ? Math.ceil(node.stock.width) : 0;
-    const w = Math.max(108, nameW + 22, stockW + 22);
-    const h = 22 + (status ? 18 : 0) + (showStock ? 12 : 0);
-    node.plate.clear();
-    node.plate.fillStyle(0x12161c, 0.94);
-    node.plate.fillRoundedRect(-w / 2, -h / 2, w, h, 9);
-    node.plate.lineStyle(1, 0x3d4c63, 1);
-    node.plate.strokeRoundedRect(-w / 2, -h / 2, w, h, 9);
-    node.name.setPosition(0, -h / 2 + 13);
-    node.stock.setPosition(0, -h / 2 + 30);
-    node.stock.setColor('#c5d0dc');
-    if (showStock) {
-      const bw = w - 16;
-      const bx = -bw / 2;
-      const by = h / 2 - 8;
-      node.plate.fillStyle(0x2a3344, 1);
-      node.plate.fillRoundedRect(bx, by, bw, 4, 2);
-      node.plate.fillStyle(barColor || 0x7dcea0, 1);
-      node.plate.fillRoundedRect(bx, by, Math.max(4, bw * Math.max(0, Math.min(1, progress || 0))), 4, 2);
+    el.hidden = false;
+    el.querySelector('strong').textContent = title;
+    const status = el.querySelector('span');
+    const line = showStock && stock ? stock : '';
+    status.hidden = !line;
+    status.textContent = line;
+    const bar = el.querySelector('.go-pin-bar');
+    bar.hidden = !showStock;
+    const fill = bar.querySelector('b');
+    fill.style.width = `${Math.round(Math.max(0, Math.min(1, progress || 0)) * 100)}%`;
+    fill.style.background = barColor || '#7dcea0';
+    this.placeScreen(el, node.def.x, node.def.y - 108);
+  }
+
+  placeScreen(el, worldX, worldY) {
+    const spot = this.worldToScreen(worldX, worldY);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    if (spot.x < -40 || spot.y < -40 || spot.x > vw + 40 || spot.y > vh + 40) {
+      el.hidden = true;
+      return false;
     }
-    const y = node.def.y - 118;
-    const spot = this.worldToScreen(node.def.x, y);
-    const blocked = this.underHud(spot.x, spot.y, (w * scale) / 2, (h * scale) / 2);
-    node.label.setVisible(!blocked);
-    node.label.setPosition(node.def.x, y);
+    el.hidden = false;
+    el.style.transform = 'translate(0px, 0px)';
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const hud = document.querySelector('.go-subhud');
+    const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
+    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const bottomLimit = vh - 86;
+    let left = spot.x - w / 2;
+    let top = spot.y - h;
+    left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
+    top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
+    el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    return true;
+  }
+
+  separatePins() {
+    const els = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate')].filter((el) => !el.hidden);
+    const overlap = (a, b) => {
+      const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      return x > 1 && y > 1;
+    };
+    for (let pass = 0; pass < 10; pass++) {
+      let moved = false;
+      const boxes = els.map((el) => ({ el, r: el.getBoundingClientRect() }));
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          if (!overlap(boxes[i].r, boxes[j].r)) continue;
+          const lower = boxes[i].r.top >= boxes[j].r.top ? boxes[i] : boxes[j];
+          const upper = lower === boxes[i] ? boxes[j] : boxes[i];
+          const dy = upper.r.bottom - lower.r.top + 6;
+          const match = lower.el.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+          if (!match) continue;
+          const x = Number(match[1]);
+          let y = Number(match[2]) + dy;
+          const vh = this.scale.height;
+          const maxY = vh - 86 - lower.r.height;
+          if (y > maxY) {
+            if (lower.el.classList.contains('go-pin') && lower.el.querySelector('strong').textContent === 'Open plot') {
+              lower.el.hidden = true;
+            }
+            continue;
+          }
+          lower.el.style.transform = `translate(${x}px, ${Math.round(y)}px)`;
+          lower.r = lower.el.getBoundingClientRect();
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
   }
 
   stockLine(state, def) {
@@ -428,12 +465,8 @@ export class MapScene extends window.Phaser.Scene {
         const root = this.add.container(truck.x, truck.y).setDepth(8);
         const body = this.add.rectangle(0, 0, 18, 10, color).setStrokeStyle(1, 0x1c140e);
         const cab = this.add.rectangle(10, 0, 7, 8, 0xe8eef4).setStrokeStyle(1, 0x1c140e);
-        const label = this.add.text(0, -14, '', {
-          fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#f6f1e7',
-          backgroundColor: '#10140fe6', padding: { x: 3, y: 1 }
-        }).setOrigin(0.5).setResolution(2);
-        root.add([body, cab, label]);
-        node = { root, body, cab, label };
+        root.add([body, cab]);
+        node = { root, body, cab };
         this.trucks[truck.id] = node;
       }
       node.root.setPosition(truck.x, truck.y);
@@ -441,8 +474,6 @@ export class MapScene extends window.Phaser.Scene {
       node.body.setRotation(angle);
       node.cab.setRotation(angle);
       node.cab.setPosition(Math.cos(angle) * 10, Math.sin(angle) * 10);
-      node.label.setText(`${truck.qty} ${good ? good.shortName : ''}`);
-      node.label.setVisible(this.cameras.main.zoom > 0.85 && this.cameras.main.zoom < 1.45);
     }
     for (const [id, node] of Object.entries(this.trucks)) {
       if (!live.has(Number(id))) {

@@ -349,6 +349,64 @@ html, body {
   line-height: 1.35;
 }
 
+#go-pins {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  overflow: hidden;
+}
+.go-pin, .go-badge, .go-plate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  margin: 0;
+  padding: 6px 10px 7px;
+  border-radius: 9px;
+  background: rgba(18, 22, 28, 0.94);
+  border: 1px solid #3d4c63;
+  font-family: Outfit, Inter, sans-serif;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.go-pin strong, .go-badge strong, .go-plate strong {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f6f1e7;
+}
+.go-pin span, .go-badge span, .go-plate span {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #c5d0dc;
+}
+.go-pin [hidden] { display: none !important; }
+.go-pin-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: #2a3344;
+  overflow: hidden;
+}
+.go-pin-bar b {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #7dcea0;
+}
+.go-badge {
+  pointer-events: auto;
+  cursor: pointer;
+  border-color: #79b8ff;
+}
+.go-badge span { color: #8ec5ff; }
+.go-pin.is-hot strong, .go-pin.is-hot span { color: #ffb4ae; }
 #route-line {
   margin: 8px 0 0;
   font-family: Outfit, Inter, sans-serif;
