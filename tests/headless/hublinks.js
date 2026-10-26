@@ -45,7 +45,7 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 9, `catalogue exposes 9 launch links, hero included (${cards.length})`);
+  ok(cards.length === 8, `catalogue exposes 8 launch links (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
@@ -53,9 +53,9 @@ function fileExists(href) {
     `quick-game hash links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 3'})`);
   ok(pageCards.every(c => fileExists(c.href)),
     `standalone links point at a file (${pageCards.map(c => c.href).join(', ')})`);
-  ok(pageCards.some(c => c.href === 'tycoon/play.html' && /STARTUP TYCOON/.test(c.title)),
-    'Startup Tycoon PLAY opens the game, not the splash');
-  ok(pageCards.some(c => c.href === 'ageofwar/' && /AGE OF WAR/.test(c.title)),
+  ok(pageCards.some(c => c.href === 'tycoon/play.html' && /Startup Tycoon/i.test(c.title)),
+    'Startup Tycoon card opens the game, not the splash');
+  ok(pageCards.some(c => c.href === 'ageofwar/' && /Age of War/i.test(c.title)),
     'Age of War still links into ageofwar/');
   ok(pageCards.some(c => c.href === 'games/ashmarch/'), 'Ashmarch stays a catalogue launch link');
   ok(!pageCards.some(c => c.href === 'games/ledger/' || c.href === 'drug-lab.html' || c.href === 'agentic-os.html' || c.href === 'homeless-village.html'),
@@ -73,7 +73,7 @@ function fileExists(href) {
   ok(byName['Gutterlight'] === '#gutterlight' && byName['Crate Escape'] === '#crateescape' && byName['Tetris'] === '#tetris',
     `daily chips are the showcase quick games (${daily.map(d => d.name).join(', ')})`);
 
-  await page.click('.arcade-grid--quick a.arcade-card[href="#tetris"]');
+  await page.click('#view-arcade a.arcade-card[href="#tetris"]');
   await page.waitForTimeout(400);
   const tetris = await page.evaluate(() => ({
     on: document.getElementById('view-tetris').classList.contains('active'),

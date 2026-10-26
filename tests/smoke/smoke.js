@@ -201,9 +201,11 @@ const TARGETS = [
       const cards = await page.locator('#view-arcade .arcade-card').count();
       const flagship = await page.locator('a.arcade-flagship').count();
       if (cards !== 8) throw new Error(`hub rendered ${cards} cards`);
-      if (flagship < 1) throw new Error('hub did not render the flagship link');
-      const banned = await page.locator('#view-arcade a[href="drug-lab.html"], #view-arcade a[href="agentic-os.html"]').count();
-      if (banned) throw new Error('hub still links Grow Op or Studio');
+      if (flagship !== 0) throw new Error('hub still rendered the old hero billboard');
+      const kicker = (await page.locator('#view-arcade .arcade-hero-kicker').innerText()).trim();
+      if (!/INDEPENDENT GAME STUDIO/i.test(kicker)) throw new Error(`hub kicker was ${JSON.stringify(kicker)}`);
+      const banned = await page.locator('#view-arcade a[href="drug-lab.html"], #view-arcade a[href="agentic-os.html"], #view-arcade a[href="homeless-village.html"]').count();
+      if (banned) throw new Error('hub still links a hidden game');
     },
   },
   {
