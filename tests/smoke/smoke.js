@@ -360,6 +360,29 @@ const TARGETS = [
     },
   },
   {
+    name: 'Homeless Village (Phaser)',
+    path: '/games/homeless-village/index.html',
+    file: 'games/homeless-village/index.html',
+    check: async (page) => {
+      await page.waitForSelector('#hv-title', { timeout: 20000 });
+      await page.locator('#hv-play').click({ timeout: 15000 });
+      await page.waitForSelector('#hv-hud', { timeout: 15000 });
+      const goal = (await page.locator('#hv-goal').innerText()).trim();
+      if (!goal) throw new Error('mission missing');
+      const box = await page.locator('#game canvas').boundingBox();
+      if (!box || box.width < 80 || box.height < 80) throw new Error('camp canvas missing');
+      const scroll = await page.evaluate(() => ({
+        dw: document.documentElement.scrollWidth,
+        dh: document.documentElement.scrollHeight,
+        w: innerWidth,
+        h: innerHeight
+      }));
+      if (scroll.dw > scroll.w + 1 || scroll.dh > scroll.h + 1) {
+        throw new Error('page scrolls ' + scroll.dw + '×' + scroll.dh + ' in ' + scroll.w + '×' + scroll.h);
+      }
+    },
+  },
+  {
     name: 'Hearthvale',
     path: '/hearthvale.html',
     file: 'hearthvale.html',
