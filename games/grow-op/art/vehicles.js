@@ -395,7 +395,7 @@ export function paintAmbient(scene, g) {
   for (let i = 0; i < life.workers.length; i++) {
     const w = life.workers[i];
     const u = (t * 0.05 + w.at) % 1;
-    w.img.setPosition(3480 + u * 180, 1276 + i * 10);
+    w.img.setPosition(3740 + u * 160, 1512 + i * 8);
     w.img.setScale(0.95, 0.95);
     if (w.frame !== frame) {
       w.frame = frame;

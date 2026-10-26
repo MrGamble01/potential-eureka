@@ -24,6 +24,32 @@ const PIN_MARK = '<img alt="" width="64" height="64" draggable="false"><svg clas
 
 const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
 
+const SOFT_EDGE = new Map();
+
+function softEdge(poly) {
+  const cached = SOFT_EDGE.get(poly);
+  if (cached) return cached;
+  const n = poly.length;
+  const out = [];
+  const steps = 4;
+  for (let i = 0; i < n; i++) {
+    const prev = poly[(i - 1 + n) % n];
+    const c = poly[i];
+    const nxt = poly[(i + 1) % n];
+    const x0 = (prev[0] + c[0]) / 2;
+    const y0 = (prev[1] + c[1]) / 2;
+    const x1 = (c[0] + nxt[0]) / 2;
+    const y1 = (c[1] + nxt[1]) / 2;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      out.push([u * u * x0 + 2 * u * t * c[0] + t * t * x1, u * u * y0 + 2 * u * t * c[1] + t * t * y1]);
+    }
+  }
+  SOFT_EDGE.set(poly, out);
+  return out;
+}
+
 export class MapScene extends window.Phaser.Scene {
   constructor() {
     super({ key: 'MapScene' });
@@ -1061,11 +1087,9 @@ export class MapScene extends window.Phaser.Scene {
 
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x1a221c, 0.38 * alpha);
+    g.fillStyle(0x1a221c, 0.34 * alpha);
     this.fillPoly(g, poly);
-    g.lineStyle(26, 0x101612, 0.32 * alpha);
-    this.strokePoly(g, poly);
-    g.lineStyle(3, 0xe7f0e4, 0.2 * alpha);
+    g.lineStyle(28, 0x101612, 0.22 * alpha);
     this.strokePoly(g, poly);
   }
 
@@ -1108,16 +1132,18 @@ export class MapScene extends window.Phaser.Scene {
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      if (!zone.starter && chart > 0.02) this.veilZone(g, box.poly, chart * 0.85);
-      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, box.poly, this.fogAlpha[zone.id]);
-      if (this.fogAlpha[zone.id] > 0.15) this.dashZone(g, box.poly, this.fogAlpha[zone.id] * 0.45);
+      const edge = softEdge(box.poly);
+      if (!zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.85);
+      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.72);
+      const ink = this.fogAlpha[zone.id] > 0.15 ? 0.42 + this.fogAlpha[zone.id] * 0.28 : 0.28;
+      this.dashZone(g, edge, ink * (1 - chart * 0.45));
     }
     for (const reg of REGIONS) {
       if (!reg.unlockCostClean) continue;
       const state = this.sim.state.regions[reg.id];
       if (!state || state.unlocked) continue;
       const poly = DISTRICT_EDGE[reg.id];
-      if (poly) this.veilZone(g, poly, 0.7);
+      if (poly) this.veilZone(g, softEdge(poly), 0.7);
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
@@ -1125,7 +1151,7 @@ export class MapScene extends window.Phaser.Scene {
         const box = ZONE_LAYOUT[zone.id];
         if (!box || !box.poly) continue;
         g.fillStyle(0x58a6ff, 0.12);
-        this.fillPoly(g, box.poly);
+        this.fillPoly(g, softEdge(box.poly));
       }
     }
   }

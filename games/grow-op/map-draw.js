@@ -278,8 +278,8 @@ function rock(g, x, y, s) {
   g.fill();
 }
 
-function coastEdges() {
-  const edges = [];
+function coastChain() {
+  const chain = [];
   for (let i = 0; i < LAND.length; i++) {
     const a = LAND[i];
     const b = LAND[(i + 1) % LAND.length];
@@ -288,24 +288,55 @@ function coastEdges() {
     if (a[0] < 40 && b[0] < 40) continue;
     const mx = (a[0] + b[0]) / 2;
     if (mx < 4300) continue;
-    edges.push([a, b]);
+    if (!chain.length) chain.push(a);
+    chain.push(b);
   }
-  return edges;
+  return curveSamples(chain);
+}
+
+function roundedRing(pts) {
+  const n = pts.length;
+  const out = [];
+  const steps = 5;
+  for (let i = 0; i < n; i++) {
+    const prev = pts[(i - 1 + n) % n];
+    const c = pts[i];
+    const nxt = pts[(i + 1) % n];
+    const x0 = (prev[0] + c[0]) / 2;
+    const y0 = (prev[1] + c[1]) / 2;
+    const x1 = (c[0] + nxt[0]) / 2;
+    const y1 = (c[1] + nxt[1]) / 2;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      out.push([u * u * x0 + 2 * u * t * c[0] + t * t * x1, u * u * y0 + 2 * u * t * c[1] + t * t * y1]);
+    }
+  }
+  return out;
 }
 
 function paintMottle(g) {
-  for (let y = 24; y < MAP_H; y += 44) {
-    for (let x = 24; x < 5720; x += 44) {
-      if (!onLand(x, y) || contains(CITY_GROUND, x, y)) continue;
-      const n = hash(x * 0.02, y * 0.02);
-      const mesa = contains(MESA, x, y);
-      const lift = n > 0.66 ? 26 : 0;
+  for (let row = 0, y = 24; y < MAP_H; y += 36, row++) {
+    const shift = (row % 2) * 18;
+    for (let x = 24 + shift; x < 5720; x += 36) {
+      const n = hash(x * 0.017, y * 0.013);
+      const px = x + (n - 0.5) * 22;
+      const py = y + (hash(x, y) - 0.5) * 16;
+      if (!onLand(px, py) || contains(CITY_GROUND, px, py)) continue;
+      const mesa = contains(MESA, px, py);
+      const lift = n > 0.66 ? 18 : 0;
       g.fillStyle = mesa
-        ? `rgba(${150 + lift},${120 + Math.floor(lift * 0.4)},${72},0.48)`
-        : `rgba(${12 + Math.floor(n * 40)},${58 + Math.floor(n * 70)},${16},0.5)`;
+        ? `rgba(${158 + lift},${126 + Math.floor(lift * 0.45)},${74},0.42)`
+        : `rgba(${14 + Math.floor(n * 36)},${62 + Math.floor(n * 64)},${18},0.38)`;
       g.beginPath();
-      g.ellipse(x + (n - 0.5) * 10, y, 28 + n * 18, 16 + n * 12, n * 2.6, 0, Math.PI * 2);
+      g.ellipse(px, py, 14 + n * 16, 8 + n * 9, n * 3.1, 0, Math.PI * 2);
       g.fill();
+      if (n > 0.42) {
+        g.fillStyle = mesa ? 'rgba(196,164,108,0.28)' : 'rgba(34,92,40,0.28)';
+        g.beginPath();
+        g.ellipse(px + 8, py - 4, 8 + n * 7, 5 + n * 4, n, 0, Math.PI * 2);
+        g.fill();
+      }
     }
   }
 }
@@ -328,8 +359,9 @@ function paintRelief(g) {
   for (let i = 0; i < bowls.length; i++) {
     const b = bowls[i];
     const rad = g.createRadialGradient(b[0], b[1], 30, b[0], b[1], Math.max(b[2], b[3]));
-    rad.addColorStop(0, 'rgba(58,74,46,0.78)');
-    rad.addColorStop(1, 'rgba(255,255,255,1)');
+    rad.addColorStop(0, 'rgba(58,74,46,0.34)');
+    rad.addColorStop(0.55, 'rgba(90,100,70,0.12)');
+    rad.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = rad;
     g.beginPath();
     g.ellipse(b[0], b[1], b[2], b[3], b[4], 0, Math.PI * 2);
@@ -395,29 +427,34 @@ function bush(g, x, y, seed) {
   g.fill();
 }
 
-function paintCoast(g) {
-  const edges = coastEdges();
-  for (let i = 0; i < edges.length; i++) {
-    const a = edges[i][0];
-    const b = edges[i][1];
+function offsetChain(pts, dist) {
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)];
+    const b = pts[Math.min(pts.length - 1, i + 1)];
     const dx = b[0] - a[0];
     const dy = b[1] - a[1];
     const len = Math.hypot(dx, dy) || 1;
-    const ox = (dy / len) * 36;
-    const oy = (-dx / len) * 36;
-    ribbon(g, [[a[0] + ox, a[1] + oy], [b[0] + ox, b[1] + oy]], 120, 'rgba(78,196,206,0.9)');
-    ribbon(g, [[a[0] + ox * 1.7, a[1] + oy * 1.7], [b[0] + ox * 1.7, b[1] + oy * 1.7]], 90, 'rgba(26,120,150,0.55)');
-    ribbon(g, [[a[0] + ox * 0.28, a[1] + oy * 0.28], [b[0] + ox * 0.28, b[1] + oy * 0.28]], 64, '#ead7ae');
-    ribbon(g, [[a[0] - ox * 0.12, a[1] - oy * 0.12], [b[0] - ox * 0.12, b[1] - oy * 0.12]], 12, 'rgba(255,252,245,0.7)');
-    const steps = Math.max(1, Math.floor(len / 28));
-    g.fillStyle = 'rgba(255,252,245,0.8)';
-    for (let s = 0; s < steps; s++) {
-      const t = (s + 0.35) / steps;
-      const j = hash(i + 3, s + 1);
-      g.beginPath();
-      g.ellipse(a[0] + dx * t + ox * 0.15, a[1] + dy * t + oy * 0.15, 7 + j * 8, 3, Math.atan2(dy, dx), 0, Math.PI * 2);
-      g.fill();
-    }
+    out.push([pts[i][0] + (dy / len) * dist, pts[i][1] + (-dx / len) * dist]);
+  }
+  return out;
+}
+
+function paintCoast(g) {
+  const shore = coastChain();
+  if (shore.length < 2) return;
+  ribbon(g, offsetChain(shore, 70), 130, 'rgba(78,196,206,0.88)');
+  ribbon(g, offsetChain(shore, 120), 100, 'rgba(22,110,142,0.5)');
+  ribbon(g, offsetChain(shore, 18), 70, '#ead7ae');
+  ribbon(g, offsetChain(shore, -6), 14, 'rgba(255,252,245,0.72)');
+  g.fillStyle = 'rgba(255,252,245,0.82)';
+  for (let i = 0; i < shore.length; i += 2) {
+    const p = shore[i];
+    const q = shore[Math.min(shore.length - 1, i + 1)];
+    const j = hash(i, 7);
+    g.beginPath();
+    g.ellipse(p[0] + 6, p[1], 6 + j * 9, 2.5 + j * 2, Math.atan2(q[1] - p[1], q[0] - p[0]), 0, Math.PI * 2);
+    g.fill();
   }
 }
 
@@ -447,83 +484,105 @@ function paintFull(roads) {
   g.fill();
 
   paintCoast(g);
+  g.fillStyle = '#24562c';
+  g.fillRect(0, 0, 4700, MAP_H);
   fillShape(g, LAND, '#24562c');
   paintMottle(g);
 
-  for (let i = 0; i < 56; i++) {
-    const x = hash(i, 11) * MAP_W;
+  for (let i = 0; i < 220; i++) {
+    const x = hash(i, 11) * 5200;
     const y = hash(i, 12) * MAP_H;
-    if (!onLand(x, y)) continue;
-    const city = contains(CITY_GROUND, x, y);
+    if (!onLand(x, y) || contains(CITY_GROUND, x, y)) continue;
     const mesa = contains(MESA, x, y);
     const jungle = contains(ZONE_LAYOUT.jungle_alta.poly, x, y);
-    g.fillStyle = city
-      ? 'rgba(196,164,112,0.42)'
-      : mesa
-        ? 'rgba(176,146,96,0.5)'
-        : jungle
-          ? 'rgba(14,42,22,0.48)'
-          : 'rgba(86,140,58,0.32)';
+    const n = hash(i, 13);
+    g.fillStyle = mesa
+      ? `rgba(186,154,96,${0.16 + n * 0.14})`
+      : jungle
+        ? `rgba(12,48,24,${0.18 + n * 0.16})`
+        : `rgba(70,128,52,${0.12 + n * 0.12})`;
     g.beginPath();
-    g.ellipse(x, y, 160 + hash(i, 13) * 260, 70 + hash(i, 14) * 110, hash(i, 15) * 2.2, 0, Math.PI * 2);
+    g.ellipse(x, y, 36 + n * 70, 18 + n * 28, hash(i, 15) * 2.4, 0, Math.PI * 2);
     g.fill();
   }
   paintRelief(g);
 
-  for (let i = 0; i < 70; i++) {
-    const x = 2460 + hash(i, 71) * 1620;
-    const y = 1680 + hash(i, 72) * 920;
+  g.save();
+  trace(g, MESA);
+  g.clip();
+  for (let i = 0; i < 420; i++) {
+    const x = 2400 + hash(i, 71) * 1700;
+    const y = 1620 + hash(i, 72) * 1000;
     if (!contains(MESA, x, y) || !onLand(x, y)) continue;
     const n = hash(i, 73);
-    g.fillStyle = n > 0.5 ? `rgba(214,184,120,${0.55 + n * 0.35})` : `rgba(150,112,64,${0.4 + n * 0.3})`;
+    const dry = n > 0.62;
+    g.fillStyle = dry ? `rgba(214,186,122,${0.35 + n * 0.3})` : `rgba(148,112,68,${0.28 + n * 0.22})`;
     g.beginPath();
-    g.ellipse(x, y, 80 + n * 150, 40 + n * 60, n * 2.2, 0, Math.PI * 2);
+    g.ellipse(x, y, 16 + n * 28, 9 + n * 14, n * 3, 0, Math.PI * 2);
     g.fill();
   }
+  g.restore();
   cliffFace(g, MESA.slice(0, 4));
   cliffFace(g, RIDGE);
 
-  for (let i = 0; i < 78; i++) {
-    const x = 2840 + hash(i, 91) * 2550;
-    const y = 100 + hash(i, 92) * 1080;
+  g.save();
+  trace(g, CITY_GROUND);
+  g.clip();
+  for (let i = 0; i < 520; i++) {
+    const x = 2760 + hash(i, 91) * 2700;
+    const y = 60 + hash(i, 92) * 1120;
     if (!contains(CITY_GROUND, x, y) || !onLand(x, y)) continue;
-    const downtown = x > 3900 && y < 820;
     const n = hash(i, 93);
-    g.fillStyle = downtown ? `rgba(226,208,176,${0.72 + n * 0.2})` : `rgba(186,164,124,${0.35 + n * 0.3})`;
+    const downtown = x > 3920 && y < 780;
+    g.fillStyle = downtown
+      ? `rgba(214,196,164,${0.28 + n * 0.22})`
+      : `rgba(168,142,102,${0.16 + n * 0.18})`;
     g.beginPath();
-    g.ellipse(x, y, 70 + n * 150, 36 + n * 48, n * 2, 0, Math.PI * 2);
+    g.ellipse(x, y, 18 + n * 34, 10 + n * 16, n * 2.6, 0, Math.PI * 2);
     g.fill();
   }
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < 36; i++) {
     const x = 2920 + hash(i, 21) * 2300;
-    const y = 160 + hash(i, 22) * 980;
+    const y = 140 + hash(i, 22) * 900;
     if (!contains(CITY_GROUND, x, y) || !onLand(x, y)) continue;
-    const park = hash(i, 26) > 0.45;
-    g.fillStyle = park ? 'rgba(78,122,52,0.72)' : 'rgba(150,112,72,0.4)';
+    g.fillStyle = 'rgba(62,108,48,0.55)';
     g.beginPath();
-    g.ellipse(x, y, 80 + hash(i, 23) * 120, 40 + hash(i, 24) * 36, hash(i, 25), 0, Math.PI * 2);
+    g.ellipse(x, y, 28 + hash(i, 23) * 46, 16 + hash(i, 24) * 18, hash(i, 25), 0, Math.PI * 2);
     g.fill();
   }
-  for (let i = 0; i < 16; i++) {
-    const x = 3080 + i * 140;
-    const y = 1040 + hash(i, 27) * 90;
-    if (!onLand(x, y) || contains(COVE, x, y)) continue;
-    g.fillStyle = i % 3 === 0 ? '#f3e6c4' : '#e4cfa6';
-    g.beginPath();
-    g.ellipse(x, y, 100, 42, hash(i, 28) * 0.4, 0, Math.PI * 2);
-    g.fill();
-  }
+  g.restore();
 
+  const coveShore = roundedRing(COVE);
   fillShape(g, COVE, '#0e5870');
-  g.fillStyle = 'rgba(92,214,206,0.55)';
-  g.beginPath();
-  g.ellipse(4140, 1440, 460, 150, -0.28, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = 'rgba(186,236,228,0.35)';
-  g.beginPath();
-  g.ellipse(3900, 1380, 220, 70, -0.2, 0, Math.PI * 2);
-  g.fill();
-  ribbon(g, COVE.concat([COVE[0]]), 22, '#ead7ae');
+  let coveX = 0;
+  let coveY = 0;
+  for (let i = 0; i < COVE.length; i++) {
+    coveX += COVE[i][0];
+    coveY += COVE[i][1];
+  }
+  coveX /= COVE.length;
+  coveY /= COVE.length;
+  const toward = (p, dist) => {
+    const dx = coveX - p[0];
+    const dy = coveY - p[1];
+    const len = Math.hypot(dx, dy) || 1;
+    return [p[0] + (dx / len) * dist, p[1] + (dy / len) * dist];
+  };
+  const shallows = coveShore.map((p) => toward(p, 30));
+  ribbon(g, shallows.concat([shallows[0]]), 54, 'rgba(118,210,204,0.62)');
+  ribbon(g, shallows.concat([shallows[0]]), 22, 'rgba(198,238,230,0.4)');
+  const beach = coveShore.map((p) => toward(p, -16));
+  ribbon(g, beach.concat([beach[0]]), 34, '#e6d2a6');
+  ribbon(g, beach.concat([beach[0]]), 12, '#f4e7c8');
+  g.fillStyle = 'rgba(255,252,245,0.75)';
+  for (let i = 0; i < coveShore.length; i += 3) {
+    const p = coveShore[i];
+    const q = coveShore[(i + 1) % coveShore.length];
+    const n = hash(i, 49);
+    g.beginPath();
+    g.ellipse(p[0], p[1], 5 + n * 6, 2.2, Math.atan2(q[1] - p[1], q[0] - p[0]), 0, Math.PI * 2);
+    g.fill();
+  }
 
   ribbon(g, RIVER_PTS, 92, '#6a5438');
   ribbon(g, RIVER_PTS, 58, '#124e66');
@@ -531,12 +590,10 @@ function paintFull(roads) {
   ribbon(g, RIVER_PTS, 8, 'rgba(226,246,248,0.55)');
   ribbon(g, INLET_PTS, 36, '#6a5438');
   ribbon(g, INLET_PTS, 20, '#187088');
-  ribbon(g, [[1540, 1760], [1780, 1960], [1960, 2140], [2140, 2280]], 22, '#6a5438');
-  ribbon(g, [[1540, 1760], [1780, 1960], [1960, 2140], [2140, 2280]], 12, '#1a6e86');
-  ribbon(g, [[1540, 1760], [1680, 1880], [1600, 2060], [1480, 2220]], 16, '#6a5438');
-  ribbon(g, [[1540, 1760], [1680, 1880], [1600, 2060], [1480, 2220]], 8, '#1a6e86');
-  ribbon(g, [[1980, 1860], [2200, 1980], [2360, 2140], [2280, 2320]], 16, '#6a5438');
-  ribbon(g, [[1980, 1860], [2200, 1980], [2360, 2140], [2280, 2320]], 8, '#187488');
+  ribbon(g, [[1760, 1980], [1640, 2160], [1500, 2320]], 18, '#6a5438');
+  ribbon(g, [[1760, 1980], [1640, 2160], [1500, 2320]], 9, '#1a6e86');
+  ribbon(g, [[2220, 1880], [2400, 2060], [2340, 2260]], 16, '#6a5438');
+  ribbon(g, [[2220, 1880], [2400, 2060], [2340, 2260]], 8, '#187488');
 
   ribbon(g, RIDGE, 22, '#4a4038');
   ribbon(g, RIDGE, 6, '#d9d0c2');
@@ -581,7 +638,7 @@ function paintFull(roads) {
   g.restore();
   g.fillStyle = '#3e4650';
   g.save();
-  g.translate(4680, 1748);
+  g.translate(4820, 1470);
   g.rotate(-0.04);
   g.fillRect(-260, -11, 540, 20);
   g.fillStyle = '#f7f4ee';
@@ -659,39 +716,33 @@ function paintFull(roads) {
     if (blocked(x, y) || !onLand(x, y)) continue;
     palm(g, x, y, 0.48 + hash(i, 53) * 0.4);
   }
-  const edges = coastEdges();
-  for (let e = 0; e < edges.length; e++) {
-    const a = edges[e][0];
-    const b = edges[e][1];
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
+  const shore = coastChain();
+  for (let i = 0; i < shore.length; i += 4) {
+    const p = shore[i];
+    const q = shore[Math.min(shore.length - 1, i + 1)];
+    const dx = q[0] - p[0];
+    const dy = q[1] - p[1];
     const len = Math.hypot(dx, dy) || 1;
-    const steps = Math.max(1, Math.floor(len / 70));
-    const ix = (-dy / len) * 48;
-    const iy = (dx / len) * 48;
-    for (let s = 0; s < steps; s++) {
-      const t = (s + 0.5) / steps;
-      const x = a[0] + dx * t + ix;
-      const y = a[1] + dy * t + iy;
-      if (!onLand(x, y) || blocked(x, y)) continue;
-      palm(g, x, y, 0.62);
-    }
+    const x = p[0] + (-dy / len) * 48;
+    const y = p[1] + (dx / len) * 48;
+    if (!onLand(x, y) || blocked(x, y)) continue;
+    palm(g, x, y, 0.62);
   }
 
   for (let i = 0; i < 4; i++) {
-    const x = 3480 + i * 70;
+    const x = 3720 + i * 80;
     g.strokeStyle = '#8a6238';
     g.lineWidth = 6;
     g.beginPath();
-    g.moveTo(x, 1300);
-    g.lineTo(x + 8, 1420);
+    g.moveTo(x, 1540);
+    g.lineTo(x + 8, 1680);
     g.stroke();
     g.strokeStyle = '#c4a06a';
     g.lineWidth = 3;
     for (let k = 0; k < 5; k++) {
       g.beginPath();
-      g.moveTo(x - 16, 1320 + k * 16);
-      g.lineTo(x + 28, 1332 + k * 16);
+      g.moveTo(x - 16, 1556 + k * 18);
+      g.lineTo(x + 28, 1568 + k * 18);
       g.stroke();
     }
   }
@@ -699,20 +750,20 @@ function paintFull(roads) {
   g.lineWidth = 4;
   g.lineCap = 'round';
   g.beginPath();
-  g.moveTo(3640, 1340);
-  g.lineTo(3660, 1220);
-  g.lineTo(3760, 1210);
+  g.moveTo(3780, 1560);
+  g.lineTo(3800, 1440);
+  g.lineTo(3900, 1430);
   g.stroke();
   g.beginPath();
-  g.moveTo(3900, 1360);
-  g.lineTo(3920, 1240);
-  g.lineTo(4020, 1230);
+  g.moveTo(4040, 1580);
+  g.lineTo(4060, 1460);
+  g.lineTo(4160, 1450);
   g.stroke();
 
   const crates = ['#c25038', '#3d6ea8', '#e6c35a', '#7d3b5c'];
   for (let i = 0; i < crates.length; i++) {
-    const x = 3560 + i * 46;
-    const y = 1270;
+    const x = 3380 + i * 46;
+    const y = 1505;
     g.fillStyle = 'rgba(0,0,0,0.25)';
     g.fillRect(x + 3, y + 3, 34, 16);
     g.fillStyle = crates[i];
