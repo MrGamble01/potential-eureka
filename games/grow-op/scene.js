@@ -8,10 +8,15 @@
 //   simulation  recommendedSlot() and observeFrame(dt) are called when present.
 //   audio/juice registry key onJuice(evt) runs after the visual fx() below.
 //   registry key juice, when present, is the cashPop / shake / pulseBuilding / burst / step bag.
+//   simulation  gameplayView() is the map catalog. Actions are unlockZone,
+//               buyAndConvert, buyLot, startDemolish, buildNew, buildOnPlot,
+//               negotiate, intimidate. Lots with a slotId stay on BUILD_SLOTS.
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
 import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, LIEUTENANTS } from './data/missions.js';
+import { LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
+import { drawExtended, paintOpen, paintProperty, paintRubble, paintScaffold } from './map-draw.js';
 import * as Art from './art.js';
 
 const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
@@ -37,6 +42,12 @@ export class MapScene extends window.Phaser.Scene {
     this.pinch = null;
     this.userPanned = false;
     this.phase = 0;
+    this.didReveal = false;
+    this.holdMapReveal = false;
+    this.chartAlpha = 1;
+    this.fogAlpha = {};
+    this.lots = {};
+    this.zoneMarks = {};
   }
 
   create() {
@@ -46,11 +57,13 @@ export class MapScene extends window.Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
     this.cameras.main.setBackgroundColor('#2c3824');
 
-    this.terrain = this.add.graphics();
-    this.water = this.add.graphics();
-    this.hatch = this.add.graphics();
-    this.life = this.add.graphics();
-    this.flow = this.add.graphics();
+    this.coast = this.add.graphics().setDepth(0);
+    this.terrain = this.add.graphics().setDepth(1);
+    this.water = this.add.graphics().setDepth(1);
+    this.hatch = this.add.graphics().setDepth(2);
+    this.life = this.add.graphics().setDepth(3);
+    this.flow = this.add.graphics().setDepth(3);
+    this.zoneFog = this.add.graphics().setDepth(6);
     this.sky = this.add.graphics().setDepth(30);
     this.fontsReady = !!(document.fonts && document.fonts.status === 'loaded');
     if (document.fonts && document.fonts.ready) {
@@ -60,15 +73,18 @@ export class MapScene extends window.Phaser.Scene {
     }
     this.pinHost = document.getElementById('go-pins');
     this.drawTerrain();
+    drawExtended(this.coast);
     this.drawHatch();
     this.createPlates();
     this.createSlots();
     this.createBadges();
+    this.createPlacedLots();
+    this.createZoneMarks();
     this.spawnAmbientCraft();
     this.bindCamera();
     this.frameValley(true);
     this.scale.on('resize', () => {
-      if (!this.userPanned) this.frameValley(true);
+      if (!this.userPanned && !(this.sim && this.sim.state.mapOpen)) this.frameValley(true);
     });
   }
 
@@ -116,8 +132,8 @@ export class MapScene extends window.Phaser.Scene {
       const root = this.add.container(def.x, def.y);
       const hit = this.add.ellipse(0, 10, 210, 130, 0x000000, 0.001);
       hit.setInteractive({ useHandCursor: true });
-      hit.on('pointerup', () => {
-        if (this.dragMoved) return;
+      hit.on('pointerup', (pointer) => {
+        if (this.dragMoved || this.pointingAtUi(pointer)) return;
         this.sim.state.selectedSlotId = def.id;
         this.sim.state.selectedRegionId = def.regionId;
         this.onSlotSelected(def.id);
@@ -151,8 +167,16 @@ export class MapScene extends window.Phaser.Scene {
     this.plane = { angle: 0.4 };
   }
 
+  pointingAtUi(pointer) {
+    const el = document.elementFromPoint(pointer.x, pointer.y);
+    if (!el) return false;
+    const canvas = document.querySelector('#phaser-mount canvas');
+    return !(canvas && (el === canvas || canvas.contains(el)));
+  }
+
   bindCamera() {
     this.input.on('pointerdown', (p) => {
+      if (this.pointingAtUi(p)) return;
       this.drag = true;
       this.dragMoved = false;
       this.dragFrom = { x: p.x, y: p.y, sx: this.cameras.main.scrollX, sy: this.cameras.main.scrollY };
@@ -163,7 +187,7 @@ export class MapScene extends window.Phaser.Scene {
       if (a.isDown && b.isDown) {
         const d = window.Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
         if (this.pinch != null) {
-          const zoom = window.Phaser.Math.Clamp(this.cameras.main.zoom + (d - this.pinch) * 0.003, 0.35, 2.8);
+          const zoom = window.Phaser.Math.Clamp(this.cameras.main.zoom + (d - this.pinch) * 0.003, this.minZoom(), 2.8);
           this.cameras.main.setZoom(zoom);
         }
         this.pinch = d;
@@ -188,7 +212,7 @@ export class MapScene extends window.Phaser.Scene {
     this.input.on('pointerup', () => { this.drag = false; this.pinch = null; });
     this.input.on('wheel', (_p, _o, _dx, dy) => {
       this.userPanned = true;
-      this.cameras.main.setZoom(window.Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.0008, 0.35, 2.8));
+      this.cameras.main.setZoom(window.Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.0008, this.minZoom(), 2.8));
     });
     this.cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
   }
@@ -277,6 +301,7 @@ export class MapScene extends window.Phaser.Scene {
     this.syncLife(dt);
     this.syncSky();
     this.syncFloaters(dt);
+    this.syncWorld(dt);
   }
 
   syncRegions() {
@@ -408,11 +433,14 @@ export class MapScene extends window.Phaser.Scene {
     const hud = document.querySelector('.go-subhud');
     const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
     const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
-    const bottomLimit = vh - 86;
+    const bottomLimit = this.bottomLimit(vh);
     let left = spot.x - w / 2;
     let top = spot.y - h;
     left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
     top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
+    const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
+    left = cleared.left;
+    top = cleared.top;
     el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
     return true;
   }
@@ -629,7 +657,7 @@ export class MapScene extends window.Phaser.Scene {
     if (this.sim.state.weather === 'rain') { color = 0x243044; alpha = Math.max(alpha, 0.18); }
     this.sky.clear();
     this.sky.fillStyle(color, alpha);
-    this.sky.fillRect(0, 0, WORLD_W, WORLD_H);
+    this.sky.fillRect(0, 0, MAP_W, MAP_H);
   }
 
   syncFloaters(dt) {
@@ -649,6 +677,360 @@ export class MapScene extends window.Phaser.Scene {
       }
       return true;
     });
+  }
+
+  minZoom() {
+    if (!this.sim || !this.sim.state.mapOpen) return 0.35;
+    return this.scale.width < 700 ? 0.34 : 0.2;
+  }
+
+  bottomLimit(vh) {
+    let limit = vh - 86;
+    const panel = document.getElementById('mix-panel');
+    if (panel && !panel.hidden) {
+      const rect = panel.getBoundingClientRect();
+      if (rect.height > 20 && rect.top > this.scale.height * 0.45) limit = Math.min(limit, rect.top - 8);
+    }
+    return limit;
+  }
+
+  chromeObstacles() {
+    const boxes = [];
+    const panel = document.getElementById('mix-panel');
+    if (panel && !panel.hidden) {
+      const rect = panel.getBoundingClientRect();
+      if (rect.width > 8 && rect.height > 8) boxes.push(rect);
+    }
+    const toggle = document.getElementById('btn-control');
+    if (toggle) {
+      const rect = toggle.getBoundingClientRect();
+      if (rect.width > 8) boxes.push(rect);
+    }
+    return boxes;
+  }
+
+  clearOfChrome(left, top, w, h, topLimit, bottomLimit) {
+    for (const rect of this.chromeObstacles()) {
+      const hit = left + w > rect.left && left < rect.right && top + h > rect.top && top < rect.bottom;
+      if (!hit) continue;
+      const shift = rect.left - w - 8;
+      if (shift >= 8) left = shift;
+      else {
+        const below = rect.bottom + 8;
+        if (below + h <= bottomLimit) top = below;
+        else top = Math.max(topLimit, rect.top - h - 8);
+      }
+    }
+    return { left, top };
+  }
+
+  placeFree(el, worldX, worldY) {
+    const spot = this.worldToScreen(worldX, worldY);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    el.hidden = false;
+    el.style.transform = 'translate(0px, 0px)';
+    const w = el.offsetWidth || 80;
+    const h = el.offsetHeight || 28;
+    const hud = document.querySelector('.go-subhud');
+    const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
+    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const bottomLimit = this.bottomLimit(vh);
+    const left = spot.x - w / 2;
+    const top = spot.y - h;
+    if (left < 8 || top < topLimit || left + w > vw - 8 || top + h > bottomLimit) {
+      el.hidden = true;
+      return false;
+    }
+    const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
+    if (cleared.left < 8 || cleared.top < topLimit) {
+      el.hidden = true;
+      return false;
+    }
+    el.style.transform = `translate(${Math.round(cleared.left)}px, ${Math.round(cleared.top)}px)`;
+    return true;
+  }
+
+  createPlacedLots() {
+    for (const [id, pos] of Object.entries(LOT_POS)) {
+      const root = this.add.container(pos.x, pos.y);
+      const hit = this.add.ellipse(0, 8, 150, 90, 0x000000, 0.001);
+      hit.setInteractive({ useHandCursor: true });
+      hit.on('pointerup', (pointer) => {
+        if (this.dragMoved || this.pointingAtUi(pointer)) return;
+        const fn = this.registry.get('onLotSelected');
+        if (fn) fn(id);
+      });
+      const select = this.add.ellipse(0, 10, 168, 100, 0x8ec5ff, 0.08).setStrokeStyle(2, 0x8ec5ff, 0.9).setVisible(false);
+      const art = this.add.graphics();
+      const pin = document.createElement('div');
+      pin.className = 'go-mark';
+      pin.innerHTML = '<strong></strong><span></span>';
+      pin.hidden = true;
+      this.pinHost.appendChild(pin);
+      root.add([select, hit, art]);
+      root.setDepth(4);
+      this.lots[id] = { id, pos, root, hit, select, art, pin, key: '', phase: '', demoMax: 0, buildMax: 0 };
+    }
+  }
+
+  createZoneMarks() {
+    for (const id of Object.keys(ZONE_LAYOUT)) {
+      if (id === 'rio_plata') continue;
+      const spot = zoneCenter(id);
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'go-zone';
+      el.innerHTML = '<strong></strong><span></span>';
+      el.hidden = true;
+      el.addEventListener('click', () => {
+        const fn = this.registry.get('onZoneSelected');
+        if (fn) fn(id);
+      });
+      const area = document.createElement('div');
+      area.className = 'go-area';
+      area.innerHTML = '<strong></strong>';
+      area.hidden = true;
+      this.pinHost.appendChild(el);
+      this.pinHost.appendChild(area);
+      this.zoneMarks[id] = { el, area, x: spot.x, y: spot.y };
+    }
+  }
+
+  applyBounds() {
+    const open = this.sim && this.sim.state.mapOpen;
+    const cam = this.cameras.main;
+    if (open) cam.setBounds(0, 0, MAP_W, MAP_H);
+    else cam.setBounds(0, 0, WORLD_W, WORLD_H);
+  }
+
+  revealMap() {
+    this.userPanned = true;
+    this.applyBounds();
+    const cam = this.cameras.main;
+    const phone = this.scale.width < 800;
+    const zoom = phone
+      ? 0.58
+      : window.Phaser.Math.Clamp(Math.min(this.scale.width / 2800, (this.scale.height - 140) / 1600), 0.48, 0.85);
+    const x = phone ? 1900 : 4300;
+    const y = phone ? 2050 : 900;
+    cam.setZoom(zoom);
+    cam.pan(x, y, 1500, 'Sine.easeInOut');
+    const fn = this.registry.get('onMapRevealed');
+    if (typeof fn === 'function') fn();
+  }
+
+  frameLot(lotId, instant = true) {
+    const pos = LOT_POS[lotId];
+    if (!pos) return;
+    this.userPanned = true;
+    this.applyBounds();
+    const cam = this.cameras.main;
+    const zoom = this.scale.width < 700 ? 0.9 : 1.15;
+    cam.setZoom(zoom);
+    if (instant) cam.centerOn(pos.x, pos.y);
+    else cam.pan(pos.x, pos.y, 360, 'Sine.easeInOut');
+  }
+
+  frameZone(zoneId, instant = true) {
+    const box = ZONE_LAYOUT[zoneId];
+    if (!box) return;
+    this.userPanned = true;
+    this.applyBounds();
+    const cam = this.cameras.main;
+    const zoom = window.Phaser.Math.Clamp(Math.min(this.scale.width / (box.w + 180), this.scale.height / (box.h + 220)), this.minZoom(), 1.4);
+    cam.setZoom(zoom);
+    const x = box.x + box.w / 2;
+    const y = box.y + box.h / 2;
+    if (instant) cam.centerOn(x, y);
+    else cam.pan(x, y, 420, 'Sine.easeInOut');
+  }
+
+  syncWorld(dt) {
+    if (!this.sim || !this.sim.state || !this.sim.state.lots) return;
+    const open = !!this.sim.state.mapOpen;
+    if (open && !this.didReveal) {
+      const modal = document.getElementById('title-modal');
+      if (modal && !modal.hidden) return;
+      this.didReveal = true;
+      this.applyBounds();
+      const held = this.holdMapReveal || this.registry.get('holdMapReveal');
+      if (!held) this.revealMap();
+    } else if (!open) {
+      this.applyBounds();
+    }
+    if (open && this.chartAlpha > 0) this.chartAlpha = Math.max(0, this.chartAlpha - dt / 1.2);
+    if (!open) this.chartAlpha = 1;
+    const view = this.sim.gameplayView();
+    this.syncFog(view);
+    this.syncPlacedLots(view);
+    this.syncZoneChrome(view);
+    this.settleMarks();
+  }
+
+  syncFog(view) {
+    const g = this.zoneFog;
+    if (!g) return;
+    g.clear();
+    const chart = this.chartAlpha;
+    if (chart > 0.02) {
+      this.hatchRect(g, 0, 1360, MAP_W, MAP_H - 1360, chart);
+      this.hatchRect(g, 2520, 0, MAP_W - 2520, 1360, chart);
+    }
+    for (const zone of view.zones) {
+      const box = ZONE_LAYOUT[zone.id];
+      if (!box || zone.id === 'rio_plata') continue;
+      const target = zone.unlocked ? 0 : 1;
+      const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
+      const next = prev + (target - prev) * 0.08;
+      this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
+      if (this.fogAlpha[zone.id] > 0.02 && this.chartAlpha < 0.85) {
+        this.hatchRect(g, box.x, box.y, box.w, box.h, this.fogAlpha[zone.id]);
+      }
+    }
+    if (this.registry.get('showControl')) {
+      for (const zone of view.zones) {
+        if (!zone.unlocked) continue;
+        const box = ZONE_LAYOUT[zone.id];
+        if (!box) continue;
+        g.fillStyle(0x58a6ff, 0.14);
+        g.fillRect(box.x, box.y, box.w, box.h);
+      }
+    }
+  }
+
+  hatchRect(g, x, y, w, h, alpha) {
+    g.fillStyle(0x121812, 0.52 * alpha);
+    g.fillRect(x, y, w, h);
+    g.lineStyle(2, 0xb7c7a4, 0.22 * alpha);
+    for (let i = 24; i < w + h; i += 36) {
+      const x1 = x + Math.min(i, w);
+      const y1 = y + Math.max(0, i - w);
+      const x2 = x + Math.max(0, i - h);
+      const y2 = y + Math.min(i, h);
+      g.lineBetween(x1, y1, x2, y2);
+    }
+  }
+
+  syncPlacedLots(view) {
+    const byId = {};
+    for (const lot of view.lots) byId[lot.id] = lot;
+    const zoom = this.cameras.main.zoom;
+    const selected = this.registry.get('openLotId');
+    for (const node of Object.values(this.lots)) {
+      const lot = byId[node.id];
+      const live = this.sim.state.lots[node.id];
+      if (!lot || !live) continue;
+      const zone = view.zones.find((item) => item.id === lot.zoneId);
+      const locked = zone && !zone.unlocked;
+      node.select.setVisible(selected === node.id);
+      node.root.setAlpha(locked ? 0.55 : 1);
+      if (live.phase === 'demolishing') {
+        if (node.phase !== 'demolishing') {
+          node.demoMax = Math.max(0.2, live.demolishLeft || lot.demolishLeft || 1);
+          const juice = this.registry.get('juice');
+          if (juice && juice.shake) juice.shake(240, 0.003);
+          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+        }
+        const total = node.demoMax || 1;
+        paintRubble(node.art, 1 - Math.max(0, live.demolishLeft) / total);
+        node.key = '';
+        if (Math.random() < 0.35) this.puff(node.pos.x + (Math.random() - 0.5) * 40, node.pos.y - 10);
+      } else if (live.phase === 'building') {
+        if (node.phase !== 'building') {
+          node.buildMax = Math.max(0.2, live.constructLeft || lot.constructLeft || 1);
+          const juice = this.registry.get('juice');
+          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0x8ec5ff);
+        }
+        const total = node.buildMax || 1;
+        paintScaffold(node.art, 1 - Math.max(0, live.constructLeft) / total);
+        node.key = '';
+      } else if (live.buildingId && live.phase === 'operating') {
+        if (node.key !== 'b:' + live.buildingId) {
+          node.key = 'b:' + live.buildingId;
+          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1 });
+        }
+      } else if (lot.kind === 'open') {
+        if (node.key !== 'open') {
+          node.key = 'open';
+          paintOpen(node.art);
+        }
+      } else if (typeof Art.drawKeyed === 'function' && lot.propertyType && node.key !== 'k:' + lot.propertyType) {
+        node.key = 'k:' + lot.propertyType;
+        const ctx = { buildingId: lot.propertyType, rival: lot.owner === 'rival', level: 1, night: this.isNight(), progress: 0 };
+        node.art.clear();
+        Art.drawKeyed(node.art, lot.propertyType, ctx);
+      } else if (!(typeof Art.drawKeyed === 'function' && lot.propertyType) && node.key !== 'p:' + (lot.propertyType || lot.kind)) {
+        node.key = 'p:' + (lot.propertyType || lot.kind);
+        paintProperty(node.art, lot.propertyType);
+      }
+      if (node.phase === 'demolishing' && live.phase === 'cleared') {
+        const fn = this.registry.get('onLotReady');
+        if (fn) fn(node.id);
+      }
+      const shown = live.phase === 'demolishing' ? Math.ceil(live.demolishLeft || 0) : live.phase === 'building' ? Math.ceil(live.constructLeft || 0) : -1;
+      if (node.shownLeft !== shown && this.registry.get('openLotId') === node.id) {
+        const tick = this.registry.get('onLotTick');
+        if (tick) tick();
+      }
+      node.shownLeft = shown;
+      node.phase = live.phase;
+      const title = live.phase === 'demolishing' ? 'Demolishing' : live.phase === 'building' ? 'Scaffolding' : lot.propertyLabel || lot.label;
+      const sub = live.phase === 'operating' && lot.role ? lot.role : lot.kind === 'open' ? 'Open plot' : '';
+      this.placeMark(node, title, sub, zoom >= 0.55 && !locked);
+    }
+  }
+
+  placeMark(node, title, sub, show) {
+    const el = node.pin;
+    if (!show || !this.fontsReady) {
+      el.hidden = true;
+      return;
+    }
+    el.querySelector('strong').textContent = title;
+    const span = el.querySelector('span');
+    span.hidden = !sub;
+    span.textContent = sub || '';
+    this.placeFree(el, node.pos.x, node.pos.y - 78);
+  }
+
+  syncZoneChrome(view) {
+    const open = !!this.sim.state.mapOpen;
+    const zoom = this.cameras.main.zoom;
+    const control = !!this.registry.get('showControl');
+    for (const zone of view.zones) {
+      const mark = this.zoneMarks[zone.id];
+      if (!mark) continue;
+      const showUnlock = open && !zone.unlocked;
+      mark.el.hidden = !showUnlock;
+      if (showUnlock) {
+        mark.el.querySelector('strong').textContent = `Unlock ${zone.name}`;
+        const cost = zone.unlock && zone.unlock.clean ? `$${zone.unlock.clean} clean` : 'Open';
+        mark.el.querySelector('span').textContent = cost;
+        this.placeFree(mark.el, mark.x, mark.y);
+      }
+      const showArea = open && zone.unlocked && zoom < 0.9;
+      mark.area.hidden = !showArea;
+      if (showArea) {
+        const pct = control ? ` · ${zone.control}%` : '';
+        mark.area.querySelector('strong').textContent = `${zone.name}${pct}`;
+        this.placeFree(mark.area, mark.x, mark.y);
+      }
+    }
+  }
+
+  settleMarks() {
+    const pins = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate')].filter((el) => !el.hidden);
+    const extras = [...this.pinHost.querySelectorAll('.go-mark, .go-zone, .go-area')].filter((el) => !el.hidden);
+    const hit = (a, b) => {
+      const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      return x > 1 && y > 1;
+    };
+    for (const el of extras) {
+      const rect = el.getBoundingClientRect();
+      if (pins.some((pin) => hit(rect, pin.getBoundingClientRect()))) el.hidden = true;
+    }
   }
 
   fx(evt) {

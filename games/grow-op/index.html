@@ -232,6 +232,39 @@
     </div>
   </div>
 
+  <button type="button" class="go-control-toggle" id="btn-control" aria-pressed="false" aria-label="Neighborhood control">Control</button>
+  <div class="go-reveal" id="reveal-banner" hidden>
+    <strong>The coast is open</strong>
+    <span>Selva Alta, Boca del Río, Mesa Grande, then Puerto Sol. Unlock a zone, then buy a lot or tear one down.</span>
+  </div>
+  <div class="go-sheet" id="lot-card" hidden>
+    <div class="go-sheet-card" role="dialog" aria-modal="true" aria-labelledby="lot-title">
+      <header class="go-sheet-head">
+        <div>
+          <p class="go-sheet-kicker" id="lot-kicker"></p>
+          <h2 id="lot-title"></h2>
+        </div>
+        <button type="button" class="go-drawer-close" data-close aria-label="Close lot">×</button>
+      </header>
+      <p class="go-sheet-meta" id="lot-meta"></p>
+      <div class="go-sheet-gate" id="lot-gate" hidden></div>
+      <div class="go-lot-paths" id="lot-paths"></div>
+      <p class="go-sheet-note" id="lot-note"></p>
+    </div>
+  </div>
+  <div class="go-sheet" id="zone-card" hidden>
+    <div class="go-sheet-card" role="dialog" aria-modal="true" aria-labelledby="zone-title">
+      <header class="go-sheet-head">
+        <div>
+          <p class="go-sheet-kicker" id="zone-kicker"></p>
+          <h2 id="zone-title"></h2>
+        </div>
+        <button type="button" class="go-drawer-close" data-close aria-label="Close zone">×</button>
+      </header>
+      <div id="zone-body"></div>
+      <p class="go-sheet-note" id="zone-note"></p>
+    </div>
+  </div>
   <div class="go-tutorial" id="tutorial-bar" hidden>
     <p id="tutorial-text"></p>
     <button type="button" id="tutorial-next">Next</button>
