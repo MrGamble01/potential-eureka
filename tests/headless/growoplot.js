@@ -53,7 +53,8 @@ const ok = (cond, name) => {
       ok(!card.missing && card.side, width + ' paths sit side by side');
       ok(!card.missing && card.cost, width + ' rebuild shows cost and time');
 
-      await page.locator('[data-path="rebuild"] button').first().click();
+      await page.locator('[data-path="rebuild"] .go-tile').first().click();
+      await page.locator('[data-deal="confirm"]').click();
       await page.waitForTimeout(250);
       const phase = await page.evaluate(() => window.__growOp.sim.state.lots.lot_rp_gas.phase);
       ok(phase === 'demolishing', width + ' demolish started (' + phase + ')');
@@ -65,9 +66,39 @@ const ok = (cond, name) => {
         return { open: card && !card.hidden, text: card ? card.innerText : '' };
       });
       ok(zone.open && zone.text.includes('Selva Alta'), width + ' unlock screen names Selva Alta');
+      const offer = await page.evaluate(() => {
+        const g = window.__growOp;
+        g.sim.state.cleanCash = 80000;
+        g.sim.state.reputation = 40;
+        g.sim.state.mapOpen = true;
+        g.sim.state.completedMissions = ['m1_first_export', 'm2_first_front'];
+        g.sim.unlockZone('ps_docks');
+        g.openLot('lot_dk_wh');
+        const text = document.getElementById('lot-card').innerText;
+        const tiles = [...document.querySelectorAll('#lot-card .go-tile')];
+        const cutOff = tiles.some((btn) => {
+          const r = btn.getBoundingClientRect();
+          return r.width > 2 && (r.bottom > innerHeight - 4 || r.top < 0);
+        });
+        const day = document.getElementById('day-sub');
+        const dayBox = day ? day.getBoundingClientRect() : null;
+        const meters = document.querySelector('.go-meters').getBoundingClientRect();
+        const dayOverlap = !!(dayBox && dayBox.width > 2 && dayBox.height > 2 && dayBox.bottom > meters.top + 1 && dayBox.top < meters.bottom - 1 && dayBox.right > meters.left + 1 && dayBox.left < meters.right - 1);
+        return {
+          farms: /Plantation|Coffee Farm|Highland Farm/.test(text),
+          city: /Taxi Front|Warehouse|Chem Lab/.test(text),
+          cutOff,
+          dayOverlap,
+        };
+      });
+      ok(!offer.farms && offer.city, width + ' city lot skips farms');
+      ok(!offer.cutOff, width + ' build tiles stay on screen');
+      ok(!offer.dayOverlap, width + ' day line clear of cash meters');
 
       await page.evaluate(() => {
         document.getElementById('zone-card').hidden = true;
+        const menu = document.getElementById('menu-panel');
+        if (menu) menu.hidden = false;
         document.getElementById('btn-mute').click();
       });
       await page.waitForTimeout(100);

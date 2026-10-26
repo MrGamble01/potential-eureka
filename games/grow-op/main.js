@@ -12,6 +12,18 @@ import { createJuice } from './audio/juice.js';
 import { lotDef } from './data/lots.js';
 import { buildSeconds } from './systems/lots.js';
 import { attachFeel, presentEvent } from './systems/hooks.js';
+import { artURL, cardKeyForBuilding, cardKeyForRole, iconKeyForBuilding, iconKeyForRole } from './art-keys.js';
+
+function supplyChainOnly(view) {
+  if (!view || view.coreMode !== false) return true;
+  return false;
+}
+
+function showHeat(view) {
+  if (supplyChainOnly(view)) return false;
+  if (typeof view.heat === 'number') return true;
+  return !!(view.zones && view.zones.some((zone) => typeof zone.heat === 'number'));
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,11 +41,18 @@ let mapScene = null;
 const audio = createAudio();
 
 const TUTORIAL = [
-  'Puerto Plata is marked. Tap Build, choose the Taxi Fleet, and construct it. That washes dirty cash.',
+  'The Río Plata plaza is marked. Tap Build, choose the Taxi Fleet, and construct it. That washes dirty cash.',
   'A truck is on the valley road. Follow the crate from the plantation to the pier.',
   'The taxi front just turned dirty bills into clean cash. Clean cash unlocks the next district.',
   'The pier run spiked heat in Río Plata. Bribe the town before the police lock a building.',
   'The valley loop is yours. The rest of the map opens: more country, then Puerto Sol.'
+];
+const TUTORIAL_LINE = [
+  'Build a taxi front',
+  'Follow the truck',
+  'Clean cash is in',
+  'Cool the valley',
+  'The map opens'
 ];
 
 const ROLE_NAME = {
@@ -50,6 +69,7 @@ const ROLE_NAME = {
 };
 
 const queuedBuild = {};
+let ghost = null;
 let openLotId = null;
 let openZoneId = null;
 let sheetNote = '';
@@ -87,17 +107,15 @@ function handleSimEvent(evt) {
   renderHud();
 }
 
-function selectSlot(slotId, openDrawer = true) {
-  closeSheets();
+function selectSlot(slotId, openPanel = true) {
   const slotDef = BUILD_SLOTS.find((s) => s.id === slotId);
   if (!slotDef) return;
   sim.state.selectedSlotId = slotId;
   sim.state.selectedRegionId = slotDef.regionId;
-  activeTab = 'slot';
-  if (openDrawer) drawerOpen = true;
+  drawerOpen = false;
   syncDrawerVisibility();
-  renderDrawerContent();
-  renderHud();
+  if (openPanel) openLot(slotId);
+  else renderHud();
 }
 
 function selectRegion(regionId) {
@@ -128,15 +146,15 @@ function syncDrawerVisibility() {
 
 function renderHud() {
   const st = sim.state;
+  const view = sim.gameplayView();
+  const camp = view.campaign || {};
 
-  // Currencies
   $('dirty-cash-val').textContent = fmtCash(st.dirtyCash);
   $('clean-cash-val').textContent = fmtCash(st.cleanCash);
 
-  // Act & Day
-  const actDef = ACTS[st.act] || ACTS[1];
+  const actDef = camp.actInfo || ACTS[st.act] || ACTS[1];
   $('act-kicker').textContent = actDef.badge;
-  $('day-sub').textContent = `Day ${st.day} · Fleet ${st.activeTrucks.length}/${sim.getMaxTrucks()} Trucks`;
+  $('day-sub').textContent = `Day ${st.day} · Fleet ${st.activeTrucks.length}/${sim.getMaxTrucks()}`;
 
   // Highest or selected regional heat
   const selReg = st.regions[st.selectedRegionId] || st.regions.rio_plata;
@@ -145,9 +163,22 @@ function renderHud() {
     .map((r) => Number(r.heat) || 0);
   const maxHeat = unlockedHeats.length ? Math.max(...unlockedHeats) : 0;
   const displayHeat = Math.round(Math.max(Number(selReg?.heat) || 0, maxHeat));
-  $('heat-val').textContent = `${displayHeat}%`;
-  $('heat-bar-fill').style.width = `${Math.min(100, displayHeat)}%`;
-  $('heat-meter').classList.toggle('is-hot', displayHeat >= 70);
+  const heatOn = showHeat(view);
+  const heatMeter = $('heat-meter');
+  if (heatMeter) heatMeter.hidden = !heatOn;
+  if (heatOn) {
+    $('heat-val').textContent = `${displayHeat}%`;
+    $('heat-bar-fill').style.width = `${Math.min(100, displayHeat)}%`;
+    heatMeter.classList.toggle('is-hot', displayHeat >= 70);
+  }
+  const crewBtn = $('menu-crew');
+  if (crewBtn) crewBtn.hidden = supplyChainOnly(view);
+  const sideEl = $('side-goal');
+  const side = !supplyChainOnly(view) && camp.goals ? camp.goals.side : null;
+  if (sideEl) {
+    sideEl.hidden = !side;
+    sideEl.textContent = side ? side.title : '';
+  }
 
   // Speed & Pause buttons
   const pauseBtn = $('btn-pause');
@@ -161,50 +192,65 @@ function renderHud() {
     speedBtn.textContent = `${st.speed}×`;
   }
 
-  // Prominent Objective Card
-  const mission = sim.getCurrentMission();
-  const prog = sim.getMissionProgress(mission);
-  if (mission) {
-    $('obj-title').textContent = mission.title;
-    $('obj-desc').textContent = mission.desc;
-    $('obj-reward').textContent = `+${fmtCash(mission.rewardClean)} Clean`;
-    $('obj-prog-text').textContent = prog.progressText;
-    $('obj-bar-fill').style.width = `${prog.pct}%`;
-  } else {
-    $('obj-title').textContent = 'Syndicate Sovereignty Achieved';
-    $('obj-desc').textContent = 'All campaign objectives complete. Continue expanding in Sandbox mode.';
-    $('obj-reward').textContent = 'COMPLETE';
-    $('obj-prog-text').textContent = '100%';
-    $('obj-bar-fill').style.width = '100%';
-  }
-
-  // Raid / High Heat Emergency Banner
+  const tutoring = st.started && !st.tutorialDone && st.mode === 'campaign';
+  const mission = camp.mission;
+  const prog = camp.progress;
   const raidRegion = Object.values(st.regions).find((r) => r.raidActive);
-  const hotRegion = Object.values(st.regions).find((r) => r.unlocked && r.heat >= 75);
-  const raidBanner = $('raid-banner');
-
-  if (raidRegion) {
-    const regDef = REGIONS.find((r) => r.id === raidRegion.id);
-    raidBanner.classList.add('is-visible');
-    $('raid-title').textContent = `DEA & POLICÍA RAID: ${regDef.name.toUpperCase()}`;
-    $('raid-sub').textContent = `Confiscation in ${Math.ceil(raidRegion.raidTimer)}s — Pay off commandante ($250 Clean / $350 Dirty)`;
+  const zoneName = (id) => {
+    const zone = (view.zones || []).find((item) => item.id === id);
+    return zone ? zone.name : id;
+  };
+  if (camp.status === 'failed') {
+    $('obj-title').textContent = camp.failReason || 'Campaign over';
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = '';
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-next').hidden = true;
+  } else if (tutoring) {
+    const step = Math.min(TUTORIAL.length - 1, st.tutorialStep || 0);
+    $('obj-title').textContent = TUTORIAL_LINE[step];
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = TUTORIAL[step];
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-next').hidden = false;
+    $('obj-next').textContent = step >= TUTORIAL.length - 1 ? 'Got it' : 'Next';
+  } else if (raidRegion) {
+    $('obj-title').textContent = `Raid in ${zoneName(raidRegion.id)}`;
+    $('obj-prog-text').textContent = `${Math.ceil(raidRegion.raidTimer)}s`;
+    $('obj-desc').textContent = 'Bribe from the expanded line if you need the buildings back.';
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-next').hidden = true;
     $('raid-action-btn').dataset.region = raidRegion.id;
-    $('raid-action-btn').textContent = 'Bribe Officials';
-  } else if (hotRegion) {
-    const regDef = REGIONS.find((r) => r.id === hotRegion.id);
-    raidBanner.classList.add('is-visible');
-    $('raid-title').textContent = `HIGH REGIONAL HEAT: ${regDef.name.toUpperCase()} (${Math.floor(hotRegion.heat)}%)`;
-    $('raid-sub').textContent = `Federal patrols mobilizing near ${regDef.townName}. Cool down suspicion now.`;
-    $('raid-action-btn').dataset.region = hotRegion.id;
-    $('raid-action-btn').textContent = 'Cool Heat ($160)';
+  } else if (mission) {
+    $('obj-title').textContent = mission.title;
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = mission.desc || '';
+    $('obj-beat').textContent = camp.beat || '';
+    $('obj-reward').textContent = mission.rewardClean ? `+${fmtCash(mission.rewardClean)}` : '';
+    if ($('obj-bar-fill') && prog) $('obj-bar-fill').style.width = `${prog.pct}%`;
+    const who = camp.speaker ? camp.speaker.name : '';
+    const dea = camp.dea ? `Case ${camp.dea.case}` : '';
+    const risk = (view.lieutenants || []).filter((lt) => lt.hired && lt.betrayalRisk >= 40)
+      .sort((a, b) => b.betrayalRisk - a.betrayalRisk)[0];
+    $('obj-meta').textContent = [who, dea, risk ? `${risk.name.split(' ')[0]} ${risk.betrayalRisk}` : ''].filter(Boolean).join(' · ');
+    $('obj-next').hidden = true;
   } else {
-    raidBanner.classList.remove('is-visible');
+    $('obj-title').textContent = camp.status === 'complete' ? 'Campaign complete' : 'No open objective';
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = '';
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-next').hidden = true;
   }
+  const raidBanner = $('raid-banner');
+  if (raidBanner) raidBanner.classList.remove('is-visible');
 
-  // Bottom Feed Ticker
-  if (st.feed.length > 0) {
-    const latest = st.feed[0];
-    $('feed-ticker').innerHTML = `<strong>[${latest.time}]</strong> ${latest.text}`;
+  const log = $('log-panel');
+  if (log && !log.hidden) {
+    log.innerHTML = (st.feed || []).slice(0, 14).map((row) => `<p><strong>${row.time}</strong> ${row.text}</p>`).join('') || '<p>Nothing logged.</p>';
   }
   const route = $('route-line');
   if (route) {
@@ -224,25 +270,27 @@ function renderHud() {
 
 function renderTutorial() {
   const bar = $('tutorial-bar');
-  if (!bar) return;
-  const show = sim.state.started && !sim.state.tutorialDone && sim.state.mode === 'campaign';
-  bar.hidden = !show;
-  if (!show) return;
-  const step = Math.min(TUTORIAL.length - 1, sim.state.tutorialStep || 0);
-  $('tutorial-text').textContent = TUTORIAL[step];
-  $('tutorial-next').textContent = step >= TUTORIAL.length - 1 ? 'Got it' : 'Next';
+  if (bar) bar.hidden = true;
 }
+
+const eventQueue = [];
 
 function renderEvent() {
   const card = $('event-card');
   if (!card) return;
-  const ev = sim.state.event;
+  const view = sim.gameplayView();
+  if (supplyChainOnly(view) || !Object.prototype.hasOwnProperty.call(view, 'card')) {
+    card.hidden = true;
+    return;
+  }
+  const ev = view.card;
   card.hidden = !ev || !sim.state.started;
   if (!ev) return;
+  const kicker = card.querySelector('.go-event-kicker');
+  if (kicker) kicker.textContent = ev.speaker ? ev.speaker.name : 'Dispatch';
   $('event-title').textContent = ev.title;
   $('event-body').textContent = ev.body;
-  const actions = $('event-actions');
-  actions.innerHTML = ev.choices.map((choice, i) =>
+  $('event-actions').innerHTML = (ev.choices || []).map((choice, i) =>
     `<button type="button" class="go-action-btn" data-choice="${i}">${choice.label}</button>`
   ).join('');
 }
@@ -283,7 +331,8 @@ function renderDrawerContent() {
   const regState = st.regions[regDef.id];
 
   if (activeTab === 'slot') {
-    $('drawer-kicker').textContent = `${regDef.name} · ${regDef.townName}`;
+    const named = sim.gameplayView().zones.find((zone) => zone.id === slotDef.regionId);
+    $('drawer-kicker').textContent = named ? named.name : slotDef.label;
     if (slotState.rivalControlled) {
       $('drawer-title').textContent = `Los Lobos Outpost (${slotDef.label})`;
       body.innerHTML = `
@@ -493,42 +542,31 @@ function renderDrawerContent() {
   }
 
   if (activeTab === 'territory') {
-    $('drawer-kicker').textContent = 'Regions & Cultivar Genetics';
-    $('drawer-title').textContent = 'Territory & R&D';
-
-    const regionsHtml = REGIONS.map((r) => {
-      const rs = st.regions[r.id];
+    $('drawer-kicker').textContent = 'Land';
+    $('drawer-title').textContent = 'Zones';
+    const land = sim.gameplayView();
+    const regionsHtml = (land.zones || []).map((zone) => {
+      const price = zone.unlock && zone.unlock.clean ? zone.unlock.clean : 0;
+      const heat = !supplyChainOnly(land) && typeof zone.heat === 'number' ? `<span>Heat: <strong>${zone.heat}%</strong></span>` : '';
       return `
         <div class="go-card">
           <div class="go-card-top">
             <div class="go-card-title-group">
               <div class="go-cat-badge">${ICONS.mapPin}</div>
               <div>
-                <h3 class="go-card-name">${r.name}</h3>
-                <span class="go-card-role">${r.townName} · Fertility ${Math.round(r.fertilityBonus * 100)}%</span>
+                <h3 class="go-card-name">${zone.name}</h3>
+                <span class="go-card-role">${zone.unlocked ? 'Open' : 'Locked'}</span>
               </div>
             </div>
           </div>
-          <p class="go-card-desc">${r.desc}</p>
+          <p class="go-card-desc">${zone.desc || ''}</p>
           <div class="go-chain-pill">
-            <span>Status: <strong>${rs.unlocked ? 'Active Territory' : 'Locked Province'}</strong></span>
-            <span>Heat: <strong>${Math.floor(rs.heat)}%</strong></span>
+            <span>Status: <strong>${zone.unlocked ? 'Open' : 'Locked'}</strong></span>
+            ${heat}
           </div>
           <div class="go-btn-row">
-            ${
-              rs.unlocked
-                ? `<button type="button" class="go-action-btn" data-action="focus-region" data-region="${r.id}">
-                    Pan Camera to ${r.name.split(' ')[0]}
-                  </button>
-                  <button type="button" class="go-action-btn" data-action="bribe-region" data-region="${r.id}">
-                    Cool Heat ($160)
-                  </button>`
-                : `<button type="button" class="go-action-btn go-action-btn--dirty" data-action="unlock-region" data-region="${r.id}" ${
-                    st.cleanCash < r.unlockCostClean ? 'disabled' : ''
-                  }>
-                    Unlock Province ($${r.unlockCostClean} Clean Cash)
-                  </button>`
-            }
+            <button type="button" class="go-action-btn" data-action="focus-zone" data-zone="${zone.id}">Show ${zone.name}</button>
+            ${zone.unlocked || (zone.blockers && zone.blockers.length) ? '' : `<button type="button" class="go-action-btn" data-action="unlock-zone" data-zone="${zone.id}" ${st.cleanCash < price ? 'disabled' : ''}>Unlock $${price}</button>`}
           </div>
         </div>
       `;
@@ -596,6 +634,7 @@ function closeSheets() {
   if (lot) lot.hidden = true;
   if (zone) zone.hidden = true;
   if (phaserGame) phaserGame.registry.set('openLotId', null);
+  setGhost(null);
 }
 
 function purseWord(zone) {
@@ -640,10 +679,7 @@ function buildQuote(lot, buildingId) {
 
 function showReveal() {
   const banner = $('reveal-banner');
-  if (!banner) return;
-  banner.hidden = false;
-  clearTimeout(showReveal.timer);
-  showReveal.timer = setTimeout(() => { banner.hidden = true; }, 5200);
+  if (banner) banner.hidden = true;
 }
 
 function setControl(on) {
@@ -659,8 +695,9 @@ function openLot(lotId) {
   const lot = data.lots.find((item) => item.id === lotId);
   if (!lot) return;
   if (lot.slotId) {
-    selectSlot(lot.slotId, true);
-    return;
+    const slotDef = BUILD_SLOTS.find((item) => item.id === lot.slotId);
+    sim.state.selectedSlotId = lot.slotId;
+    if (slotDef) sim.state.selectedRegionId = slotDef.regionId;
   }
   const zone = data.zones.find((item) => item.id === lot.zoneId);
   if (!zone || !zone.unlocked) {
@@ -714,16 +751,18 @@ function renderLot() {
   const zone = data.zones.find((item) => item.id === lot.zoneId);
   const def = lotDef(lot.id);
   card.hidden = false;
-  $('lot-kicker').textContent = zone ? `${zone.city || zone.town} · ${zone.name}` : lot.zoneId;
+  $('lot-kicker').textContent = zone ? zone.name : '';
   $('lot-title').textContent = lot.propertyLabel || lot.label;
   const pay = purseWord(zone);
   const bonus = bonusLine(lot.bonus);
-  const bits = [`Heat ${zone ? zone.heat : 0}`, `Control ${zone ? zone.control : 0}%`];
+  const bits = [];
+  if (!supplyChainOnly(data) && zone && typeof zone.heat === 'number') bits.push(`Heat ${zone.heat}`);
+  if (!supplyChainOnly(data) && zone && typeof zone.control === 'number') bits.push(`Control ${zone.control}%`);
   if (lot.phase === 'operating' && lot.role) bits.unshift(ROLE_NAME[lot.role] || lot.role);
   if (bonus) bits.push(bonus);
   $('lot-meta').textContent = bits.join(' · ');
   const gate = $('lot-gate');
-  const canTalk = lot.actions.includes('negotiate') || lot.actions.includes('intimidate');
+  const canTalk = !supplyChainOnly(data) && (lot.actions.includes('negotiate') || lot.actions.includes('intimidate'));
   gate.hidden = !canTalk;
   gate.innerHTML = canTalk ? `<p>The owner has not agreed to sell.</p><div class="go-gate-row">
       ${lot.actions.includes('negotiate') ? '<button type="button" data-deal="negotiate">Negotiate</button>' : ''}
@@ -736,10 +775,9 @@ function renderLot() {
   } else if (lot.phase === 'demolishing' || lot.phase === 'building') {
     paths.className = 'go-lot-paths is-single';
     const left = lot.phase === 'demolishing' ? lot.demolishLeft : lot.constructLeft;
-    const label = lot.phase === 'demolishing' ? 'Demolishing' : 'Scaffolding';
     const queued = queuedBuild[lot.id];
     const name = queued && BUILDINGS[queued] ? BUILDINGS[queued].shortName : '';
-    paths.innerHTML = `<section class="go-path"><h3>${label}</h3><p>${left}s left${name ? '. Then ' + name + '.' : '.'}</p></section>`;
+    paths.innerHTML = `<section class="go-path"><h3>${name || 'In progress'}</h3><p>${left}s</p></section>`;
   } else if (lot.phase === 'operating' && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert')) {
     paths.className = 'go-lot-paths is-single';
     const title = lot.buildingId && BUILDINGS[lot.buildingId] ? BUILDINGS[lot.buildingId].name : (ROLE_NAME[lot.role] || 'Operating');
@@ -753,35 +791,150 @@ function renderLot() {
   $('lot-note').textContent = sheetNote;
 }
 
+function setGhost(next) {
+  ghost = next;
+  if (phaserGame) phaserGame.registry.set('ghost', next);
+}
+
+function thumb(kind) {
+  const card = cardKeyForRole(kind) || cardKeyForBuilding(kind);
+  const icon = iconKeyForRole(kind);
+  return artPair(card, icon);
+}
+
+function tileName(name) {
+  const short = {
+    'Stash house': 'Stash',
+    Distribution: 'Routes',
+    Safehouse: 'Safe',
+    'Regional Bank': 'Bank',
+    'Truck Depot': 'Depot',
+    'Salsa Club': 'Club',
+    'Packer Mill': 'Mill'
+  };
+  return short[name] || name;
+}
+
+function artPair(cardKey, iconKey) {
+  const card = artURL(cardKey);
+  const icon = artURL(iconKey);
+  return `<span class="go-tile-art">${card ? `<img class="go-card-img" alt="" width="176" height="120" src="${card}">` : ''}${icon ? `<img class="go-icon-img" alt="" width="64" height="64" src="${icon}">` : ''}</span>`;
+}
+
+function effectOf(building) {
+  if (!building) return '';
+  if (building.role === 'launderer') return `Washes $${building.launderPerCycle}`;
+  if (building.trucksProvided) return `+${building.trucksProvided} trucks`;
+  if (building.role === 'warehouse') return `Stores ${building.storageCap}`;
+  if (building.heatRate < 0) return 'Cools heat';
+  if (building.role === 'producer') return 'Grows crop';
+  if (building.role === 'processor') return 'Processes';
+  if (building.role === 'smuggling') return 'Exports';
+  return '';
+}
+
+function tileButton(opts) {
+  const on = ghost && ghost.lotId === opts.lotId && ghost.key === opts.key;
+  const pictures = opts.building
+    ? artPair(cardKeyForBuilding(opts.building), iconKeyForBuilding(opts.building))
+    : artPair(cardKeyForRole(opts.role || opts.thumb), iconKeyForRole(opts.role || opts.thumb));
+  const detail = [opts.cost, opts.effect].filter(Boolean).join(' · ');
+  const label = tileName(opts.name);
+  return `<button type="button" class="go-tile${on ? ' is-on' : ''}${opts.rec ? ' is-rec' : ''}" title="${opts.name}" data-deal="pick" data-path="${opts.path}" data-key="${opts.key}" data-role="${opts.role || ''}" data-building="${opts.building || ''}" ${opts.enabled ? '' : 'disabled'}>${pictures}<b>${label}</b><small>${detail}</small></button>`;
+}
+
+function previewRow(nowKind, nextKind, nowName, nextName) {
+  if (!ghost || ghost.lotId !== openLotId) return '';
+  return `<div class="go-preview"><span>${thumb(nowKind)}<small>Now</small><b>${nowName}</b></span><span>${thumb(nextKind)}<small>After</small><b>${nextName}</b></span></div><button type="button" class="go-cta-btn" data-deal="confirm">Place it</button>`;
+}
+
 function convertColumn(lot, pay, enabled) {
   const roles = Object.entries(lot.fits || {}).filter(([, fit]) => fit && fit.allowed);
-  const buttons = roles.map(([role, fit]) => {
-    const tag = fit.fit === 'boost' ? 'Strong fit' : fit.fit === 'limit' ? 'Tight fit' : 'Fits';
-    return `<button type="button" data-deal="convert" data-role="${role}" ${enabled ? '' : 'disabled'}><b>${ROLE_NAME[role] || role}</b><small>${tag}</small></button>`;
-  }).join('');
-  return `<section class="go-path" data-path="convert"><h3>Buy &amp; convert</h3><p>Keep this building. Ready now. Costs more.</p><p class="go-path-price">${fmtCash(lot.buyPrice)} ${pay}</p><div class="go-path-list">${buttons || '<p>No role fits this building.</p>'}</div></section>`;
+  const rec = roles.find(([, fit]) => fit.fit === 'boost') || roles[0];
+  const buttons = roles.map(([role, fit]) => tileButton({
+    lotId: lot.id,
+    path: 'convert',
+    key: 'convert:' + role,
+    role,
+    thumb: lot.propertyType || 'lot',
+    name: ROLE_NAME[role] || role,
+    cost: `${fmtCash(lot.buyPrice)} ${pay}`,
+    effect: fit.fit === 'boost' ? 'Strong fit' : fit.fit === 'limit' ? 'Tight fit' : 'Fits',
+    enabled,
+    rec: rec && rec[0] === role
+  })).join('');
+  const picked = ghost && ghost.path === 'convert' && ghost.lotId === lot.id;
+  const after = picked ? (ROLE_NAME[ghost.role] || ghost.role) : '';
+  return `<section class="go-path" data-path="convert"><h3>Buy &amp; convert</h3><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', lot.propertyType || 'lot', lot.propertyLabel || lot.label, after) : ''}</section>`;
+}
+
+function offerBuilding(zone, buildingId) {
+  const building = BUILDINGS[buildingId];
+  if (!building || !zone) return false;
+  if (zone.kind === 'city') {
+    if (building.category === 'production') return false;
+    if (buildingId === 'river_pier' || buildingId === 'drying_barn') return false;
+    if (buildingId === 'aerodrome') return zone.id === 'ps_airport';
+    return building.category === 'laundering' || building.category === 'logistics' || buildingId === 'chem_lab';
+  }
+  if (buildingId === 'salsa_club' || buildingId === 'banco_regional') return false;
+  if (buildingId === 'aerodrome') return zone.id === 'mesa_strip';
+  return true;
+}
+
+function listedBuilds(lot) {
+  const zone = sim.gameplayView().zones.find((item) => item.id === lot.zoneId);
+  return (lot.builds || []).filter((id) => offerBuilding(zone, id));
 }
 
 function rebuildColumn(lot, def, enabled, pay) {
   const seconds = def ? def.demolishSeconds : 0;
-  const buildings = (lot.builds || []).map((id) => {
+  const ids = listedBuilds(lot);
+  const rec = ids.includes('taxi_co') ? 'taxi_co' : ids[0];
+  const buttons = ids.map((id) => {
     const quote = buildQuote(lot, id);
     if (!quote) return '';
-    return `<button type="button" data-deal="rebuild" data-building="${id}" ${enabled ? '' : 'disabled'}><b>${quote.name}</b><small>${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s</small></button>`;
+    const building = BUILDINGS[id];
+    return tileButton({
+      lotId: lot.id,
+      path: 'rebuild',
+      key: 'rebuild:' + id,
+      building: id,
+      thumb: id,
+      name: quote.name,
+      cost: `${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s`,
+      effect: effectOf(building),
+      enabled,
+      rec: id === rec
+    });
   }).join('');
-  let step = `Buy the lot for ${fmtCash(lot.lotPrice)} ${pay}, then demolish for ${fmtCash(lot.demolishCost)} dirty · ${seconds}s.`;
-  if (lot.actions.includes('startDemolish')) step = `Demolish for ${fmtCash(lot.demolishCost)} dirty · ${seconds}s, then the new building goes up.`;
-  if (lot.actions.includes('buildNew') || lot.phase === 'cleared') step = 'The lot is clear. Pick a building.';
-  return `<section class="go-path" data-path="rebuild"><h3>Demolish &amp; build new</h3><p>${step}</p><div class="go-path-list">${buildings}</div></section>`;
+  const picked = ghost && ghost.path === 'rebuild' && ghost.lotId === lot.id && ghost.buildingId;
+  const nextName = picked && BUILDINGS[ghost.buildingId] ? BUILDINGS[ghost.buildingId].shortName : '';
+  const note = lot.actions.includes('buildNew') ? 'Lot is clear.' : `Demolish ${seconds}s, then build.`;
+  return `<section class="go-path" data-path="rebuild"><h3>Demolish &amp; build new</h3><p class="go-path-note">${note} ${fmtCash(lot.lotPrice)} ${pay}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
 }
 
 function plotColumn(lot) {
-  const buildings = (lot.builds || []).map((id) => {
+  const ids = listedBuilds(lot);
+  const buttons = ids.map((id) => {
     const quote = buildQuote(lot, id);
     if (!quote) return '';
-    return `<button type="button" data-deal="build-plot" data-building="${id}"><b>${quote.name}</b><small>${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s</small></button>`;
+    return tileButton({
+      lotId: lot.id,
+      path: 'build',
+      key: 'build:' + id,
+      building: id,
+      thumb: id,
+      name: quote.name,
+      cost: `${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s`,
+      effect: effectOf(BUILDINGS[id]),
+      enabled: true,
+      rec: id === ids[0]
+    });
   }).join('');
-  return `<section class="go-path" data-path="build"><h3>Build</h3><p>Open ground. Cheaper than buying a standing building, and it takes time.</p><div class="go-path-list">${buildings}</div></section>`;
+  const picked = ghost && ghost.path === 'build' && ghost.lotId === lot.id;
+  const nextName = picked && BUILDINGS[ghost.buildingId] ? BUILDINGS[ghost.buildingId].shortName : '';
+  return `<section class="go-path" data-path="build"><h3>Build</h3><div class="go-tile-row">${buttons}</div>${picked ? previewRow('lot', ghost.buildingId, 'Open ground', nextName) : ''}</section>`;
 }
 
 function renderZone() {
@@ -831,14 +984,30 @@ function runRebuild(lotId, buildingId) {
 
 function onDeal(action, el) {
   sheetNote = '';
-  if (action === 'unlock') {
+  if (action === 'pick') {
+    setGhost({
+      lotId: openLotId,
+      path: el.dataset.path,
+      key: el.dataset.key,
+      role: el.dataset.role || null,
+      buildingId: el.dataset.building || null
+    });
+  } else if (action === 'confirm' && ghost && ghost.lotId === openLotId) {
+    if (ghost.path === 'convert') {
+      const result = sim.buyAndConvert(openLotId, ghost.role);
+      if (!result.ok) sheetNote = result.reason || 'Cannot buy.';
+      else setGhost(null);
+    } else if (ghost.path === 'rebuild') {
+      sheetNote = runRebuild(openLotId, ghost.buildingId);
+      if (!sheetNote) setGhost(null);
+    } else if (ghost.path === 'build') {
+      const result = sim.buildOnPlot(openLotId, ghost.buildingId);
+      if (!result.ok) sheetNote = result.reason || 'Cannot build.';
+      else setGhost(null);
+    }
+  } else if (action === 'unlock') {
     const result = sim.unlockZone(openZoneId);
     if (!result.ok) sheetNote = result.reason || 'Cannot unlock.';
-  } else if (action === 'convert') {
-    const result = sim.buyAndConvert(openLotId, el.dataset.role);
-    if (!result.ok) sheetNote = result.reason || 'Cannot buy.';
-  } else if (action === 'rebuild') {
-    sheetNote = runRebuild(openLotId, el.dataset.building);
   } else if (action === 'negotiate') {
     const result = sim.negotiate(openLotId);
     if (!result.ok) sheetNote = result.reason || 'No deal.';
@@ -878,15 +1047,9 @@ function begin(mode) {
   if (mode === 'campaign' && !sim.state.tutorialDone) {
     sim.state.selectedSlotId = 'slot_rp_town1';
     sim.state.selectedRegionId = 'rio_plata';
-    if (window.innerWidth > 720) {
-      activeTab = 'slot';
-      drawerOpen = true;
-    }
+    drawerOpen = false;
   }
-  if (mapScene) {
-    if (mode === 'campaign' && !sim.state.tutorialDone) mapScene.focusOnSlot('slot_rp_town1', false);
-    else mapScene.frameValley(false);
-  }
+  if (mapScene) mapScene.frameValley(true);
   renderHud();
   renderDrawerContent();
 }
@@ -895,13 +1058,34 @@ function wireEvents() {
   $('btn-start-operation').addEventListener('click', () => begin('campaign'));
   $('btn-sandbox').addEventListener('click', () => begin('sandbox'));
 
-  $('tutorial-next').addEventListener('click', () => {
+  function advanceTutorial() {
     const step = (sim.state.tutorialStep || 0) + 1;
     if (step >= TUTORIAL.length) sim.state.tutorialDone = true;
     else sim.state.tutorialStep = step;
     sim.save();
     renderHud();
-  });
+  }
+  $('tutorial-next').addEventListener('click', advanceTutorial);
+  const objNext = $('obj-next');
+  if (objNext) objNext.addEventListener('click', advanceTutorial);
+  const objToggle = $('obj-toggle');
+  if (objToggle) {
+    objToggle.addEventListener('click', () => {
+      const more = $('obj-more');
+      const open = more.hidden;
+      more.hidden = !open;
+      objToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+  const logBtn = $('btn-log');
+  if (logBtn) {
+    logBtn.addEventListener('click', () => {
+      const panel = $('log-panel');
+      panel.hidden = !panel.hidden;
+      logBtn.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+      renderHud();
+    });
+  }
   $('event-actions').addEventListener('click', (e) => {
     const choice = e.target.closest('[data-choice]');
     if (!choice) return;
@@ -969,6 +1153,31 @@ function wireEvents() {
   $('btn-briefing').addEventListener('click', () => {
     $('title-modal').hidden = false;
   });
+  const menuBtn = $('btn-menu');
+  if (menuBtn) {
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const panel = $('menu-panel');
+      panel.hidden = !panel.hidden;
+      menuBtn.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const panel = $('menu-panel');
+    if (!panel || panel.hidden || e.target.closest('#menu-panel') || e.target.closest('#btn-menu')) return;
+    panel.hidden = true;
+    if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+  });
+  for (const tabBtn of document.querySelectorAll('.go-menu-tab')) {
+    tabBtn.addEventListener('click', () => {
+      activeTab = tabBtn.dataset.tab;
+      drawerOpen = true;
+      const panel = $('menu-panel');
+      if (panel) panel.hidden = true;
+      syncDrawerVisibility();
+      renderDrawerContent();
+    });
+  }
 
   $('btn-control').addEventListener('click', () => {
     const on = $('btn-control').getAttribute('aria-pressed') !== 'true';
@@ -1020,8 +1229,18 @@ function wireEvents() {
   }
 
   // Bottom dock buttons
+  const buildBtn = $('dock-build-btn');
+  if (buildBtn) {
+    buildBtn.addEventListener('click', () => {
+      const view = sim.gameplayView();
+      const picked = (view.lots || []).find((lot) => lot.recommended);
+      const id = (picked && picked.id) || sim.state.selectedSlotId;
+      if (id) openLot(id);
+    });
+  }
   for (const dockBtn of document.querySelectorAll('.go-dock-btn')) {
     dockBtn.addEventListener('click', () => {
+      if (dockBtn.id === 'dock-build-btn') return;
       const tab = dockBtn.dataset.tab;
       if (tab) {
         if (drawerOpen && activeTab === tab) {
@@ -1063,6 +1282,12 @@ function wireEvents() {
       if (res.ok && mapScene) mapScene.focusOnRegion(btn.dataset.region);
     } else if (action === 'focus-region') {
       if (mapScene) mapScene.focusOnRegion(btn.dataset.region);
+    } else if (action === 'focus-zone') {
+      if (mapScene) mapScene.frameZone(btn.dataset.zone, false);
+    } else if (action === 'unlock-zone') {
+      const res = sim.unlockZone(btn.dataset.zone);
+      if (!res.ok) sheetNote = res.reason || 'Cannot unlock.';
+      if (res.ok && mapScene) mapScene.frameZone(btn.dataset.zone, false);
     } else if (action === 'clear-rival') {
       sim.clearRivalSlot(btn.dataset.slot);
     } else if (action === 'bribe-region') {
@@ -1141,6 +1366,7 @@ function bootPhaser() {
 // Expose deterministic testing & inspection API on window.__growOp
 window.__growOp = {
   sim,
+  scene: () => mapScene,
   // Plain snapshot for the scene/HUD agent. Methods live on sim.
   gameplay: () => sim.gameplayView(),
   selectSlot: (id) => selectSlot(id, true),
@@ -1187,8 +1413,9 @@ window.__growOp = {
     if (phaserGame) phaserGame.registry.set('holdMapReveal', false);
     if (!mapScene) return;
     mapScene.holdMapReveal = false;
-    mapScene.didReveal = false;
     sim.state.mapOpen = true;
+    mapScene.didReveal = true;
+    mapScene.revealMap();
   },
   setControl: (on) => setControl(on),
   dismissChrome: () => {
@@ -1218,10 +1445,7 @@ if (hasSave) {
   $('btn-new-operation').hidden = false;
 }
 
-// Default drawer closed on narrow mobile until tapped, open on tablet/desktop
-if (window.innerWidth <= 640) {
-  drawerOpen = false;
-}
+drawerOpen = false;
 
 wireEvents();
 syncDrawerVisibility();

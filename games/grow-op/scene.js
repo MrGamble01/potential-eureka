@@ -14,18 +14,15 @@
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, LIEUTENANTS } from './data/missions.js';
+import { REGIONS, BUILD_SLOTS, ROAD_NETWORK } from './data/missions.js';
 import { LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
-import { drawExtended, paintOpen, paintProperty, paintRubble, paintScaffold } from './map-draw.js';
+import { drawExtended, paintOpen, paintProperty } from './map-draw.js';
+import { artURL, iconKeyForBuilding, iconKeyForProperty, iconKeyForRole } from './art-keys.js';
 import * as Art from './art.js';
 
-const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
+const PIN_MARK = '<img alt="" width="64" height="64" draggable="false"><svg class="go-glyph go-glyph-plus" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="go-glyph go-glyph-crane" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17h14M5 17V9h7l3-5h3M8 9v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong hidden></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
 
-const PLATES = {
-  rio_plata: { x: 200, y: 340, title: 'RÍO PLATA VALLEY', sub: 'Puerto Plata' },
-  san_marco: { x: 980, y: 340, title: 'SAN MARCO DISTRICT', sub: 'Ciudad San Marco' },
-  sierra_alta: { x: 1680, y: 340, title: 'SIERRA ALTA', sub: 'Villa Dorada' }
-};
+const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
 
 export class MapScene extends window.Phaser.Scene {
   constructor() {
@@ -73,11 +70,9 @@ export class MapScene extends window.Phaser.Scene {
     }
     this.pinHost = document.getElementById('go-pins');
     this.drawTerrain();
-    drawExtended(this.coast);
-    this.drawHatch();
-    this.createPlates();
+    if (!(typeof Art.coversExtendedMap === 'function' && Art.coversExtendedMap())) drawExtended(this.coast);
+    this.hatch.clear();
     this.createSlots();
-    this.createBadges();
     this.createPlacedLots();
     this.createZoneMarks();
     this.spawnAmbientCraft();
@@ -92,39 +87,9 @@ export class MapScene extends window.Phaser.Scene {
     Art.drawWorld(this.terrain, ROAD_NETWORK);
   }
 
-  drawHatch() {
-    Art.drawFog(this.hatch, REGIONS);
-  }
-
   isNight() {
     const hour = this.sim && this.sim.state ? this.sim.state.timeOfDay || 0 : 0;
     return hour > 0.72 || hour < 0.18;
-  }
-
-  createPlates() {
-    this.plates = {};
-    for (const [id, plate] of Object.entries(PLATES)) {
-      const el = document.createElement('div');
-      el.className = 'go-plate';
-      el.innerHTML = '<strong></strong><span></span>';
-      el.hidden = true;
-      this.pinHost.appendChild(el);
-      this.plates[id] = { el, x: plate.x, y: plate.y, title: plate.title, sub: plate.sub };
-    }
-  }
-
-  createBadges() {
-    for (const reg of REGIONS) {
-      if (!reg.unlockCostClean) continue;
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = 'go-badge';
-      el.innerHTML = `<strong>Unlock ${reg.name}</strong><span>$${reg.unlockCostClean} clean cash</span>`;
-      el.addEventListener('click', () => this.onRegionSelected(reg.id));
-      el.hidden = true;
-      this.pinHost.appendChild(el);
-      this.badges[reg.id] = { el, x: reg.unlockPos.x, y: reg.unlockPos.y };
-    }
   }
 
   createSlots() {
@@ -144,7 +109,7 @@ export class MapScene extends window.Phaser.Scene {
       const pulse = this.add.ellipse(0, 18, 170, 78).setStrokeStyle(3, 0x8ec5ff, 1).setVisible(false);
       const pin = document.createElement('div');
       pin.className = 'go-pin';
-      pin.innerHTML = '<strong></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
+      pin.innerHTML = PIN_MARK;
       pin.hidden = true;
       this.pinHost.appendChild(pin);
       root.add([pulse, select, raid, hit, art]);
@@ -180,19 +145,18 @@ export class MapScene extends window.Phaser.Scene {
     if (cam.zoomEffect && cam.zoomEffect.isRunning) cam.zoomEffect.reset();
   }
 
-  clampCamera() {
-    const cam = this.cameras.main;
-    const open = this.sim && this.sim.state && this.sim.state.mapOpen;
-    cam.setBounds(0, 0, open ? MAP_W : WORLD_W, open ? MAP_H : WORLD_H);
-  }
-
   bindCamera() {
+    this.inertia = { x: 0, y: 0 };
+    this.samples = [];
     if (this.input.addPointer) this.input.addPointer(1);
     this.input.on('pointerdown', (p) => {
       if (this.pointingAtUi(p)) return;
       this.haltCamera();
       this.drag = true;
       this.dragMoved = false;
+      this.inertia.x = 0;
+      this.inertia.y = 0;
+      this.samples = [{ x: p.x, y: p.y, t: performance.now() }];
       this.dragFrom = { x: p.x, y: p.y, sx: this.cameras.main.scrollX, sy: this.cameras.main.scrollY };
     });
     this.input.on('pointermove', (p) => {
@@ -204,7 +168,7 @@ export class MapScene extends window.Phaser.Scene {
         if (this.pinch != null) {
           const zoom = window.Phaser.Math.Clamp(this.cameras.main.zoom + (d - this.pinch) * 0.003, this.minZoom(), 2.8);
           this.cameras.main.setZoom(zoom);
-          this.clampCamera();
+          this.clampScroll();
         }
         this.pinch = d;
         this.dragMoved = true;
@@ -212,48 +176,119 @@ export class MapScene extends window.Phaser.Scene {
         return;
       }
       this.pinch = null;
+      if (p) this.hover = { x: p.worldX, y: p.worldY };
       if (!this.drag || !p.isDown || !this.dragFrom) return;
       const dx = p.x - this.dragFrom.x;
       const dy = p.y - this.dragFrom.y;
-      if (Math.hypot(dx, dy) > 6) {
-        this.dragMoved = true;
-        this.userPanned = true;
-      }
-      if (this.dragMoved) {
-        const z = this.cameras.main.zoom;
-        this.cameras.main.scrollX = this.dragFrom.sx - dx / z;
-        this.cameras.main.scrollY = this.dragFrom.sy - dy / z;
-        this.clampCamera();
-      }
+      if (Math.hypot(dx, dy) <= 6) return;
+      this.dragMoved = true;
+      this.userPanned = true;
+      const z = this.cameras.main.zoom;
+      this.cameras.main.scrollX = this.dragFrom.sx - dx / z;
+      this.cameras.main.scrollY = this.dragFrom.sy - dy / z;
+      this.clampScroll();
+      const now = performance.now();
+      this.samples.push({ x: p.x, y: p.y, t: now });
+      this.samples = this.samples.filter((sample) => now - sample.t < 90);
     });
-    this.input.on('pointerup', () => { this.drag = false; this.pinch = null; });
-    this.input.on('wheel', (_p, _o, _dx, dy) => {
+    this.input.on('pointerup', () => {
+      if (this.dragMoved && this.samples.length >= 2) {
+        const first = this.samples[0];
+        const last = this.samples[this.samples.length - 1];
+        const dt = Math.max(16, last.t - first.t);
+        const z = this.cameras.main.zoom || 1;
+        this.inertia.x = ((last.x - first.x) / dt) * 16 / z;
+        this.inertia.y = ((last.y - first.y) / dt) * 16 / z;
+      }
+      this.drag = false;
+      this.pinch = null;
+    });
+    this.input.on('wheel', (p, _o, _dx, dy) => {
+      if (p && this.pointingAtUi(p)) return;
       this.haltCamera();
       this.userPanned = true;
-      this.cameras.main.setZoom(window.Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.0008, this.minZoom(), 2.8));
-      this.clampCamera();
+      const cam = this.cameras.main;
+      cam.setZoom(window.Phaser.Math.Clamp(cam.zoom - dy * 0.0008, this.minZoom(), 2.8));
+      this.clampScroll();
     });
     this.cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
+  }
+
+  unlockedRect() {
+    if (!this.sim || !this.sim.state.mapOpen) return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    const view = this.view || (this.sim.gameplayView ? this.sim.gameplayView() : { zones: [] });
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const zone of view.zones || []) {
+      if (!zone.unlocked && !zone.starter) continue;
+      const box = ZONE_LAYOUT[zone.id];
+      if (!box) continue;
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.w);
+      maxY = Math.max(maxY, box.y + box.h);
+    }
+    if (!Number.isFinite(minX)) return { x: 0, y: 0, w: MAP_W, h: MAP_H };
+    const pad = 200;
+    return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+  }
+
+  clampScroll() {
+    const cam = this.cameras.main;
+    const b = this.unlockedRect();
+    const viewW = cam.width / cam.zoom;
+    const viewH = cam.height / cam.zoom;
+    const maxX = b.x + b.w - viewW;
+    const maxY = b.y + b.h - viewH;
+    cam.scrollX = maxX < b.x ? b.x + (b.w - viewW) / 2 : Math.min(maxX, Math.max(b.x, cam.scrollX));
+    cam.scrollY = maxY < b.y ? b.y + (b.h - viewH) / 2 : Math.min(maxY, Math.max(b.y, cam.scrollY));
+  }
+
+  coastInertia() {
+    if (this.drag || !this.inertia) return;
+    if (Math.abs(this.inertia.x) < 0.12 && Math.abs(this.inertia.y) < 0.12) {
+      this.inertia.x = 0;
+      this.inertia.y = 0;
+      return;
+    }
+    this.cameras.main.scrollX -= this.inertia.x;
+    this.cameras.main.scrollY -= this.inertia.y;
+    this.inertia.x *= 0.9;
+    this.inertia.y *= 0.9;
+    this.clampScroll();
+  }
+
+  nearPoint(x, y, reach) {
+    if (!this.hover) return false;
+    return Math.hypot(this.hover.x - x, this.hover.y - y) < reach;
   }
 
   valleyZoom() {
     const vw = this.scale.width;
     const vh = this.scale.height;
-    const top = vw < 700 ? 176 : 156;
-    const bottom = 84;
-    const zoom = Math.min((vw - 28) / 640, (vh - top - bottom) / 820);
-    return window.Phaser.Math.Clamp(zoom * 0.98, 0.48, 1.2);
+    const top = 52;
+    const bottom = 64;
+    const zoom = Math.min((vw - 16) / 640, (vh - top - bottom) / 820);
+    return window.Phaser.Math.Clamp(zoom * 0.98, 0.55, 1.35);
+  }
+
+  stopCamera() {
+    this.haltCamera();
   }
 
   frameValley(instant) {
+    this.stopCamera();
     const cam = this.cameras.main;
     const zoom = this.valleyZoom();
     cam.setZoom(zoom);
-    const topInset = this.scale.width < 700 ? 188 : 164;
+    const topInset = 56;
     const viewY = 300 - topInset / zoom;
     const focus = { x: 470, y: viewY + (this.scale.height / zoom) / 2 };
     if (instant) cam.centerOn(focus.x, focus.y);
     else cam.pan(focus.x, focus.y, 420, 'Sine.easeInOut');
+    this.clampScroll();
   }
 
   frameClose(instant) {
@@ -313,40 +348,56 @@ export class MapScene extends window.Phaser.Scene {
       if (this.cursors.right.isDown) this.cameras.main.scrollX += step;
       if (this.cursors.up.isDown) this.cameras.main.scrollY -= step;
       if (this.cursors.down.isDown) this.cameras.main.scrollY += step;
-      this.clampCamera();
+      this.clampScroll();
     }
-    this.syncRegions();
+    this.coastInertia();
+    this.view = this.sim.gameplayView ? this.sim.gameplayView() : null;
     this.syncSlots();
     this.syncTrucks();
     this.syncLife(dt);
     this.syncSky();
     this.syncFloaters(dt);
     this.syncWorld(dt);
+    this.syncTip();
   }
 
-  syncRegions() {
-    for (const reg of REGIONS) {
-      const state = this.sim.state.regions[reg.id];
-      const badge = this.badges[reg.id];
-      if (badge) {
-        badge.el.hidden = !(state && !state.unlocked && this.fontsReady);
-        if (!badge.el.hidden) this.placeScreen(badge.el, badge.x, badge.y);
-      }
-      const plate = this.plates[reg.id];
-      if (!plate || !state || !this.fontsReady) {
-        if (plate) plate.el.hidden = true;
-        continue;
-      }
-      const crew = LIEUTENANTS.filter((lt) => {
-        const row = this.sim.state.lieutenants[lt.id];
-        return row && row.hired && row.regionId === reg.id;
-      }).map((lt) => lt.name.split(' ')[0]);
-      const heat = state.unlocked ? ` · heat ${Math.floor(state.heat)}%` : ' · locked';
-      plate.el.querySelector('strong').textContent = plate.title;
-      plate.el.querySelector('span').textContent = `${plate.sub}${heat}${crew.length ? ' · ' + crew[0] : ''}`;
-      plate.el.hidden = false;
-      this.placeScreen(plate.el, plate.x, plate.y);
+  ensureTip() {
+    let tip = document.getElementById('map-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'map-tip';
+      tip.hidden = true;
+      document.body.appendChild(tip);
     }
+    return tip;
+  }
+
+  syncTip() {
+    const tip = this.ensureTip();
+    if (!this.hover) {
+      tip.hidden = true;
+      return;
+    }
+    let best = null;
+    let bestD = 80;
+    const nodes = [...Object.values(this.slots), ...Object.values(this.lots)];
+    for (const node of nodes) {
+      const x = node.def ? node.def.x : node.pos.x;
+      const y = node.def ? node.def.y : node.pos.y;
+      const d = Math.hypot(this.hover.x - x, this.hover.y - y);
+      if (d < bestD && node.pin && !node.pin.hidden && node.pin.title) {
+        best = { x, y, title: node.pin.title };
+        bestD = d;
+      }
+    }
+    if (!best) {
+      tip.hidden = true;
+      return;
+    }
+    const spot = this.worldToScreen(best.x, best.y - 96);
+    tip.hidden = false;
+    tip.textContent = best.title;
+    tip.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
   }
 
   worldToScreen(x, y) {
@@ -358,7 +409,7 @@ export class MapScene extends window.Phaser.Scene {
   underHud(sx, sy, hw, hh) {
     const w = this.scale.width;
     const h = this.scale.height;
-    const top = w < 700 ? 168 : 72;
+    const top = 56;
     if (sy - hh < top) return true;
     if (sy + hh > h - 78) return true;
     const objBottom = top + (w < 700 ? 78 : 132);
@@ -367,44 +418,110 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   syncSlots() {
-    const zoom = this.cameras.main.zoom;
-    const rel = zoom / this.valleyZoom();
-    const names = rel >= 0.82;
-    const detail = rel >= 0.92;
     const selected = this.sim.state.selectedSlotId;
     const recommend = this.recommendedSlot();
+    const supplyOnly = !this.view || this.view.coreMode !== false;
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
       if (!state) continue;
+      const lot = this.sim.state.lots && this.sim.state.lots[id];
+      const phase = lot ? lot.phase : '';
       node.select.setVisible(id === selected);
-      node.raid.setVisible(!!state.raidLocked);
-      if (state.raidLocked) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
+      node.raid.setVisible(!supplyOnly && !!state.raidLocked);
+      if (node.raid.visible) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
       const built = !!state.buildingId && !state.rivalControlled;
-      node.pulse.setVisible(!built && !state.rivalControlled && id === recommend);
+      const marked = id === recommend || id === this.recommendId();
+      node.pulse.setVisible(!built && !state.rivalControlled && marked);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
-      const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
-      if (key !== node.key) {
-        node.key = key;
-        this.paintSite(node.art, state);
-      }
-      if (built) {
-        const def = BUILDINGS[state.buildingId];
-        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail, state.progress, state.raidLocked ? '#f85149' : '#7dcea0');
-        node.pin.classList.toggle('is-hot', !!state.raidLocked);
-        if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
-          if (Math.random() < 0.12) this.puff(node.def.x + 30, node.def.y - 70);
+      const ctx = this.siteCtx(state, lot, id);
+      if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+        const key = Art.textureKey(ctx);
+        if (key !== node.key) {
+          node.key = key;
+          Art.drawKeyed(node.art, key, ctx);
         }
-      } else if (state.rivalControlled) {
-        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail, 0, '#f85149');
-        node.pin.classList.add('is-hot');
-      } else if (id === recommend) {
-        this.placeLabel(node, 'Open plot', '', names, false, 0, '#8ec5ff');
-        node.pin.classList.remove('is-hot');
+      } else {
+        const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
+        if (key !== node.key) {
+          node.key = key;
+          this.paintSite(node.art, state);
+        }
+      }
+      const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
+      if (phase === 'building' || phase === 'demolishing') {
+        this.placeBadge(node, node.def.x, node.def.y, null, 'is-build', built ? BUILDINGS[state.buildingId].shortName : 'Build');
+      } else if (built) {
+        const def = BUILDINGS[state.buildingId];
+        this.placeBadge(node, node.def.x, node.def.y, iconKeyForBuilding(state.buildingId), working ? 'is-work' : 'is-idle', def ? def.shortName : '');
+        if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
+          if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
+        }
+      } else if (!state.rivalControlled && marked) {
+        this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
+        node.pin.classList.remove('is-hot', 'is-work', 'is-idle', 'is-build', 'is-plus');
       }
     }
     this.separatePins();
+  }
+
+  recommendId() {
+    const lots = this.view && this.view.lots;
+    if (!lots) return null;
+    const row = lots.find((lot) => lot.recommended);
+    return row ? row.id : null;
+  }
+
+  siteCtx(state, lot, id) {
+    return {
+      buildingId: (state && state.buildingId) || (lot && lot.buildingId) || null,
+      rival: !!(state && state.rivalControlled) || (lot && lot.propertyType === 'outpost'),
+      level: (state && state.level) || (lot && lot.level) || 1,
+      night: this.isNight(),
+      progress: (state && state.progress) || 0,
+      slotId: id,
+      phase: lot ? lot.phase : '',
+      propertyType: lot ? lot.propertyType : null,
+      owned: lot ? !!lot.owned : !!(state && state.buildingId),
+      size: lot ? lot.size : null,
+      constructLeft: lot ? lot.constructLeft || 0 : 0,
+      demolishLeft: lot ? lot.demolishLeft || 0 : 0
+    };
+  }
+
+  placeBadge(node, x, y, iconKey, status, tip) {
+    const el = node.pin;
+    el.hidden = false;
+    el.classList.remove('is-work', 'is-idle', 'is-build', 'is-plus', 'is-hot');
+    if (status) el.classList.add(status);
+    const img = el.querySelector('img');
+    const src = iconKey ? artURL(iconKey) : '';
+    if (img) {
+      if (src) img.src = src;
+      img.hidden = !src || status === 'is-plus' || status === 'is-build';
+    }
+    const strong = el.querySelector('strong');
+    const span = el.querySelector('span');
+    if (strong) {
+      strong.hidden = true;
+      strong.textContent = '';
+    }
+    if (span) {
+      span.hidden = true;
+      span.textContent = '';
+    }
+    el.title = tip || '';
+    const bar = el.querySelector('.go-pin-bar');
+    if (bar) {
+      bar.hidden = status !== 'is-work' && status !== 'is-idle';
+      const fill = bar.querySelector('b');
+      if (fill) {
+        fill.style.width = status === 'is-work' ? '100%' : '35%';
+        fill.style.background = '#58a6ff';
+      }
+    }
+    this.placeScreen(el, x, y - 72);
   }
 
   recommendedSlot() {
@@ -419,30 +536,20 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   placeLabel(node, title, stock, showName, showStock, progress, barColor) {
-    const el = node.pin;
-    if (!showName || !this.fontsReady) {
-      el.hidden = true;
+    if (!showName) {
+      node.pin.hidden = true;
       return;
     }
-    el.hidden = false;
-    el.querySelector('strong').textContent = title;
-    const status = el.querySelector('span');
-    const line = showStock && stock ? stock : '';
-    status.hidden = !line;
-    status.textContent = line;
-    const bar = el.querySelector('.go-pin-bar');
-    bar.hidden = !showStock;
-    const fill = bar.querySelector('b');
-    fill.style.width = `${Math.round(Math.max(0, Math.min(1, progress || 0)) * 100)}%`;
-    fill.style.background = barColor || '#7dcea0';
-    this.placeScreen(el, node.def.x, node.def.y - 108);
+    const icon = title && BUILDINGS[title] ? iconKeyForBuilding(title) : null;
+    this.placeBadge(node, node.def.x, node.def.y, icon, progress > 0 ? 'is-work' : 'is-idle', title || '');
+    if (barColor) node.pin.style.setProperty('--go-ring', barColor);
   }
 
   placeScreen(el, worldX, worldY) {
     const spot = this.worldToScreen(worldX, worldY);
     const vw = this.scale.width;
     const vh = this.scale.height;
-    if (spot.x < -40 || spot.y < -40 || spot.x > vw + 40 || spot.y > vh + 40) {
+    if (spot.x < 0 || spot.y < 0 || spot.x > vw || spot.y > vh) {
       el.hidden = true;
       return false;
     }
@@ -452,10 +559,14 @@ export class MapScene extends window.Phaser.Scene {
     const h = el.offsetHeight;
     const hud = document.querySelector('.go-subhud');
     const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
-    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const topLimit = Math.max(48, hudBottom + 6);
     const bottomLimit = this.bottomLimit(vh);
     let left = spot.x - w / 2;
     let top = spot.y - h;
+    if (left < -24 || top < topLimit - 24 || left + w > vw + 24 || top + h > bottomLimit + 24) {
+      el.hidden = true;
+      return false;
+    }
     left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
     top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
     const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
@@ -466,7 +577,7 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   separatePins() {
-    const els = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate')].filter((el) => !el.hidden);
+    const els = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate, .go-mark, .go-zone, .go-area')].filter((el) => !el.hidden);
     const overlap = (a, b) => {
       const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
       const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -487,18 +598,26 @@ export class MapScene extends window.Phaser.Scene {
           let y = Number(match[2]) + dy;
           const vh = this.scale.height;
           const maxY = vh - 86 - lower.r.height;
-          if (y > maxY) {
-            if (lower.el.classList.contains('go-pin') && lower.el.querySelector('strong').textContent === 'Open plot') {
-              lower.el.hidden = true;
-            }
-            continue;
-          }
+          if (y > maxY) continue;
           lower.el.style.transform = `translate(${x}px, ${Math.round(y)}px)`;
           lower.r = lower.el.getBoundingClientRect();
           moved = true;
         }
       }
       if (!moved) break;
+    }
+    const rank = (el) => (el.classList.contains('go-zone') || el.classList.contains('go-area') ? 0 : 1);
+    const left = els.filter((el) => !el.hidden);
+    for (let i = 0; i < left.length; i++) {
+      if (left[i].hidden) continue;
+      const a = left[i].getBoundingClientRect();
+      for (let j = i + 1; j < left.length; j++) {
+        if (left[j].hidden) continue;
+        const b = left[j].getBoundingClientRect();
+        if (!overlap(a, b)) continue;
+        const drop = rank(left[i]) > rank(left[j]) ? left[i] : rank(left[j]) > rank(left[i]) ? left[j] : (a.top >= b.top ? left[i] : left[j]);
+        drop.hidden = true;
+      }
     }
   }
 
@@ -514,13 +633,8 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   paintSite(g, state) {
-    const ctx = {
-      buildingId: state.buildingId || null,
-      rival: !!state.rivalControlled,
-      level: state.level || 1,
-      night: this.isNight(),
-      progress: state.progress || 0,
-    };
+    const lot = this.sim && this.sim.state.lots && state.slotId ? this.sim.state.lots[state.slotId] : null;
+    const ctx = this.siteCtx(state, lot, state.slotId || (state.buildingId || 'lot'));
     if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
       Art.drawKeyed(g, Art.textureKey(ctx), ctx);
       return;
@@ -554,10 +668,46 @@ export class MapScene extends window.Phaser.Scene {
       node.cab.setRotation(angle);
       node.cab.setPosition(Math.cos(angle) * 10, Math.sin(angle) * 10);
     }
+    this.paintRoutes();
     for (const [id, node] of Object.entries(this.trucks)) {
       if (!live.has(Number(id))) {
         node.root.destroy();
         delete this.trucks[id];
+      }
+    }
+  }
+
+  paintRoutes() {
+    const g = this.flow;
+    const paths = [
+      [{ x: 280, y: 460 }, { x: 450, y: 460 }, { x: 640, y: 440 }],
+      [{ x: 640, y: 440 }, { x: 450, y: 460 }, { x: 450, y: 700 }],
+      [{ x: 450, y: 700 }, { x: 280, y: 960 }]
+    ];
+    let cursor = (this.phase * 42) % 64;
+    for (const path of paths) {
+      g.lineStyle(5, 0x58a6ff, 0.22);
+      for (let i = 0; i < path.length - 1; i++) g.lineBetween(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+      let travel = cursor;
+      for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i];
+        const b = path[i + 1];
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        const ang = Math.atan2(b.y - a.y, b.x - a.x);
+        while (travel < len) {
+          const t = travel / len;
+          const x = a.x + (b.x - a.x) * t;
+          const y = a.y + (b.y - a.y) * t;
+          g.fillStyle(0x8ec5ff, 0.95);
+          g.fillCircle(x, y, 4.5);
+          g.fillTriangle(
+            x + Math.cos(ang) * 9, y + Math.sin(ang) * 9,
+            x + Math.cos(ang + 2.4) * 6, y + Math.sin(ang + 2.4) * 6,
+            x + Math.cos(ang - 2.4) * 6, y + Math.sin(ang - 2.4) * 6
+          );
+          travel += 64;
+        }
+        travel -= len;
       }
     }
   }
@@ -748,25 +898,23 @@ export class MapScene extends window.Phaser.Scene {
     const spot = this.worldToScreen(worldX, worldY);
     const vw = this.scale.width;
     const vh = this.scale.height;
+    if (spot.x < -20 || spot.y < -20 || spot.x > vw + 20 || spot.y > vh + 20) {
+      el.hidden = true;
+      return false;
+    }
     el.hidden = false;
     el.style.transform = 'translate(0px, 0px)';
     const w = el.offsetWidth || 80;
     const h = el.offsetHeight || 28;
     const hud = document.querySelector('.go-subhud');
     const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
-    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const topLimit = Math.max(48, hudBottom + 6);
     const bottomLimit = this.bottomLimit(vh);
-    const left = spot.x - w / 2;
-    const top = spot.y - h;
-    if (left < 8 || top < topLimit || left + w > vw - 8 || top + h > bottomLimit) {
-      el.hidden = true;
-      return false;
-    }
+    let left = spot.x - w / 2;
+    let top = spot.y - h;
+    left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
+    top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
     const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
-    if (cleared.left < 8 || cleared.top < topLimit) {
-      el.hidden = true;
-      return false;
-    }
     el.style.transform = `translate(${Math.round(cleared.left)}px, ${Math.round(cleared.top)}px)`;
     return true;
   }
@@ -783,25 +931,26 @@ export class MapScene extends window.Phaser.Scene {
       });
       const select = this.add.ellipse(0, 10, 168, 100, 0x8ec5ff, 0.08).setStrokeStyle(2, 0x8ec5ff, 0.9).setVisible(false);
       const art = this.add.graphics();
+      const ghost = this.add.graphics().setAlpha(0.62);
+      const valid = this.add.graphics();
       const pin = document.createElement('div');
       pin.className = 'go-mark';
-      pin.innerHTML = '<strong></strong><span></span>';
+      pin.innerHTML = PIN_MARK;
       pin.hidden = true;
       this.pinHost.appendChild(pin);
-      root.add([select, hit, art]);
+      root.add([select, valid, hit, art, ghost]);
       root.setDepth(4);
-      this.lots[id] = { id, pos, root, hit, select, art, pin, key: '', phase: '', demoMax: 0, buildMax: 0 };
+      this.lots[id] = { id, pos, root, hit, select, art, ghost, valid, pin, key: '', ghostKey: '', phase: '', demoMax: 0, buildMax: 0, hammer: 0 };
     }
   }
 
   createZoneMarks() {
     for (const id of Object.keys(ZONE_LAYOUT)) {
-      if (id === 'rio_plata') continue;
       const spot = zoneCenter(id);
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'go-zone';
-      el.innerHTML = '<strong></strong><span></span>';
+      el.innerHTML = '<svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong></strong><span></span>';
       el.hidden = true;
       el.addEventListener('click', () => {
         const fn = this.registry.get('onZoneSelected');
@@ -818,10 +967,11 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   applyBounds() {
-    const open = this.sim && this.sim.state.mapOpen;
-    const cam = this.cameras.main;
-    if (open) cam.setBounds(0, 0, MAP_W, MAP_H);
-    else cam.setBounds(0, 0, WORLD_W, WORLD_H);
+    const b = this.unlockedRect();
+    const key = `${Math.round(b.x)}|${Math.round(b.y)}|${Math.round(b.w)}|${Math.round(b.h)}`;
+    if (key === this.boundsKey) return;
+    this.boundsKey = key;
+    this.cameras.main.setBounds(b.x, b.y, b.w, b.h);
   }
 
   revealMap() {
@@ -829,13 +979,12 @@ export class MapScene extends window.Phaser.Scene {
     this.applyBounds();
     const cam = this.cameras.main;
     const phone = this.scale.width < 800;
-    const zoom = phone
-      ? 0.58
-      : window.Phaser.Math.Clamp(Math.min(this.scale.width / 2800, (this.scale.height - 140) / 1600), 0.48, 0.85);
-    const x = phone ? 1900 : 4300;
-    const y = phone ? 2050 : 900;
+    const fit = Math.min(this.scale.width / MAP_W, (this.scale.height - 120) / MAP_H);
+    const zoom = phone ? 0.46 : window.Phaser.Math.Clamp(fit * 0.98, 0.24, 0.42);
+    const x = phone ? 2400 : MAP_W / 2;
+    const y = phone ? 1500 : MAP_H / 2;
     cam.setZoom(zoom);
-    cam.pan(x, y, 1500, 'Sine.easeInOut');
+    cam.centerOn(x, y);
     const fn = this.registry.get('onMapRevealed');
     if (typeof fn === 'function') fn();
   }
@@ -894,19 +1043,26 @@ export class MapScene extends window.Phaser.Scene {
     g.clear();
     const chart = this.chartAlpha;
     if (chart > 0.02) {
-      this.hatchRect(g, 0, 1360, MAP_W, MAP_H - 1360, chart);
-      this.hatchRect(g, 2520, 0, MAP_W - 2520, 1360, chart);
+      this.veil(g, 0, 1360, MAP_W, MAP_H - 1360, chart * 0.55);
+      this.veil(g, 2520, 0, MAP_W - 2520, 1360, chart * 0.55);
     }
     for (const zone of view.zones) {
       const box = ZONE_LAYOUT[zone.id];
-      if (!box || zone.id === 'rio_plata') continue;
+      if (!box || zone.starter) continue;
       const target = zone.unlocked ? 0 : 1;
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      if (this.fogAlpha[zone.id] > 0.02 && this.chartAlpha < 0.85) {
-        this.hatchRect(g, box.x, box.y, box.w, box.h, this.fogAlpha[zone.id]);
+      if (this.fogAlpha[zone.id] > 0.02 && this.chartAlpha < 0.2) {
+        this.veil(g, box.x, box.y, box.w, box.h, this.fogAlpha[zone.id] * 0.7);
       }
+    }
+    for (const reg of REGIONS) {
+      if (!reg.unlockCostClean) continue;
+      const state = this.sim.state.regions[reg.id];
+      if (!state || state.unlocked) continue;
+      const b = reg.bounds;
+      this.veil(g, b.x, b.y, b.w, b.h, 0.65);
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
@@ -919,17 +1075,12 @@ export class MapScene extends window.Phaser.Scene {
     }
   }
 
-  hatchRect(g, x, y, w, h, alpha) {
-    g.fillStyle(0x121812, 0.52 * alpha);
+  veil(g, x, y, w, h, alpha) {
+    if (alpha <= 0.02) return;
+    g.fillStyle(0x121816, 0.38 * alpha);
     g.fillRect(x, y, w, h);
-    g.lineStyle(2, 0xb7c7a4, 0.22 * alpha);
-    for (let i = 24; i < w + h; i += 36) {
-      const x1 = x + Math.min(i, w);
-      const y1 = y + Math.max(0, i - w);
-      const x2 = x + Math.max(0, i - h);
-      const y2 = y + Math.min(i, h);
-      g.lineBetween(x1, y1, x2, y2);
-    }
+    g.fillStyle(0x1c2820, 0.16 * alpha);
+    g.fillEllipse(x + w * 0.5, y + h * 0.5, w * 0.92, h * 0.86);
   }
 
   syncPlacedLots(view) {
@@ -945,43 +1096,41 @@ export class MapScene extends window.Phaser.Scene {
       const locked = zone && !zone.unlocked;
       node.select.setVisible(selected === node.id);
       node.root.setAlpha(locked ? 0.55 : 1);
-      if (live.phase === 'demolishing') {
-        if (node.phase !== 'demolishing') {
-          node.demoMax = Math.max(0.2, live.demolishLeft || lot.demolishLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.shake) juice.shake(240, 0.003);
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      const juice = this.registry.get('juice');
+      if (live.phase === 'demolishing' && node.phase !== 'demolishing') {
+        if (juice && juice.shake) juice.shake(220, 0.003);
+        if (juice && juice.demolishDust) juice.demolishDust({ x: node.pos.x, y: node.pos.y });
+      } else if (live.phase === 'building' && node.phase !== 'building') {
+        if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      }
+      if (live.phase === 'building') {
+        node.hammer += 0.016;
+        if (node.hammer > 1.3) {
+          node.hammer = 0;
+          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y - 20 }, 0xc4a574);
         }
-        const total = node.demoMax || 1;
-        paintRubble(node.art, 1 - Math.max(0, live.demolishLeft) / total);
-        node.key = '';
-        if (Math.random() < 0.35) this.puff(node.pos.x + (Math.random() - 0.5) * 40, node.pos.y - 10);
-      } else if (live.phase === 'building') {
-        if (node.phase !== 'building') {
-          node.buildMax = Math.max(0.2, live.constructLeft || lot.constructLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0x8ec5ff);
+      }
+      const ctx = this.siteCtx({ buildingId: live.buildingId, level: live.level, rivalControlled: lot.owner === 'rival' }, live, node.id);
+      if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+        const key = Art.textureKey(ctx);
+        if (key !== node.key || live.phase === 'building' || live.phase === 'demolishing') {
+          node.key = key;
+          Art.drawKeyed(node.art, key, ctx);
         }
-        const total = node.buildMax || 1;
-        paintScaffold(node.art, 1 - Math.max(0, live.constructLeft) / total);
+      } else if (live.phase === 'demolishing' || live.phase === 'building') {
         node.key = '';
       } else if (live.buildingId && live.phase === 'operating') {
         if (node.key !== 'b:' + live.buildingId) {
           node.key = 'b:' + live.buildingId;
-          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1 });
+          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1, slotId: node.id });
         }
       } else if (lot.kind === 'open') {
         if (node.key !== 'open') {
           node.key = 'open';
           paintOpen(node.art);
         }
-      } else if (typeof Art.drawKeyed === 'function' && lot.propertyType && node.key !== 'k:' + lot.propertyType) {
-        node.key = 'k:' + lot.propertyType;
-        const ctx = { buildingId: lot.propertyType, rival: lot.owner === 'rival', level: 1, night: this.isNight(), progress: 0 };
-        node.art.clear();
-        Art.drawKeyed(node.art, lot.propertyType, ctx);
-      } else if (!(typeof Art.drawKeyed === 'function' && lot.propertyType) && node.key !== 'p:' + (lot.propertyType || lot.kind)) {
-        node.key = 'p:' + (lot.propertyType || lot.kind);
+      } else if (lot.propertyType && node.key !== 'p:' + lot.propertyType) {
+        node.key = 'p:' + lot.propertyType;
         paintProperty(node.art, lot.propertyType);
       }
       if (node.phase === 'demolishing' && live.phase === 'cleared') {
@@ -995,47 +1144,74 @@ export class MapScene extends window.Phaser.Scene {
       }
       node.shownLeft = shown;
       node.phase = live.phase;
-      const title = live.phase === 'demolishing' ? 'Demolishing' : live.phase === 'building' ? 'Scaffolding' : lot.propertyLabel || lot.label;
-      const sub = live.phase === 'operating' && lot.role ? lot.role : lot.kind === 'open' ? 'Open plot' : '';
-      this.placeMark(node, title, sub, zoom >= 0.55 && !locked);
+      if (live.phase !== 'building') node.root.setScale(1);
+      const ghost = this.registry.get('ghost');
+      const showGhost = ghost && ghost.lotId === node.id && ghost.buildingId && live.phase !== 'building' && live.phase !== 'demolishing';
+      node.ghost.setVisible(!!showGhost);
+      const ghostSprite = node.ghost.getData && node.ghost.getData('sprite');
+      if (ghostSprite) ghostSprite.setVisible(!!showGhost);
+      node.valid.clear();
+      if (showGhost) {
+        if (node.ghostKey !== ghost.buildingId) {
+          node.ghostKey = ghost.buildingId;
+          const ghostCtx = this.siteCtx({ buildingId: ghost.buildingId, level: 1 }, { phase: 'operating', owned: true, buildingId: ghost.buildingId }, node.id + ':ghost');
+          if (typeof Art.drawKeyed === 'function') Art.drawKeyed(node.ghost, Art.textureKey(ghostCtx), ghostCtx);
+        }
+        const sprite = node.ghost.getData && node.ghost.getData('sprite');
+        if (sprite) {
+          sprite.setVisible(true);
+          sprite.setAlpha(0.72);
+        }
+        node.valid.lineStyle(3, 0x58a6ff, 0.95);
+        node.valid.strokeEllipse(0, 12, 160, 72);
+      }
+      const rel = zoom / this.valleyZoom();
+      const close = rel >= 1.15 || this.nearPoint(node.pos.x, node.pos.y, 150) || lot.recommended;
+      let icon = null;
+      let status = 'is-idle';
+      if (live.phase === 'building' || live.phase === 'demolishing') status = 'is-build';
+      else if (lot.kind === 'open') status = 'is-plus';
+      else if (live.buildingId) icon = iconKeyForBuilding(live.buildingId);
+      else if (live.role) icon = iconKeyForRole(live.role);
+      else if (lot.propertyType) icon = iconKeyForProperty(lot.propertyType);
+      const showIcon = !locked && close && (status === 'is-build' || status === 'is-plus' || !!icon);
+      if (!showIcon) node.pin.hidden = true;
+      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, lot.propertyLabel || lot.label || '');
     }
   }
 
-  placeMark(node, title, sub, show) {
-    const el = node.pin;
-    if (!show || !this.fontsReady) {
-      el.hidden = true;
-      return;
-    }
-    el.querySelector('strong').textContent = title;
-    const span = el.querySelector('span');
-    span.hidden = !sub;
-    span.textContent = sub || '';
-    this.placeFree(el, node.pos.x, node.pos.y - 78);
+  shortZone(zone) {
+    const name = zone.name || '';
+    if (name.indexOf('Puerto Sol ') === 0) return name.slice('Puerto Sol '.length);
+    if (name === 'Río Plata Valley') return 'Río Plata';
+    return name;
   }
 
   syncZoneChrome(view) {
     const open = !!this.sim.state.mapOpen;
-    const zoom = this.cameras.main.zoom;
-    const control = !!this.registry.get('showControl');
+    const zoomedOut = this.cameras.main.zoom / this.valleyZoom() < 0.72;
     for (const zone of view.zones) {
       const mark = this.zoneMarks[zone.id];
       if (!mark) continue;
-      const showUnlock = open && !zone.unlocked;
-      mark.el.hidden = !showUnlock;
-      if (showUnlock) {
-        mark.el.querySelector('strong').textContent = `Unlock ${zone.name}`;
-        const cost = zone.unlock && zone.unlock.clean ? `$${zone.unlock.clean} clean` : 'Open';
-        mark.el.querySelector('span').textContent = cost;
-        this.placeFree(mark.el, mark.x, mark.y);
+      mark.area.hidden = true;
+      const affordable = !zone.blockers || zone.blockers.length === 0;
+      const show = open && zoomedOut && (zone.unlocked || affordable);
+      mark.el.hidden = !show;
+      if (!show) continue;
+      mark.el.classList.toggle('is-locked', !zone.unlocked);
+      const strong = mark.el.querySelector('strong');
+      const span = mark.el.querySelector('span');
+      strong.hidden = false;
+      strong.textContent = this.shortZone(zone);
+      if (!zone.unlocked && zone.unlock && zone.unlock.clean) {
+        span.hidden = false;
+        span.textContent = `$${zone.unlock.clean}`;
+      } else {
+        span.hidden = true;
+        span.textContent = '';
       }
-      const showArea = open && zone.unlocked && zoom < 0.9;
-      mark.area.hidden = !showArea;
-      if (showArea) {
-        const pct = control ? ` · ${zone.control}%` : '';
-        mark.area.querySelector('strong').textContent = `${zone.name}${pct}`;
-        this.placeFree(mark.area, mark.x, mark.y);
-      }
+      const box = ZONE_LAYOUT[zone.id];
+      this.placeFree(mark.el, box.x + box.w * 0.5, box.y + 48);
     }
   }
 
