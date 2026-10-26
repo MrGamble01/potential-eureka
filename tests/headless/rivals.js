@@ -28,15 +28,15 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     await page.goto(BASE + '/index.html', { waitUntil: 'load' });
     await page.waitForTimeout(1000);
     codeA = await page.evaluate(() => {
-      localStorage.setItem('snake-high', '420');
+      localStorage.setItem('gutter-best', '42');
       localStorage.setItem('tetris-high', '9000');
-      localStorage.setItem('mines-best-beginner', '35');
+      localStorage.setItem('crate-best', '12');
       Rivals.setMyName('ALICE');
       return Rivals.encode();
     });
     const roundtrip = await page.evaluate(c => Rivals.decode(c), codeA);
-    ok(roundtrip && roundtrip.name === 'ALICE' && roundtrip.s['snake-high'] === 420 &&
-       roundtrip.s['mines-best-beginner'] === 35,
+    ok(roundtrip && roundtrip.name === 'ALICE' && roundtrip.s['gutter-best'] === 42 &&
+       roundtrip.s['crate-best'] === 12,
        `code round-trips (${codeA.length} chars)`);
     // 5. tamper: flip a payload char
     const tampered = codeA.replace(/^./, c => c === 'A' ? 'B' : 'A');
@@ -51,7 +51,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     page.on('pageerror', e => errs.push('B: ' + String(e).slice(0, 200)));
     await page.goto(BASE + '/index.html', { waitUntil: 'load' });
     await page.waitForTimeout(800);
-    await page.evaluate(() => { localStorage.setItem('snake-high', '600'); }); // B leads snake
+    await page.evaluate(() => { localStorage.setItem('gutter-best', '30'); }); // B leads gutterlight (min-dir)
     await page.goto(BASE + '/index.html#hof=' + encodeURIComponent(codeA), { waitUntil: 'load' });
     await page.waitForTimeout(1500);
 
@@ -75,22 +75,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       });
       return out;
     });
-    ok(rows['Snake'] && /ALICE · 420 pts/.test(rows['Snake'].text) && !rows['Snake'].leads,
-       `Snake chip present, B leads (${rows['Snake'] && rows['Snake'].text})`);
+    ok(rows['Gutterlight'] && /ALICE · 42 strokes/.test(rows['Gutterlight'].text) && !rows['Gutterlight'].leads,
+       `Gutterlight chip present, B leads (${rows['Gutterlight'] && rows['Gutterlight'].text})`);
     ok(rows['Tetris'] && rows['Tetris'].leads, 'Tetris chip lit — ALICE leads (B never played)');
-    ok(rows['Minefield'] && rows['Minefield'].leads, 'Minefield chip lit (min-dir: 35s beats nothing)');
-    ok(rows['Pong++'] === null, 'no chip on games the code lacks');
+    ok(rows['Crate Escape'] && rows['Crate Escape'].leads, 'Crate Escape chip lit (12 puzzles beats nothing)');
+    ok(!rows['Pong++'], 'no chip on games the code lacks');
 
     // 7. same-name re-import updates
     const codeA2 = await page.evaluate(c => {
       const r = Rivals.decode(c);
-      r.s['snake-high'] = 9999; r.t += 1;
-      const payload = JSON.stringify({ v: 1, n: r.name, t: r.t, s: r.s });
-      // rebuild through the real encoder path: use Rivals internals via add
+      r.s['tetris-high'] = 9999; r.t += 1;
       Rivals.add(r);
       return Object.keys(Rivals.list()).length;
     }, codeA);
-    const after = await page.evaluate(() => Rivals.bestFor('snake-high'));
+    const after = await page.evaluate(() => Rivals.bestFor('tetris-high'));
     ok(codeA2 === 1 && after.value === 9999, 'same-name re-import updates in place');
 
     // 6. remove

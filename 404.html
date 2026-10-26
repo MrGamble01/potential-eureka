@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>404 — Not Found · EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Page not found. Head back to the EUREKA GAMES arcade. Age of War, Startup Tycoon, Homeless Village, Ashmarch, Snake, Tetris, 2048 and Minefield.">
+  <meta name="description" content="Page not found. Head back to the EUREKA GAMES arcade. Voxel Isle, Ashmarch, Age of War, Startup Tycoon, Hearthvale, Gutterlight, Crate Escape and Tetris.">
   <meta name="theme-color" content="#060608">
   <meta name="robots" content="noindex,follow">
   <!-- Same sheets css/style.css used to @import, in the same order — linked
@@ -31,7 +31,8 @@
       var page = HubRoutes.pageFor(slug);
       if (page) { location.replace(page.charAt(0) === '/' ? page : '/' + page); return; }
       var view = HubRoutes.viewFor(slug);
-      if (view && view.kind === 'view' && view.name !== 'arcade') location.replace('/#' + view.name);
+      if (view && view.kind === 'view' && view.name !== 'arcade') { location.replace('/#' + view.name); return; }
+      location.replace('/');
     })();
   </script>
   <style>
@@ -67,16 +68,17 @@
     <div class="notfound-actions">
       <a class="hof-link" href="/">&#127918; BACK TO ARCADE</a>
     </div>
-    <nav class="notfound-games" aria-label="Play a game">
-      <a href="/ageofwar/">Age of War</a>
-      <a href="/tycoon/play.html">Startup Tycoon</a>
-      <a href="/homeless-village.html">Homeless Village</a>
-      <a href="/games/ashmarch/">Ashmarch</a>
-      <a href="/#snake">Snake</a>
-      <a href="/#tetris">Tetris</a>
-      <a href="/#2048">2048</a>
-      <a href="/#minesweeper">Minefield</a>
-    </nav>
+    <nav class="notfound-games" id="notfound-games" aria-label="Play a game"></nav>
+    <script>
+      (function () {
+        var nav = document.getElementById('notfound-games');
+        if (!nav || !window.HubRoutes || !HubRoutes.showcaseGames) return;
+        nav.innerHTML = HubRoutes.showcaseGames().map(function (g) {
+          var h = g.href.charAt(0) === '/' ? g.href : '/' + g.href;
+          return '<a href="' + h + '">' + g.name + '</a>';
+        }).join('');
+      })();
+    </script>
   </section>
 
 </body>

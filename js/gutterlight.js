@@ -20,6 +20,7 @@ const GutterlightGame = (() => {
   let canvas, ctx, loop;
   let hole, ball, angle, power, strokes, total, best, moving, paused, over, pulse;
   let drag = null;
+  let dailyRun = false;
 
   function init() {
     canvas = document.getElementById('gutter-canvas');
@@ -51,6 +52,7 @@ const GutterlightGame = (() => {
     paused = false;
     over = false;
     pulse = 0;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('gutterlight');
     layBall();
     syncPause();
     const ov = document.getElementById('gutter-overlay');
@@ -239,8 +241,10 @@ const GutterlightGame = (() => {
     if (!best || total < best) best = total;
     try { localStorage.setItem('gutter-best', String(best)); } catch {}
     Utils.sfx('reveal');
+    const lines = ['Round in ' + total + ' strokes', best ? 'Best round: ' + best : ''];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('gutterlight', total, 'min'));
     Utils.showGameOver('gutter-overlay', {
-      lines: ['Round in ' + total + ' strokes', best ? 'Best round: ' + best : ''],
+      lines,
       hint: 'New round deals the nine again',
     });
     updateInfo();

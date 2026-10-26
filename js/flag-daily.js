@@ -12,7 +12,7 @@
 
 (function (root) {
   const KEY = 'eureka-flag-daily-v1';
-  const GAMES = [
+  const ALL_GAMES = [
     {
       id: 'tycoon',
       name: 'Startup Tycoon',
@@ -24,6 +24,18 @@
       good: ['📦', '🚀', '💻'],
       trap: '🐛',
       trapName: 'bug',
+    },
+    {
+      id: 'hearthvale',
+      name: 'Hearthvale',
+      href: '/hearthvale.html?daily=1',
+      accent: '#7DCE7A',
+      unit: '',
+      title: 'Market Morning',
+      blurb: 'Sell the morning stall. Wolves take the coin.',
+      good: ['🍎', '🪵', '🪨'],
+      trap: '🐺',
+      trapName: 'wolf',
     },
     {
       id: 'clinic',
@@ -38,8 +50,15 @@
       trapName: 'sweep',
     },
   ];
+  const FALLBACK_SHOWCASE = { tycoon: 1, hearthvale: 1 };
+  const GAMES = ALL_GAMES.filter(function (g) {
+    if (root && root.HubRoutes && typeof root.HubRoutes.isShowcase === 'function') {
+      return root.HubRoutes.isShowcase(g.id);
+    }
+    return !!FALLBACK_SHOWCASE[g.id];
+  });
   const BY_ID = {};
-  for (let i = 0; i < GAMES.length; i++) BY_ID[GAMES[i].id] = GAMES[i];
+  for (let i = 0; i < ALL_GAMES.length; i++) BY_ID[ALL_GAMES[i].id] = ALL_GAMES[i];
 
   function pad(n) { return String(n).padStart(2, '0'); }
 

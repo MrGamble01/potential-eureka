@@ -2,9 +2,9 @@ const { chromium } = require('playwright');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 const GAMES = [
-  ['inkflip', 'Inkflip'],
   ['gutterlight', 'Gutterlight'],
-  ['snip', 'Snip'],
+  ['crateescape', 'Crate Escape'],
+  ['tetris', 'Tetris'],
 ];
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };

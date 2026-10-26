@@ -13,14 +13,14 @@ const Telemetry = (() => {
   const GAME_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
     'minesweeper', 'connect4', 'word5', 'maze', 'life', 'lightcycles', 'pong',
     'stacker', 'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix',
-    'inkflip', 'gutterlight', 'snip', 'peg', 'clasp', 'rivet', 'plumb', 'brand', 'stitch', 'hone', 'quench']);
+    'inkflip', 'gutterlight']);
   const NAMES = {
     snake: 'Snake', tetris: 'Tetris', breakout: 'Neon Breaker',
     asteroids: 'Vector Storm', 2048: '2048', minesweeper: 'Minefield',
     connect4: 'Drop Four', word5: 'Word Five', maze: 'Maze Runner',
     life: 'Game of Life', lightcycles: 'Light Cycles', pong: 'Pong++',
     stacker: 'Stacker', crateescape: 'Crate Escape', vectordefense: 'Vector Defense', wordcascade: 'Word Cascade', memorymatrix: 'Memory Matrix',
-    inkflip: 'Inkflip', gutterlight: 'Gutterlight', snip: 'Snip', peg: 'Peg', clasp: 'Clasp', rivet: 'Rivet', plumb: 'Plumb', brand: 'Brand', stitch: 'Stitch', hone: 'Hone', quench: 'Quench',
+    inkflip: 'Inkflip', gutterlight: 'Gutterlight',
   };
 
   let current = null;    // { view, startedAt }
@@ -240,7 +240,9 @@ const Telemetry = (() => {
     const el = document.getElementById(id);
     if (!el) return;
     const s = load();
-    const games = Object.keys(s.seconds).sort((a, b) => s.seconds[b] - s.seconds[a]);
+    const games = Object.keys(s.seconds)
+      .filter(g => typeof HubRoutes === 'undefined' || !HubRoutes.isShowcase || HubRoutes.isShowcase(g))
+      .sort((a, b) => s.seconds[b] - s.seconds[a]);
     if (!games.length) { el.innerHTML = ''; el.hidden = true; return; }
     const last = s.lastPlayed && games.includes(s.lastPlayed) ? s.lastPlayed : null;
     const picks = [];

@@ -17,6 +17,22 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   try {
     const page = await browser.newPage();
     page.on('pageerror', (e) => errs.push(String(e).slice(0, 200)));
+    await page.route('**/gutterlight', async (route) => {
+      if (route.request().resourceType() !== 'document') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 404,
+        contentType: 'text/html; charset=utf-8',
+        body: BODY,
+      });
+    });
+    await page.goto(BASE + '/gutterlight', { waitUntil: 'commit', timeout: 20000 });
+    await page.waitForURL(/#gutterlight/, { timeout: 15000 });
+    await page.waitForSelector('#view-gutterlight.active #gutter-canvas', { timeout: 15000 });
+    ok(/Gutterlight/.test(await page.title()), 'a missing /gutterlight opens Gutterlight (' + page.url() + ')');
+
     await page.route('**/snip', async (route) => {
       if (route.request().resourceType() !== 'document') {
         await route.continue();
@@ -29,9 +45,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       });
     });
     await page.goto(BASE + '/snip', { waitUntil: 'commit', timeout: 20000 });
-    await page.waitForURL(/#snip/, { timeout: 15000 });
-    await page.waitForSelector('#view-snip.active #snip-canvas', { timeout: 15000 });
-    ok(/Snip/.test(await page.title()), 'a missing /snip opens Snip (' + page.url() + ')');
+    await page.waitForSelector('#view-arcade.active', { timeout: 15000 });
+    ok(await page.evaluate(() => document.getElementById('view-arcade').classList.contains('active')),
+      'a deleted /snip falls back to the hub (' + page.url() + ')');
     ok(errs.length === 0, 'no page errors' + (errs[0] ? ' — ' + errs[0] : ''));
   } finally {
     await browser.close();

@@ -1,19 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
   <title>Ashmarch cover</title>
   <rect width="480" height="640" fill="#10131a"/>
-  <circle cx="372" cy="128" r="34" fill="#e3b341"/>
+  <circle cx="372" cy="128" r="34" fill="#3ddcff"/>
   <circle cx="358" cy="118" r="26" fill="#10131a"/>
   <path d="M0 448h480v192H0z" fill="#1a1f2b"/>
-  <path d="M0 448h480" stroke="#e3b341" stroke-width="3"/>
-  <path d="M240 500C200 420 140 380 70 348" fill="none" stroke="#e3b341" stroke-width="10" stroke-linecap="round"/>
+  <path d="M0 448h480" stroke="#3ddcff" stroke-width="3"/>
+  <path d="M240 500C200 420 140 380 70 348" fill="none" stroke="#3ddcff" stroke-width="10" stroke-linecap="round"/>
   <path d="M240 500C280 420 350 380 430 356" fill="none" stroke="#c4beb2" stroke-width="10" stroke-linecap="round"/>
   <path d="M132 292h216v168H132z" fill="#f6f3ea"/>
-  <path d="M132 292c36 26 72 26 108 0v168H132z" fill="#e3b341"/>
+  <path d="M132 292c36 26 72 26 108 0v168H132z" fill="#3ddcff"/>
   <path d="M160 328h56M160 354h74M160 380h46" stroke="#10131a" stroke-width="4"/>
   <rect x="214" y="200" width="12" height="92" fill="#c4beb2"/>
-  <path d="M226 206h40l-8 22h-32z" fill="#e3b341"/>
+  <path d="M226 206h40l-8 22h-32z" fill="#3ddcff"/>
   <path d="M56 360h52v100H56z" fill="#8b83ff"/>
   <path d="M44 360h76l-8-20H52z" fill="#f6f3ea"/>
   <rect x="384" y="368" width="40" height="72" fill="#c4beb2"/>
-  <path d="M372 368h64l-8-18h-48z" fill="#e3b341"/>
+  <path d="M372 368h64l-8-18h-48z" fill="#3ddcff"/>
 </svg>

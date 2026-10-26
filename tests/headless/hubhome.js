@@ -136,7 +136,7 @@ async function openMenu(p) {
     scanHidden: getComputedStyle(document.querySelector('.arcade-scan')).display === 'none',
     dailyHidden: getComputedStyle(document.getElementById('daily-banner')).display === 'none',
   }));
-  ok(filtered.count === '3 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
+  ok(filtered.count === '4 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
   ok(filtered.dailyHidden, 'a hit filter tucks the daily banner so the matches come up');
 
@@ -287,13 +287,13 @@ async function openMenu(p) {
 
   await page.fill('#card-search', 'zzzz');
   await page.waitForTimeout(200);
-  await page.click('.daily-chip[data-game="snake"]');
+  await page.click('.daily-chip[data-game="tetris"]');
   await page.waitForTimeout(800);
   const dailyChip = await page.evaluate(() => ({
     q: document.getElementById('card-search').value,
-    snake: document.getElementById('view-snake').classList.contains('active'),
+    tetris: document.getElementById('view-tetris').classList.contains('active'),
   }));
-  ok(!dailyChip.q && dailyChip.snake,
+  ok(!dailyChip.q && dailyChip.tetris,
     'a daily chip during a miss clears the filter before launching');
   await page.evaluate(() => { location.hash = '#arcade'; });
   await page.waitForTimeout(600);
@@ -302,12 +302,12 @@ async function openMenu(p) {
   await page.waitForTimeout(200);
   const descHit = await page.evaluate(() => ({
     count: document.getElementById('card-search-count').textContent,
-    longHidden: document.querySelector('[data-section="long"]').hidden,
+    quickHidden: document.querySelector('[data-section="quick"]').hidden,
     empty: document.getElementById('arcade-empty').hidden,
-    title: ((document.querySelector('.arcade-grid--long .arcade-card[href="games/ashmarch/"] .arcade-card-title') || {}).textContent || ''),
-    shown: document.querySelector('.arcade-grid--long .arcade-card[href="games/ashmarch/"]').style.display !== 'none',
+    title: ((document.querySelector('.arcade-grid--quick .arcade-card[href="games/ashmarch/"] .arcade-card-title') || {}).textContent || ''),
+    shown: document.querySelector('.arcade-grid--quick .arcade-card[href="games/ashmarch/"]').style.display !== 'none',
   }));
-  ok(!descHit.longHidden && descHit.shown && descHit.empty && /ASHMARCH/.test(descHit.title) && descHit.count === '1 game',
+  ok(!descHit.quickHidden && descHit.shown && descHit.empty && /ASHMARCH/.test(descHit.title) && descHit.count === '1 game',
     'search "chronicle" matches the Ashmarch card');
   await page.fill('#card-search', '');
   await page.waitForFunction(() => {
@@ -598,7 +598,7 @@ async function openMenu(p) {
       here: !!(long && long.classList.contains('is-landed')),
     };
   });
-  ok(fromAow.q === 'hours' && fromAow.count === '3 games' && fromAow.onScreen && fromAow.here,
+  ok(fromAow.q === 'hours' && fromAow.count === '4 games' && fromAow.onScreen && fromAow.here,
     'Age of War GAMES back restores the hours filter and Long scan');
   await aow.close();
 
@@ -614,9 +614,9 @@ async function openMenu(p) {
   await openMenu(hp);
   await hp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await hp.waitForTimeout(400);
-  await hp.locator('.hof-row', { hasText: 'Snake' }).click();
+  await hp.locator('.hof-row', { hasText: 'Tetris' }).click();
   await hp.waitForTimeout(700);
-  await hp.click('#view-snake .game-back-btn');
+  await hp.click('#view-tetris .game-back-btn');
   await hp.waitForTimeout(900);
   const fromHof = await hp.evaluate(() => {
     const q = document.querySelector('[data-section="quick"]');
@@ -629,7 +629,7 @@ async function openMenu(p) {
     };
   });
   ok(!fromHof.q && fromHof.onScreen && fromHof.here && fromHof.scan,
-    'HoF Snake → Games restores Quick, not a stale hours filter');
+    'HoF Tetris → Games restores Quick, not a stale hours filter');
   await hof.close();
 
   const resu = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -639,14 +639,14 @@ async function openMenu(p) {
   await rp.addInitScript(() => {
     localStorage.setItem('eureka-primer-seen', '1');
     localStorage.setItem('eureka-stats', JSON.stringify({
-      firstSeen: Date.now(), launches: { snake: 2 }, seconds: { snake: 90 }, days: {}, lastPlayed: 'snake',
+      firstSeen: Date.now(), launches: { tetris: 2 }, seconds: { tetris: 90 }, days: {}, lastPlayed: 'tetris',
     }));
   });
   await rp.goto(BASE + '/index.html', { waitUntil: 'load' });
   await rp.waitForTimeout(1800);
   await rp.click('.resume-chip');
   await rp.waitForTimeout(700);
-  await rp.click('#view-snake .game-back-btn');
+  await rp.click('#view-tetris .game-back-btn');
   await rp.waitForTimeout(900);
   const fromResume = await rp.evaluate(() => {
     const q = document.querySelector('[data-section="quick"]');
@@ -673,21 +673,21 @@ async function openMenu(p) {
     // Reset progress reloads the page. The seed must not come back on that
     // reload, or the assertion that the town was cleared would be a lie.
     if (!sessionStorage.getItem('hof-reset-done')) {
-      localStorage.setItem('snake-high', '42');
+      localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17, day: 12, seenIntro: true }));
     }
   });
   await bp.goto(BASE + '/index.html', { waitUntil: 'load' });
   await bp.waitForTimeout(1800);
   const valeBadge = await bp.evaluate(() => {
-    const el = document.querySelector('.arcade-card-hi[data-hi="snake"]');
+    const el = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
     const r = el && el.getBoundingClientRect();
     return {
       text: (el && el.textContent) || '',
       shown: !!(el && r && r.height > 0 && getComputedStyle(el).display !== 'none'),
     };
   });
-  ok(valeBadge.shown && /HI\s*42/.test(valeBadge.text),
-    `Snake catalogue badge fills from the save (${valeBadge.text})`);
+  ok(valeBadge.shown && /PEAK\s*17/.test(valeBadge.text),
+    `Hearthvale catalogue badge fills from the save (${valeBadge.text})`);
 
   await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
@@ -695,13 +695,13 @@ async function openMenu(p) {
   const hofBoard = await bp.evaluate(() => {
     const rows = [...document.querySelectorAll('.hof-row')];
     const names = rows.map(r => (r.querySelector('.hof-name') || {}).textContent || '');
-    const snake = rows.find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
+    const vale = rows.find(r => /Hearthvale/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     const long = document.querySelector('.hof-lane--long');
     const quick = document.querySelector('.hof-lane--quick');
     return {
       rows: rows.length,
       names,
-      snake: snake ? (snake.querySelector('.hof-score') || {}).textContent : '',
+      vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
       longTitle: !!(long && /Long games/.test(long.textContent) && /4/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
       quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /4/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
@@ -713,23 +713,23 @@ async function openMenu(p) {
   });
   ok(hofBoard.rows === 8 && hofBoard.longRows === 4 && hofBoard.quickRows === 4 && hofBoard.longTitle && hofBoard.quickTitle,
     `HoF board is 4 Long + 4 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
-  ok(hofBoard.names.includes('Snake') && /42 pts/.test(hofBoard.snake),
-    `HoF lists Snake with the seeded score (${hofBoard.snake})`);
+  ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
+    `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
   ok(hofBoard.longRanks.join() === '01,02,03,04'
     && hofBoard.quickRanks.join() === '01,02,03,04'
-    && /Snake/.test(hofBoard.quickFirst),
+    && /Ashmarch/.test(hofBoard.quickFirst),
     `HoF ranks restart per lane (Quick ${hofBoard.quickRanks.join('–')}, first ${hofBoard.quickFirst})`);
   await Promise.all([
-    bp.waitForURL(/homeless-village/, { timeout: 20000 }),
-    bp.locator('.hof-row', { hasText: 'Homeless Village' }).click(),
+    bp.waitForURL(/hearthvale/, { timeout: 20000 }),
+    bp.locator('.hof-row', { hasText: 'Hearthvale' }).click(),
   ]);
-  await bp.waitForSelector('#intro-modal.open a.ea-back', { timeout: 20000 });
+  await bp.waitForSelector('a.ea-back', { timeout: 20000 });
   await Promise.all([
     bp.waitForURL(url => {
       const u = String(url);
-      return /\/$|index\.html/.test(u) && !/homeless-village/.test(u);
+      return /\/$|index\.html/.test(u) && !/hearthvale/.test(u);
     }, { timeout: 20000 }),
-    bp.click('#intro-modal.open a.ea-back'),
+    bp.click('a.ea-back'),
   ]);
   await bp.waitForTimeout(1600);
   const fromVale = await bp.evaluate(() => {
@@ -742,7 +742,7 @@ async function openMenu(p) {
     };
   });
   ok(fromVale.onScreen && fromVale.here && fromVale.scan,
-    'HoF Homeless Village → Games restores the Long scan');
+    'HoF Hearthvale → Games restores the Long scan');
 
   await openMenu(bp);
   await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
@@ -752,14 +752,14 @@ async function openMenu(p) {
   await bp.waitForLoadState('load');
   await bp.waitForTimeout(800);
   const afterReset = await bp.evaluate(() => {
-    const snake = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
+    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     return {
-      save: localStorage.getItem('snake-high'),
-      score: ((snake && snake.querySelector('.hof-score')) || {}).textContent || '',
+      save: localStorage.getItem('hearthvale-v1'),
+      score: ((vale && vale.querySelector('.hof-score')) || {}).textContent || '',
     };
   });
   ok(!afterReset.save && /not played/.test(afterReset.score),
-    `Reset my scores clears snake-high (${afterReset.score})`);
+    `Reset my scores clears hearthvale-v1 (${afterReset.score})`);
   await board.close();
 
   const dayHof = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
@@ -769,7 +769,7 @@ async function openMenu(p) {
   await dhp.addInitScript(() => {
     localStorage.setItem('eureka-theme', 'daylight');
     localStorage.setItem('eureka-primer-seen', '1');
-    localStorage.setItem('snake-high', '42');
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
   });
   await dhp.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
   await dhp.waitForTimeout(1800);
@@ -839,7 +839,7 @@ async function openMenu(p) {
   await dhp.click('button.logo');
   await dhp.waitForTimeout(500);
   const lightHi = await dhp.evaluate(() => {
-    const hi = document.querySelector('.arcade-card-hi[data-hi="snake"]');
+    const hi = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
     return {
       bg: hi ? getComputedStyle(hi).backgroundColor : '',
       shown: !!(hi && getComputedStyle(hi).display !== 'none'),
@@ -848,10 +848,10 @@ async function openMenu(p) {
   });
   ok(lightHi.shown && !lightHi.midnight,
     `daylight score chip is not a midnight pill (${lightHi.bg})`);
-  await dhp.click('[data-view="snake"]');
+  await dhp.click('[data-view="tetris"]');
   await dhp.waitForTimeout(600);
   const lightOver = await dhp.evaluate(() => {
-    const ov = document.getElementById('snake-overlay');
+    const ov = document.getElementById('tetris-overlay');
     ov.style.display = 'flex';
     const bg = getComputedStyle(ov).backgroundColor;
     return { bg, midnight: /rgba\(2,\s*2,\s*3/.test(bg) };
@@ -878,12 +878,12 @@ async function openMenu(p) {
   php.on('pageerror', e => errs11.push(String(e).slice(0, 300)));
   await php.addInitScript(() => {
     localStorage.setItem('eureka-primer-seen', '1');
-    localStorage.setItem('snake-high', '42');
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
   });
   await php.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
   await php.waitForTimeout(1800);
   const phoneBoard = await php.evaluate(() => {
-    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test((r.querySelector('.hof-name') || {}).textContent || ''));
+    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test((r.querySelector('.hof-name') || {}).textContent || ''));
     const score = vale && vale.querySelector('.hof-score');
     const name = vale && vale.querySelector('.hof-name');
     const vr = vale && vale.getBoundingClientRect();
@@ -896,8 +896,8 @@ async function openMenu(p) {
       score: score ? score.textContent : '',
     };
   });
-  ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /42 pts/.test(phoneBoard.score),
-    `390 HoF keeps the Snake score on the card (overflow ${phoneBoard.overflow})`);
+  ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /17 villagers/.test(phoneBoard.score),
+    `390 HoF keeps the Hearthvale score on the card (overflow ${phoneBoard.overflow})`);
   await phoneHof.close();
 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

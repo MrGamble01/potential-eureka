@@ -18,17 +18,23 @@ const Daily = (() => {
   // `id` keys the seed/best-key streams; `hash` is the hub router's view
   // name (they differ for 2048, whose view is literally '#2048').
   const GAMES = [
-    { id: 'snake',     hash: 'snake',     name: 'Snake' },
-    { id: 'tetris',    hash: 'tetris',    name: 'Tetris' },
-    { id: 'game2048',  hash: '2048',      name: '2048' },
-    { id: 'maze',      hash: 'maze',      name: 'Maze Runner' },
-    { id: 'asteroids', hash: 'asteroids', name: 'Vector Storm' },
+    { id: 'snake',       hash: 'snake',       name: 'Snake' },
+    { id: 'tetris',      hash: 'tetris',      name: 'Tetris' },
+    { id: 'gutterlight', hash: 'gutterlight', name: 'Gutterlight', dir: 'min' },
+    { id: 'crateescape', hash: 'crateescape', name: 'Crate Escape', dir: 'min' },
+    { id: 'game2048',    hash: '2048',        name: '2048' },
+    { id: 'maze',        hash: 'maze',        name: 'Maze Runner' },
+    { id: 'asteroids',   hash: 'asteroids',   name: 'Vector Storm' },
     { id: 'minesweeper', hash: 'minesweeper', name: 'Minefield', dir: 'min' },
     { id: 'wordcascade', hash: 'wordcascade', name: 'Word Cascade' },
   ];
-  // The hub banner only offers the listed classics. The other seeds stay
-  // so a direct visit can still arm yesterday's challenge.
-  const LISTED = new Set(['snake', 'tetris', 'game2048', 'minesweeper']);
+  // The hub banner only offers the showcase games from HubRoutes.SHOWCASE.
+  // The other seeds stay so a direct visit can still arm its challenge.
+  function isListed(g) {
+    return typeof HubRoutes !== 'undefined' && typeof HubRoutes.isShowcase === 'function'
+      ? HubRoutes.isShowcase(g.hash)
+      : false;
+  }
 
   // mulberry32: tiny, solid-enough 32-bit PRNG. Seeded from a string
   // hash of "<game>:<YYYY-MM-DD>", so each game gets its own daily
@@ -112,7 +118,7 @@ const Daily = (() => {
   function refreshBanner() {
     const list = document.getElementById('daily-games');
     if (!list) return;
-    list.innerHTML = GAMES.filter(g => LISTED.has(g.id)).map(g => {
+    list.innerHTML = GAMES.filter(isListed).map(g => {
       const best = Utils.highScore.load(bestKey(g.id));
       return `<a class="daily-chip" href="#${g.hash}" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
         (best > 0 ? `<span class="daily-best">★ ${best}</span>` : '') +

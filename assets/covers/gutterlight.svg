@@ -6,6 +6,6 @@
   <rect x="250" y="70" width="28" height="170" rx="6" fill="#d7dde6"/>
   <rect x="180" y="210" width="150" height="70" rx="10" fill="#1a4c68"/>
   <circle cx="150" cy="250" r="10" fill="#f4efe4"/>
-  <circle cx="470" cy="130" r="14" fill="#07080d" stroke="#e3b341" stroke-width="3"/>
-  <path d="M160 250 L430 150" stroke="#e3b341" stroke-width="3" stroke-dasharray="8 8" opacity="0.8"/>
+  <circle cx="470" cy="130" r="14" fill="#07080d" stroke="#3ddcff" stroke-width="3"/>
+  <path d="M160 250 L430 150" stroke="#3ddcff" stroke-width="3" stroke-dasharray="8 8" opacity="0.8"/>
 </svg>

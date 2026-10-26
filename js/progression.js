@@ -674,7 +674,9 @@
       const head = el(document, 'div', 'trophy-shelf-head');
       const h = el(document, 'h2', 'trophy-h', game.icon + '  ' + game.name);
       head.appendChild(h);
-      if (game.href) {
+      const hr = env.root && env.root.HubRoutes;
+      const showLink = !hr || typeof hr.isShowcase !== 'function' || hr.isShowcase(game.id);
+      if (game.href && showLink) {
         const play = el(document, 'a', 'trophy-play', 'Play');
         play.href = game.href;
         play.setAttribute('aria-label', 'Play ' + game.name);

@@ -24,7 +24,7 @@
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #e3b341;
+  color: #3ddcff;
   text-shadow: none;
 }
 
@@ -228,7 +228,7 @@ html.eureka-booting::before {
   left: 0;
   height: 3px;
   width: 40%;
-  background: #e3b341;
+  background: #3ddcff;
   z-index: 80;
   animation: eurekaBoot 0.8s ease-in-out infinite;
 }
@@ -313,8 +313,46 @@ html.eureka-booting::before {
 }
 
 #view-arcade .arcade-card-play {
-  color: #f0c552;
+  color: #3ddcff;
   min-height: 0;
+}
+
+#view-arcade .arcade-flagship {
+  border-color: rgba(61, 220, 255, 0.45);
+}
+
+#view-arcade .arcade-flagship-kicker,
+#view-arcade .arcade-section--long .arcade-section-chip,
+#view-arcade .daily-title,
+#view-arcade .daily-best {
+  color: #3ddcff;
+}
+
+#view-arcade .hero-cta--flagship,
+#view-arcade .arcade-card-flag {
+  background: linear-gradient(135deg, #22b8cf, #3ddcff);
+  border-color: #3ddcff;
+  color: #061018;
+}
+
+#view-arcade .arcade-card--flagship,
+#view-arcade .arcade-scan-link--long[aria-current="true"],
+#view-arcade .arcade-scan-link--long:focus-visible,
+#view-arcade .daily-chip:hover {
+  border-color: #3ddcff;
+}
+
+#view-arcade .arcade-scan-link--long {
+  border-bottom-color: #3ddcff;
+}
+
+#view-arcade .arcade-section--long {
+  --section-accent: #3ddcff;
+}
+
+.hub-chrome .career-chip {
+  background: color-mix(in srgb, #3ddcff 16%, var(--bg-widget));
+  border-color: color-mix(in srgb, #3ddcff 48%, var(--border));
 }
 
 @media (max-width: 640px) {

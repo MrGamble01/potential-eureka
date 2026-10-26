@@ -20,15 +20,6 @@
     memorymatrix: 'js/memorymatrix.js',
     inkflip: 'js/inkflip.js',
     gutterlight: 'js/gutterlight.js',
-    snip: 'js/snip.js',
-    peg: 'js/peg.js',
-    clasp: 'js/clasp.js',
-    rivet: 'js/rivet.js',
-    plumb: 'js/plumb.js',
-    brand: 'js/brand.js',
-    stitch: 'js/stitch.js',
-    hone: 'js/hone.js',
-    quench: 'js/quench.js',
   };
   const TOOLS = {
     dashboard: {
