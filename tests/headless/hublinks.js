@@ -45,7 +45,7 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 10, `catalogue exposes 10 launch links, hero included (${cards.length})`);
+ok(cards.length === 8, `catalogue exposes 8 launch links (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
@@ -53,15 +53,13 @@ function fileExists(href) {
     `quick-game hash links point at a real view (${hashCards.filter(c => !c.view).map(c => c.href).join(',') || 'all 3'})`);
   ok(pageCards.every(c => fileExists(c.href)),
     `standalone links point at a file (${pageCards.map(c => c.href).join(', ')})`);
-  ok(pageCards.some(c => c.href === 'tycoon/play.html' && /STARTUP TYCOON/.test(c.title)),
-    'Startup Tycoon PLAY opens the game, not the splash');
-  ok(pageCards.some(c => c.href === 'ageofwar/' && /AGE OF WAR/.test(c.title)),
+  ok(pageCards.some(c => c.href === 'tycoon/play.html' && /Startup Tycoon/i.test(c.title)),
+    'Startup Tycoon card opens the game, not the splash');
+  ok(pageCards.some(c => c.href === 'ageofwar/' && /Age of War/i.test(c.title)),
     'Age of War still links into ageofwar/');
   ok(pageCards.some(c => c.href === 'games/ashmarch/'), 'Ashmarch stays a catalogue launch link');
-  ok(pageCards.some(c => c.href === 'games/grow-op/' && /GROW OP/.test(c.title)),
-    'Grow Op opens the valley game');
-  ok(!pageCards.some(c => c.href === 'games/ledger/' || c.href === 'drug-lab.html' || c.href === 'agentic-os.html' || c.href === 'homeless-village.html'),
-    'Ledger, the old Grow Op page, Homeless Village, and Studio are not catalogue launch links');
+  ok(!pageCards.some(c => c.href === 'games/grow-op/' || c.href === 'games/ledger/' || c.href === 'drug-lab.html' || c.href === 'agentic-os.html' || c.href === 'homeless-village.html'),
+    'Grow Op, Ledger, the old Grow Op page, Homeless Village, and Studio are not catalogue launch links');
 
   const daily = await page.evaluate(() =>
     [...document.querySelectorAll('.daily-chip')].map(el => ({
@@ -75,7 +73,7 @@ function fileExists(href) {
   ok(byName['Gutterlight'] === '#gutterlight' && byName['Crate Escape'] === '#crateescape' && byName['Tetris'] === '#tetris',
     `daily chips are the showcase quick games (${daily.map(d => d.name).join(', ')})`);
 
-  await page.click('.arcade-grid--quick a.arcade-card[href="#tetris"]');
+  await page.click('#view-arcade a.arcade-card[href="#tetris"]');
   await page.waitForTimeout(400);
   const tetris = await page.evaluate(() => ({
     on: document.getElementById('view-tetris').classList.contains('active'),
@@ -128,9 +126,9 @@ function fileExists(href) {
   }));
   ok(doors.stay && doors.grow === 'games/grow-op/' && doors.snake && doors.snake.name === 'snake' && doors.nick && doors.nick.name === '2048',
     '404 keeps its own URL and the route map resolves nicknames');
-  const expected = ['/ageofwar/', '/tycoon/play.html', '/games/grow-op/', '/hearthvale.html', '/voxel-garden.html', '/games/ashmarch/', '/#gutterlight', '/#crateescape', '/#tetris'];
+  const expected = ['/voxel-garden.html', '/games/ashmarch/', '/ageofwar/', '/tycoon/play.html', '/hearthvale.html', '/#gutterlight', '/#crateescape', '/#tetris'];
   ok(expected.every(h => doors.links.includes(h)) && expected.filter(h => !h.includes('#')).every(fileExists),
-    '404 lists a working door for each of the nine showcase games');
+    '404 lists a working door for each of the eight showcase games');
   await missing.close();
 
   await browser.close();
