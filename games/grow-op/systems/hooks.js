@@ -22,6 +22,7 @@
 //   sim.startSandbox(difficultyId)   // casual | standard | brutal
 //   sim.setDifficulty(difficultyId)  // sandbox only
 //   sim.recommendedSlot()
+//   sim.recommendedLotId()
 //   sim.observeFrame(dt)
 //
 // gameplayView() fields the scene can render without reading sim.state:
@@ -30,19 +31,33 @@
 //   campaign.failReason   sentence, or null
 //   campaign.failId       indictment | valley_seized | betrayed | broke
 //   campaign.act / actInfo
-//   campaign.mission      current mission, with speaker id, beat, rewards
+//   campaign.goals.main   the one current mission, or null when the campaign is done
+//   campaign.goals.side   at most one threat: cool a hot district, or pay a shaky
+//                         lieutenant. Null when nothing is pressing.
+//   campaign.mission      same mission as goals.main, with speaker id, beat, rewards
 //   campaign.progress     { current, target, pct, done, progressText }
 //   campaign.beat         the line to show under the objective
 //   campaign.speaker      { id, name, title, side } or null
 //   campaign.dea          { agent, case }  case is 0–100; 100 is the indictment
 //   campaign.cast         named people (crew, Ruiz, Garza, Reina)
 //   campaign.fails        the four fail states, with meter/limit when they have one
-//   campaign.chapters     act 1 valley, act 2 rural expansion, act 3 Puerto Sol
-//   card                  open event, or null. choices[].effect is for the sim.
-//                         Pass the choice index to resolveEvent. speaker is CAST.
+//   Show goals.main and goals.side. Do not list every mission at once.
+//   card                  the one open event, or null. The next card waits
+//                         three minutes after this one closes. choices[].effect
+//                         is for the sim. Pass the choice index to resolveEvent.
 //   lieutenants[]         hired, loyalty, zoneId, regionId, traits, betrayed,
 //                         betrayalRisk (0–100; 100 walks on the next day)
 //   routes.boats          successful boat runs (the Act II objective)
+//   buildings[]           catalog card for every building: thumbnailKey, roleIcon,
+//                         output, heat, storage
+//   lots[].builds         building ids that fit the lot (unchanged)
+//   lots[].buildCards     the same ids, with thumbnailKey, roleIcon, output, heat, storage
+//   lots[].recommended    true on the one lot the current goal points at
+//
+//   thumbnailKey is a stable art id (bldg_<buildingId>). roleIcon is the
+//   category SVG from data/icons.js. output is units, export slots, or
+//   dirty cash washed per cycle. heat is heatRate (negative cools).
+//   storage is the building's storage cap.
 //
 // Failing the campaign sets status and does not stop the clock.
 // Sandbox never fails. assignLieutenant accepts a zone id or a region id.
@@ -57,6 +72,7 @@
 // buildOnPlot, cheaper, with build time. City zones have no open plots.
 
 import { BUILDINGS } from '../data/buildings.js';
+import { iconForCategory } from '../data/icons.js';
 import { DIFFICULTIES, ZONES, zoneById } from '../data/zones.js';
 import { VEHICLE_LIST } from '../data/routes.js';
 import { RIVALS } from '../data/rivals.js';
@@ -72,6 +88,46 @@ import { zoneAnchor, crossedControl } from '../audio/zones.js';
 
 function castMember(id) {
   return CAST.find((person) => person.id === id) || null;
+}
+
+function buildingCard(id) {
+  const def = BUILDINGS[id];
+  if (!def) return null;
+  const produced = Object.values(def.outputs || {}).reduce((sum, qty) => sum + qty, 0);
+  let output = produced;
+  if (def.role === 'launderer') output = def.launderPerCycle || 0;
+  else if (def.role === 'smuggling') output = def.exportCapPerCycle || 0;
+  return {
+    id,
+    thumbnailKey: `bldg_${id}`,
+    roleIcon: iconForCategory(def.category),
+    output,
+    heat: def.heatRate || 0,
+    storage: def.storageCap || 0
+  };
+}
+
+function sideGoal(state) {
+  const places = [...Object.values(state.regions || {}), ...Object.values(state.zones || {})];
+  const hot = places.find((row) => row && (row.raidActive || row.patrol || (row.heat || 0) >= 40));
+  if (hot) {
+    return {
+      id: 'cool',
+      title: 'Cool the district',
+      detail: hot.raidActive ? 'A raid is on the block.' : hot.patrol ? 'A patrol is in the district.' : 'Heat is climbing.',
+      place: hot.id
+    };
+  }
+  const crew = Object.entries(state.lieutenants || {}).find(([, row]) => row && row.hired && !row.betrayed && row.loyalty < 40);
+  if (crew) {
+    return {
+      id: 'pay',
+      title: 'Pay the crew',
+      detail: 'A lieutenant is close to walking.',
+      place: crew[0]
+    };
+  }
+  return null;
 }
 
 function lotActions(state, def, lot) {
@@ -118,6 +174,7 @@ export function gameplayView(sim) {
       unlock: zone.unlock
     };
   });
+  const recommendId = sim.recommendedLotId ? sim.recommendedLotId() : null;
   const lots = (state.lots ? Object.values(state.lots) : []).map((lot) => {
     const def = lotDef(lot.id);
     const type = def && def.propertyType ? PROPERTY_TYPES[def.propertyType] : null;
@@ -148,6 +205,8 @@ export function gameplayView(sim) {
       demolishCost: def ? def.demolishCost : 0,
       fits,
       builds,
+      buildCards: builds.map(buildingCard).filter(Boolean),
+      recommended: lot.id === recommendId,
       actions: lotActions(state, def, lot)
     };
   });
@@ -159,6 +218,7 @@ export function gameplayView(sim) {
     act: state.act,
     zones,
     lots,
+    buildings: Object.keys(BUILDINGS).map(buildingCard),
     chains: chainReport(state),
     routes: {
       vehicles: VEHICLE_LIST,
@@ -315,6 +375,17 @@ function campaignSnapshot(sim, state) {
     failId: state.failId || null,
     act: state.act,
     actInfo: ACTS[state.act] || null,
+    goals: {
+      main: mission ? {
+        id: mission.id,
+        act: mission.act,
+        title: mission.title,
+        desc: mission.desc,
+        speaker: mission.speaker,
+        progress: sim.getMissionProgress ? sim.getMissionProgress(mission) : null
+      } : null,
+      side: sideGoal(state)
+    },
     mission,
     progress: mission && sim.getMissionProgress ? sim.getMissionProgress(mission) : null,
     beat: mission ? mission.beat : null,
@@ -338,28 +409,6 @@ function campaignSnapshot(sim, state) {
             ? betrayed
             : null,
       limit: fail.id === 'indictment' ? 100 : fail.id === 'valley_seized' ? 5 : fail.id === 'betrayed' ? 1 : null
-    })),
-    chapters: chapters(state)
+    }))
   };
-}
-
-function chapters(state) {
-  const done = new Set(state.completedMissions || []);
-  return [
-    { id: 'export', act: 1, title: 'First river export', done: done.has('m1_first_export') },
-    { id: 'heat', act: 1, title: 'Face Ruiz and the heat', done: done.has('m1_heat') },
-    { id: 'front', act: 1, title: 'Open a legal front', done: done.has('m2_first_front') },
-    { id: 'delta', act: 2, title: 'Open Boca del Río', done: done.has('m2_open_delta') },
-    { id: 'work', act: 2, title: 'A rural site outside the valley', done: done.has('m2_delta_work') },
-    { id: 'country', act: 2, title: 'A second stretch of country', done: done.has('m2_second_country') },
-    { id: 'crew', act: 2, title: 'A lieutenant on the new ground', done: done.has('m2_second_lieutenant') },
-    { id: 'boat', act: 2, title: 'Land a boat', done: done.has('m2_boat_run') },
-    { id: 'barrio', act: 3, title: 'Take Barrio Sol', done: done.has('m3_barrio') },
-    { id: 'docks', act: 3, title: 'Take the Docks', done: done.has('m3_docks') },
-    { id: 'downtown', act: 3, title: 'Take Downtown', done: done.has('m3_downtown') },
-    { id: 'beach', act: 3, title: 'Take the Beach', done: done.has('m3_beach') },
-    { id: 'hold', act: 3, title: 'Hold Barrio Sol', done: done.has('m3_hold_barrio') },
-    { id: 'hills', act: 3, title: 'Take the Hills', done: done.has('m3_hills') },
-    { id: 'city', act: 3, title: 'Puerto Sol, neighborhood by neighborhood', done: done.has('m3_city') }
-  ];
 }

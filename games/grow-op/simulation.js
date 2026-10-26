@@ -117,7 +117,7 @@ export function createInitialState() {
     dea: { agent: 'Helen Ruiz', case: 0 },
     routeLuck: null,
     event: null,
-    eventCooldown: 16,
+    eventCooldown: 180,
     eventsSeen: [],
     priceMood: 1,
     zones: createZoneBook(),
@@ -367,7 +367,7 @@ export class CartelSimulation {
     slot.buildingId = buildingId;
     slot.level = 1;
     slot.progress = 0;
-    slot.constructLeft = 3;
+    slot.constructLeft = 60;
     slot.inputBuffer = {};
     slot.outputBuffer = {};
     slot.raidLocked = false;
@@ -377,10 +377,10 @@ export class CartelSimulation {
       lotGate.phase = 'building';
       lotGate.buildingId = buildingId;
       lotGate.role = roleForBuilding(buildingId);
-      lotGate.constructLeft = 3;
+      lotGate.constructLeft = 60;
     }
 
-    this.log(`Constructed ${bDef.name} at ${slotDef.label}. Crews need a few seconds.`, 'ok');
+    this.log(`Constructed ${bDef.name} at ${slotDef.label}. Crews need a minute.`, 'ok');
     if (!this.state.tutorialDone && (buildingId === 'taxi_co' || bDef.role === 'launderer')) this.advanceTutorial(1);
     this.onEvent({ type: 'built', slotId, buildingId });
     this.checkMissionsAndActs();
@@ -1099,7 +1099,7 @@ export class CartelSimulation {
     if (applied.text) this.log(applied.text, applied.kind || 'ok');
     this.state.eventsSeen.push(card.id);
     this.state.event = null;
-    this.state.eventCooldown = 24;
+    this.state.eventCooldown = 180;
     this.onEvent({ type: 'event_resolved', id: card.id, effect: choice.effect });
     this.save();
     return { ok: true };
@@ -1211,6 +1211,23 @@ export class CartelSimulation {
         extraNote = `Hire ${mission.requireLieutenants} Lieutenants (${hiredCount}/${mission.requireLieutenants})`;
       }
     }
+    if (mission.requireZone) {
+      const zone = this.state.zones[mission.requireZone];
+      if (!zone || !zone.unlocked) {
+        extraMet = false;
+        if (!extraNote) extraNote = 'Open the zone';
+      }
+    }
+    if (mission.requireProperty) {
+      const owned = Object.values(this.state.lots).some((lot) => {
+        if (lot.zoneId !== mission.requireProperty || !lot.owned) return false;
+        return lot.phase === 'operating' || lot.phase === 'building';
+      });
+      if (!owned) {
+        extraMet = false;
+        if (!extraNote) extraNote = 'Own a property there';
+      }
+    }
     if (mission.requireRivalCleared) {
       const anyRival = slots.some((s) => s.rivalControlled);
       if (anyRival) {
@@ -1266,9 +1283,29 @@ export class CartelSimulation {
     return gameplayView(this);
   }
 
-  recommendedSlot() {
+  recommendedLotId() {
     if (!this.state.tutorialDone && (this.state.tutorialStep || 0) === 0) return 'slot_rp_town1';
-    return null;
+    const mission = this.getCurrentMission();
+    const pick = {
+      m1_first_export: 'slot_rp_pier',
+      m1_heat: 'slot_rp_town1',
+      m2_first_front: 'slot_rp_town1',
+      m2_delta_work: 'lot_rd_mill',
+      m2_boat_run: 'slot_rp_wh1',
+      m3_barrio: 'lot_ba_laundry',
+      m3_docks: 'lot_dk_garage',
+      m3_downtown: 'lot_dt_cars',
+      m3_beach: 'lot_bh_motel',
+      m3_hold_barrio: 'lot_ba_pawn',
+      m3_hills: 'lot_hi_motel'
+    };
+    return (mission && pick[mission.id]) || null;
+  }
+
+  recommendedSlot() {
+    const id = this.recommendedLotId();
+    if (!id || !this.state.slots[id] || this.state.slots[id].buildingId) return null;
+    return id;
   }
 
   observeFrame() {

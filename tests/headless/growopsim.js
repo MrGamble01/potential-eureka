@@ -21,7 +21,7 @@ const ok = (cond, name) => {
 (async () => {
   const root = path.resolve(__dirname, '../../games/grow-op');
   const { CartelSimulation } = await import(path.join(root, 'simulation.js'));
-  const { findRoadPath } = await import(path.join(root, 'data/missions.js'));
+  const { findRoadPath, MISSIONS } = await import(path.join(root, 'data/missions.js'));
 
   const road = findRoadPath('slot_rp_farm1', 'slot_rp_pier');
   ok(road.length >= 2, 'road graph reaches the pier');
@@ -30,7 +30,7 @@ const ok = (cond, name) => {
   sim.state.started = true;
   sim.state.eventCooldown = 999;
   const before = sim.state.slots.slot_rp_farm1.outputBuffer.raw_herb || 0;
-  sim.step(8);
+  sim.step(24);
   const herb = sim.state.slots.slot_rp_farm1.outputBuffer.raw_herb || 0;
   const hauled = sim.state.activeTrucks.some((t) => t.goodId === 'raw_herb');
   const barn = sim.state.slots.slot_rp_barn1.inputBuffer.raw_herb || 0;
@@ -46,7 +46,7 @@ const ok = (cond, name) => {
   sim.state.dirtyCash = 2000;
   const built = sim.buildOnSlot('slot_rp_town1', 'taxi_co');
   ok(built.ok, 'taxi front builds');
-  sim.step(8);
+  sim.step(80);
   ok(sim.state.cleanCash > 350 || sim.state.slots.slot_rp_town1.progress > 0, 'front starts laundering');
 
   sim.state.cleanCash = 5000;
@@ -88,8 +88,8 @@ const ok = (cond, name) => {
   const deal = new CartelSimulation();
   deal.state.started = true;
   deal.state.eventCooldown = 999;
-  deal.state.dirtyCash = 20000;
-  deal.state.cleanCash = 20000;
+  deal.state.dirtyCash = 100000;
+  deal.state.cleanCash = 100000;
   const gasLab = deal.buyAndConvert('lot_rp_gas', 'lab');
   ok(!gasLab.ok, 'a gas station cannot become a lab');
   const gasWash = deal.buyAndConvert('lot_rp_gas', 'launder');
@@ -196,6 +196,9 @@ const ok = (cond, name) => {
     if (choice.ok) { settled = true; break; }
   }
   ok(settled && !cards.state.event, 'the choice resolves');
+  ok(cards.state.eventCooldown >= 180, 'the next card waits at least three minutes');
+  cards.step(30);
+  ok(!cards.state.event, 'a second card stays shut during the gap');
 
   const box = new CartelSimulation();
   box.startSandbox('brutal');
@@ -239,8 +242,13 @@ const ok = (cond, name) => {
   ok(scriptView.campaign.dea.agent.includes('Ruiz') && scriptView.campaign.dea.case === 0, 'Ruiz starts a case file');
   ok(scriptView.campaign.cast.some((person) => person.name.includes('Garza')), 'Don Emilio is on the cast');
   ok(scriptView.campaign.cast.some((person) => person.name.includes('Reina')), 'Reina Solano is on the cast');
-  ok(scriptView.campaign.chapters.filter((chapter) => chapter.act === 2).length >= 4, 'act 2 is rural expansion');
-  ok(scriptView.campaign.chapters.filter((chapter) => chapter.act === 3).length >= 5, 'act 3 takes the city neighborhood by neighborhood');
+  ok(scriptView.campaign.goals.main && scriptView.campaign.goals.main.id === 'm1_first_export' && !scriptView.campaign.goals.side, 'one main goal, and no side goal yet');
+  ok(MISSIONS.filter((mission) => mission.act === 2).length >= 4, 'act 2 is rural expansion');
+  ok(MISSIONS.filter((mission) => mission.act === 3).length >= 5, 'act 3 takes the city neighborhood by neighborhood');
+  const taxiCard = scriptView.buildings.find((card) => card.id === 'taxi_co');
+  const townLot = scriptView.lots.find((lot) => lot.id === 'slot_rp_town1');
+  ok(taxiCard && taxiCard.thumbnailKey === 'bldg_taxi_co' && taxiCard.roleIcon && taxiCard.output === 100 && taxiCard.heat < 0 && taxiCard.storage === 0, 'build cards expose thumbnail, role, output, heat, and storage');
+  ok(townLot && Array.isArray(townLot.builds) && townLot.builds.includes('taxi_co') && townLot.buildCards.some((card) => card.thumbnailKey === 'bldg_taxi_co') && townLot.recommended && scriptView.lots.filter((lot) => lot.recommended).length === 1, 'one recommended lot carries build cards beside the building ids');
   ok(scriptView.campaign.fails.some((fail) => fail.id === 'indictment' && fail.limit === 100), 'the indictment is a fail state');
 
   const posted = new CartelSimulation();
@@ -346,7 +354,7 @@ const ok = (cond, name) => {
   function clearCard(sim) {
     const card = sim.state.event;
     if (!card) return;
-    const prefer = ['inspection_pay', 'witness_pay', 'election_donate', 'hurricane_secure', 'turf_costa', 'books_buy', 'army_pay', 'checkpoint_pay', 'storm_hide', 'widow_pay', 'fiesta_pay', 'informant_buy', 'sol_rumor', 'surge_on'];
+    const prefer = ['inspection_pay', 'witness_pay', 'election_donate', 'hurricane_secure', 'turf_costa', 'army_pay', 'checkpoint_pay', 'storm_hide', 'widow_pay', 'fiesta_pay', 'informant_buy', 'sol_rumor', 'surge_on'];
     for (const effect of prefer) {
       const index = card.choices.findIndex((choice) => choice.effect === effect);
       if (index >= 0 && sim.resolveEvent(index).ok) return;
@@ -355,7 +363,7 @@ const ok = (cond, name) => {
       if (sim.resolveEvent(i).ok) return;
     }
     sim.state.event = null;
-    sim.state.eventCooldown = 12;
+    sim.state.eventCooldown = 180;
   }
 
   function tend(sim) {
@@ -471,31 +479,51 @@ const ok = (cond, name) => {
   const player = new CartelSimulation();
   player.state.started = true;
   player.state.routeLuck = 0.55;
-  player.state.eventCooldown = 14;
-  let stuckOn = null;
-  let stuckFor = 0;
-  while (player.getCurrentMission() && player.state.elapsedSeconds < 2600 && player.state.campaignStatus !== 'failed') {
-    const currentId = player.getCurrentMission().id;
-    if (currentId === stuckOn) stuckFor += 1;
-    else {
-      stuckOn = currentId;
-      stuckFor = 0;
-    }
+  player.state.eventCooldown = 180;
+  const mark = { 1: 0, 2: null, 3: null, done: null };
+  let quietMission = null;
+  let quietValue = null;
+  let quietAt = 0;
+  let deadStretch = 0;
+  let deadMission = null;
+  while (player.getCurrentMission() && player.state.elapsedSeconds < 42000 && player.state.campaignStatus !== 'failed') {
     tend(player);
     pursue(player);
-    player.step(2);
+    player.step(5);
+    if (mark[2] == null && player.state.act >= 2) mark[2] = player.state.elapsedSeconds;
+    if (mark[3] == null && player.state.act >= 3) mark[3] = player.state.elapsedSeconds;
+    const mission = player.getCurrentMission();
+    if (!mission) {
+      mark.done = player.state.elapsedSeconds;
+      break;
+    }
+    const value = player.getMissionProgress(mission).current;
+    if (mission.id !== quietMission || value !== quietValue) {
+      quietMission = mission.id;
+      quietValue = value;
+      quietAt = player.state.elapsedSeconds;
+    } else if (player.state.elapsedSeconds - quietAt > 180) {
+      deadStretch = player.state.elapsedSeconds - quietAt;
+      deadMission = mission.id;
+      break;
+    }
   }
+  if (!player.getCurrentMission() && mark.done == null) mark.done = player.state.elapsedSeconds;
+  const act1 = mark[2] == null ? 0 : mark[2] - mark[1];
+  const act2 = mark[2] == null || mark[3] == null ? 0 : mark[3] - mark[2];
+  const act3 = mark[3] == null || mark.done == null ? 0 : mark.done - mark[3];
   const finishedMission = player.getCurrentMission();
-  if (finishedMission || player.state.campaignStatus === 'failed' || player.state.elapsedSeconds > 2400) {
-    console.log('BOT', finishedMission && finishedMission.id, 'stuckSteps', stuckFor, 't', Math.round(player.state.elapsedSeconds), 'clean', Math.round(player.state.cleanCash), 'dirty', Math.round(player.state.dirtyCash), 'rep', player.state.reputation, 'status', player.state.campaignStatus, player.state.failReason || '', 'done', player.state.completedMissions.join(','));
-  }
+  console.log('BOT', finishedMission && finishedMission.id, 't', Math.round(player.state.elapsedSeconds), 'act1', Math.round(act1), 'act2', Math.round(act2), 'act3', Math.round(act3), 'clean', Math.round(player.state.cleanCash), 'dirty', Math.round(player.state.dirtyCash), 'earnedD', Math.round(player.state.totalDirtyEarned), 'earnedC', Math.round(player.state.totalCleanEarned), 'rep', player.state.reputation, 'status', player.state.campaignStatus, player.state.failReason || '', 'dead', deadMission || '', Math.round(deadStretch), 'done', player.state.completedMissions.join(','));
   ok(!finishedMission && player.state.completedMissions.includes('m3_city'), 'the bot finishes all three acts');
   ok(player.state.act >= 3 && player.state.campaignStatus === 'complete', 'the campaign completes in act 3');
   ok(player.state.campaignStatus !== 'failed', 'the playthrough never fails');
-  ok(player.state.elapsedSeconds > 60 && player.state.elapsedSeconds <= 2400, `the campaign finishes in a sensible time (${Math.round(player.state.elapsedSeconds)}s)`);
+  ok(deadStretch === 0, `no stretch without a moving objective${deadMission ? ` (${deadMission}, ${Math.round(deadStretch)}s)` : ''}`);
+  ok(act1 >= 2700 && act1 <= 3600, `act 1 takes 45–60 minutes (${Math.round(act1)}s)`);
+  ok(act2 >= 7200 && act2 <= 10800, `act 2 takes 2–3 hours (${Math.round(act2)}s)`);
+  ok(act3 >= 10800 && act3 <= 18000, `act 3 takes 3–5 hours (${Math.round(act3)}s)`);
   ok(player.state.boatRuns >= 1, 'act 2 landed a boat');
-  const cityChapters = player.gameplayView().campaign.chapters.filter((chapter) => chapter.act === 3);
-  ok(cityChapters.every((chapter) => chapter.done), 'every Puerto Sol chapter is done');
+  const cityDone = ['m3_barrio', 'm3_docks', 'm3_downtown', 'm3_beach', 'm3_hold_barrio', 'm3_hills', 'm3_city'];
+  ok(cityDone.every((id) => player.state.completedMissions.includes(id)), 'every Puerto Sol objective is done');
 
   const hour = new CartelSimulation();
   hour.startSandbox('standard');
