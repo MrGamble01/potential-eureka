@@ -46,7 +46,7 @@ const ok = (cond, name) => {
         return {
           side: a.right <= b.left + 2 && Math.abs(a.top - b.top) < 24,
           both: text.includes('Buy & convert') && text.includes('Demolish & build new'),
-          cost: /\d+s/.test(text) && text.includes('dirty'),
+          cost: /\d+s/.test(text) && !!document.querySelector('#lot-card .go-purse--dirty'),
         };
       });
       ok(!card.missing && card.both, width + ' lot card shows both paths');

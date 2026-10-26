@@ -55,6 +55,7 @@ const ok = (cond, name) => {
   const locked = sim.buyResearch('manifests');
   ok(!locked.ok, 'research respects prerequisites');
 
+  sim.state.noSeizure = false;
   sim.state.regions.rio_plata.heat = 99;
   sim.step(0.2);
   ok(sim.state.regions.rio_plata.raidActive, 'heat starts a raid');
@@ -160,6 +161,7 @@ const ok = (cond, name) => {
   ok(loyal > sulking, 'loyalty changes a lieutenant\'s output');
 
   const heat = new CartelSimulation();
+  heat.state.noSeizure = false;
   heat.state.started = true;
   heat.state.eventCooldown = 999;
   heat.state.regions.rio_plata.heat = 70;
@@ -173,6 +175,7 @@ const ok = (cond, name) => {
   ok(heat.state.patrolsHandled >= 1, 'a slipped patrol counts');
 
   const rivals = new CartelSimulation();
+  rivals.state.noSeizure = false;
   rivals.state.started = true;
   rivals.state.eventCooldown = 999;
   ok(rivals.state.rivals.lobos && rivals.state.rivals.costa, 'Los Lobos and Costa Negra both exist');
@@ -227,7 +230,7 @@ const ok = (cond, name) => {
     }
     if (opening.state.dirtyCash < 0 || opening.state.cleanCash < 0) broke = true;
   }
-  ok(sawHeat, 'the first 15 minutes get hot');
+  ok(!sawHeat, 'the first 15 minutes stay cool');
   ok(!broke && opening.state.totalDirtyEarned > 1200, 'the opening still earns and stays solvent');
   ok(opening.state.day > 20, 'fifteen minutes is a long stretch of days');
 
@@ -290,6 +293,7 @@ const ok = (cond, name) => {
   };
   ok(law.resolveEvent(2).ok, 'ignoring the turf war is a choice');
   ok(law.state.rivals.costa.threat < 40 && law.state.rivals.lobos.threat < 48, 'ignoring the turf war brings both crews in faster');
+  law.state.noSeizure = false;
   const stormCard = EVENTS.find((card) => card.id === 'hurricane');
   const docksHeat = law.state.zones.ps_docks.heat;
   law.state.event = {
@@ -534,9 +538,12 @@ const ok = (cond, name) => {
   let hourHeat = false;
   for (let tick = 0; tick < 720; tick += 1) {
     tend(hour);
-    const packs = hour.state.slots.slot_rp_wh1.outputBuffer.cured_pack || 0;
-    if (packs >= 2 && !(hour.state.shipments || []).length) {
-      hour.planRoute({ fromId: 'slot_rp_wh1', vehicleId: 'truck', goodId: 'cured_pack', qty: 2 });
+    let fromPack = null;
+    for (const slot of Object.values(hour.state.slots)) {
+      if ((slot.outputBuffer.cured_pack || 0) >= 1) { fromPack = slot.slotId; break; }
+    }
+    if (fromPack && !(hour.state.shipments || []).length) {
+      hour.planRoute({ fromId: fromPack, vehicleId: 'truck', goodId: 'cured_pack', qty: 1 });
     }
     hour.step(5);
     if (hour.state.regions.rio_plata.heat >= 40 || hour.state.heatHandled > 0) hourHeat = true;

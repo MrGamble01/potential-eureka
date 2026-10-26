@@ -1474,14 +1474,40 @@ html, body {
 }
 .go-obj-line .go-obj-bar { flex: none; height: 3px; width: 100%; }
 #obj-prog-text { display: none !important; }
+.go-pin[hidden], .go-mark[hidden], .go-zone[hidden], .go-badge[hidden], .go-plate[hidden], .go-area[hidden] {
+  display: none !important;
+}
 .go-meters {
   position: fixed;
   top: 10px;
   left: 50%;
+  right: auto;
+  width: auto;
   transform: translateX(-50%);
   z-index: 31;
   pointer-events: none;
   margin: 0;
+}
+.go-cash-bit {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.go-cash-bit svg { width: 12px; height: 12px; flex: none; }
+.go-cash-bit--dirty, .go-purse--dirty { color: #3ddc97; }
+.go-cash-bit--clean, .go-purse--clean { color: #58a6ff; }
+.go-price { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.go-purse { width: 12px; height: 12px; flex: none; }
+.go-tile small { overflow: visible; text-overflow: clip; display: flex; align-items: center; gap: 4px; }
+@media (max-width: 700px) {
+  .go-meters { top: 8px; }
+  .go-subhud {
+    top: 52px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+  .go-obj-line { width: calc(100vw - 24px); }
 }
 .go-cash, .go-meter--heat {
   pointer-events: auto;

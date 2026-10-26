@@ -641,12 +641,21 @@ function purseWord(zone) {
   return zone && zone.kind === 'city' ? 'clean' : 'dirty';
 }
 
+const PURSE = {
+  dirty: '<svg class="go-purse go-purse--dirty" viewBox="0 0 20 20" aria-label="dirty cash"><rect x="2" y="5" width="16" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+  clean: '<svg class="go-purse go-purse--clean" viewBox="0 0 20 20" aria-label="clean cash"><path d="M3 8l7-5 7 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 18v-6h6v6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>'
+};
+
+function purse(kind) {
+  return PURSE[kind] || PURSE.dirty;
+}
+
 function costBits(dirty, clean) {
   const bits = [];
-  if (dirty) bits.push(`${fmtCash(dirty)} dirty`);
-  if (clean) bits.push(`${fmtCash(clean)} clean`);
+  if (dirty) bits.push(`<span class="go-price">${fmtCash(dirty)}${purse('dirty')}</span>`);
+  if (clean) bits.push(`<span class="go-price">${fmtCash(clean)}${purse('clean')}</span>`);
   if (!bits.length) bits.push('no cash');
-  return bits.join(' · ');
+  return bits.join('');
 }
 
 function bonusLine(bonus) {
@@ -838,9 +847,9 @@ function tileButton(opts) {
   const pictures = opts.building
     ? artPair(cardKeyForBuilding(opts.building), iconKeyForBuilding(opts.building))
     : artPair(cardKeyForRole(opts.role || opts.thumb), iconKeyForRole(opts.role || opts.thumb));
-  const detail = [opts.cost, opts.effect].filter(Boolean).join(' · ');
   const label = tileName(opts.name);
-  return `<button type="button" class="go-tile${on ? ' is-on' : ''}${opts.rec ? ' is-rec' : ''}" title="${opts.name}" data-deal="pick" data-path="${opts.path}" data-key="${opts.key}" data-role="${opts.role || ''}" data-building="${opts.building || ''}" ${opts.enabled ? '' : 'disabled'}>${pictures}<b>${label}</b><small>${detail}</small></button>`;
+  const tip = [opts.name, opts.effect].filter(Boolean).join('. ');
+  return `<button type="button" class="go-tile${on ? ' is-on' : ''}${opts.rec ? ' is-rec' : ''}" title="${tip}" data-deal="pick" data-path="${opts.path}" data-key="${opts.key}" data-role="${opts.role || ''}" data-building="${opts.building || ''}" ${opts.enabled ? '' : 'disabled'}>${pictures}<b>${label}</b><small>${opts.cost}</small></button>`;
 }
 
 function previewRow(nowKind, nextKind, nowName, nextName) {
@@ -858,7 +867,7 @@ function convertColumn(lot, pay, enabled) {
     role,
     thumb: lot.propertyType || 'lot',
     name: ROLE_NAME[role] || role,
-    cost: `${fmtCash(lot.buyPrice)} ${pay}`,
+    cost: `${fmtCash(lot.buyPrice)}${purse(pay)}`,
     effect: fit.fit === 'boost' ? 'Strong fit' : fit.fit === 'limit' ? 'Tight fit' : 'Fits',
     enabled,
     rec: rec && rec[0] === role
@@ -911,7 +920,7 @@ function rebuildColumn(lot, def, enabled, pay) {
   const picked = ghost && ghost.path === 'rebuild' && ghost.lotId === lot.id && ghost.buildingId;
   const nextName = picked && BUILDINGS[ghost.buildingId] ? BUILDINGS[ghost.buildingId].shortName : '';
   const note = lot.actions.includes('buildNew') ? 'Lot is clear.' : `Demolish ${seconds}s, then build.`;
-  return `<section class="go-path" data-path="rebuild"><h3>Demolish &amp; build new</h3><p class="go-path-note">${note} ${fmtCash(lot.lotPrice)} ${pay}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
+  return `<section class="go-path" data-path="rebuild"><h3>Demolish &amp; build new</h3><p class="go-path-note">${note} ${fmtCash(lot.lotPrice)}${purse(pay)}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
 }
 
 function plotColumn(lot) {
