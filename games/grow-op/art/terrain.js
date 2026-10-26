@@ -3,6 +3,7 @@
 // One canvas becomes the Phaser texture "go-world".
 
 import { BUILD_SLOTS } from '../data/missions.js';
+import { LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT } from '../map-layout.js';
 import { hash, palm } from './kit.js';
 import { renderStructure } from './buildings.js';
 
@@ -152,6 +153,8 @@ function cityBlock(g, x, y, seed) {
     g.fillStyle = '#d7dde4';
     g.fillRect(x + w * 0.35, y - h - 16, 10, 10);
   }
+  g.fillStyle = '#3a342c';
+  g.fillRect(x + 5, y - 11, 6, 11);
   const rows = Math.max(1, Math.floor((h - 8) / 11));
   for (let r = 0; r < rows; r++) {
     g.fillStyle = hash(seed + r, 7) > 0.62 ? '#ffd27a' : '#8ec4d4';
@@ -203,12 +206,150 @@ function stamp(g, kind, x, y, scale, mode) {
   g.drawImage(c, x - 150 * scale, y - 168 * scale, 300 * scale, 200 * scale);
 }
 
+function nearLot(x, y, r) {
+  const lots = Object.values(LOT_POS);
+  for (let i = 0; i < lots.length; i++) {
+    const dx = lots[i].x - x;
+    const dy = lots[i].y - y;
+    if (dx * dx + dy * dy < r * r) return true;
+  }
+  return false;
+}
+
+function paintBeyond(g) {
+  const alta = ZONE_LAYOUT.jungle_alta;
+  const delta = ZONE_LAYOUT.river_delta;
+  const mesa = ZONE_LAYOUT.mesa_strip;
+  const hills = ZONE_LAYOUT.ps_hills;
+
+  g.fillStyle = '#1b3824';
+  g.fillRect(alta.x, alta.y, alta.w, alta.h);
+  for (let i = 0; i < 24; i++) {
+    g.fillStyle = i % 2 ? 'rgba(20,48,28,0.8)' : 'rgba(47,107,52,0.55)';
+    g.beginPath();
+    g.ellipse(alta.x + 90 + (i % 6) * 170, alta.y + 140 + Math.floor(i / 6) * 210, 78, 40, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 5; i++) {
+    g.fillStyle = i % 2 ? '#6d8a48' : '#4e6a34';
+    g.fillRect(alta.x + 220, alta.y + 240 + i * 78, 560 - i * 36, 26);
+    g.fillStyle = '#9a8b72';
+    g.fillRect(alta.x + 210, alta.y + 262 + i * 78, 580 - i * 36, 6);
+  }
+
+  g.fillStyle = '#176880';
+  g.fillRect(delta.x + 40, delta.y + 120, delta.w - 80, delta.h - 180);
+  g.fillStyle = 'rgba(186,230,236,0.35)';
+  g.fillRect(delta.x + 80, delta.y + 180, delta.w - 180, 16);
+  g.fillStyle = '#6a5a3e';
+  g.fillRect(delta.x + 30, delta.y + 200, delta.w - 60, 34);
+  for (let i = 0; i < 5; i++) {
+    g.fillStyle = '#8a6238';
+    g.fillRect(delta.x + 220 + i * 150, delta.y + 460, 14, 200);
+    g.fillStyle = '#c4a06a';
+    for (let k = 0; k < 6; k++) g.fillRect(delta.x + 200 + i * 150, delta.y + 480 + k * 22, 54, 4);
+  }
+
+  g.fillStyle = '#8a7d62';
+  g.fillRect(mesa.x, mesa.y + 20, mesa.w, mesa.h - 40);
+  g.fillStyle = '#6e6550';
+  g.beginPath();
+  g.ellipse(mesa.x + 520, mesa.y + 280, 420, 180, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#3e4650';
+  g.fillRect(mesa.x + 160, mesa.y + 640, 800, 24);
+  g.fillStyle = '#f4f1ea';
+  for (let i = 0; i < 12; i++) g.fillRect(mesa.x + 180 + i * 62, mesa.y + 648, 26, 4);
+  g.strokeStyle = '#e6b84a';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(mesa.x + 960, mesa.y + 620);
+  g.lineTo(mesa.x + 960, mesa.y + 580);
+  g.stroke();
+  g.fillStyle = '#f4f7fb';
+  g.beginPath();
+  g.moveTo(mesa.x + 960, mesa.y + 580);
+  g.lineTo(mesa.x + 978, mesa.y + 588);
+  g.lineTo(mesa.x + 960, mesa.y + 596);
+  g.fill();
+
+  g.fillStyle = '#e7d3b0';
+  g.fillRect(2860, 150, 2620, 1680);
+  const sea = g.createLinearGradient(5400, 0, 6400, 0);
+  sea.addColorStop(0, '#3aa0b8');
+  sea.addColorStop(1, '#0c4a62');
+  g.fillStyle = sea;
+  g.fillRect(5480, 150, 920, 1560);
+  g.fillStyle = '#e6d2a4';
+  g.fillRect(5260, 180, 280, 1120);
+  g.fillStyle = '#3d5a34';
+  g.beginPath();
+  g.ellipse(hills.x + 520, hills.y + 280, 540, 250, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#4e6b3c';
+  g.beginPath();
+  g.ellipse(hills.x + 220, hills.y + 160, 240, 140, 0, 0, Math.PI * 2);
+  g.fill();
+
+  const avenues = [
+    [[3000, 420], [5360, 420]],
+    [[3000, 740], [5360, 740]],
+    [[3160, 220], [3160, 980]],
+    [[3520, 220], [3520, 980]],
+    [[4040, 200], [4040, 980]],
+    [[4400, 200], [4400, 980]],
+    [[5000, 200], [5000, 1020]],
+    [[3000, 1320], [4300, 1320]],
+    [[4380, 1460], [5300, 1460]]
+  ];
+  for (let i = 0; i < avenues.length; i++) {
+    const seg = avenues[i];
+    road(g, [{ x: seg[0][0], y: seg[0][1] }, { x: seg[1][0], y: seg[1][1] }], 16, '#3e4450', '#cbb892');
+  }
+  road(g, [{ x: 2480, y: 500 }, { x: 3100, y: 480 }, { x: 4300, y: 460 }, { x: 5200, y: 500 }], 18, '#3a4048', '#b7a078');
+  road(g, [{ x: 900, y: 1284 }, { x: 520, y: 1680 }, { x: 980, y: 1860 }, { x: 2100, y: 1860 }, { x: 3400, y: 1860 }], 14, '#3a4048', '#b7a078');
+
+  for (let x = 3040; x < 5200; x += 78) {
+    if (!nearLot(x, 1260, 120)) palm(g, x, 1260, 0.62);
+  }
+  for (let y = 260; y < 960; y += 70) {
+    if (!nearLot(2980, y, 110)) palm(g, 2980, y, 0.55);
+    if (!nearLot(4700, y, 110)) palm(g, 4700, y, 0.55);
+  }
+
+  const blocks = [
+    [3320, 560, 4], [3680, 300, 8], [3920, 560, 2], [4280, 280, 11],
+    [4580, 560, 6], [4780, 300, 9], [3380, 900, 3], [4160, 900, 7]
+  ];
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (nearLot(b[0], b[1], 150)) continue;
+    cityBlock(g, b[0], b[1], b[2]);
+  }
+
+  crane(g, 3380, 1560);
+  crane(g, 3720, 1580);
+  container(g, 3460, 1500, '#c25038');
+  container(g, 3504, 1508, '#3d6ea8');
+  container(g, 3640, 1516, '#e6c35a');
+  container(g, 3900, 1490, '#7d3b5c');
+
+  for (let i = 0; i < 4; i++) {
+    g.fillStyle = '#8a6238';
+    g.fillRect(3480 + i * 90, 1540, 16, 120);
+    g.fillStyle = '#c4a06a';
+    for (let k = 0; k < 5; k++) g.fillRect(3464 + i * 90, 1550 + k * 16, 48, 4);
+  }
+}
+
 function paintWorld(roads) {
   const c = document.createElement('canvas');
-  c.width = WORLD_W;
-  c.height = WORLD_H;
+  c.width = MAP_W;
+  c.height = MAP_H;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = true;
+  g.fillStyle = '#2a4a28';
+  g.fillRect(0, 0, MAP_W, MAP_H);
 
   const jungle = g.createLinearGradient(0, 0, 0, WORLD_H);
   jungle.addColorStop(0, '#3f6b34');
@@ -294,6 +435,20 @@ function paintWorld(roads) {
   g.ellipse(1400, 1168, 420, 16, 0, 0, Math.PI * 2);
   g.fill();
 
+  g.fillStyle = '#356332';
+  g.beginPath();
+  g.moveTo(480, 1168);
+  g.lineTo(1480, 1168);
+  g.lineTo(1520, 1330);
+  g.lineTo(460, 1330);
+  g.fill();
+  ribbon(g, [[560, 1168], [640, 1236], [760, 1328]], 18, '#1a7890', 'rgba(186,230,236,0.35)');
+  g.fillStyle = '#cbb892';
+  g.beginPath();
+  g.ellipse(720, 1244, 78, 22, 0, 0, Math.PI * 2);
+  g.ellipse(1080, 1244, 92, 26, 0, 0, Math.PI * 2);
+  g.fill();
+
   g.fillStyle = '#e7d3b0';
   g.fillRect(860, 230, 740, 820);
   for (let i = 0; i < 26; i++) {
@@ -333,7 +488,7 @@ function paintWorld(roads) {
 
   for (let i = 0; i < STAMPS.length; i++) {
     const s = STAMPS[i];
-    if (nearSlot(s.x, s.y, 150)) continue;
+    if (nearSlot(s.x, s.y, 150) || nearLot(s.x, s.y, 160)) continue;
     stamp(g, s.kind, s.x, s.y, s.s, s.kind === 'terrace' ? 'ambient' : 'sale');
   }
 
@@ -417,7 +572,8 @@ function paintWorld(roads) {
     [[910, 250], [910, 1040]],
     [[1100, 250], [1100, 1040]],
     [[1580, 250], [1580, 1080]],
-    [[760, 1068], [2000, 1068]]
+    [[760, 1068], [2000, 1068]],
+    [[500, 1284], [1460, 1284]]
   ];
   for (let i = 0; i < streets.length; i++) {
     road(g, [{ x: streets[i][0][0], y: streets[i][0][1] }, { x: streets[i][1][0], y: streets[i][1][1] }], 14, '#3e4450', '#cbb892');
@@ -434,6 +590,7 @@ function paintWorld(roads) {
     for (let k = -2; k <= 2; k++) g.fillRect(x + k * 8, y - 16, 3, 8);
   }
 
+  paintBeyond(g);
   return c;
 }
 

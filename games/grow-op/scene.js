@@ -74,6 +74,7 @@ export class MapScene extends window.Phaser.Scene {
     this.pinHost = document.getElementById('go-pins');
     this.drawTerrain();
     drawExtended(this.coast);
+    if (typeof Art.coversExtendedMap === 'function' && Art.coversExtendedMap()) this.coast.clear();
     this.drawHatch();
     this.createPlates();
     this.createSlots();
@@ -959,43 +960,59 @@ export class MapScene extends window.Phaser.Scene {
       const locked = zone && !zone.unlocked;
       node.select.setVisible(selected === node.id);
       node.root.setAlpha(locked ? 0.55 : 1);
-      if (live.phase === 'demolishing') {
-        if (node.phase !== 'demolishing') {
-          node.demoMax = Math.max(0.2, live.demolishLeft || lot.demolishLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.shake) juice.shake(240, 0.003);
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      if (live.phase === 'demolishing' && node.phase !== 'demolishing') {
+        node.demoMax = Math.max(0.2, live.demolishLeft || lot.demolishLeft || 1);
+        const juice = this.registry.get('juice');
+        if (juice && juice.shake) juice.shake(240, 0.003);
+        if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      } else if (live.phase === 'building' && node.phase !== 'building') {
+        node.buildMax = Math.max(0.2, live.constructLeft || lot.constructLeft || 1);
+        const juice = this.registry.get('juice');
+        if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0x8ec5ff);
+      }
+      if (live.phase === 'demolishing' && Math.random() < 0.35) {
+        this.puff(node.pos.x + (Math.random() - 0.5) * 40, node.pos.y - 10);
+      }
+      if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+        const prop = live.propertyType || lot.propertyType || null;
+        const ctx = {
+          buildingId: live.buildingId || null,
+          rival: prop === 'outpost',
+          level: live.level || 1,
+          night: this.isNight(),
+          progress: 0,
+          slotId: node.id,
+          phase: live.phase,
+          propertyType: prop,
+          owned: !!live.owned,
+          size: live.size || lot.size || null,
+          constructLeft: live.constructLeft || 0
+        };
+        const key = Art.textureKey(ctx);
+        if (key !== node.key) {
+          node.key = key;
+          Art.drawKeyed(node.art, key, ctx);
         }
+      } else if (live.phase === 'demolishing') {
         const total = node.demoMax || 1;
         paintRubble(node.art, 1 - Math.max(0, live.demolishLeft) / total);
         node.key = '';
-        if (Math.random() < 0.35) this.puff(node.pos.x + (Math.random() - 0.5) * 40, node.pos.y - 10);
       } else if (live.phase === 'building') {
-        if (node.phase !== 'building') {
-          node.buildMax = Math.max(0.2, live.constructLeft || lot.constructLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0x8ec5ff);
-        }
         const total = node.buildMax || 1;
         paintScaffold(node.art, 1 - Math.max(0, live.constructLeft) / total);
         node.key = '';
       } else if (live.buildingId && live.phase === 'operating') {
         if (node.key !== 'b:' + live.buildingId) {
           node.key = 'b:' + live.buildingId;
-          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1 });
+          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1, slotId: node.id });
         }
       } else if (lot.kind === 'open') {
         if (node.key !== 'open') {
           node.key = 'open';
           paintOpen(node.art);
         }
-      } else if (typeof Art.drawKeyed === 'function' && lot.propertyType && node.key !== 'k:' + lot.propertyType) {
-        node.key = 'k:' + lot.propertyType;
-        const ctx = { buildingId: lot.propertyType, rival: lot.owner === 'rival', level: 1, night: this.isNight(), progress: 0 };
-        node.art.clear();
-        Art.drawKeyed(node.art, lot.propertyType, ctx);
-      } else if (!(typeof Art.drawKeyed === 'function' && lot.propertyType) && node.key !== 'p:' + (lot.propertyType || lot.kind)) {
-        node.key = 'p:' + (lot.propertyType || lot.kind);
+      } else if (lot.propertyType && node.key !== 'p:' + lot.propertyType) {
+        node.key = 'p:' + lot.propertyType;
         paintProperty(node.art, lot.propertyType);
       }
       if (node.phase === 'demolishing' && live.phase === 'cleared') {

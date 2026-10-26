@@ -7,6 +7,10 @@ import { drawMiniTruck, paintAmbient } from './art/vehicles.js';
 
 export { drawWorld, drawFog, WORLD_W, WORLD_H, RIVER, HARBOR, drawMiniTruck, paintAmbient, LOT_PRESET };
 
+export function coversExtendedMap() {
+  return true;
+}
+
 const mem = new Map();
 
 function nowMs() {
@@ -78,9 +82,21 @@ function ensureTexture(scene, key) {
   if (c) scene.textures.addCanvas(key, c);
 }
 
+function presentedKey(key, ctx) {
+  if (typeof key === 'string' && (key.startsWith('go-s-') || key.startsWith('go-fx-'))) return key;
+  const next = Object.assign({}, ctx);
+  if (typeof key === 'string' && key && next.buildingId === key) {
+    next.propertyType = next.propertyType || key;
+    next.buildingId = null;
+    next.slotId = next.slotId || key;
+  }
+  return textureKey(next);
+}
+
 export function drawKeyed(g, key, ctx) {
   const scene = g && g.scene;
   if (!scene) return;
+  key = presentedKey(key, ctx || {});
   ensureTexture(scene, key);
   if (!scene.textures.exists(key)) return;
   g.setVisible(false);

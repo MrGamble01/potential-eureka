@@ -800,14 +800,14 @@ const PAINTERS = {
     K.box(g, 156, 160, 14, 10, 20, '#f4e2c6', SIDE, '#3ee0ff');
     K.box(g, 186, 160, 14, 10, 20, '#f4e2c6', SIDE, '#ff4fbf');
     g.fillStyle = '#1c2838';
-    g.fillRect(236, 96, 28, 40);
+    g.fillRect(6, 70, 28, 34);
     g.fillStyle = '#f7f1e4';
-    g.fillRect(248, 132, 4, 30);
+    g.fillRect(17, 104, 4, 46);
     g.fillStyle = '#ffd27a';
     g.font = '700 10px sans-serif';
-    g.fillText('GAS', 241, 114);
+    g.fillText('GAS', 9, 84);
     g.font = '700 8px sans-serif';
-    g.fillText('1.19', 240, 128);
+    g.fillText('1.19', 8, 98);
     gear(g, 70, 114, ctx);
   },
 
@@ -1121,9 +1121,9 @@ export function renderDust(frame) {
   g.fillStyle = TERRA_D;
   g.fillRect(96 + frame * 4, 146, 14, 6);
   g.fillRect(150 - frame * 3, 152, 10, 5);
-  const alpha = 0.62 - frame * 0.1;
-  const grow = 1 + frame * 0.28;
-  const clouds = [[120, 118, 28], [160, 100, 36], [100, 96, 22], [186, 124, 30]];
+  const alpha = 0.78 - frame * 0.07;
+  const grow = 1.25 + frame * 0.3;
+  const clouds = [[112, 110, 42], [158, 88, 52], [94, 80, 32], [192, 116, 40], [138, 60, 28]];
   for (const [x, y, r] of clouds) {
     g.fillStyle = `rgba(176,156,128,${alpha})`;
     g.beginPath();
@@ -1135,8 +1135,9 @@ export function renderDust(frame) {
   g.ellipse(150, 132 - frame * 6, 40 * grow, 16 * grow, 0, 0, Math.PI * 2);
   g.fill();
   g.fillStyle = WOOD;
-  g.fillRect(130 + frame * 10, 78 - frame * 14, 8, 4);
-  g.fillRect(96 - frame * 8, 88 - frame * 12, 6, 5);
+  g.fillRect(130 + frame * 12, 68 - frame * 16, 10, 5);
+  g.fillRect(96 - frame * 10, 80 - frame * 14, 8, 6);
+  g.fillRect(170 + frame * 6, 92 - frame * 12, 7, 4);
   return c;
 }
 

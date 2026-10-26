@@ -3,24 +3,31 @@
 // graphics layer through drawMiniTruck.
 
 import { canvas } from './kit.js';
+import { LOT_POS } from '../map-layout.js';
 
 const LOOP = [
-  [910, 330],
-  [1580, 330],
-  [1580, 1068],
-  [910, 1068]
+  [3060, 420],
+  [5300, 420],
+  [5300, 740],
+  [3060, 740]
 ];
 
+function lotGlow(id, dy, color) {
+  const pos = LOT_POS[id];
+  if (!pos) return null;
+  return { x: pos.x, y: pos.y + dy, color };
+}
+
 export const NEON = [
-  { x: 1000, y: 210, color: 0xc4553a },
-  { x: 1260, y: 210, color: 0xff4fbf },
-  { x: 1420, y: 190, color: 0xffd27a },
-  { x: 1360, y: 400, color: 0xff4fbf },
-  { x: 700, y: 200, color: 0xe6c35a },
-  { x: 640, y: 860, color: 0xff4fbf },
-  { x: 1480, y: 640, color: 0x3ee0ff },
-  { x: 1040, y: 900, color: 0x3ee0ff }
-];
+  lotGlow('lot_rp_gas', -36, 0xff6a58),
+  lotGlow('lot_ba_diner', -40, 0xc4553a),
+  lotGlow('lot_ba_pawn', -36, 0xe6c35a),
+  lotGlow('lot_bh_motel', -40, 0xff4fbf),
+  lotGlow('lot_bh_club', -48, 0xff4fbf),
+  lotGlow('lot_bh_casino', -52, 0xffd27a),
+  lotGlow('lot_dt_office', -70, 0x3ee0ff),
+  lotGlow('lot_hi_villa', -40, 0x3ee0ff)
+].filter(Boolean);
 
 function round(g, x, y, w, h, r) {
   g.beginPath();
@@ -41,6 +48,18 @@ function wheel(g, x, y) {
   g.beginPath();
   g.arc(x, y, 1.2, 0, Math.PI * 2);
   g.fill();
+}
+
+function renderGlow() {
+  const c = canvas(96, 96);
+  const g = c.getContext('2d');
+  const rad = g.createRadialGradient(48, 48, 0, 48, 48, 46);
+  rad.addColorStop(0, 'rgba(255,255,255,0.92)');
+  rad.addColorStop(0.42, 'rgba(255,255,255,0.32)');
+  rad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = rad;
+  g.fillRect(0, 0, 96, 96);
+  return c;
 }
 
 export function renderCar(color, frame, kind) {
@@ -284,12 +303,13 @@ function bootFleet(scene) {
   const walkers = [];
   for (let i = 0; i < peds.length; i++) {
     const img = scene.add.image(0, 0, `go-ped-${i}-0`).setDepth(3);
+    const city = i < 3;
     walkers.push({
       img,
-      axis: i < 4 ? 'x' : 'y',
-      origin: i < 4 ? 940 + i * 80 : 340 + (i - 4) * 120,
-      cross: i < 4 ? 318 : 888,
-      span: 140,
+      axis: 'x',
+      origin: city ? 3200 + i * 220 : 980 + (i - 3) * 120,
+      cross: city ? 400 : 318,
+      span: 110,
       speed: 18 + i * 4,
       frame: 0,
       keys: [`go-ped-${i}-0`, `go-ped-${i}-1`]
@@ -302,7 +322,17 @@ function bootFleet(scene) {
   }
   const boat = scene.add.image(900, 1264, 'go-boat-0').setDepth(2).setScale(0.9);
   const plane = scene.add.image(300, 140, 'go-plane-0').setDepth(6).setScale(0.8);
-  scene._goLife = { fleet, walkers, workers, boat, plane };
+  ensure(scene, 'go-glow', renderGlow);
+  const glows = [];
+  for (let i = 0; i < NEON.length; i++) {
+    const n = NEON[i];
+    glows.push(scene.add.image(n.x, n.y, 'go-glow').setDepth(32).setTint(n.color).setVisible(false));
+  }
+  const windows = [];
+  for (let i = 0; i < 16; i++) {
+    windows.push(scene.add.image(0, 0, 'go-glow').setDepth(32).setTint(0xffd27a).setScale(0.42).setVisible(false));
+  }
+  scene._goLife = { fleet, walkers, workers, boat, plane, glows, windows };
 }
 
 export function paintAmbient(scene, g) {
@@ -342,7 +372,7 @@ export function paintAmbient(scene, g) {
   for (let i = 0; i < life.workers.length; i++) {
     const w = life.workers[i];
     const u = (t * 0.05 + w.at) % 1;
-    w.img.setPosition(1120 + u * 280, 1164 + i * 10);
+    w.img.setPosition(3380 + u * 280, 1490 + i * 12);
     w.img.setScale(0.95, 0.95);
     if (w.frame !== frame) {
       w.frame = frame;
@@ -357,18 +387,39 @@ export function paintAmbient(scene, g) {
   life.boat.setTexture(frame ? 'go-boat-1' : 'go-boat-0');
 
   const flight = (t * 0.045) % 1;
-  life.plane.setPosition(180 + flight * 2100, 128 + Math.sin(flight * Math.PI * 2) * 16);
+  life.plane.setPosition(180 + flight * 5000, 150 + Math.sin(flight * Math.PI * 2) * 18);
   life.plane.setRotation(Math.cos(flight * Math.PI * 2) * 0.18);
   life.plane.setTexture(frame ? 'go-plane-1' : 'go-plane-0');
 
-  if (g && scene.isNight && scene.isNight()) {
-    const pulse = 0.28 + Math.sin(t * 3) * 0.12;
-    for (let i = 0; i < NEON.length; i++) {
-      const n = NEON[i];
-      g.fillStyle(n.color, pulse);
-      g.fillCircle(n.x, n.y, 22);
-      g.fillStyle(0xfff4dc, pulse * 0.45);
-      g.fillCircle(n.x, n.y, 8);
+  const night = !!(scene.isNight && scene.isNight());
+  const pulse = 0.7 + Math.sin(t * 3) * 0.18;
+  for (let i = 0; i < life.glows.length; i++) {
+    const img = life.glows[i];
+    img.setVisible(night);
+    img.setAlpha(pulse);
+    img.setScale(0.92 + Math.sin(t * 2.2 + i) * 0.08);
+  }
+  let used = 0;
+  const lightNode = (node, x, y) => {
+    if (!node || !node.key || node.key.indexOf('-owned-n') < 0 || used >= life.windows.length) return;
+    const img = life.windows[used++];
+    img.setPosition(x, y);
+    img.setVisible(true);
+    img.setAlpha(0.78);
+  };
+  if (night && scene.slots) {
+    const nodes = Object.values(scene.slots);
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node && node.def) lightNode(node, node.def.x + 6, node.def.y - 46);
     }
   }
+  if (night && scene.lots) {
+    const nodes = Object.values(scene.lots);
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node && node.pos) lightNode(node, node.pos.x, node.pos.y - 40);
+    }
+  }
+  for (let i = used; i < life.windows.length; i++) life.windows[i].setVisible(false);
 }
