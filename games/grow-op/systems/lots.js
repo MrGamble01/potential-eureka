@@ -3,6 +3,7 @@
 
 import { BUILDINGS } from '../data/buildings.js';
 import { LIEUTENANTS } from '../data/missions.js';
+import { coreMode, riskLive } from '../data/config.js';
 import { zoneById } from '../data/zones.js';
 import { launderTake } from './chains.js';
 import { crewMods } from './lieutenants.js';
@@ -46,7 +47,7 @@ function purse(zone) {
 }
 
 function pay(state, zone, amount) {
-  const key = purse(zone);
+  const key = coreMode() ? 'dirtyCash' : purse(zone);
   if (state[key] < amount) {
     const label = key === 'cleanCash' ? 'Clean' : 'Dirty';
     return { ok: false, reason: `Need $${amount - Math.floor(state[key])} more ${label} Cash.` };
@@ -71,6 +72,7 @@ function accessOpen(lot) {
 }
 
 export function negotiate(state, lotId) {
+  if (coreMode()) return { ok: false, reason: 'Pay the asking price.' };
   const def = lotDef(lotId);
   const lot = state.lots[lotId];
   const zone = def && zoneById(def.zoneId);
@@ -90,6 +92,7 @@ export function negotiate(state, lotId) {
 }
 
 export function intimidate(state, lotId, spendDirty = 0) {
+  if (coreMode()) return { ok: false, reason: 'Pay the asking price.' };
   const def = lotDef(lotId);
   const lot = state.lots[lotId];
   const zone = def && zoneById(def.zoneId);
@@ -114,6 +117,7 @@ export function intimidate(state, lotId, spendDirty = 0) {
 }
 
 function mustAccess(lot, def) {
+  if (coreMode()) return null;
   if (def.owner === 'market' || lot.access === 'negotiated' || lot.access === 'intimidated') return null;
   if (def.owner === 'player') return null;
   return { ok: false, reason: 'Talk to the owner, or lean on them, before you buy.' };
@@ -311,13 +315,15 @@ function tickOperation(state, lot, dt) {
   const type = PROPERTY_TYPES[lot.propertyType] || null;
   const mods = type ? conversionMods(lot.propertyType, lot.role) : { speed: 1, capacity: 1, heat: 1, suspicion: 0.1 };
   const bonus = def.bonus || {};
-  const crew = crewMods(state, lot.zoneId);
+  const crew = coreMode()
+    ? { prodMult: 1, launderMult: 1, heatMult: 1, defensePower: 0 }
+    : crewMods(state, lot.zoneId);
   const live = state.zones[lot.zoneId];
-  if (live && type) {
+  if (live && type && riskLive(state)) {
     const heat = (type.upkeep ? 0.02 : 0.01) * mods.heat * (bonus.heatMult || 1) * crew.heatMult * dt;
     live.heat = Math.max(0, Math.min(100, (Number(live.heat) || 0) + heat));
   }
-  if (type && state.dirtyCash > 0 && !state.noSeizure) {
+  if (type && state.dirtyCash > 0 && riskLive(state)) {
     state.dirtyCash = Math.max(0, state.dirtyCash - (type.upkeep * dt) / 20);
   }
   const speed = (mods.speed || 1) * (bonus.growMult || 1);

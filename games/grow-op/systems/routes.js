@@ -4,6 +4,7 @@ import { GOODS } from '../data/goods.js';
 import { VEHICLES } from '../data/routes.js';
 import { lotDef } from '../data/lots.js';
 import { zoneById } from '../data/zones.js';
+import { coreMode, riskLive } from '../data/config.js';
 
 function source(state, id) {
   if (state.slots && state.slots[id]) return { kind: 'slot', row: state.slots[id] };
@@ -124,7 +125,7 @@ export function tickShipments(state, dt) {
       continue;
     }
     const luck = Number.isFinite(state.routeLuck) ? state.routeLuck : Math.random();
-    const caught = luck < shipment.risk;
+    const caught = riskLive(state) && luck < shipment.risk;
     const good = GOODS[shipment.goodId];
     const zoneId = (state.slots[shipment.fromId] && state.slots[shipment.fromId].regionId)
       || (state.lots[shipment.fromId] && state.lots[shipment.fromId].zoneId)
@@ -132,7 +133,7 @@ export function tickShipments(state, dt) {
     const reg = state.regions[zoneId] || state.zones[zoneId];
     if (caught) {
       state.routesLost = (state.routesLost || 0) + 1;
-      if (reg) reg.heat = Math.min(100, (Number(reg.heat) || 0) + shipment.heat);
+      if (!coreMode() && reg) reg.heat = Math.min(100, (Number(reg.heat) || 0) + shipment.heat);
       if (!state.dea) state.dea = { agent: 'Helen Ruiz', case: 0 };
       state.dea.case = Math.min(100, (Number(state.dea.case) || 0) + 4);
       arrived = { ok: false, caught: true, shipment };
@@ -149,7 +150,7 @@ export function tickShipments(state, dt) {
       state.routesCompleted = (state.routesCompleted || 0) + 1;
       if (shipment.vehicleId === 'boat') state.boatRuns = (state.boatRuns || 0) + 1;
       state.reputation = (state.reputation || 0) + 1;
-      if (reg) reg.heat = Math.min(100, (Number(reg.heat) || 0) + shipment.heat * 0.45);
+      if (!coreMode() && reg) reg.heat = Math.min(100, (Number(reg.heat) || 0) + shipment.heat * 0.45);
       arrived = { ok: true, earned, clean, shipment };
     }
   }

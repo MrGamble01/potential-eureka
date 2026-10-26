@@ -13,6 +13,7 @@ import { lotDef } from './data/lots.js';
 import { buildSeconds } from './systems/lots.js';
 import { attachFeel, presentEvent } from './systems/hooks.js';
 import { artURL, cardKeyForBuilding, cardKeyForRole, iconKeyForBuilding, iconKeyForRole } from './art-keys.js';
+import { coreMode, riskLive } from './data/config.js';
 
 function supplyChainOnly(view) {
   if (!view || view.coreMode !== false) return true;
@@ -54,6 +55,27 @@ const TUTORIAL_LINE = [
   'Cool the valley',
   'The map opens'
 ];
+
+const CORE_TUTORIAL = [
+  'The plantation is the first building. Let the crop come up.',
+  'The barn cures the harvest. Trucks carry it there.',
+  'The warehouse holds the packs between the barn and the road.',
+  'Trucks haul the crates. Nothing moves itself.',
+  'The pier is the sale. Keep the chain moving until the river pays.'
+];
+const CORE_TUTORIAL_LINE = [
+  'Grow the crop',
+  'Process the harvest',
+  'Store the packs',
+  'Haul it down the road',
+  'Sell at the pier'
+];
+
+function tutorialCopy() {
+  return coreMode()
+    ? { lines: CORE_TUTORIAL, titles: CORE_TUTORIAL_LINE }
+    : { lines: TUTORIAL, titles: TUTORIAL_LINE };
+}
 
 const ROLE_NAME = {
   launder: 'Front',
@@ -207,16 +229,24 @@ function renderHud() {
     $('obj-beat').textContent = '';
     $('obj-meta').textContent = '';
     $('obj-next').hidden = true;
-  } else if (tutoring) {
-    const step = Math.min(TUTORIAL.length - 1, st.tutorialStep || 0);
-    $('obj-title').textContent = TUTORIAL_LINE[step];
+  } else if (!coreMode() && st.lossWarning && !riskLive(st)) {
+    $('obj-title').textContent = 'The valley is no longer safe';
     $('obj-prog-text').textContent = '';
-    $('obj-desc').textContent = TUTORIAL[step];
+    $('obj-desc').textContent = st.lossWarning;
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-next').hidden = true;
+  } else if (tutoring) {
+    const copy = tutorialCopy();
+    const step = Math.min(copy.lines.length - 1, st.tutorialStep || 0);
+    $('obj-title').textContent = copy.titles[step];
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = copy.lines[step];
     $('obj-beat').textContent = '';
     $('obj-meta').textContent = '';
     $('obj-next').hidden = false;
-    $('obj-next').textContent = step >= TUTORIAL.length - 1 ? 'Got it' : 'Next';
-  } else if (raidRegion) {
+    $('obj-next').textContent = step >= copy.lines.length - 1 ? 'Got it' : 'Next';
+  } else if (raidRegion && !supplyChainOnly(view)) {
     $('obj-title').textContent = `Raid in ${zoneName(raidRegion.id)}`;
     $('obj-prog-text').textContent = `${Math.ceil(raidRegion.raidTimer)}s`;
     $('obj-desc').textContent = 'Bribe from the expanded line if you need the buildings back.';
@@ -232,7 +262,7 @@ function renderHud() {
     $('obj-reward').textContent = mission.rewardClean ? `+${fmtCash(mission.rewardClean)}` : '';
     if ($('obj-bar-fill') && prog) $('obj-bar-fill').style.width = `${prog.pct}%`;
     const who = camp.speaker ? camp.speaker.name : '';
-    const dea = camp.dea ? `Case ${camp.dea.case}` : '';
+    const dea = !supplyChainOnly(view) && camp.dea ? `Case ${camp.dea.case}` : '';
     const risk = (view.lieutenants || []).filter((lt) => lt.hired && lt.betrayalRisk >= 40)
       .sort((a, b) => b.betrayalRisk - a.betrayalRisk)[0];
     $('obj-meta').textContent = [who, dea, risk ? `${risk.name.split(' ')[0]} ${risk.betrayalRisk}` : ''].filter(Boolean).join(' · ');
@@ -246,7 +276,18 @@ function renderHud() {
     $('obj-next').hidden = true;
   }
   const raidBanner = $('raid-banner');
-  if (raidBanner) raidBanner.classList.remove('is-visible');
+  const raidButton = $('raid-action-btn');
+  const showWarning = !coreMode() && st.lossWarning && !riskLive(st);
+  if (raidBanner) {
+    raidBanner.classList.toggle('is-visible', showWarning);
+    if (showWarning) {
+      if ($('raid-title')) $('raid-title').textContent = 'THE VALLEY IS NO LONGER SAFE';
+      if ($('raid-sub')) $('raid-sub').textContent = st.lossWarning;
+      if (raidButton) raidButton.hidden = true;
+    } else if (raidButton) {
+      raidButton.hidden = false;
+    }
+  }
 
   const log = $('log-panel');
   if (log && !log.hidden) {
@@ -638,6 +679,7 @@ function closeSheets() {
 }
 
 function purseWord(zone) {
+  if (coreMode()) return 'dirty';
   return zone && zone.kind === 'city' ? 'clean' : 'dirty';
 }
 
@@ -965,7 +1007,9 @@ function renderZone() {
   const list = lots.map((lot) => `<li>${lot.propertyLabel || lot.label}</li>`).join('');
   const blockers = (zone.blockers || []).map((line) => `<li>${line}</li>`).join('');
   const unlock = zone.unlock || {};
-  $('zone-body').innerHTML = `<p>${zone.desc}</p><p class="go-sheet-meta">Heat ${zone.heat} · Control ${zone.control}%${zone.unlocked ? ' · Open' : ''}</p>${blockers ? `<ul class="go-blockers">${blockers}</ul>` : ''}<ul class="go-zone-lots">${list}</ul>${zone.unlocked ? '' : `<button type="button" class="go-cta-btn" data-deal="unlock" ${blockers ? 'disabled' : ''}>Unlock for ${fmtCash(unlock.clean || 0)} clean</button>`}`;
+  const heatBit = typeof zone.heat === 'number' ? `Heat ${zone.heat} · ` : '';
+  const payWord = coreMode() ? 'dirty' : 'clean';
+  $('zone-body').innerHTML = `<p>${zone.desc}</p><p class="go-sheet-meta">${heatBit}Control ${zone.control}%${zone.unlocked ? ' · Open' : ''}</p>${blockers ? `<ul class="go-blockers">${blockers}</ul>` : ''}<ul class="go-zone-lots">${list}</ul>${zone.unlocked ? '' : `<button type="button" class="go-cta-btn" data-deal="unlock" ${blockers ? 'disabled' : ''}>Unlock for ${fmtCash(unlock.clean || 0)} ${payWord}</button>`}`;
   $('zone-note').textContent = sheetNote;
 }
 
@@ -1069,7 +1113,7 @@ function wireEvents() {
 
   function advanceTutorial() {
     const step = (sim.state.tutorialStep || 0) + 1;
-    if (step >= TUTORIAL.length) sim.state.tutorialDone = true;
+    if (step >= tutorialCopy().lines.length) sim.state.tutorialDone = true;
     else sim.state.tutorialStep = step;
     sim.save();
     renderHud();

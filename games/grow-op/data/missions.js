@@ -673,3 +673,121 @@ export const MISSIONS = [
     metric: 'cityNeighborhoods'
   }
 ];
+
+// Core mode only. Cartel Tycoon's early loop, one step at a time:
+// production building, processing, storage, transport, then sale.
+// The sell target is the Act I clock. Flag off uses MISSIONS above.
+export const CORE_ACT1_EARN = 39000;
+
+export const CORE_MISSIONS = [
+  {
+    id: 'c1_grow',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Grow the crop',
+    beat: 'The plantation is in the ground. Let the first cutting come up.',
+    desc: 'Grow 8 raw botanicals on the valley plantation.',
+    failHint: 'A quiet field does not pay the pier.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 8,
+    metric: 'producedRaw'
+  },
+  {
+    id: 'c1_process',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Process the harvest',
+    beat: 'The barn cures what the field cuts.',
+    desc: 'Cure 8 packs in the drying barn.',
+    failHint: 'Raw leaf does not sell.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 8,
+    metric: 'producedCured'
+  },
+  {
+    id: 'c1_store',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Store the packs',
+    beat: 'The warehouse is the pile between the barn and the road.',
+    desc: 'Truck 6 crates into the valley warehouse.',
+    failHint: 'Packs left in the barn never reach the pier.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 6,
+    metric: 'stored'
+  },
+  {
+    id: 'c1_haul',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Haul it down the road',
+    beat: 'Trucks are the chain. Nothing moves itself.',
+    desc: 'Finish 4 truck runs on the valley road.',
+    failHint: 'A full shed with no truck is just a shed.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 4,
+    metric: 'hauled'
+  },
+  {
+    id: 'c1_sell',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Sell at the pier',
+    beat: 'The pier is the sale. Keep the chain moving until the river has paid.',
+    desc: `Sell downriver until lifetime dirty cash reaches $${CORE_ACT1_EARN.toLocaleString()}.`,
+    failHint: 'A pier that does not ship does not pay.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: CORE_ACT1_EARN,
+    metric: 'totalDirtyEarned',
+    alsoComplete: ['m1_first_export']
+  },
+  {
+    id: 'c1_plot',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Build the next field',
+    beat: 'One plantation is the lesson. The south terrace is the next field.',
+    desc: 'Build a plantation on the south valley terrace.',
+    failHint: 'The chain you have is the chain you keep until you build.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'slotBuilding',
+    slotId: 'slot_rp_south',
+    buildingId: 'plantation',
+    alsoComplete: ['m2_first_front']
+  },
+  {
+    id: 'c2_zone',
+    act: 2,
+    speaker: 'cesar',
+    title: 'Open the next stretch',
+    beat: 'The valley road ends. Boca del Río is the next gate.',
+    desc: 'Unlock Boca del Río. The price comes out of dirty cash.',
+    failHint: 'Stay in one valley and the chain never grows.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneUnlocked',
+    zoneId: 'river_delta'
+  },
+  {
+    id: 'c2_lot',
+    act: 2,
+    speaker: 'cesar',
+    title: 'Buy the sawmill',
+    beat: 'The sawmill is already standing. Pay the price and it stores for you.',
+    desc: 'Buy the Boca sawmill and run it as a warehouse.',
+    failHint: 'A locked gate with no deed is not a route.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneProperty',
+    zoneId: 'river_delta'
+  }
+];

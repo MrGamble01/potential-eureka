@@ -34,6 +34,7 @@
 //   campaign.goals.main   the one current mission, or null when the campaign is done
 //   campaign.goals.side   at most one threat: cool a hot district, or pay a shaky
 //                         lieutenant. Null when nothing is pressing.
+//                         Omitted entirely while CORE_MODE is on.
 //   campaign.mission      same mission as goals.main, with speaker id, beat, rewards
 //   campaign.progress     { current, target, pct, done, progressText }
 //   campaign.beat         the line to show under the objective
@@ -59,6 +60,13 @@
 //   dirty cash washed per cycle. heat is heatRate (negative cools).
 //   storage is the building's storage cap.
 //
+// CORE_MODE (data/config.js, default on) is the supply-chain game.
+// gameplayView() then sets coreMode true and omits zone heat, patrol,
+// raidActive, and hidden, plus lieutenants, card, heatHandled, and
+// goals.side. lossWarning is null. Flag off sets coreMode false and
+// restores those fields. lossWarning is the sentence shown for the
+// twenty seconds after Act I, before anything can be seized.
+//
 // Failing the campaign sets status and does not stop the clock.
 // Sandbox never fails. assignLieutenant accepts a zone id or a region id.
 //
@@ -77,6 +85,7 @@ import { DIFFICULTIES, ZONES, zoneById } from '../data/zones.js';
 import { VEHICLE_LIST } from '../data/routes.js';
 import { RIVALS } from '../data/rivals.js';
 import { ACTS, BUILD_SLOTS, CAST, FAIL_STATES, LIEUTENANTS } from '../data/missions.js';
+import { coreMode } from '../data/config.js';
 import { LOT_POS } from '../map-layout.js';
 import { RESEARCH } from '../data/research.js';
 import { PROPERTY_TYPES, ROLES, buildingFits, lotDef } from '../data/lots.js';
@@ -136,6 +145,10 @@ function lotActions(state, def, lot) {
   const zone = state.zones[def.zoneId];
   if (!zone || !zone.unlocked) return actions;
   if (def.kind === 'open' && lot.phase === 'wild') actions.push('buildOnPlot');
+  if (coreMode() && def.kind === 'standing' && !lot.owned) {
+    actions.push('buyAndConvert', 'buyLot');
+    return actions;
+  }
   if (def.kind === 'standing' && !lot.owned) {
     if (def.owner !== 'market' && lot.access === 'locked') {
       actions.push('negotiate', 'intimidate');
@@ -210,7 +223,8 @@ export function gameplayView(sim) {
       actions: lotActions(state, def, lot)
     };
   });
-  return {
+  const view = {
+    coreMode: coreMode(),
     mapOpen: !!state.mapOpen,
     reputation: state.reputation || 0,
     difficulty: state.difficulty || 'standard',
@@ -264,6 +278,22 @@ export function gameplayView(sim) {
     card: openCard(state),
     heatHandled: state.heatHandled || 0
   };
+  if (coreMode()) {
+    for (const zone of view.zones) {
+      delete zone.heat;
+      delete zone.patrol;
+      delete zone.raidActive;
+      delete zone.hidden;
+    }
+    delete view.lieutenants;
+    delete view.card;
+    delete view.heatHandled;
+    if (view.campaign && view.campaign.goals) view.campaign.goals = { main: view.campaign.goals.main };
+    view.lossWarning = null;
+  } else {
+    view.lossWarning = state.lossWarning || null;
+  }
+  return view;
 }
 
 function pointFor(evt, sim) {

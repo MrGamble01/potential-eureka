@@ -20,6 +20,8 @@ const ok = (cond, name) => {
 
 (async () => {
   const root = path.resolve(__dirname, '../../games/grow-op');
+  const { SIM_CONFIG } = await import(path.join(root, 'data/config.js'));
+  SIM_CONFIG.CORE_MODE = false;
   const { CartelSimulation } = await import(path.join(root, 'simulation.js'));
   const { findRoadPath, MISSIONS } = await import(path.join(root, 'data/missions.js'));
 
@@ -56,6 +58,7 @@ const ok = (cond, name) => {
   ok(!locked.ok, 'research respects prerequisites');
 
   sim.state.noSeizure = false;
+  sim.state.riskReadyAt = 0;
   sim.state.regions.rio_plata.heat = 99;
   sim.step(0.2);
   ok(sim.state.regions.rio_plata.raidActive, 'heat starts a raid');
@@ -162,6 +165,7 @@ const ok = (cond, name) => {
 
   const heat = new CartelSimulation();
   heat.state.noSeizure = false;
+  heat.state.riskReadyAt = 0;
   heat.state.started = true;
   heat.state.eventCooldown = 999;
   heat.state.regions.rio_plata.heat = 70;
@@ -176,6 +180,7 @@ const ok = (cond, name) => {
 
   const rivals = new CartelSimulation();
   rivals.state.noSeizure = false;
+  rivals.state.riskReadyAt = 0;
   rivals.state.started = true;
   rivals.state.eventCooldown = 999;
   ok(rivals.state.rivals.lobos && rivals.state.rivals.costa, 'Los Lobos and Costa Negra both exist');
@@ -555,6 +560,82 @@ const ok = (cond, name) => {
   ok(hour.state.routesCompleted > 0, 'the hour still moves shipments');
   ok(hourAlive && hour.state.dirtyCash >= 0 && hour.state.cleanCash >= 0, 'the hour stays solvent with buildings running');
   ok(hour.state.campaignStatus !== 'failed', 'sandbox stays out of the fail states');
+
+  const graceRun = new CartelSimulation();
+  graceRun.state.started = true;
+  graceRun.state.eventCooldown = 999;
+  let graceDirty = graceRun.state.dirtyCash;
+  let graceClean = graceRun.state.cleanCash;
+  let graceDropped = false;
+  let graceRaid = false;
+  for (let graceTick = 0; graceTick < 180; graceTick += 1) {
+    graceRun.step(1);
+    if (graceRun.state.dirtyCash < graceDirty - 0.001 || graceRun.state.cleanCash < graceClean - 0.001) graceDropped = true;
+    if (Object.values(graceRun.state.regions).some((row) => row.raidActive)) graceRaid = true;
+    graceDirty = graceRun.state.dirtyCash;
+    graceClean = graceRun.state.cleanCash;
+  }
+  ok(!graceDropped && !graceRaid && graceRun.state.act === 1, 'act 1 takes no cash and sends no raid');
+
+  const warnRun = new CartelSimulation();
+  warnRun.state.started = true;
+  warnRun.state.eventCooldown = 999;
+  warnRun.state.act = 2;
+  warnRun.state.regions.rio_plata.heat = 99;
+  const warnCash = warnRun.state.dirtyCash;
+  warnRun.step(1);
+  ok(!!warnRun.state.lossWarning && !warnRun.state.regions.rio_plata.raidActive && warnRun.state.dirtyCash === warnCash, 'act 2 warns before anything is seized');
+  warnRun.state.elapsedSeconds = warnRun.state.riskReadyAt;
+  warnRun.state.regions.rio_plata.heat = 99;
+  warnRun.step(1);
+  const warned = warnRun.state.dirtyCash;
+  ok(warnRun.state.regions.rio_plata.raidActive && warnRun.state.dirtyCash === warned, 'the warning ends and the raid countdown starts without a fine');
+  warnRun.state.dirtyCash = 10000;
+  const seizedFrom = warnRun.state.dirtyCash;
+  warnRun.step(30);
+  ok(warnRun.state.dirtyCash < seizedFrom && warnRun.state.valleySeizures >= 1, 'the raid fine lands after the countdown');
+
+  SIM_CONFIG.CORE_MODE = true;
+  const coreViewSim = new CartelSimulation();
+  const coreView = coreViewSim.gameplayView();
+  const coreZone = coreView.zones[0];
+  ok(coreView.coreMode === true, 'core view tells the scene to stay on the supply chain');
+  ok(!('lieutenants' in coreView) && !('card' in coreView) && !('heatHandled' in coreView), 'core view omits crew, cards, and heat tallies');
+  ok(coreZone && !('heat' in coreZone) && !('patrol' in coreZone) && !('raidActive' in coreZone) && !('hidden' in coreZone), 'core zones omit heat');
+  ok(coreView.campaign.goals.main && coreView.campaign.goals.main.id === 'c1_grow' && !('side' in coreView.campaign.goals), 'core goal is grow the crop');
+  ok(coreViewSim.state.regions.rio_plata.heat === 0 && coreView.lossWarning == null, 'core heat starts at zero');
+
+  const coreCash = new CartelSimulation();
+  coreCash.state.started = true;
+  let coreDirty = coreCash.state.dirtyCash;
+  let coreClean = coreCash.state.cleanCash;
+  let coreDipped = false;
+  for (let cashTick = 0; cashTick < 600; cashTick += 1) {
+    coreCash.step(1);
+    if (coreCash.state.dirtyCash < coreDirty - 0.001 || coreCash.state.cleanCash < coreClean - 0.001) coreDipped = true;
+    coreDirty = coreCash.state.dirtyCash;
+    coreClean = coreCash.state.cleanCash;
+  }
+  ok(!coreDipped && coreCash.state.regions.rio_plata.heat === 0 && !coreCash.state.event, 'ten minutes of core play never takes cash');
+
+  const coreDeal = new CartelSimulation();
+  coreDeal.state.dirtyCash = 100000;
+  coreDeal.state.cleanCash = 100000;
+  ok(!coreDeal.negotiate('lot_rp_hacienda').ok, 'core mode does not negotiate');
+  const coreBuy = coreDeal.buyAndConvert('lot_rp_hacienda', 'produce');
+  ok(coreBuy.ok && coreDeal.state.dirtyCash < 100000 && coreDeal.state.cleanCash === 100000, 'core mode buys a locked lot with dirty cash');
+
+  const coreBot = new CartelSimulation();
+  coreBot.state.started = true;
+  coreBot.state.eventCooldown = 999;
+  while (coreBot.state.act < 2 && coreBot.state.elapsedSeconds < 5000 && coreBot.state.campaignStatus !== 'failed') {
+    const coreMission = coreBot.getCurrentMission();
+    if (coreMission && coreMission.id === 'c1_plot') coreBot.buildOnSlot('slot_rp_south', 'plantation');
+    coreBot.step(5);
+  }
+  const coreAct = coreBot.state.elapsedSeconds;
+  console.log('CORE', coreBot.getCurrentMission() && coreBot.getCurrentMission().id, 't', Math.round(coreAct), 'earned', Math.round(coreBot.state.totalDirtyEarned), 'chain', JSON.stringify(coreBot.state.chain), 'done', coreBot.state.completedMissions.join(','), 'status', coreBot.state.campaignStatus);
+  ok(coreBot.state.act >= 2 && coreAct >= 2700 && coreAct <= 3600, `core act 1 takes 45–60 minutes (${Math.round(coreAct)}s)`);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);

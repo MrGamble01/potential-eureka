@@ -500,7 +500,11 @@ html, body {
 }
 
 .go-raid-banner.is-visible {
-  display: flex;
+  display: flex !important;
+}
+
+.go-raid-btn[hidden] {
+  display: none !important;
 }
 
 .go-raid-info {

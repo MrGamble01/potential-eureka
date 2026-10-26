@@ -2,7 +2,8 @@
 
 import { GOODS, STRAINS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, LIEUTENANTS, MISSIONS, findRoadPath } from './data/missions.js';
+import { REGIONS, BUILD_SLOTS, LIEUTENANTS, MISSIONS, CORE_MISSIONS, findRoadPath } from './data/missions.js';
+import { coreMode, riskLive } from './data/config.js';
 import { RESEARCH } from './data/research.js';
 import { DIFFICULTIES, createZoneBook, zoneById } from './data/zones.js';
 import { createLotBook, roleForBuilding } from './data/lots.js';
@@ -121,13 +122,19 @@ export function createInitialState() {
     eventCooldown: 180,
     eventsSeen: [],
     priceMood: 1,
+    chain: { raw: 0, cured: 0, stored: 0, hauled: 0 },
+    missionMark: null,
+    riskReadyAt: null,
+    lossWarning: null,
     zones: createZoneBook(),
     lots: createLotBook(),
     rivals: createRivalBook(),
     shipments: [],
     feed: [
       { id: 1, time: 'Day 1', text: 'Río Plata supply chain online: Plantation → Drying Barn → Warehouse → River Pier.', kind: 'info' },
-      { id: 2, time: 'Day 1', text: 'Dirty Cash pays for field expansion. Launder Dirty Cash through Fronts to earn Clean Cash.', kind: 'ok' }
+      { id: 2, time: 'Day 1', text: coreMode()
+        ? 'Grow, cure, store, haul, then sell. Dirty cash pays for the next field.'
+        : 'Dirty Cash pays for field expansion. Launder Dirty Cash through Fronts to earn Clean Cash.', kind: 'ok' }
     ]
   };
   settlePeace(state);
@@ -218,8 +225,18 @@ export class CartelSimulation {
         event: data.event && data.event.id ? data.event : null,
         eventCooldown: Number.isFinite(data.eventCooldown) ? data.eventCooldown : fresh.eventCooldown,
         eventsSeen: Array.isArray(data.eventsSeen) ? data.eventsSeen.filter((id) => typeof id === 'string') : [],
-        priceMood: Number.isFinite(data.priceMood) ? data.priceMood : 1
+        priceMood: Number.isFinite(data.priceMood) ? data.priceMood : 1,
+        chain: {
+          raw: Number(data.chain && data.chain.raw) || 0,
+          cured: Number(data.chain && data.chain.cured) || 0,
+          stored: Number(data.chain && data.chain.stored) || 0,
+          hauled: Number(data.chain && data.chain.hauled) || 0
+        },
+        missionMark: data.missionMark && data.missionMark.id ? data.missionMark : null,
+        riskReadyAt: Number.isFinite(data.riskReadyAt) ? data.riskReadyAt : null,
+        lossWarning: typeof data.lossWarning === 'string' ? data.lossWarning : null
       };
+      if (coreMode()) this.state.noSeizure = true;
       // Ensure every slot has clean objects
       for (const s of BUILD_SLOTS) {
         if (!this.state.slots[s.id]) {
@@ -281,6 +298,9 @@ export class CartelSimulation {
     this.state.tutorialDone = true;
     this.state.tutorialStep = 99;
     this.state.mapOpen = true;
+    this.state.noSeizure = coreMode();
+    this.state.riskReadyAt = coreMode() ? null : 0;
+    this.state.lossWarning = null;
     for (const region of Object.values(this.state.regions)) region.unlocked = true;
     for (const zone of Object.values(this.state.zones)) zone.unlocked = true;
     refreshControl(this.state);
@@ -316,7 +336,9 @@ export class CartelSimulation {
 
   getRegionModifiers(regionId) {
     const regDef = REGIONS.find((r) => r.id === regionId);
-    const crew = crewMods(this.state, regionId);
+    const crew = coreMode()
+      ? { prodMult: 1, launderMult: 1, heatMult: 1, defensePower: 0 }
+      : crewMods(this.state, regionId);
     let prodMult = (regDef ? regDef.fertilityBonus : 1.0) * crew.prodMult;
     let launderMult = crew.launderMult;
     let heatMult = crew.heatMult;
@@ -345,9 +367,11 @@ export class CartelSimulation {
         base += b.trucksProvided + (slot.level - 1);
       }
     }
-    for (const lt of LIEUTENANTS) {
-      const ls = this.state.lieutenants[lt.id];
-      if (ls && ls.hired && lt.id === 'cesar') base += 2;
+    if (!coreMode()) {
+      for (const lt of LIEUTENANTS) {
+        const ls = this.state.lieutenants[lt.id];
+        if (ls && ls.hired && lt.id === 'cesar') base += 2;
+      }
     }
     return base;
   }
@@ -453,14 +477,20 @@ export class CartelSimulation {
     const regDef = REGIONS.find((r) => r.id === regionId);
     if (!reg || !regDef) return { ok: false, reason: 'Unknown region.' };
     if (reg.unlocked) return { ok: false, reason: 'Region already unlocked.' };
-    if (this.state.cleanCash < regDef.unlockCostClean) {
-      return { ok: false, reason: `Requires $${regDef.unlockCostClean} Clean Cash to bribe regional officials.` };
+    const cost = regDef.unlockCostClean;
+    if (coreMode()) {
+      if (this.state.dirtyCash < cost) {
+        return { ok: false, reason: `Requires $${cost} Dirty Cash to open ${regDef.name}.` };
+      }
+      this.state.dirtyCash -= cost;
+    } else if (this.state.cleanCash < cost) {
+      return { ok: false, reason: `Requires $${cost} Clean Cash to bribe regional officials.` };
+    } else {
+      this.state.cleanCash -= cost;
     }
-    this.state.cleanCash -= regDef.unlockCostClean;
     reg.unlocked = true;
-    // Auto-elevate act if unlocking region
-    if (regionId === 'san_marco' && this.state.act < 2) this.state.act = 2;
-    if (regionId === 'sierra_alta' && this.state.act < 3) this.state.act = 3;
+    if (!coreMode() && regionId === 'san_marco' && this.state.act < 2) this.state.act = 2;
+    if (!coreMode() && regionId === 'sierra_alta' && this.state.act < 3) this.state.act = 3;
 
     this.log(`Expanded syndicate territory into ${regDef.name}!`, 'ok');
     this.onEvent({ type: 'region_unlocked', regionId });
@@ -504,6 +534,7 @@ export class CartelSimulation {
   }
 
   hireLieutenant(ltId) {
+    if (coreMode()) return { ok: false, reason: 'Crew payroll is paused.' };
     const ltDef = LIEUTENANTS.find((l) => l.id === ltId);
     const ltState = this.state.lieutenants[ltId];
     if (!ltDef || !ltState) return { ok: false, reason: 'Invalid lieutenant.' };
@@ -523,6 +554,7 @@ export class CartelSimulation {
   }
 
   assignLieutenant(ltId, placeId) {
+    if (coreMode()) return { ok: false, reason: 'Crew payroll is paused.' };
     const ltState = this.state.lieutenants[ltId];
     const ltDef = LIEUTENANTS.find((l) => l.id === ltId);
     const zone = this.state.zones && this.state.zones[placeId];
@@ -548,6 +580,7 @@ export class CartelSimulation {
   }
 
   payLieutenantBonus(ltId) {
+    if (coreMode()) return { ok: false, reason: 'Crew payroll is paused.' };
     const ltState = this.state.lieutenants[ltId];
     const ltDef = LIEUTENANTS.find((l) => l.id === ltId);
     if (!ltState || !ltState.hired) return { ok: false };
@@ -662,6 +695,11 @@ export class CartelSimulation {
     if (this.state.paused || !this.state.started) return;
     const effDt = dt * (this.state.speed || 1);
     this.state.elapsedSeconds += effDt;
+    this.armRisk();
+    this.syncRisk();
+    if (this.state.lossWarning && this.state.riskReadyAt != null && this.state.elapsedSeconds >= this.state.riskReadyAt) {
+      this.state.lossWarning = null;
+    }
     this.state.timeOfDay = (this.state.timeOfDay + effDt / 90) % 1;
     this.advanceWorld(effDt);
     const newDay = 1 + Math.floor(this.state.elapsedSeconds / 10);
@@ -700,7 +738,7 @@ export class CartelSimulation {
       const night = this.state.timeOfDay > 0.72 || this.state.timeOfDay < 0.18;
       const diffHeat = this.state.difficultyMods ? this.state.difficultyMods.heat : 1;
       const heatDelta = (bDef.heatRate || 0) * effDt * mods.heatMult * diffHeat * (night ? 0.8 : 1) * (slot.buildingId === 'plantation' ? strain.heatMult : 1.0);
-      reg.heat = Math.max(0, Math.min(100, (Number(reg.heat) || 0) + heatDelta * 0.35));
+      if (riskLive(this.state)) reg.heat = Math.max(0, Math.min(100, (Number(reg.heat) || 0) + heatDelta * 0.35));
 
       if (bDef.role === 'producer') {
         const outCount = this.getStorageCount(slot.outputBuffer);
@@ -710,10 +748,9 @@ export class CartelSimulation {
           if (slot.progress >= 1) {
             slot.progress = 0;
             for (const [goodId, qty] of Object.entries(bDef.outputs)) {
-              slot.outputBuffer[goodId] = Math.min(
-                cap,
-                (slot.outputBuffer[goodId] || 0) + qty
-              );
+              const had = slot.outputBuffer[goodId] || 0;
+              slot.outputBuffer[goodId] = Math.min(cap, had + qty);
+              if (goodId === 'raw_herb') this.noteChain('raw', slot.outputBuffer[goodId] - had);
             }
             this.onEvent({ type: 'produced', slotId: slot.slotId, buildingId: slot.buildingId });
           }
@@ -732,10 +769,9 @@ export class CartelSimulation {
               slot.inputBuffer[goodId] = Math.max(0, (slot.inputBuffer[goodId] || 0) - reqQty);
             }
             for (const [goodId, outQty] of Object.entries(bDef.outputs)) {
-              slot.outputBuffer[goodId] = Math.min(
-                cap,
-                (slot.outputBuffer[goodId] || 0) + outQty
-              );
+              const had = slot.outputBuffer[goodId] || 0;
+              slot.outputBuffer[goodId] = Math.min(cap, had + outQty);
+              if (goodId === 'cured_pack') this.noteChain('cured', slot.outputBuffer[goodId] - had);
             }
             this.onEvent({ type: 'processed', slotId: slot.slotId, buildingId: slot.buildingId });
           }
@@ -768,7 +804,7 @@ export class CartelSimulation {
               earnedDirty += Math.round(take * gDef.unitValueDirty * bDef.priceMultiplier * strainPriceMult * seal * pilots * mood);
               earnedClean += Math.round(take * gDef.unitValueClean * bDef.priceMultiplier * mood);
               const manifest = this.state.research.manifests ? 0.7 : 1;
-              reg.heat = Math.min(100, reg.heat + take * gDef.heatPerUnit * bDef.heatPerExport * mods.heatMult * manifest);
+              if (riskLive(this.state)) reg.heat = Math.min(100, reg.heat + take * gDef.heatPerUnit * bDef.heatPerExport * mods.heatMult * manifest);
             }
 
             if (shippedUnits > 0) {
@@ -777,7 +813,7 @@ export class CartelSimulation {
               this.state.totalDirtyEarned += earnedDirty;
               this.state.totalCleanEarned += earnedClean;
               this.state.totalExportedUnits += shippedUnits;
-              if (!this.state.noSeizure && !this.state.tutorialDone && !this.state.heatIntro) {
+              if (riskLive(this.state) && !this.state.tutorialDone && !this.state.heatIntro) {
                 this.state.heatIntro = true;
                 reg.heat = Math.min(92, reg.heat + 28);
                 this.advanceTutorial(3);
@@ -907,7 +943,12 @@ export class CartelSimulation {
     }
     refreshControl(this.state);
     syncMap(this.state);
+    if (coreMode()) {
+      for (const reg of Object.values(this.state.regions)) reg.heat = 0;
+      for (const zone of Object.values(this.state.zones || {})) zone.heat = 0;
+    }
     settlePeace(this.state);
+    this.checkMissionsAndActs();
 
     // 4. Autosave periodically
     this.saveTimer += dt;
@@ -915,6 +956,40 @@ export class CartelSimulation {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  noteChain(key, amount) {
+    if (!amount) return;
+    if (!this.state.chain) this.state.chain = { raw: 0, cured: 0, stored: 0, hauled: 0 };
+    this.state.chain[key] += amount;
+  }
+
+  armRisk() {
+    if (coreMode() || this.state.mode === 'sandbox') return;
+    if ((this.state.act || 1) < 2 || this.state.riskReadyAt != null) return;
+    this.state.riskReadyAt = this.state.elapsedSeconds + 20;
+    this.state.lossWarning = 'The valley tutorial is over. Raids, patrols, and rival crews can take cash and stock. A countdown will show before anything is seized.';
+    this.log(this.state.lossWarning, 'warn');
+  }
+
+  // Peace holds through Act I and the warning. riskReadyAt 0 is the test
+  // and sandbox bypass. Core mode never leaves peace.
+  syncRisk() {
+    if (coreMode()) {
+      this.state.noSeizure = true;
+      return;
+    }
+    if (this.state.mode === 'sandbox') {
+      this.state.noSeizure = false;
+      if (this.state.riskReadyAt == null) this.state.riskReadyAt = 0;
+      return;
+    }
+    if (this.state.riskReadyAt === 0) {
+      this.state.noSeizure = false;
+      return;
+    }
+    const live = this.state.riskReadyAt != null && this.state.elapsedSeconds >= this.state.riskReadyAt;
+    this.state.noSeizure = !live;
   }
 
   noteCampaignFailure() {
@@ -929,13 +1004,14 @@ export class CartelSimulation {
 
   onDailyTick() {
     this.noteCampaignFailure();
+    if (coreMode()) return;
     tickLoyalty(this.state);
     const betrayals = tickBetrayal(this.state);
     for (const note of betrayals) {
       this.log(`${note.name} walked with $${note.skim} and talked to Ruiz.`, 'danger');
       this.onEvent({ type: 'betrayed', ltId: note.id, zoneId: note.zoneId });
     }
-    const notes = this.state.noSeizure ? [] : tickRivals(this.state, this.state.elapsedSeconds);
+    const notes = riskLive(this.state) ? tickRivals(this.state, this.state.elapsedSeconds) : [];
     for (const note of notes) {
       this.log(note.text, note.slotId || note.lotId ? 'danger' : 'warn');
       if (note.slotId || note.lotId) this.onEvent({ type: 'rival_raid', slotId: note.slotId || null, lotId: note.lotId || null, rivalId: note.rivalId });
@@ -988,9 +1064,14 @@ export class CartelSimulation {
               bestDest = { slot: dst, targetBuffer: 'input' };
             }
           }
-          // Priority 1: Warehouse buffer (if source is not already a warehouse)
+          // Priority 1: Warehouse buffer (if source is not already a warehouse).
+          // While the goal is storage, processed goods fill the shed before the pier,
+          // the way Cartel Tycoon's early loop puts a warehouse between the lab and the sale.
           else if (srcDef.role !== 'warehouse' && dstDef.role === 'warehouse' && dstOutCount < dstDef.storageCap - 2) {
-            const p = 15;
+            const storeMission = coreMode() && this.getCurrentMission();
+            const wantStore = !!(storeMission && storeMission.metric === 'stored');
+            const processed = GOODS[goodId] && GOODS[goodId].category !== 'raw';
+            const p = wantStore && processed ? 40 : 15;
             if (p > bestPriority) {
               bestPriority = p;
               bestDest = { slot: dst, targetBuffer: 'output' };
@@ -1050,7 +1131,12 @@ export class CartelSimulation {
           const dst = this.state.slots[t.toSlotId];
           if (dst && dst.buildingId) {
             const buf = t.targetBuffer === 'output' ? dst.outputBuffer : dst.inputBuffer;
-            buf[t.goodId] = (buf[t.goodId] || 0) + t.qty;
+            const had = buf[t.goodId] || 0;
+            buf[t.goodId] = had + t.qty;
+            const moved = buf[t.goodId] - had;
+            this.noteChain('hauled', moved);
+            const dstDef = BUILDINGS[dst.buildingId];
+            if (dstDef && dstDef.role === 'warehouse') this.noteChain('stored', moved);
             this.onEvent({ type: 'truck_delivered', truck: t });
             if (!this.state.tutorialDone && this.state.tutorialStep < 2) this.state.tutorialStep = 2;
           }
@@ -1087,6 +1173,10 @@ export class CartelSimulation {
       if (this.state.tutorialStep < 2 && t > 95) this.state.tutorialStep = 2;
       if (this.state.tutorialStep < 3 && t > 130) this.state.tutorialStep = 3;
       if (t > 175) this.state.tutorialDone = true;
+    }
+    if (coreMode()) {
+      this.state.event = null;
+      return;
     }
     if (this.state.event) return;
     this.state.eventCooldown -= effDt;
@@ -1140,7 +1230,8 @@ export class CartelSimulation {
   }
 
   getCurrentMission() {
-    return MISSIONS[this.state.missionIndex] || null;
+    const list = coreMode() ? CORE_MISSIONS : MISSIONS;
+    return list[this.state.missionIndex] || null;
   }
 
   getMissionProgress(mission) {
@@ -1198,6 +1289,19 @@ export class CartelSimulation {
       current = lot && lot.owned && (lot.phase === 'operating' || lot.phase === 'building') ? 1 : 0;
     } else if (mission.metric === 'zoneControl') {
       current = measureControl(this.state, mission.zoneId);
+    } else if (mission.metric === 'producedRaw' || mission.metric === 'producedCured' || mission.metric === 'stored' || mission.metric === 'hauled') {
+      const chain = this.state.chain || { raw: 0, cured: 0, stored: 0, hauled: 0 };
+      if (!this.state.missionMark || this.state.missionMark.id !== mission.id) {
+        this.state.missionMark = { id: mission.id, raw: chain.raw, cured: chain.cured, stored: chain.stored, hauled: chain.hauled };
+      }
+      const key = mission.metric === 'producedRaw' ? 'raw'
+        : mission.metric === 'producedCured' ? 'cured'
+        : mission.metric === 'stored' ? 'stored'
+        : 'hauled';
+      current = Math.max(0, chain[key] - (this.state.missionMark[key] || 0));
+    } else if (mission.metric === 'slotBuilding') {
+      const built = this.state.slots[mission.slotId];
+      current = built && built.buildingId === mission.buildingId ? 1 : 0;
     } else if (mission.metric === 'cityNeighborhoods') {
       const ids = new Set();
       for (const lot of Object.values(this.state.lots)) {
@@ -1289,6 +1393,11 @@ export class CartelSimulation {
       const prog = this.getMissionProgress(mission);
       if (!prog.done || this.state.completedMissions.includes(mission.id)) return;
       this.state.completedMissions.push(mission.id);
+      if (Array.isArray(mission.alsoComplete)) {
+        for (const id of mission.alsoComplete) {
+          if (!this.state.completedMissions.includes(id)) this.state.completedMissions.push(id);
+        }
+      }
       this.state.cleanCash += mission.rewardClean;
       this.state.dirtyCash += mission.rewardDirty;
       this.state.totalCleanEarned += mission.rewardClean;
@@ -1296,10 +1405,13 @@ export class CartelSimulation {
       this.state.missionIndex += 1;
       this.state.reputation = (this.state.reputation || 0) + 6;
 
+      const prevAct = this.state.act;
       const nextM = this.getCurrentMission();
       if (nextM && nextM.act > this.state.act) this.state.act = nextM.act;
+      if (this.state.act > prevAct) this.armRisk();
       if (!nextM && this.state.campaignStatus !== 'failed') this.state.campaignStatus = 'complete';
-      this.log(`Objective Complete: ${mission.title} (+$${mission.rewardClean} Clean Cash)!`, 'ok');
+      const rewardNote = mission.rewardClean > 0 ? ` (+$${mission.rewardClean} Clean Cash)` : '';
+      this.log(`Objective Complete: ${mission.title}${rewardNote}!`, 'ok');
       this.onEvent({ type: 'mission_completed', mission });
     }
   }
@@ -1311,8 +1423,21 @@ export class CartelSimulation {
   }
 
   recommendedLotId() {
-    if (!this.state.tutorialDone && (this.state.tutorialStep || 0) === 0) return 'slot_rp_town1';
     const mission = this.getCurrentMission();
+    if (coreMode()) {
+      const corePick = {
+        c1_grow: 'slot_rp_farm1',
+        c1_process: 'slot_rp_barn1',
+        c1_store: 'slot_rp_wh1',
+        c1_haul: 'slot_rp_wh1',
+        c1_sell: 'slot_rp_pier',
+        c1_plot: 'slot_rp_south',
+        c2_zone: 'lot_rd_mill',
+        c2_lot: 'lot_rd_mill'
+      };
+      return (mission && corePick[mission.id]) || null;
+    }
+    if (!this.state.tutorialDone && (this.state.tutorialStep || 0) === 0) return 'slot_rp_town1';
     const pick = {
       m1_first_export: 'slot_rp_pier',
       m1_heat: 'slot_rp_town1',
