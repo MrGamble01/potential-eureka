@@ -356,6 +356,89 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
 </style>
 <link rel="stylesheet" href="/css/hud-b.css?v=20261018topbar">
 <link rel="stylesheet" href="/css/tokens.css?v=20261025theme">
+<style id="isle-flagship">
+/* Voxel Isle chrome. Loaded after the shared sheets so the cool accent wins. */
+html.hud-b[data-game="voxel"]{
+  --gold:#7ec8ff;
+  --hud-gold:#7ec8ff;
+}
+html.hud-b[data-game="voxel"] #coinChip{color:#7ec8ff}
+html.hud-b[data-game="voxel"] #banner h2{color:#7ec8ff}
+html.hud-b[data-game="voxel"] .ach.done{border-color:rgba(126,200,255,.5)}
+html.hud-b[data-game="voxel"] .ach.done b,
+html.hud-b[data-game="voxel"] .alm-stat .v,
+html.hud-b[data-game="voxel"] .p-item .pr,
+html.hud-b[data-game="voxel"] #dareChip,
+html.hud-b[data-game="voxel"] #qDare{color:#9fd4ff}
+html.hud-b[data-game="voxel"] .ach-prog-bar{background:#7ec8ff}
+html.hud-b[data-game="voxel"] #darePanel .dare-bar i{background:linear-gradient(90deg,#4f8eb8,#7ec8ff)}
+html.hud-b[data-game="voxel"] #darePanel .board .who b{color:#7ec8ff}
+@keyframes juiceGold{0%{opacity:.75;background:radial-gradient(circle at 50% 40%,rgba(126,200,255,.45),transparent 55%)}100%{opacity:0}}
+.resume-kicker{display:inline-block;background:#7ec8ff;color:#071018;border-radius:999px;
+  padding:1px 7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+
+#back{gap:8px}
+.tool-group{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;padding:3px;border-radius:14px;
+  background:rgba(8,14,22,.42);border:1px solid rgba(255,255,255,.06)}
+html.hud-b[data-game="voxel"] #back button:has(.lbl){
+  flex-direction:column;gap:1px;min-width:54px;padding:5px 8px 4px;line-height:1;height:auto}
+html.hud-b[data-game="voxel"] #back .lbl{
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c5e4ff}
+html.hud-b[data-game="voxel"] #back .ico{font-size:16px;line-height:1}
+
+html.hud-b[data-game="voxel"] #quests{
+  border-radius:16px;border:1px solid rgba(126,200,255,.55);
+  background:rgba(8,14,22,.9);padding:12px 14px 10px;
+  box-shadow:0 12px 28px rgba(0,0,0,.42)}
+html.hud-b[data-game="voxel"] #quests .q-title{color:#7ec8ff;font-size:11px}
+html.hud-b[data-game="voxel"] #quests .q-text{font-size:15px;font-weight:650;color:#f4f8fc;line-height:1.35}
+#qNext{font-size:11px;color:#9fd4ff;margin-top:6px;line-height:1.35}
+#qNext:empty{display:none}
+html.hud-b[data-game="voxel"] #qDare,
+html.hud-b[data-game="voxel"] #qKiln,
+html.hud-b[data-game="voxel"] #qGull{
+  font-size:11px;opacity:.88;border-top:1px solid rgba(255,255,255,.08);
+  margin-top:6px;padding-top:5px}
+
+html.hud-b[data-game="voxel"] #hotbar{
+  gap:6px;padding:4px 8px;border-radius:18px;
+  background:rgba(8,14,22,.92);border:1px solid rgba(126,200,255,.38);
+  box-shadow:0 12px 28px rgba(0,0,0,.45)}
+html.hud-b[data-game="voxel"] #hotbar .slot.sel{
+  border-color:#7ec8ff;background:rgba(18,36,52,.96);
+  box-shadow:0 0 0 1px #7ec8ff,0 8px 16px rgba(126,200,255,.22)}
+
+#mateBubble{
+  left:112px;top:auto;bottom:96px;transform:none;
+  max-width:min(220px,42vw);border-color:rgba(126,200,255,.45);
+  background:rgba(8,14,22,.94)}
+#mateBubble b{color:#7ec8ff}
+#toasts{top:16%;bottom:auto;max-width:min(340px,52vw);width:max-content}
+.toast{white-space:normal;text-align:center;max-width:min(340px,52vw)}
+
+@media (min-width:1025px){
+  #topbar{max-width:min(48vw,560px)}
+  #back{max-width:min(46vw,560px)}
+}
+@media (min-width:641px) and (max-width:1024px) and (min-height:801px){
+  #quests{
+    top:var(--vox-quests-tablet, 168px);bottom:auto;right:auto;left:10px;
+    width:min(250px,42vw)}
+}
+@media (max-width:640px){
+  #quests{display:none!important}
+  html.hud-b[data-game="voxel"] #back button,
+  html.hud-b[data-game="voxel"] #back a{min-height:44px}
+  #mateBubble{left:8px;bottom:calc(188px + env(safe-area-inset-bottom));max-width:min(200px,58vw)}
+  #toasts{top:22%}
+  html.hud-b[data-game="voxel"] #hotbar{padding:3px 5px}
+}
+@media (max-height:480px){
+  #quests{display:none!important}
+  #mateBubble{left:112px;bottom:72px}
+  html.hud-b[data-game="voxel"] #hotbar{padding:2px 6px}
+}
+</style>
 </head>
 <body>
 <div id="vignette"></div>
@@ -368,29 +451,36 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
   <div class="chip" id="dareChip" hidden title="Today's harbor dare. Same challenge for every garden, swapped by a note — no server.">📮 <span id="dareTxt">Dare</span></div>
   <div class="chip" id="kilnChip" hidden title="The fen kiln. Seal every cracked course with brick, then fire it once each day.">🔥 <span id="kilnTxt">Kiln</span></div>
   <div class="chip" id="gullChip" hidden title="The harbor gull. A local guide for solo play. It never leaves this garden.">🐦 <span id="gullTxt">Gull</span></div>
-  <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
+  <div class="chip" id="resumeChip" hidden><span class="resume-kicker">Continue</span> ↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
     <button type="button" id="resumeNewIsle" hidden>New isle</button>
   </div>
 </div>
 <div id="goodsHud"></div>
 <div id="back">
-  <button id="fpBtn" title="First person (F)">👁️</button>
-  <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
-  <button id="animalBtn" title="Livestock">🐮</button>
-  <button id="townBtn" title="Town — land &amp; buildings">🏘️</button>
-  <button id="almanacBtn" title="Town Almanac">📊</button>
-  <button id="achBtn" title="Achievements">🏆</button>
-  <button id="musicBtn" title="Music on/off">🎵</button>
-  <button id="muteBtn" title="Mute (M)">🔊</button>
-  <button id="momentsBtn" type="button" title="Photo mode (P)">📷</button>
+  <div class="tool-group" data-group="view">
+    <button id="fpBtn" type="button" title="Look around in first person (F)" aria-label="Look"><span class="ico">👁️</span><span class="lbl">Look</span></button>
+    <button id="momentsBtn" type="button" title="Photo mode (P)" aria-label="Photo"><span class="ico">📷</span></button>
+  </div>
+  <div class="tool-group" data-group="isle">
+    <button id="farmerBtn" type="button" title="Hire villagers" aria-label="Hire villagers"><span class="ico">🧑‍🌾</span></button>
+    <button id="animalBtn" type="button" title="Livestock" aria-label="Livestock"><span class="ico">🐮</span><span class="lbl">Livestock</span></button>
+    <button id="townBtn" type="button" title="Town — land and buildings" aria-label="Town"><span class="ico">🏘️</span><span class="lbl">Town</span></button>
+    <button id="almanacBtn" type="button" title="Town Almanac" aria-label="Almanac"><span class="ico">📊</span><span class="lbl">Almanac</span></button>
+    <button id="achBtn" type="button" title="Achievements" aria-label="Achievements"><span class="ico">🏆</span></button>
+  </div>
+  <div class="tool-group" data-group="system">
+    <button id="musicBtn" type="button" title="Music on/off" aria-label="Music"><span class="ico">🎵</span></button>
+    <button id="muteBtn" type="button" title="Mute (M)" aria-label="Mute"><span class="ico">🔊</span></button>
+    <button id="helpBtn" type="button" title="Help (H)" aria-label="Help">?</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
   <div id="vox-audio"></div>
-  <button id="helpBtn" title="Help (H)">?</button>
-  <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 </div>
 <div class="hud chip" id="quests">
-  <div class="q-title">✦ GARDEN GOAL</div>
+  <div class="q-title">Garden goal</div>
   <div class="q-text" id="qText"></div>
   <div class="q-prog" id="qProg"></div>
+  <div id="qNext"></div>
   <div id="qKiln"></div>
   <div id="qDare"></div>
   <div id="qGull"></div>
@@ -5555,6 +5645,9 @@ function refreshQuestHud(){
   refreshKilnHud();
   refreshDareHud();
   if(typeof refreshStormHud==='function')refreshStormHud();
+  const nxt=UNLOCKS[(state.level|0)+1];
+  const qn=$('qNext');
+  if(qn)qn.textContent=nxt?('Next · LV '+((state.level|0)+1)+' · '+nxt):'';
 }
 
 /* ============================== actions ============================== */
@@ -6301,16 +6394,26 @@ function applySharedAudio(){
   const heard=EurekaPersist.audio.apply(state.muted,state.musicOff);
   state.muted=heard.muted;state.musicOff=heard.musicOff;
 }
+function paintMute(){
+  const b=$('muteBtn');if(!b)return;
+  const glyph=state.muted?'🔇':'🔊';
+  const ico=b.querySelector('.ico');
+  if(ico)ico.textContent=glyph;else b.textContent=glyph;
+}
 function toggleMute(){
   state.muted=!state.muted;
   try{if(window.EurekaPersist)EurekaPersist.settings.update({muted:!!state.muted,touched:true});}catch(e){}
-  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  paintMute();
 }
 function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
 function selectTool(t,fromClick){
   const wasSel=state.tool===t;
   state.tool=t;
-  document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.tool===t));
+  document.querySelectorAll('#hotbar .slot').forEach(s=>{
+    const on=s.dataset.tool===t;
+    s.classList.toggle('sel',on);
+    s.setAttribute('aria-pressed',on?'true':'false');
+  });
   if(fromClick)SFX.play('click');
   if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
   else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
@@ -6438,6 +6541,13 @@ function placeQuestCard(){
       document.documentElement.style.setProperty('--vox-quests-top', next);
   } else if(document.documentElement.style.getPropertyValue('--vox-quests-top')){
     document.documentElement.style.removeProperty('--vox-quests-top');
+  }
+  if(innerWidth>640&&innerWidth<=1024&&innerHeight>800){
+    const next=Math.round(back.getBoundingClientRect().bottom+12)+'px';
+    if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')!==next)
+      document.documentElement.style.setProperty('--vox-quests-tablet', next);
+  } else if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')){
+    document.documentElement.style.removeProperty('--vox-quests-tablet');
   }
 }
 function placePhoneBack(){
@@ -7644,12 +7754,8 @@ function projectMateBubble(){
   const box=$('mateBubble'), m=isleMate;
   if(!box||!m)return;
   if(m.bubbleT<=0){box.hidden=true;return;}
-  const y=(m.dispY==null?m.mesh.position.y:m.dispY)+2.05;
-  _v3.set(m.x,y,m.z).project(camera);
-  if(_v3.z<-1||_v3.z>1){box.hidden=true;return;}
-  const sx=(_v3.x*0.5+0.5)*innerWidth, sy=(-_v3.y*0.5+0.5)*innerHeight;
   box.hidden=false;
-  box.style.transform='translate('+Math.round(sx)+'px,'+Math.round(sy)+'px) translate(-50%,-118%)';
+  box.style.transform='none';
 }
 function spawnMate(){
   if(isleMate||typeof scene==='undefined')return;
@@ -7743,7 +7849,7 @@ function boot(){
   // first paint until the parser has built them
   addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
   bindInput();
-  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  paintMute();
   if(window.EurekaPersist){
     const host=document.getElementById('vox-audio');
     if(host)EurekaPersist.mount(host,{
@@ -7753,7 +7859,7 @@ function boot(){
       onChange(s){
         state.muted=!!s.muted;
         state.musicOff=!!s.muted||!s.musicOn;
-        $('muteBtn').textContent=state.muted?'🔇':'🔊';
+        paintMute();
         $('musicBtn').style.opacity=state.musicOff?0.4:1;
         save();
       },
