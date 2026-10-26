@@ -72,10 +72,18 @@ export function paintTextures(scene) {
   });
 
   tex(scene, 'spark', 16, 16, (g) => {
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(8, 8, 6);
-    g.fillStyle(0xffffff, 0.4);
-    g.fillCircle(8, 8, 3);
+    g.fillStyle(0xffe0b0, 1);
+    g.fillCircle(8, 8, 5);
+    g.fillStyle(0xfff6df, 0.9);
+    g.fillCircle(8, 8, 2);
+  });
+
+  tex(scene, 'light', 128, 128, (g) => {
+    const rings = [64, 52, 40, 30, 20, 12, 6];
+    rings.forEach((r, i) => {
+      g.fillStyle(0xff8a32, 0.05 + i * 0.035);
+      g.fillCircle(64, 64, r);
+    });
   });
 
   tex(scene, 'streak', 6, 18, (g) => {
@@ -250,13 +258,44 @@ export function paintTextures(scene) {
 
   tex(scene, 'board', 64, 72, (g) => {
     g.fillStyle(0x3a322c);
-    g.fillRect(30, 40, 6, 28);
+    g.fillRect(30, 48, 6, 22);
     g.fillStyle(0x6a5438);
-    g.fillRoundedRect(8, 8, 48, 40, 3);
+    g.fillRoundedRect(6, 6, 52, 46, 3);
     g.fillStyle(0xe7e4dc);
-    g.fillRect(14, 16, 28, 3);
-    g.fillRect(14, 24, 36, 3);
-    g.fillRect(14, 32, 22, 3);
+    g.fillRoundedRect(12, 12, 18, 14, 2);
+    g.fillStyle(0xf0d7a2);
+    g.fillRoundedRect(32, 14, 18, 12, 2);
+    g.fillStyle(0xd7e0ea);
+    g.fillRoundedRect(16, 30, 28, 12, 2);
+  });
+
+  tex(scene, 'bedroll', 78, 40, (g) => {
+    g.fillStyle(0x000000, 0.22);
+    g.fillEllipse(40, 32, 64, 12);
+    g.fillStyle(0x6e4a38);
+    g.fillRoundedRect(10, 12, 56, 16, 8);
+    g.fillStyle(0x8d6248);
+    g.fillEllipse(18, 20, 16, 14);
+    g.fillStyle(0xc45a3a);
+    g.fillRect(40, 14, 16, 12);
+  });
+
+  tex(scene, 'bag', 40, 36, (g) => {
+    g.fillStyle(0x000000, 0.2);
+    g.fillEllipse(20, 30, 28, 8);
+    g.fillStyle(0x3e4a58);
+    g.fillRoundedRect(8, 10, 24, 18, 4);
+    g.fillStyle(0x2a3440);
+    g.fillRect(14, 8, 12, 5);
+  });
+
+  tex(scene, 'bucket', 36, 36, (g) => {
+    g.fillStyle(0x8a6230);
+    g.fillRoundedRect(8, 10, 20, 18, 3);
+    g.fillStyle(0xc9844a);
+    g.fillEllipse(18, 12, 16, 6);
+    g.lineStyle(2, 0x4a4038, 1);
+    g.lineBetween(10, 8, 26, 8);
   });
 
   tex(scene, 'wall', 80, 100, (g) => {

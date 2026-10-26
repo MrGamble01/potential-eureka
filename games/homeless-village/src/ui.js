@@ -292,7 +292,7 @@ export function mountUi(scene) {
   function renderLog() {
     const box = $('hv-log');
     if (box.hasAttribute('hidden')) return;
-    const lines = (scene.state.log || []).slice().reverse();
+    const lines = (scene.state.log || []).slice().reverse().slice(0, 8);
     box.replaceChildren();
     if (!lines.length) {
       const p = document.createElement('p');

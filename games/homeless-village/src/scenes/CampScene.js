@@ -16,7 +16,7 @@ const PILLARS = [
 
 const SPOTS = [
   { id: 'barrel', x: 980, y: 860 },
-  { id: 'dumpster', x: 470, y: 760 },
+  { id: 'dumpster', x: 1080, y: 1060 },
   { id: 'dumpster', x: 1680, y: 820 },
   { id: 'dumpster', x: 1500, y: 1100 },
   { id: 'forage', x: 300, y: 1160 },
@@ -61,6 +61,7 @@ export class CampScene extends Phaser.Scene {
   }
 
   create() {
+    this.spots = SPOTS;
     this.playing = false;
     this.paused = false;
     this.state = freshState();
@@ -113,6 +114,7 @@ export class CampScene extends Phaser.Scene {
       get state() { return window.HV.scene.state; },
       perform: (id) => this.act(id),
       save: () => saveState(this.state),
+      tick: (dt) => tick(this.state, dt == null ? 16 : dt),
       hasSave
     };
   }
@@ -130,13 +132,27 @@ export class CampScene extends Phaser.Scene {
     g.fillRect(0, 0, WORLD.w, 18);
     g.fillStyle(0x1a1d22, 0.55);
     g.fillRect(0, 230, WORLD.w, 90);
+    g.fillStyle(0x12141a, 0.28);
+    g.fillRect(0, 360, 1680, 220);
+    g.lineStyle(8, 0x3a3f46, 0.9);
+    g.lineBetween(0, 400, 1680, 430);
+    g.lineBetween(0, 500, 1680, 470);
+    g.lineStyle(2, 0x2a241c, 0.65);
+    g.lineBetween(640, 760, 1280, 1040);
+    g.lineBetween(860, 700, 980, 1280);
+    g.fillStyle(0x241f1a, 0.45);
+    g.fillEllipse(980, 900, 280, 90);
+    g.fillEllipse(1180, 1120, 200, 70);
+    g.lineStyle(2, 0x8a9298, 0.35);
+    g.lineBetween(120, 1320, 560, 1320);
+    for (let x = 120; x <= 560; x += 28) g.lineBetween(x, 1320, x, 1420);
     PILLARS.forEach((p) => {
       this.add.image(p.x, p.y, 'pillar').setOrigin(0, 0).setDepth(2);
     });
     this.add.image(1320, 250, 'wall').setOrigin(0.5, 0).setDepth(3);
     this.night = this.add.rectangle(WORLD.w / 2, WORLD.h / 2, WORLD.w, WORLD.h, 0x070b14, 0).setDepth(4000);
     this.weatherTint = this.add.rectangle(WORLD.w / 2, WORLD.h / 2, WORLD.w, WORLD.h, 0x8fb4ff, 0).setDepth(4010);
-    this.glow = this.add.image(980, 860, 'spark').setBlendMode(Phaser.BlendModes.ADD).setDepth(3900).setScale(14).setAlpha(0.4);
+    this.glow = this.add.image(980, 840, 'light').setBlendMode(Phaser.BlendModes.ADD).setDepth(3900).setScale(3.4).setAlpha(0.95);
     this.flame = this.add.sprite(980, 820, 'flame0').setOrigin(0.5, 0.85).setDepth(860);
     this.flame.play('flame');
     this.fireFx = this.add.particles(980, 800, 'spark', {
@@ -180,8 +196,14 @@ export class CampScene extends Phaser.Scene {
       return s;
     };
     SPOTS.filter((s) => s.id === 'dumpster').forEach((s, i) => add('dump' + i, s.x, s.y, 'dumpster'));
+    add('firebarrel', 980, 860, 'barrel');
     add('brush', 300, 1160, 'brush');
     add('board', 720, 640, 'board', 0.8);
+    add('bed', 1080, 940, 'bedroll', 0.7);
+    add('bag1', 900, 980, 'bag', 0.8);
+    add('bag2', 1240, 960, 'bag', 0.8);
+    add('bucket', 1040, 800, 'bucket', 0.85);
+    add('paper', 860, 1100, 'bag', 0.8);
     STRUCT.forEach((s) => {
       const spr = add(s.id, s.x, s.y, s.ghost || s.key);
       spr.setData('builtKey', s.key);
@@ -225,7 +247,7 @@ export class CampScene extends Phaser.Scene {
     if (!this.playing || this.ui.blocksWorld()) return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     const spot = this.spotAt(w.x, w.y, 78);
-    if (spot && dist(this.player.x, this.player.y, spot.x, spot.y) < 100) {
+    if (spot && dist(this.player.x, this.player.y, spot.x, spot.y) < 140) {
       this.ui.openSpot(spot);
       return;
     }
@@ -355,7 +377,8 @@ export class CampScene extends Phaser.Scene {
     const t = this.time.now;
     const lit = !!this.state.fireLit;
     this.flame.setVisible(lit);
-    this.glow.setAlpha(lit ? 0.28 + Math.sin(t / 180) * 0.08 : 0);
+    this.glow.setAlpha(lit ? 0.82 + Math.sin(t / 180) * 0.12 : 0.08);
+    this.glow.setScale(lit ? 3.2 + Math.sin(t / 240) * 0.15 : 1.4);
     this.fireFx.emitting = lit;
     const night = this.state.timeOfDay;
     let dark = 0;
