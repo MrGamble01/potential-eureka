@@ -16,9 +16,9 @@ const HARBOR = [
 ];
 
 const PLATES = {
-  rio_plata: { x: 470, y: 990, title: 'RÍO PLATA VALLEY', sub: 'Puerto Plata' },
-  san_marco: { x: 1180, y: 1020, title: 'SAN MARCO DISTRICT', sub: 'Ciudad San Marco' },
-  sierra_alta: { x: 1900, y: 990, title: 'SIERRA ALTA', sub: 'Villa Dorada' }
+  rio_plata: { x: 470, y: 900, title: 'RÍO PLATA VALLEY', sub: 'Puerto Plata' },
+  san_marco: { x: 1180, y: 900, title: 'SAN MARCO DISTRICT', sub: 'Ciudad San Marco' },
+  sierra_alta: { x: 1900, y: 900, title: 'SIERRA ALTA', sub: 'Villa Dorada' }
 };
 
 export class MapScene extends window.Phaser.Scene {
@@ -478,8 +478,8 @@ export class MapScene extends window.Phaser.Scene {
         const picked = id === selected;
         node.name.setText(node.def.label);
         node.name.setColor('#e7dcc6');
-        node.nameBg.setVisible(picked);
-        node.name.setVisible(picked);
+        node.nameBg.setVisible(picked && rel >= 1);
+        node.name.setVisible(picked && rel >= 1);
         node.stockBg.setVisible(false);
         node.stock.setVisible(false);
         node.barBg.setVisible(false);
