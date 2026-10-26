@@ -10,7 +10,7 @@ import {
   COVE,
   contains,
   HARBOR_PTS,
-  INLET_PTS,
+  HILL_RIDGE,
   LAND,
   LOT_POS,
   MAP_H,
@@ -114,9 +114,13 @@ function filletPts(flat, radius) {
   return out;
 }
 
-function roadLine(g, pts, width) {
+function roadFlat(pts, width) {
   const src = pts[0] && pts[0].x != null ? pts.map((p) => [p.x, p.y]) : pts;
-  const flat = curveSamples(filletPts(src, width >= 16 ? 96 : 58));
+  return curveSamples(filletPts(src, width >= 16 ? 96 : 58));
+}
+
+function roadLine(g, pts, width) {
+  const flat = roadFlat(pts, width);
   ribbon(g, flat, width + 14, '#b7a078');
   ribbon(g, flat, width, '#3a4148');
   g.save();
@@ -129,6 +133,13 @@ function roadLine(g, pts, width) {
   for (let i = 1; i < flat.length; i++) g.lineTo(flat[i][0], flat[i][1]);
   g.stroke();
   g.restore();
+}
+
+function dirtRoad(g, pts, width) {
+  const flat = roadFlat(pts, width);
+  ribbon(g, flat, width + 18, '#cbb892');
+  ribbon(g, flat, width, '#a67c4a');
+  ribbon(g, flat, Math.max(3, width * 0.22), 'rgba(86,58,30,0.45)');
 }
 
 function nearPath(x, y, paths, r) {
@@ -196,16 +207,48 @@ function patch(g, x, y, rx, ry, rot, color) {
 }
 
 function farmstead(g, x, y, rot, seed) {
-  g.fillStyle = 'rgba(214,186,130,0.5)';
-  g.beginPath();
-  g.ellipse(x, y + 6, 86, 52, rot, 0, Math.PI * 2);
-  g.fill();
-  const crops = ['#7f9a3c', '#c6b15a', '#6e8a38', '#d8c56a'];
-  for (let i = 0; i < 4; i++) {
-    const along = -34 + i * 22;
-    patch(g, x + Math.cos(rot) * along, y + Math.sin(rot) * along, 20, 12, rot + 0.15, crops[i]);
+  g.save();
+  g.translate(x, y);
+  g.rotate(rot);
+  g.fillStyle = 'rgba(16,12,6,0.28)';
+  g.fillRect(-62, -40, 176, 118);
+  g.fillStyle = '#c9a56c';
+  g.fillRect(-78, -54, 172, 112);
+  g.fillStyle = '#e6d2a6';
+  g.fillRect(-74, -50, 62, 104);
+  const crops = ['#5c8a24', '#d2b044', '#6e9834', '#8a6428'];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 2; c++) {
+      const px = -6 + c * 42;
+      const py = -46 + r * 24;
+      g.fillStyle = crops[(r + c + seed) % crops.length];
+      g.fillRect(px, py, 38, 18);
+      g.strokeStyle = 'rgba(48,32,14,0.55)';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(px + 3, py + 6);
+      g.lineTo(px + 35, py + 6);
+      g.moveTo(px + 3, py + 12);
+      g.lineTo(px + 35, py + 12);
+      g.stroke();
+    }
   }
-  house(g, x + Math.cos(rot + 1.4) * 48, y + Math.sin(rot + 1.4) * 34, seed, 0.58);
+  g.strokeStyle = '#f4efe2';
+  g.lineWidth = 2.5;
+  g.strokeRect(-78, -54, 172, 112);
+  g.fillStyle = '#f7f1e6';
+  const posts = [[-78, -54], [8, -54], [94, -54], [-78, 2], [94, 2], [-78, 58], [8, 58], [94, 58]];
+  for (let i = 0; i < posts.length; i++) g.fillRect(posts[i][0] - 2, posts[i][1] - 3, 4, 7);
+  g.restore();
+  const lx = -46;
+  const ly = 2;
+  house(
+    g,
+    x + Math.cos(rot) * lx - Math.sin(rot) * ly,
+    y + Math.sin(rot) * lx + Math.cos(rot) * ly,
+    seed,
+    0.78
+  );
 }
 
 function house(g, x, y, seed, scale) {
@@ -217,9 +260,9 @@ function house(g, x, y, seed, scale) {
   const roofs = ['#c25038', '#8a3224', '#3d5566', '#6b4428', '#2a3440', '#c47a3a'];
   const face = faces[Math.floor(hash(seed, 4) * faces.length) % faces.length];
   const roof = roofs[Math.floor(hash(seed, 5) * roofs.length) % roofs.length];
-  g.fillStyle = 'rgba(20,16,8,0.26)';
+  g.fillStyle = 'rgba(16,12,6,0.34)';
   g.beginPath();
-  g.ellipse(x + w * 0.5, y + 7 * s, w * 0.72, 9 * s, 0, 0, Math.PI * 2);
+  g.ellipse(x + w * 0.78, y + 12 * s, w * 0.95, 13 * s, 0.2, 0, Math.PI * 2);
   g.fill();
   g.fillStyle = '#b89a78';
   g.fillRect(x + w - 5 * s, y - h + 4 * s, 7 * s, h - 4 * s);
@@ -247,33 +290,39 @@ function house(g, x, y, seed, scale) {
 }
 
 function canopy(g, x, y, seed) {
-  const big = hash(seed, 9) > 0.7;
-  const rx = (big ? 54 : 24) + hash(seed, 1) * (big ? 46 : 26);
-  const ry = (big ? 24 : 12) + hash(seed, 2) * (big ? 18 : 12);
-  g.fillStyle = 'rgba(10,18,8,0.34)';
+  const big = hash(seed, 9) > 0.48;
+  const rx = (big ? 70 : 32) + hash(seed, 1) * (big ? 54 : 28);
+  const ry = (big ? 30 : 16) + hash(seed, 2) * (big ? 22 : 14);
+  g.fillStyle = 'rgba(8,14,6,0.42)';
   g.beginPath();
-  g.ellipse(x + 8, y + 12, rx * 0.92, ry * 0.62, 0, 0, Math.PI * 2);
+  g.ellipse(x + rx * 0.32, y + ry * 0.95, rx * 1.05, ry * 0.62, 0.25, 0, Math.PI * 2);
   g.fill();
-  const greens = ['#14381e', '#1d4a28', '#2f6b34', '#3d7a3e', '#16321c', '#4e8a42'];
-  const blobs = big ? 5 : 3;
+  const greens = ['#0c2414', '#12301a', '#184426', '#1e5230', '#102616', '#14341e', '#0e2c18'];
+  const blobs = big ? 8 : 5;
   for (let i = 0; i < blobs; i++) {
     g.fillStyle = greens[Math.floor(hash(seed, 3 + i) * greens.length) % greens.length];
     g.beginPath();
     g.ellipse(
-      x + (hash(seed, 10 + i) - 0.5) * rx,
-      y - i * 4,
-      rx * (0.5 + hash(seed, 20 + i) * 0.38),
-      ry * (0.7 + hash(seed, 30 + i) * 0.35),
-      hash(seed, 8 + i),
+      x + (hash(seed, 10 + i) - 0.5) * rx * 0.95,
+      y - 4 - i * 3.2,
+      rx * (0.4 + hash(seed, 20 + i) * 0.42),
+      ry * (0.58 + hash(seed, 30 + i) * 0.42),
+      hash(seed, 8 + i) * 1.4,
       0,
       Math.PI * 2
     );
     g.fill();
   }
-  g.fillStyle = 'rgba(190,214,126,0.38)';
+  g.fillStyle = 'rgba(126,154,78,0.14)';
   g.beginPath();
-  g.ellipse(x - rx * 0.18, y - ry * 0.4, rx * 0.26, ry * 0.2, 0, 0, Math.PI * 2);
+  g.ellipse(x - rx * 0.22, y - ry * 0.5, rx * 0.16, ry * 0.1, 0, 0, Math.PI * 2);
   g.fill();
+}
+
+function clump(g, x, y, seed) {
+  canopy(g, x, y, seed);
+  canopy(g, x + 16 + hash(seed, 11) * 18, y + 6, seed + 19);
+  if (hash(seed, 12) > 0.45) canopy(g, x - 18, y + 10, seed + 37);
 }
 
 function rock(g, x, y, s) {
@@ -291,41 +340,46 @@ function rock(g, x, y, s) {
   g.fill();
 }
 
-function coastChain() {
-  const chain = [];
-  for (let i = 0; i < LAND.length; i++) {
-    const a = LAND[i];
-    const b = LAND[(i + 1) % LAND.length];
-    if (a[1] < 40 && b[1] < 40) continue;
-    if (a[1] > 2640 && b[1] > 2640) continue;
-    if (a[0] < 40 && b[0] < 40) continue;
-    const mx = (a[0] + b[0]) / 2;
-    if (mx < 4300) continue;
-    if (!chain.length) chain.push(a);
-    chain.push(b);
-  }
-  return curveSamples(chain);
-}
-
-function roundedRing(pts) {
-  const n = pts.length;
-  const out = [];
-  const steps = 5;
+function coastChains() {
+  const n = LAND.length;
+  const runs = [];
+  let cur = null;
   for (let i = 0; i < n; i++) {
-    const prev = pts[(i - 1 + n) % n];
-    const c = pts[i];
-    const nxt = pts[(i + 1) % n];
-    const x0 = (prev[0] + c[0]) / 2;
-    const y0 = (prev[1] + c[1]) / 2;
-    const x1 = (c[0] + nxt[0]) / 2;
-    const y1 = (c[1] + nxt[1]) / 2;
-    for (let s = 0; s < steps; s++) {
-      const t = s / steps;
-      const u = 1 - t;
-      out.push([u * u * x0 + 2 * u * t * c[0] + t * t * x1, u * u * y0 + 2 * u * t * c[1] + t * t * y1]);
+    const a = LAND[i];
+    const b = LAND[(i + 1) % n];
+    const border = (a[1] < 90 && b[1] < 90) || (a[1] > 2580 && b[1] > 2580) || (a[0] < 90 && b[0] < 90);
+    if (border) {
+      cur = null;
+      continue;
     }
+    if (!cur) {
+      cur = [a, b];
+      runs.push(cur);
+    } else cur.push(b);
   }
-  return out;
+  const pieces = [];
+  for (let r = 0; r < runs.length; r++) {
+    const run = runs[r];
+    let piece = [run[0]];
+    for (let i = 1; i < run.length - 1; i++) {
+      piece.push(run[i]);
+      const a = run[i - 1];
+      const b = run[i];
+      const c = run[i + 1];
+      const d1x = b[0] - a[0];
+      const d1y = b[1] - a[1];
+      const d2x = c[0] - b[0];
+      const d2y = c[1] - b[1];
+      const ang = Math.abs(Math.atan2(d1x * d2y - d1y * d2x, d1x * d2x + d1y * d2y));
+      if (ang > 1.05) {
+        pieces.push(piece);
+        piece = [b];
+      }
+    }
+    piece.push(run[run.length - 1]);
+    if (piece.length >= 2) pieces.push(piece);
+  }
+  return pieces.map((pts) => (pts.length >= 3 ? curveSamples(pts) : pts));
 }
 
 function paintMottle(g) {
@@ -425,6 +479,98 @@ function cliffFace(g, pts) {
   g.restore();
 }
 
+function paintHills(g) {
+  g.save();
+  for (let i = 0; i < HILL_RIDGE.length; i++) {
+    const p = HILL_RIDGE[i];
+    g.fillStyle = 'rgba(214,206,150,0.62)';
+    g.beginPath();
+    g.ellipse(p[0], p[1] + 16, 230, 78, 0.06, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = 'rgba(12,32,16,0.48)';
+    g.beginPath();
+    g.ellipse(p[0], p[1] - 36, 210, 52, 0.04, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+  cliffFace(g, HILL_RIDGE);
+}
+
+function segCross(a, b, c, d) {
+  const cross = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const d1 = cross(a, b, c);
+  const d2 = cross(a, b, d);
+  const d3 = cross(c, d, a);
+  const d4 = cross(c, d, b);
+  if (!(((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))) return null;
+  const den = (a[0] - b[0]) * (c[1] - d[1]) - (a[1] - b[1]) * (c[0] - d[0]);
+  if (!den) return null;
+  const t = ((a[0] - c[0]) * (c[1] - d[1]) - (a[1] - c[1]) * (c[0] - d[0])) / den;
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+function paintBridges(g, polylines) {
+  const river = curveSamples(RIVER_PTS);
+  const hits = [];
+  for (let p = 0; p < polylines.length; p++) {
+    const road = curveSamples(polylines[p]);
+    for (let i = 0; i < road.length - 1; i++) {
+      for (let j = 0; j < river.length - 1; j++) {
+        const hit = segCross(road[i], road[i + 1], river[j], river[j + 1]);
+        if (!hit) continue;
+        let near = false;
+        for (let k = 0; k < hits.length; k++) {
+          if (Math.hypot(hits[k][0] - hit[0], hits[k][1] - hit[1]) < 90) near = true;
+        }
+        if (near) continue;
+        const dx = road[i + 1][0] - road[i][0];
+        const dy = road[i + 1][1] - road[i][1];
+        const len = Math.hypot(dx, dy) || 1;
+        hits.push([hit[0], hit[1], dx / len, dy / len]);
+      }
+    }
+  }
+  for (let i = 0; i < hits.length; i++) {
+    const x = hits[i][0];
+    const y = hits[i][1];
+    const ux = hits[i][2];
+    const uy = hits[i][3];
+    const nx = -uy;
+    const ny = ux;
+    const half = 54;
+    g.fillStyle = 'rgba(16,12,6,0.35)';
+    g.beginPath();
+    g.moveTo(x - ux * half + nx * 16 + 8, y - uy * half + ny * 16 + 8);
+    g.lineTo(x + ux * half + nx * 16 + 8, y + uy * half + ny * 16 + 8);
+    g.lineTo(x + ux * half - nx * 16 + 8, y + uy * half - ny * 16 + 8);
+    g.lineTo(x - ux * half - nx * 16 + 8, y - uy * half - ny * 16 + 8);
+    g.closePath();
+    g.fill();
+    g.fillStyle = '#6e5438';
+    g.beginPath();
+    g.moveTo(x - ux * half + nx * 14, y - uy * half + ny * 14);
+    g.lineTo(x + ux * half + nx * 14, y + uy * half + ny * 14);
+    g.lineTo(x + ux * half - nx * 14, y + uy * half - ny * 14);
+    g.lineTo(x - ux * half - nx * 14, y - uy * half - ny * 14);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = '#efe6d4';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(x - ux * half + nx * 12, y - uy * half + ny * 12);
+    g.lineTo(x + ux * half + nx * 12, y + uy * half + ny * 12);
+    g.moveTo(x - ux * half - nx * 12, y - uy * half - ny * 12);
+    g.lineTo(x + ux * half - nx * 12, y + uy * half - ny * 12);
+    g.stroke();
+    g.fillStyle = '#f4efe4';
+    for (let s = -1; s <= 1; s += 2) {
+      for (let t = -1; t <= 1; t += 2) {
+        g.fillRect(x + ux * half * s + nx * 12 * t - 2, y + uy * half * s + ny * 12 * t - 2, 4, 4);
+      }
+    }
+  }
+}
+
 function bush(g, x, y, seed) {
   g.fillStyle = 'rgba(12,20,10,0.22)';
   g.beginPath();
@@ -454,20 +600,22 @@ function offsetChain(pts, dist) {
 }
 
 function paintCoast(g) {
-  const shore = coastChain();
-  if (shore.length < 2) return;
-  ribbon(g, offsetChain(shore, 70), 130, 'rgba(64,206,214,0.9)');
-  ribbon(g, offsetChain(shore, 130), 110, 'rgba(18,96,140,0.55)');
-  ribbon(g, offsetChain(shore, 16), 78, '#f0ddb4');
-  ribbon(g, offsetChain(shore, -6), 14, 'rgba(255,252,245,0.72)');
+  const chains = coastChains();
   g.fillStyle = 'rgba(255,252,245,0.82)';
-  for (let i = 0; i < shore.length; i += 2) {
-    const p = shore[i];
-    const q = shore[Math.min(shore.length - 1, i + 1)];
-    const j = hash(i, 7);
-    g.beginPath();
-    g.ellipse(p[0] + 6, p[1], 6 + j * 9, 2.5 + j * 2, Math.atan2(q[1] - p[1], q[0] - p[0]), 0, Math.PI * 2);
-    g.fill();
+  for (let c = 0; c < chains.length; c++) {
+    const shore = chains[c];
+    if (shore.length < 2) continue;
+    ribbon(g, offsetChain(shore, 34), 46, 'rgba(64,206,214,0.78)');
+    ribbon(g, offsetChain(shore, 14), 32, '#f0ddb4');
+    ribbon(g, offsetChain(shore, -3), 8, 'rgba(255,252,245,0.65)');
+    for (let i = 0; i < shore.length; i += 2) {
+      const p = shore[i];
+      const q = shore[Math.min(shore.length - 1, i + 1)];
+      const j = hash(i + c * 17, 7);
+      g.beginPath();
+      g.ellipse(p[0] + 6, p[1], 6 + j * 8, 2.4 + j * 2, Math.atan2(q[1] - p[1], q[0] - p[0]), 0, Math.PI * 2);
+      g.fill();
+    }
   }
 }
 
@@ -498,7 +646,7 @@ function paintFull(roads) {
 
   paintCoast(g);
   g.fillStyle = '#24562c';
-  g.fillRect(0, 0, 4700, MAP_H);
+  g.fillRect(0, 0, 2800, MAP_H);
   fillShape(g, LAND, '#24562c');
   paintMottle(g);
 
@@ -537,6 +685,7 @@ function paintFull(roads) {
   g.restore();
   cliffFace(g, MESA.slice(0, 4));
   cliffFace(g, RIDGE);
+  paintHills(g);
 
   g.save();
   trace(g, CITY_GROUND);
@@ -565,44 +714,18 @@ function paintFull(roads) {
   }
   g.restore();
 
-  const coveShore = roundedRing(COVE);
-  fillShape(g, COVE, '#0e5870');
-  let coveX = 0;
-  let coveY = 0;
-  for (let i = 0; i < COVE.length; i++) {
-    coveX += COVE[i][0];
-    coveY += COVE[i][1];
-  }
-  coveX /= COVE.length;
-  coveY /= COVE.length;
-  const toward = (p, dist) => {
-    const dx = coveX - p[0];
-    const dy = coveY - p[1];
-    const len = Math.hypot(dx, dy) || 1;
-    return [p[0] + (dx / len) * dist, p[1] + (dy / len) * dist];
-  };
-  const shallows = coveShore.map((p) => toward(p, 30));
-  ribbon(g, shallows.concat([shallows[0]]), 54, 'rgba(118,210,204,0.62)');
-  ribbon(g, shallows.concat([shallows[0]]), 22, 'rgba(198,238,230,0.4)');
-  const beach = coveShore.map((p) => toward(p, -16));
-  ribbon(g, beach.concat([beach[0]]), 34, '#e6d2a6');
-  ribbon(g, beach.concat([beach[0]]), 12, '#f4e7c8');
-  g.fillStyle = 'rgba(255,252,245,0.75)';
-  for (let i = 0; i < coveShore.length; i += 3) {
-    const p = coveShore[i];
-    const q = coveShore[(i + 1) % coveShore.length];
-    const n = hash(i, 49);
-    g.beginPath();
-    g.ellipse(p[0], p[1], 5 + n * 6, 2.2, Math.atan2(q[1] - p[1], q[0] - p[0]), 0, Math.PI * 2);
-    g.fill();
-  }
-
   const river = curveSamples(RIVER_PTS);
   ribbon(g, river, 128, '#f0ddb4');
   ribbon(g, river, 96, '#c6a56c');
   ribbon(g, river, 54, '#0c6280');
   ribbon(g, river, 30, '#2aa4bc');
-  ribbon(g, river, 8, 'rgba(232,250,250,0.7)');
+  g.fillStyle = 'rgba(232,250,250,0.55)';
+  for (let i = 4; i < river.length; i += 9) {
+    const p = river[i];
+    g.beginPath();
+    g.ellipse(p[0], p[1], 7, 2.2, 0, 0, Math.PI * 2);
+    g.fill();
+  }
   for (let i = 3; i < river.length; i += 6) {
     const p = river[i];
     const q = river[Math.min(river.length - 1, i + 1)];
@@ -616,16 +739,6 @@ function paintFull(roads) {
     g.ellipse(p[0] + (-dy / len) * 50 * side, p[1] + (dx / len) * 50 * side, 26 + n * 22, 12 + n * 8, Math.atan2(dy, dx), 0, Math.PI * 2);
     g.fill();
   }
-  const inlet = curveSamples(INLET_PTS);
-  ribbon(g, inlet, 48, '#f0ddb4');
-  ribbon(g, inlet, 22, '#187088');
-  const deltaA = curveSamples([[1760, 1980], [1640, 2160], [1500, 2320]]);
-  ribbon(g, deltaA, 28, '#f0ddb4');
-  ribbon(g, deltaA, 12, '#1a6e86');
-  const deltaB = curveSamples([[2220, 1880], [2400, 2060], [2340, 2260]]);
-  ribbon(g, deltaB, 26, '#e7d2a4');
-  ribbon(g, deltaB, 10, '#187488');
-
   ribbon(g, RIDGE, 22, '#4a4038');
   ribbon(g, RIDGE, 6, '#d9d0c2');
   for (let i = 0; i < RIDGE.length - 1; i++) {
@@ -654,18 +767,15 @@ function paintFull(roads) {
 
   const roadPaths = ROAD_NETWORK.concat(SCENIC_ROADS.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] })))).concat(CITY_AVENUES.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] }))));
   if (roads) {
-    for (let i = 0; i < roads.length; i++) roadLine(g, roads[i], i === 0 ? 18 : 12);
+    for (let i = 0; i < roads.length; i++) dirtRoad(g, roads[i], i === 0 ? 16 : 11);
   }
   for (let i = 0; i < SCENIC_ROADS.length; i++) roadLine(g, SCENIC_ROADS[i], i === 2 ? 12 : 14);
   for (let i = 0; i < CITY_AVENUES.length; i++) roadLine(g, CITY_AVENUES[i], i < 3 ? 16 : 12);
-
-  const farms = [[180, 1320, -0.4], [980, 1480, 0.3], [1480, 2140, 0.55], [2060, 2280, -0.2], [640, 1980, 0.15], [1760, 1280, -0.5], [2480, 1480, 0.4]];
-  for (let i = 0; i < farms.length; i++) {
-    const spot = farms[i];
-    if (!onLand(spot[0], spot[1]) || contains(COVE, spot[0], spot[1]) || contains(CITY_GROUND, spot[0], spot[1])) continue;
-    if (blocked(spot[0], spot[1], 10) || nearPath(spot[0], spot[1], roadPaths, 48)) continue;
-    farmstead(g, spot[0], spot[1], spot[2], 30 + i);
+  const bridgePaths = SCENIC_ROADS.concat(CITY_AVENUES);
+  if (roads) {
+    for (let i = 0; i < roads.length; i++) bridgePaths.push(roads[i]);
   }
+  paintBridges(g, bridgePaths);
 
   g.fillStyle = '#3e4650';
   g.save();
@@ -691,34 +801,56 @@ function paintFull(roads) {
   g.fillRect(0, 1300, 1700, 1400);
   g.restore();
 
-  for (let i = 0; i < 160; i++) {
+  const openField = (x, y) => (x < 2500 && y < 1280) || (x > 2860 && x < 4100 && y > 1080 && y < 1760);
+  for (let i = 0; i < 180; i++) {
     const x = 60 + hash(i, 81) * 2500;
     const y = 40 + hash(i, 82) * 1600;
-    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 26)) continue;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 26) || openField(x, y)) continue;
     if (contains(CITY_GROUND, x, y) || contains(MESA, x, y)) continue;
-    canopy(g, x, y, i + 90);
+    clump(g, x, y, i + 90);
   }
-  for (let i = 0; i < 280; i++) {
+  for (let i = 0; i < 340; i++) {
     const x = hash(i, 31) * 4300;
     const y = 80 + hash(i, 32) * 2500;
-    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 28)) continue;
-    if (contains(MESA, x, y) && hash(i, 33) > 0.22) continue;
+    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 28) || openField(x, y)) continue;
+    if (contains(MESA, x, y) && hash(i, 33) > 0.35) continue;
     if (contains(CITY_GROUND, x, y)) continue;
-    canopy(g, x, y, i + 3);
+    clump(g, x, y, i + 3);
   }
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 160; i++) {
     const x = 80 + hash(i, 101) * 1280;
     const y = 1480 + hash(i, 102) * 1080;
     if (!contains(ZONE_LAYOUT.jungle_alta.poly, x, y) || !onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 24)) continue;
-    canopy(g, x, y, i + 210);
-    if (hash(i, 104) > 0.45) canopy(g, x + 22, y + 8, i + 410);
+    clump(g, x, y, i + 210);
   }
   for (let i = 0; i < 220; i++) {
     const x = hash(i, 61) * 4300;
     const y = 80 + hash(i, 62) * 2500;
     if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 22)) continue;
-    if (contains(CITY_GROUND, x, y)) continue;
+    if (contains(CITY_GROUND, x, y) || openField(x, y)) continue;
     bush(g, x, y, i + 9);
+  }
+  const farms = [
+    [180, 1320, -0.4],
+    [980, 1480, 0.3],
+    [2060, 2280, -0.2],
+    [1760, 1280, -0.5],
+    [2480, 1480, 0.4],
+    [900, 280, 0.15],
+    [1540, 280, -0.2],
+    [1100, 700, 0.35],
+    [1680, 640, -0.25],
+    [240, 250, 0.2],
+    [1900, 980, 0.2],
+    [2360, 1280, -0.15],
+    [520, 860, 0.1],
+    [1320, 860, -0.2]
+  ];
+  for (let i = 0; i < farms.length; i++) {
+    const spot = farms[i];
+    if (!onLand(spot[0], spot[1]) || contains(COVE, spot[0], spot[1]) || contains(CITY_GROUND, spot[0], spot[1])) continue;
+    if (blocked(spot[0], spot[1], 36) || nearPath(spot[0], spot[1], roadPaths, 110)) continue;
+    farmstead(g, spot[0], spot[1], spot[2], 30 + i);
   }
   for (let i = 0; i < 40; i++) {
     const x = 1500 + hash(i, 41) * 1100;
@@ -777,58 +909,76 @@ function paintFull(roads) {
     if (blocked(x, y) || !onLand(x, y)) continue;
     palm(g, x, y, 0.48 + hash(i, 53) * 0.4);
   }
-  const shore = coastChain();
-  for (let i = 0; i < shore.length; i += 4) {
-    const p = shore[i];
-    const q = shore[Math.min(shore.length - 1, i + 1)];
-    const dx = q[0] - p[0];
-    const dy = q[1] - p[1];
-    const len = Math.hypot(dx, dy) || 1;
-    const x = p[0] + (-dy / len) * 48;
-    const y = p[1] + (dx / len) * 48;
-    if (!onLand(x, y) || blocked(x, y)) continue;
-    palm(g, x, y, 0.62);
+  const shores = coastChains();
+  for (let c = 0; c < shores.length; c++) {
+    const shore = shores[c];
+    for (let i = 0; i < shore.length; i += 4) {
+      const p = shore[i];
+      const q = shore[Math.min(shore.length - 1, i + 1)];
+      const dx = q[0] - p[0];
+      const dy = q[1] - p[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const x = p[0] + (-dy / len) * 48;
+      const y = p[1] + (dx / len) * 48;
+      if (!onLand(x, y) || blocked(x, y)) continue;
+      palm(g, x, y, 0.62);
+    }
   }
 
-  for (let i = 0; i < 4; i++) {
-    const x = 3720 + i * 80;
+  const wharf = [[3300, 1580], [3420, 1640], [3540, 1610], [3660, 1590], [3780, 1610], [3480, 1520]];
+  for (let i = 0; i < wharf.length; i++) {
+    const spot = wharf[i];
+    if (!onLand(spot[0], spot[1]) || blocked(spot[0], spot[1], 8)) continue;
+    house(g, spot[0], spot[1], 70 + i, 1.15);
+  }
+
+  const piers = [[3360, 1720, 1880], [3480, 1688, 1860], [3600, 1664, 1840], [3720, 1656, 1824]];
+  for (let i = 0; i < piers.length; i++) {
+    const pier = piers[i];
+    const x = pier[0];
+    const y0 = pier[1];
+    const y1 = pier[2];
     g.strokeStyle = '#8a6238';
-    g.lineWidth = 6;
+    g.lineWidth = 7;
     g.beginPath();
-    g.moveTo(x, 1540);
-    g.lineTo(x + 8, 1680);
+    g.moveTo(x, y0);
+    g.lineTo(x + 10, y1);
     g.stroke();
     g.strokeStyle = '#c4a06a';
     g.lineWidth = 3;
-    for (let k = 0; k < 5; k++) {
+    const span = y1 - y0;
+    const planks = 5;
+    for (let k = 0; k < planks; k++) {
+      const y = y0 + 10 + (span - 20) * (k / (planks - 1));
       g.beginPath();
-      g.moveTo(x - 16, 1556 + k * 18);
-      g.lineTo(x + 28, 1568 + k * 18);
+      g.moveTo(x - 16, y);
+      g.lineTo(x + 28, y + 6);
       g.stroke();
     }
   }
-  g.strokeStyle = '#e6b84a';
-  g.lineWidth = 4;
+  g.strokeStyle = '#d7a441';
+  g.lineWidth = 3;
   g.lineCap = 'round';
   g.beginPath();
-  g.moveTo(3780, 1560);
-  g.lineTo(3800, 1440);
-  g.lineTo(3900, 1430);
+  g.moveTo(3600, 1664);
+  g.lineTo(3612, 1596);
+  g.lineTo(3688, 1588);
   g.stroke();
   g.beginPath();
-  g.moveTo(4040, 1580);
-  g.lineTo(4060, 1460);
-  g.lineTo(4160, 1450);
+  g.moveTo(3480, 1688);
+  g.lineTo(3490, 1624);
+  g.lineTo(3554, 1616);
   g.stroke();
 
   const crates = ['#c25038', '#3d6ea8', '#e6c35a', '#7d3b5c'];
   for (let i = 0; i < crates.length; i++) {
-    const x = 3380 + i * 46;
-    const y = 1505;
+    const x = 3320 + i * 42;
+    const y = 1648;
+    if (!onLand(x, y)) continue;
     g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(x + 3, y + 3, 34, 16);
+    g.fillRect(x + 3, y + 3, 28, 14);
     g.fillStyle = crates[i];
-    g.fillRect(x, y, 34, 16);
+    g.fillRect(x, y, 28, 14);
   }
 
   g.save();
