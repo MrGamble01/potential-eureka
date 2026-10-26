@@ -51,6 +51,17 @@ function bumpLoyalty(state, id, delta) {
 }
 
 export function applyEffect(state, effect) {
+  const dirty = state ? state.dirtyCash : 0;
+  const clean = state ? state.cleanCash : 0;
+  const result = applyNamedEffect(state, effect);
+  if (state && state.noSeizure) {
+    if (state.dirtyCash < dirty) state.dirtyCash = dirty;
+    if (state.cleanCash < clean) state.cleanCash = clean;
+  }
+  return result;
+}
+
+function applyNamedEffect(state, effect) {
   const valley = state.regions.rio_plata;
   if (effect === 'none') return { ok: true };
   if (effect === 'fiesta_pay') {

@@ -321,7 +321,7 @@ function tickOperation(state, lot, dt) {
     const heat = (type.upkeep ? 0.02 : 0.01) * mods.heat * (bonus.heatMult || 1) * crew.heatMult * dt;
     live.heat = Math.max(0, Math.min(100, (Number(live.heat) || 0) + heat));
   }
-  if (type && state.dirtyCash > 0) {
+  if (type && state.dirtyCash > 0 && !state.noSeizure) {
     state.dirtyCash = Math.max(0, state.dirtyCash - (type.upkeep * dt) / 20);
   }
   const speed = (mods.speed || 1) * (bonus.growMult || 1);

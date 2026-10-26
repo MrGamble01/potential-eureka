@@ -82,8 +82,8 @@ export function tickBetrayal(state) {
     row.betrayed = true;
     row.regionId = null;
     row.zoneId = null;
-    const skim = Math.floor((state.dirtyCash || 0) * 0.12);
-    state.dirtyCash = Math.max(0, (state.dirtyCash || 0) - skim);
+    const skim = state.noSeizure ? 0 : Math.floor((state.dirtyCash || 0) * 0.12);
+    if (!state.noSeizure) state.dirtyCash = Math.max(0, (state.dirtyCash || 0) - skim);
     const region = state.regions && state.regions[zoneId];
     const zone = state.zones && state.zones[zoneId];
     if (region) region.heat = Math.min(100, (Number(region.heat) || 0) + 18);
