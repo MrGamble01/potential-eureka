@@ -339,6 +339,7 @@ export const LIEUTENANTS = [
     launderMult: 1.0,
     heatMult: 0.9,
     defensePower: 4,
+    traits: ['route_mind', 'loyal'],
     unlockedAtStart: true,
     avatarBg: '#27455c',
     avatarAccent: '#67b0e8'
@@ -357,6 +358,7 @@ export const LIEUTENANTS = [
     launderMult: 1.4,
     heatMult: 0.75,
     defensePower: 3,
+    traits: ['books', 'paranoid'],
     unlockedAtStart: false,
     avatarBg: '#2b4a3e',
     avatarAccent: '#3ddc97'
@@ -375,6 +377,7 @@ export const LIEUTENANTS = [
     launderMult: 1.0,
     heatMult: 1.05,
     defensePower: 3,
+    traits: ['green_thumb', 'volatile'],
     unlockedAtStart: false,
     avatarBg: '#3e3554',
     avatarAccent: '#bc8cff'
@@ -393,6 +396,7 @@ export const LIEUTENANTS = [
     launderMult: 1.1,
     heatMult: 0.55,
     defensePower: 8,
+    traits: ['iron', 'by_the_book'],
     unlockedAtStart: false,
     avatarBg: '#542f35',
     avatarAccent: '#f85149'
@@ -486,5 +490,35 @@ export const MISSIONS = [
     rewardDirty: 5000,
     targetValue: 15000,
     metric: 'totalCleanEarned'
+  },
+  {
+    id: 'm7_rural_zone',
+    act: 2,
+    title: 'Another stretch of country',
+    desc: 'Unlock Selva Alta, Boca del Río, or Mesa Grande. Open plots are cheap. Standing farms cost more and come ready.',
+    rewardClean: 900,
+    rewardDirty: 400,
+    targetValue: 1,
+    metric: 'ruralZones'
+  },
+  {
+    id: 'm8_buy_city',
+    act: 2,
+    title: 'A deed in Puerto Sol',
+    desc: 'Buy a standing city building and convert it, or clear the lot and build to fit.',
+    rewardClean: 1200,
+    rewardDirty: 600,
+    targetValue: 1,
+    metric: 'cityProperties'
+  },
+  {
+    id: 'm9_hold_block',
+    act: 3,
+    title: 'Hold the block',
+    desc: 'Own enough of a Puerto Sol neighborhood to push control to 45%.',
+    rewardClean: 2000,
+    rewardDirty: 1000,
+    targetValue: 45,
+    metric: 'cityControl'
   }
 ];
