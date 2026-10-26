@@ -72,6 +72,7 @@
         <span>Pause</span>
       </button>
       <button type="button" class="go-icon-btn" id="btn-speed" aria-label="Simulation Speed">1×</button>
+      <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Mute sound">Sound</button>
       <button type="button" class="go-icon-btn" id="btn-briefing" aria-label="Open Operation Briefing">Brief</button>
     </div>
   </header>
@@ -125,15 +126,19 @@
     <div class="go-drawer-tabs" role="tablist">
       <button type="button" class="go-tab-btn is-active" data-tab="slot" role="tab">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2L2.5 6.2v7.6L10 18l7.5-4.2V6.2L10 2z"/></svg>
-        <span>Site / Build</span>
+        <span>Site</span>
       </button>
       <button type="button" class="go-tab-btn" data-tab="lieutenants" role="tab">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
-        <span>Lieutenants</span>
+        <span>Crew</span>
       </button>
       <button type="button" class="go-tab-btn" data-tab="territory" role="tab">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17.5s5.5-4.8 5.5-9A5.5 5.5 0 0 0 4.5 8.5c0 4.2 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>
-        <span>Regions</span>
+        <span>Land</span>
+      </button>
+      <button type="button" class="go-tab-btn" data-tab="research" role="tab">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 3h5M8.5 3v4.5L4 15.5a1.5 1.5 0 0 0 1.3 2.2h9.4a1.5 1.5 0 0 0 1.3-2.2L11.5 7.5V3"/></svg>
+        <span>Lab</span>
       </button>
     </div>
 
@@ -143,17 +148,21 @@
   <!-- Bottom Action Dock & Live Logistics Ticker -->
   <footer class="go-bottom-bar">
     <div class="go-quick-dock" role="toolbar" aria-label="Syndicate Operations">
-      <button type="button" class="go-dock-btn is-active" id="dock-build-btn" data-tab="slot">
+      <button type="button" class="go-dock-btn is-active" id="dock-build-btn" data-tab="slot" aria-label="Build and inspect">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 4v12M4 10h12"/></svg>
-        <span>Build / Inspect</span>
+        <span>Build</span>
       </button>
-      <button type="button" class="go-dock-btn" id="dock-lt-btn" data-tab="lieutenants">
+      <button type="button" class="go-dock-btn" id="dock-lt-btn" data-tab="lieutenants" aria-label="Lieutenants">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
-        <span>Lieutenants</span>
+        <span>Crew</span>
       </button>
-      <button type="button" class="go-dock-btn" id="dock-territory-btn" data-tab="territory">
+      <button type="button" class="go-dock-btn" id="dock-territory-btn" data-tab="territory" aria-label="Territory">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17.5s5.5-4.8 5.5-9A5.5 5.5 0 0 0 4.5 8.5c0 4.2 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>
-        <span>Territory &amp; R&amp;D</span>
+        <span>Land</span>
+      </button>
+      <button type="button" class="go-dock-btn" id="dock-lab-btn" data-tab="research" aria-label="Research">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 3h5M8.5 3v4.5L4 15.5a1.5 1.5 0 0 0 1.3 2.2h9.4a1.5 1.5 0 0 0 1.3-2.2L11.5 7.5V3"/></svg>
+        <span>Lab</span>
       </button>
     </div>
 
@@ -207,12 +216,22 @@
 
       <div class="go-title-actions">
         <button type="button" class="go-cta-btn" id="btn-start-operation">Launch Operation</button>
+        <button type="button" class="go-secondary-btn" id="btn-sandbox">Sandbox</button>
         <button type="button" class="go-secondary-btn" id="btn-new-operation" hidden>Reset &amp; Start Fresh</button>
       </div>
     </div>
   </div>
 
-  <script src="vendor/phaser.min.js"></script>
+  <div class="go-tutorial" id="tutorial-bar" hidden>
+    <p id="tutorial-text"></p>
+    <button type="button" id="tutorial-next">Next</button>
+  </div>
+  <div class="go-event" id="event-card" hidden>
+    <p class="go-event-kicker">Dispatch</p>
+    <h3 id="event-title"></h3>
+    <p id="event-body"></p>
+    <div class="go-event-actions" id="event-actions"></div>
+  </div>
   <script type="module" src="main.js"></script>
 </body>
 </html>

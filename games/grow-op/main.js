@@ -4,8 +4,10 @@ import { GOODS, STRAINS } from './data/goods.js';
 import { BUILDINGS, BUILDING_LIST } from './data/buildings.js';
 import { REGIONS, BUILD_SLOTS, LIEUTENANTS, ACTS } from './data/missions.js';
 import { ICONS, iconForCategory } from './data/icons.js';
+import { RESEARCH } from './data/research.js';
 import { CartelSimulation } from './simulation.js';
 import { MapScene } from './scene.js';
+import { createAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -16,10 +18,19 @@ function fmtCash(n) {
   return '$' + v.toLocaleString();
 }
 
-let activeTab = 'slot'; // 'slot' | 'lieutenants' | 'territory'
+let activeTab = 'slot';
 let drawerOpen = true;
 let phaserGame = null;
 let mapScene = null;
+const audio = createAudio();
+
+const TUTORIAL = [
+  'Río Plata is already running: plantation, barn, warehouse, pier.',
+  'Trucks follow the roads. A crate that reaches the pier becomes dirty cash.',
+  'Build a taxi front on an empty plot. Fronts turn dirty cash into clean cash.',
+  'Heat belongs to a district. Bribe the town, or a raid locks the buildings.',
+  'Crew and the lab tab are how the valley becomes three provinces.'
+];
 
 const sim = new CartelSimulation((evt) => {
   handleSimEvent(evt);
@@ -32,6 +43,10 @@ if (hasSave) {
 }
 
 function handleSimEvent(evt) {
+  if (mapScene && mapScene.sys && mapScene.sys.isActive()) mapScene.fx(evt);
+  if (evt.type === 'exported' || evt.type === 'laundered') audio.coin();
+  if (evt.type === 'built') audio.build();
+  if (evt.type === 'raid_started') audio.siren();
   if (
     evt.type === 'built' ||
     evt.type === 'upgraded' ||
@@ -41,7 +56,10 @@ function handleSimEvent(evt) {
     evt.type === 'lieutenant_hired' ||
     evt.type === 'raid_started' ||
     evt.type === 'raid_cleared' ||
-    evt.type === 'mission_completed'
+    evt.type === 'mission_completed' ||
+    evt.type === 'research' ||
+    evt.type === 'event' ||
+    evt.type === 'event_resolved'
   ) {
     renderDrawerContent();
   }
@@ -166,6 +184,33 @@ function renderHud() {
     const latest = st.feed[0];
     $('feed-ticker').innerHTML = `<strong>[${latest.time}]</strong> ${latest.text}`;
   }
+  renderTutorial();
+  renderEvent();
+}
+
+function renderTutorial() {
+  const bar = $('tutorial-bar');
+  if (!bar) return;
+  const show = sim.state.started && !sim.state.tutorialDone && sim.state.mode === 'campaign';
+  bar.hidden = !show;
+  if (!show) return;
+  const step = Math.min(TUTORIAL.length - 1, sim.state.tutorialStep || 0);
+  $('tutorial-text').textContent = TUTORIAL[step];
+  $('tutorial-next').textContent = step >= TUTORIAL.length - 1 ? 'Got it' : 'Next';
+}
+
+function renderEvent() {
+  const card = $('event-card');
+  if (!card) return;
+  const ev = sim.state.event;
+  card.hidden = !ev || !sim.state.started;
+  if (!ev) return;
+  $('event-title').textContent = ev.title;
+  $('event-body').textContent = ev.body;
+  const actions = $('event-actions');
+  actions.innerHTML = ev.choices.map((choice, i) =>
+    `<button type="button" class="go-action-btn" data-choice="${i}">${choice.label}</button>`
+  ).join('');
 }
 
 function formatChainLine(bDef) {
@@ -480,18 +525,73 @@ function renderDrawerContent() {
     }).join('');
 
     body.innerHTML = regionsHtml + strainsHtml;
+    return;
+  }
+
+  if (activeTab === 'research') {
+    $('drawer-kicker').textContent = 'Lab';
+    $('drawer-title').textContent = 'Research';
+    body.innerHTML = RESEARCH.map((node) => {
+      const owned = !!st.research[node.id];
+      const locked = node.requires && !st.research[node.requires];
+      const prev = RESEARCH.find((item) => item.id === node.requires);
+      return `
+        <div class="go-card">
+          <div class="go-card-top">
+            <div>
+              <h3 class="go-card-name">${node.name}</h3>
+              <span class="go-card-role">${owned ? 'On the books' : locked ? 'Needs ' + (prev ? prev.name : 'prior work') : '$' + node.cost + ' clean'}</span>
+            </div>
+          </div>
+          <p class="go-card-desc">${node.desc}</p>
+          <div class="go-btn-row">
+            <button type="button" class="go-action-btn" data-action="buy-research" data-research="${node.id}" ${owned || locked || st.cleanCash < node.cost ? 'disabled' : ''}>
+              ${owned ? 'Installed' : 'Research'}
+            </button>
+          </div>
+        </div>`;
+    }).join('');
   }
 }
 
-function wireEvents() {
-  // Title modal buttons
-  $('btn-start-operation').addEventListener('click', () => {
+function begin(mode) {
+  audio.start();
+  if (mode === 'sandbox') sim.startSandbox();
+  else if (!sim.state.started) {
     sim.state.started = true;
     sim.save();
-    $('title-modal').hidden = true;
+  }
+  $('title-modal').hidden = true;
+  if (mapScene) mapScene.frameValley(false);
+  renderHud();
+  renderDrawerContent();
+}
+
+function wireEvents() {
+  $('btn-start-operation').addEventListener('click', () => begin('campaign'));
+  $('btn-sandbox').addEventListener('click', () => begin('sandbox'));
+
+  $('tutorial-next').addEventListener('click', () => {
+    const step = (sim.state.tutorialStep || 0) + 1;
+    if (step >= TUTORIAL.length) sim.state.tutorialDone = true;
+    else sim.state.tutorialStep = step;
+    sim.save();
+    renderHud();
+  });
+  $('event-actions').addEventListener('click', (e) => {
+    const choice = e.target.closest('[data-choice]');
+    if (!choice) return;
+    audio.click();
+    sim.resolveEvent(Number(choice.dataset.choice));
     renderHud();
     renderDrawerContent();
   });
+  $('btn-mute').addEventListener('click', () => {
+    const muted = audio.toggle();
+    $('btn-mute').textContent = muted ? 'Muted' : 'Sound';
+    $('btn-mute').setAttribute('aria-pressed', muted ? 'true' : 'false');
+  });
+  if (audio.muted) $('btn-mute').textContent = 'Muted';
 
   const resetBtn = $('btn-new-operation');
   if (resetBtn) {
@@ -598,6 +698,8 @@ function wireEvents() {
       sim.assignLieutenant(btn.dataset.lt, btn.dataset.region);
     } else if (action === 'select-strain') {
       sim.selectStrain(btn.dataset.strain);
+    } else if (action === 'buy-research') {
+      sim.buyResearch(btn.dataset.research);
     }
     renderDrawerContent();
     renderHud();
@@ -627,6 +729,7 @@ function bootPhaser() {
   phaserGame.registry.set('onRegionSelected', (regionId) => {
     selectRegion(regionId);
   });
+  phaserGame.registry.set('bindScene', (scene) => { mapScene = scene; });
 
   phaserGame.events.on('ready', () => {
     mapScene = phaserGame.scene.getScene('MapScene');
@@ -657,13 +760,27 @@ window.__growOp = {
     renderHud();
     renderDrawerContent();
   },
+  focusSmuggle: () => { if (mapScene) mapScene.focusOnSlot('slot_rp_pier', true); },
+  frameOverview: () => { if (mapScene) mapScene.frameOverview(); },
+  frameValley: () => { if (mapScene) mapScene.frameValley(true); },
+  openPanel: (tab) => {
+    activeTab = tab;
+    drawerOpen = true;
+    syncDrawerVisibility();
+    renderDrawerContent();
+  },
+  dismissChrome: () => {
+    sim.state.tutorialDone = true;
+    if (sim.state.event) sim.resolveEvent(Math.min(1, (sim.state.event.choices.length || 1) - 1));
+    drawerOpen = false;
+    syncDrawerVisibility();
+    renderHud();
+  },
   fastForward: (seconds = 60) => {
     const wasStarted = sim.state.started;
     sim.state.started = true;
     const steps = Math.ceil(seconds * 4);
-    for (let i = 0; i < steps; i++) {
-      sim.step(0.25);
-    }
+    for (let i = 0; i < steps; i++) sim.step(0.25);
     sim.state.started = wasStarted;
     renderHud();
     renderDrawerContent();

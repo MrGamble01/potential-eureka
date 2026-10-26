@@ -517,7 +517,7 @@ html, body {
 /* Mode tabs inside drawer: Build / Inspect | Lieutenants | Territory & Genetics */
 .go-drawer-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--go-border);
@@ -754,19 +754,20 @@ html, body {
 }
 
 .go-dock-btn {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--go-ink);
   font-family: var(--go-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .go-dock-btn:hover,
@@ -944,6 +945,14 @@ html, body {
 }
 
 @media (max-width: 640px) {
+  .go-dock-btn {
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 2px;
+    font-size: 10px;
+    flex: 1;
+    min-width: 0;
+  }
   .go-topbar {
     flex-wrap: wrap;
     padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
@@ -1021,14 +1030,33 @@ html, body {
     justify-content: space-around;
   }
 
-  .go-dock-btn {
-    padding: 0 8px;
-    font-size: 11px;
-    flex: 1;
-    justify-content: center;
-  }
-
   .go-pillar-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.go-tutorial, .go-event {
+  position: fixed;
+  z-index: 35;
+  left: 14px;
+  right: auto;
+  width: min(420px, calc(100vw - 28px));
+  background: rgba(18, 22, 30, 0.96);
+  border: 1px solid rgba(126, 184, 255, 0.45);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+.go-tutorial { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; }
+.go-tutorial[hidden], .go-event[hidden] { display: none; }
+.go-tutorial p, .go-event p { margin: 0; color: #d5deea; font-size: 13px; line-height: 1.35; }
+.go-tutorial button, .go-event button { min-height: 40px; }
+.go-event { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+.go-event-kicker { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #8ec5ff; margin-bottom: 4px; }
+.go-event h3 { margin: 0 0 4px; font-family: Outfit, sans-serif; font-size: 16px; }
+.go-event-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+@media (max-width: 640px) {
+  .go-tutorial, .go-event { left: 10px; width: calc(100vw - 20px); }
+  .go-subhud { max-height: 92px; }
+  .go-objective-card { padding: 8px 10px; }
 }
