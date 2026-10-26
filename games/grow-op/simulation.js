@@ -4,7 +4,18 @@ import { GOODS, STRAINS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
 import { REGIONS, BUILD_SLOTS, LIEUTENANTS, ACTS, MISSIONS, findRoadPath } from './data/missions.js';
 import { RESEARCH } from './data/research.js';
-import { EVENTS } from './data/events.js';
+import { DIFFICULTIES, createZoneBook } from './data/zones.js';
+import { createLotBook, roleForBuilding } from './data/lots.js';
+import { createRivalBook } from './data/rivals.js';
+import { storageCap, capExtra } from './systems/chains.js';
+import { buyAndConvert, buyLot, startDemolish, buildNew, buildOnPlot, negotiate, intimidate, tickLots } from './systems/lots.js';
+import { unlockZone, refreshControl, syncMap, measureControl } from './systems/zones.js';
+import { notePatrol, tickPatrol, hide, hiddenNow } from './systems/heat.js';
+import { planRoute, tickShipments } from './systems/routes.js';
+import { tickRivals } from './systems/rivals.js';
+import { crewMods, tickLoyalty } from './systems/lieutenants.js';
+import { nextEvent, applyEffect } from './systems/events.js';
+import { gameplayView } from './systems/hooks.js';
 
 export const SAVE_KEY = 'growop-cartel-v1';
 
@@ -86,11 +97,24 @@ export function createInitialState() {
     research: {},
     tutorialStep: 0,
     tutorialDone: false,
+    mapOpen: false,
+    reputation: 0,
+    difficulty: 'standard',
+    difficultyMods: null,
     heatIntro: false,
+    heatHandled: 0,
+    patrolsHandled: 0,
+    routesCompleted: 0,
+    routesLost: 0,
+    routeLuck: null,
     event: null,
     eventCooldown: 16,
     eventsSeen: [],
     priceMood: 1,
+    zones: createZoneBook(),
+    lots: createLotBook(),
+    rivals: createRivalBook(),
+    shipments: [],
     feed: [
       { id: 1, time: 'Day 1', text: 'Río Plata supply chain online: Plantation → Drying Barn → Warehouse → River Pier.', kind: 'info' },
       { id: 2, time: 'Day 1', text: 'Dirty Cash pays for field expansion. Launder Dirty Cash through Fronts to earn Clean Cash.', kind: 'ok' }
@@ -148,6 +172,10 @@ export class CartelSimulation {
         activeTrucks: Array.isArray(data.activeTrucks) ? data.activeTrucks : [],
         feed: Array.isArray(data.feed) ? data.feed : fresh.feed,
         research: data.research && typeof data.research === 'object' ? data.research : {},
+        zones: data.zones && typeof data.zones === 'object' ? { ...fresh.zones, ...data.zones } : fresh.zones,
+        lots: data.lots && typeof data.lots === 'object' ? { ...fresh.lots, ...data.lots } : fresh.lots,
+        rivals: data.rivals && typeof data.rivals === 'object' ? { ...fresh.rivals, ...data.rivals } : fresh.rivals,
+        shipments: Array.isArray(data.shipments) ? data.shipments : [],
         mode: data.mode === 'sandbox' ? 'sandbox' : 'campaign',
         timeOfDay: Number.isFinite(data.timeOfDay) ? data.timeOfDay : fresh.timeOfDay,
         weather: data.weather === 'rain' || data.weather === 'fog' ? data.weather : 'clear',
@@ -167,8 +195,18 @@ export class CartelSimulation {
         } else {
           this.state.slots[s.id].inputBuffer = this.state.slots[s.id].inputBuffer || {};
           this.state.slots[s.id].outputBuffer = this.state.slots[s.id].outputBuffer || {};
+          this.state.slots[s.id].constructLeft = Number(this.state.slots[s.id].constructLeft) || 0;
         }
       }
+      for (const lot of Object.values(this.state.lots)) {
+        lot.inputBuffer = lot.inputBuffer || {};
+        lot.outputBuffer = lot.outputBuffer || {};
+      }
+      this.state.mapOpen = !!this.state.mapOpen;
+      this.state.reputation = Number(this.state.reputation) || 0;
+      this.state.heatHandled = Number(this.state.heatHandled) || 0;
+      this.state.routesCompleted = Number(this.state.routesCompleted) || 0;
+      refreshControl(this.state);
       return true;
     } catch (e) {
       return false;
@@ -181,18 +219,35 @@ export class CartelSimulation {
     this.save();
   }
 
-  startSandbox() {
+  startSandbox(difficulty = 'standard') {
+    const diff = DIFFICULTIES[difficulty] || DIFFICULTIES.standard;
     this.state = createInitialState();
     this.state.mode = 'sandbox';
     this.state.started = true;
     this.state.act = 3;
-    this.state.dirtyCash = 8000;
-    this.state.cleanCash = 4500;
+    this.state.difficulty = diff.id;
+    this.state.difficultyMods = { heat: diff.heat, rival: diff.rival, prices: diff.prices };
+    this.state.dirtyCash = diff.dirty;
+    this.state.cleanCash = diff.clean;
+    this.state.reputation = diff.reputation;
     this.state.tutorialDone = true;
     this.state.tutorialStep = 99;
+    this.state.mapOpen = true;
     for (const region of Object.values(this.state.regions)) region.unlocked = true;
-    this.log('Sandbox open. Every district is already on the map.', 'ok');
+    for (const zone of Object.values(this.state.zones)) zone.unlocked = true;
+    refreshControl(this.state);
+    this.log(`Sandbox open on ${diff.label}. Country and Puerto Sol are both on the map.`, 'ok');
     this.save();
+  }
+
+  setDifficulty(id) {
+    if (this.state.mode !== 'sandbox') return { ok: false, reason: 'Difficulty is a sandbox setting.' };
+    const diff = DIFFICULTIES[id];
+    if (!diff) return { ok: false, reason: 'Unknown difficulty.' };
+    this.state.difficulty = diff.id;
+    this.state.difficultyMods = { heat: diff.heat, rival: diff.rival, prices: diff.prices };
+    this.save();
+    return { ok: true, difficulty: diff.id };
   }
 
   log(text, kind = 'info') {
@@ -213,21 +268,13 @@ export class CartelSimulation {
 
   getRegionModifiers(regionId) {
     const regDef = REGIONS.find((r) => r.id === regionId);
-    let prodMult = regDef ? regDef.fertilityBonus : 1.0;
-    let launderMult = 1.0;
-    let heatMult = 1.0;
-    let defensePower = 0;
-
-    for (const lt of LIEUTENANTS) {
-      const ls = this.state.lieutenants[lt.id];
-      if (ls && ls.hired && ls.regionId === regionId) {
-        prodMult *= lt.prodMult;
-        launderMult *= lt.launderMult;
-        heatMult *= lt.heatMult;
-        defensePower += lt.defensePower;
-      }
-    }
+    const crew = crewMods(this.state, regionId);
+    let prodMult = (regDef ? regDef.fertilityBonus : 1.0) * crew.prodMult;
+    let launderMult = crew.launderMult;
+    let heatMult = crew.heatMult;
+    const defensePower = crew.defensePower;
     if (this.state.research.lights) prodMult *= 1.2;
+    if (this.state.research.irrigation && regionId === 'rio_plata') prodMult *= 1.08;
     if (this.state.research.filters) heatMult *= 0.75;
     return { prodMult, launderMult, heatMult, defensePower };
   }
@@ -274,26 +321,42 @@ export class CartelSimulation {
     if (!reg || !reg.unlocked) return { ok: false, reason: 'Unlock this region first.' };
     if (slot.rivalControlled) return { ok: false, reason: 'Clear the rival outpost on this lot first.' };
     if (slot.buildingId) return { ok: false, reason: 'Slot already occupied.' };
+    const lotGate = this.state.lots && this.state.lots[slotId];
+    if (lotGate && lotGate.kind === 'standing' && lotGate.phase !== 'cleared') {
+      return { ok: false, reason: 'Buy and convert the building, or buy the lot and demolish it.' };
+    }
     if (this.state.mode !== 'sandbox' && this.state.act < bDef.act) {
       return { ok: false, reason: `Unlocks in Act ${bDef.act}.` };
     }
-    if (this.state.dirtyCash < bDef.buildCostDirty) {
-      return { ok: false, reason: `Need $${bDef.buildCostDirty - Math.floor(this.state.dirtyCash)} more Dirty Cash.` };
+    const openPlot = lotGate && lotGate.kind === 'open';
+    const dirtyCost = openPlot ? Math.round(bDef.buildCostDirty * 0.85) : bDef.buildCostDirty;
+    const cleanCost = openPlot ? Math.round(bDef.buildCostClean * 0.85) : bDef.buildCostClean;
+    if (this.state.dirtyCash < dirtyCost) {
+      return { ok: false, reason: `Need $${dirtyCost - Math.floor(this.state.dirtyCash)} more Dirty Cash.` };
     }
-    if (this.state.cleanCash < bDef.buildCostClean) {
-      return { ok: false, reason: `Need $${bDef.buildCostClean - Math.floor(this.state.cleanCash)} more Clean Cash.` };
+    if (this.state.cleanCash < cleanCost) {
+      return { ok: false, reason: `Need $${cleanCost - Math.floor(this.state.cleanCash)} more Clean Cash.` };
     }
 
-    this.state.dirtyCash -= bDef.buildCostDirty;
-    this.state.cleanCash -= bDef.buildCostClean;
+    this.state.dirtyCash -= dirtyCost;
+    this.state.cleanCash -= cleanCost;
     slot.buildingId = buildingId;
     slot.level = 1;
     slot.progress = 0;
+    slot.constructLeft = 3;
     slot.inputBuffer = {};
     slot.outputBuffer = {};
     slot.raidLocked = false;
+    if (lotGate) {
+      lotGate.owned = true;
+      lotGate.owner = 'player';
+      lotGate.phase = 'building';
+      lotGate.buildingId = buildingId;
+      lotGate.role = roleForBuilding(buildingId);
+      lotGate.constructLeft = 3;
+    }
 
-    this.log(`Constructed ${bDef.name} at ${slotDef.label}.`, 'ok');
+    this.log(`Constructed ${bDef.name} at ${slotDef.label}. Crews need a few seconds.`, 'ok');
     if (!this.state.tutorialDone && (buildingId === 'taxi_co' || bDef.role === 'launderer')) this.advanceTutorial(1);
     this.onEvent({ type: 'built', slotId, buildingId });
     this.checkMissionsAndActs();
@@ -374,6 +437,15 @@ export class CartelSimulation {
     this.state.cleanCash -= costClean;
     slot.rivalControlled = false;
     this.state.rival.defeatedCount += 1;
+    const clearedLot = this.state.lots && this.state.lots[slotId];
+    if (clearedLot) {
+      clearedLot.owned = true;
+      clearedLot.owner = 'player';
+      clearedLot.access = 'intimidated';
+      clearedLot.phase = 'cleared';
+      clearedLot.role = null;
+      clearedLot.buildingId = null;
+    }
     reg.heat = Math.min(95, reg.heat + 16);
 
     this.log(`Seized ${slotDef.label} from Los Lobos Syndicate!`, 'ok');
@@ -456,6 +528,11 @@ export class CartelSimulation {
     const cleanCost = reg.raidActive ? 250 : 160;
     const dirtyCost = reg.raidActive ? 350 : 200;
 
+    if (this.state.research && this.state.research.bribe_net) {
+      cleanCost = Math.round(cleanCost * 0.8);
+      dirtyCost = Math.round(dirtyCost * 0.8);
+    }
+
     if (this.state.cleanCash >= cleanCost) {
       this.state.cleanCash -= cleanCost;
     } else if (this.state.dirtyCash >= dirtyCost) {
@@ -464,9 +541,18 @@ export class CartelSimulation {
       return { ok: false, reason: `Need $${cleanCost} Clean Cash (or $${dirtyCost} Dirty Cash) to pay off ${regDef.townName} commandante.` };
     }
 
-    reg.heat = Math.max(5, reg.heat - 48);
+    const drop = this.state.research && this.state.research.bribe_net ? 56 : 48;
+    reg.heat = Math.max(5, reg.heat - drop);
     reg.loyalty = Math.min(100, reg.loyalty + 10);
+    const zoneMirror = this.state.zones && this.state.zones[regionId];
+    if (zoneMirror) zoneMirror.heat = reg.heat;
+    if (reg.patrol && reg.patrol.active) {
+      reg.patrol = null;
+      this.state.patrolsHandled = (this.state.patrolsHandled || 0) + 1;
+      this.state.heatHandled = (this.state.heatHandled || 0) + 1;
+    }
     if (reg.raidActive) {
+      this.state.heatHandled = (this.state.heatHandled || 0) + 1;
       reg.raidActive = false;
       reg.raidTimer = 0;
       if (reg.raidTargetSlot && this.state.slots[reg.raidTargetSlot]) {
@@ -476,7 +562,8 @@ export class CartelSimulation {
       this.log(`Commandante paid off in ${regDef.name} — federal raid called off!`, 'ok');
       this.onEvent({ type: 'raid_cleared', regionId });
     } else {
-      this.log(`Donated civic funds in ${regDef.townName} (-48 Regional Heat).`, 'ok');
+      this.state.heatHandled = (this.state.heatHandled || 0) + 1;
+      this.log(`Donated civic funds in ${regDef.townName} (-${drop} Regional Heat).`, 'ok');
     }
     this.save();
     return { ok: true };
@@ -534,27 +621,38 @@ export class CartelSimulation {
       const reg = this.state.regions[slot.regionId];
       if (!reg || !reg.unlocked) continue;
       if (slot.raidLocked) continue;
+      if (slot.constructLeft > 0) {
+        slot.constructLeft -= effDt;
+        const buildingLot = this.state.lots && this.state.lots[slot.slotId];
+        if (buildingLot) buildingLot.constructLeft = Math.max(0, slot.constructLeft);
+        if (slot.constructLeft > 0) continue;
+        slot.constructLeft = 0;
+        if (buildingLot) buildingLot.phase = 'operating';
+      }
 
       const mods = this.getRegionModifiers(slot.regionId);
       const levelMult = 1 + (slot.level - 1) * 0.4;
       let speedMult = mods.prodMult * levelMult * (slot.buildingId === 'plantation' ? strain.speedMult : 1.0);
       if (this.state.weather === 'rain') speedMult *= 0.84;
       if (this.state.weather === 'fog') speedMult *= 0.92;
+      if (hiddenNow(this.state, reg)) speedMult *= 0.15;
 
       // Ambient heat contribution
       const night = this.state.timeOfDay > 0.72 || this.state.timeOfDay < 0.18;
-      const heatDelta = (bDef.heatRate || 0) * effDt * mods.heatMult * (night ? 0.8 : 1) * (slot.buildingId === 'plantation' ? strain.heatMult : 1.0);
+      const diffHeat = this.state.difficultyMods ? this.state.difficultyMods.heat : 1;
+      const heatDelta = (bDef.heatRate || 0) * effDt * mods.heatMult * diffHeat * (night ? 0.8 : 1) * (slot.buildingId === 'plantation' ? strain.heatMult : 1.0);
       reg.heat = Math.max(0, Math.min(100, (Number(reg.heat) || 0) + heatDelta * 0.35));
 
       if (bDef.role === 'producer') {
         const outCount = this.getStorageCount(slot.outputBuffer);
-        if (outCount < bDef.storageCap) {
+        const cap = storageCap(bDef, slot.level, capExtra(this.state, bDef));
+        if (outCount < cap) {
           slot.progress += (effDt * speedMult) / bDef.cycleSeconds;
           if (slot.progress >= 1) {
             slot.progress = 0;
             for (const [goodId, qty] of Object.entries(bDef.outputs)) {
               slot.outputBuffer[goodId] = Math.min(
-                bDef.storageCap,
+                cap,
                 (slot.outputBuffer[goodId] || 0) + qty
               );
             }
@@ -566,7 +664,8 @@ export class CartelSimulation {
           ([goodId, reqQty]) => (slot.inputBuffer[goodId] || 0) >= reqQty
         );
         const outCount = this.getStorageCount(slot.outputBuffer);
-        if (hasInputs && outCount < bDef.storageCap) {
+        const cap = storageCap(bDef, slot.level, capExtra(this.state, bDef));
+        if (hasInputs && outCount < cap) {
           slot.progress += (effDt * speedMult) / bDef.cycleSeconds;
           if (slot.progress >= 1) {
             slot.progress = 0;
@@ -575,7 +674,7 @@ export class CartelSimulation {
             }
             for (const [goodId, outQty] of Object.entries(bDef.outputs)) {
               slot.outputBuffer[goodId] = Math.min(
-                bDef.storageCap,
+                cap,
                 (slot.outputBuffer[goodId] || 0) + outQty
               );
             }
@@ -679,8 +778,18 @@ export class CartelSimulation {
       const cooling = (regDef.baseHeatDecay + (mods.defensePower >= 8 ? 0.55 : 0)) * effDt * 0.35;
       reg.heat = Math.max(0, reg.heat - cooling);
 
-      if (!reg.raidActive && reg.heat >= 96) {
+      if (hiddenNow(this.state, reg)) reg.heat = Math.max(0, reg.heat - effDt * 0.35);
+      notePatrol(reg, reg.heat);
+      const patrolSignal = tickPatrol(reg, effDt);
+      if (!reg.raidActive && (reg.heat >= 96 || patrolSignal === 'escalate')) {
         this.triggerRegionalRaid(reg.id);
+      }
+      const mirror = this.state.zones && this.state.zones[reg.id];
+      if (mirror) {
+        mirror.heat = reg.heat;
+        mirror.patrol = reg.patrol;
+        mirror.raidActive = reg.raidActive;
+        mirror.hiddenUntil = reg.hiddenUntil || 0;
       }
 
       if (reg.raidActive) {
@@ -724,6 +833,19 @@ export class CartelSimulation {
       }
     }
 
+    tickLots(this.state, effDt);
+    const arrived = tickShipments(this.state, effDt);
+    if (arrived && arrived.ok) {
+      this.log(`Shipment landed: $${arrived.earned} dirty.`, 'ok');
+      this.onEvent({ type: 'route_landed', earned: arrived.earned, vehicleId: arrived.shipment.vehicleId });
+      this.checkMissionsAndActs();
+    } else if (arrived && arrived.caught) {
+      this.log(`A ${arrived.shipment.vehicleId} was stopped. The load is gone.`, 'danger');
+      this.onEvent({ type: 'route_caught', vehicleId: arrived.shipment.vehicleId });
+    }
+    refreshControl(this.state);
+    syncMap(this.state);
+
     // 4. Autosave periodically
     this.saveTimer += dt;
     if (this.saveTimer >= 5) {
@@ -733,27 +855,11 @@ export class CartelSimulation {
   }
 
   onDailyTick() {
-    // Periodic upkeep & rival pressure
-    this.state.rival.threatTimer = Math.max(0, this.state.rival.threatTimer - 4);
-    if (this.state.rival.threatTimer <= 0) {
-      this.state.rival.threatTimer = 55;
-      // Check if rival still has outposts
-      const rivalSlots = Object.values(this.state.slots).filter((s) => s.rivalControlled);
-      if (rivalSlots.length > 0) {
-        this.state.regions.rio_plata.heat = Math.min(95, this.state.regions.rio_plata.heat + 6);
-        const targets = Object.values(this.state.slots).filter((s) => s.buildingId && s.regionId === 'rio_plata' && !s.raidLocked);
-        const hit = targets[Math.floor(Math.random() * targets.length)];
-        if (hit) {
-          hit.raidLocked = true;
-          hit.rivalLock = true;
-          hit.rivalUntil = this.state.elapsedSeconds + 16;
-          const name = BUILDINGS[hit.buildingId] ? BUILDINGS[hit.buildingId].shortName : 'a lot';
-          this.log(`Los Lobos shut ${name} for a short raid.`, 'danger');
-          this.onEvent({ type: 'rival_raid', slotId: hit.slotId });
-        } else {
-          this.log('Los Lobos scouts spotted near the valley border (+6 Heat).', 'warn');
-        }
-      }
+    tickLoyalty(this.state);
+    const notes = tickRivals(this.state, this.state.elapsedSeconds);
+    for (const note of notes) {
+      this.log(note.text, note.slotId || note.lotId ? 'danger' : 'warn');
+      if (note.slotId || note.lotId) this.onEvent({ type: 'rival_raid', slotId: note.slotId || null, lotId: note.lotId || null, rivalId: note.rivalId });
     }
   }
 
@@ -905,10 +1011,9 @@ export class CartelSimulation {
     this.state.eventCooldown -= effDt;
     if (this.state.eventCooldown > 0) return;
     if (!this.state.tutorialDone && this.state.elapsedSeconds < 45) return;
-    const unseen = EVENTS.filter((card) => !this.state.eventsSeen.includes(card.id));
-    const pool = unseen.length ? unseen : EVENTS;
-    const card = pool[Math.floor(Math.random() * pool.length)];
-    this.state.event = { id: card.id, title: card.title, body: card.body, choices: card.choices.map((c) => ({ label: c.label, effect: c.effect })) };
+    const card = nextEvent(this.state);
+    if (!card) return;
+    this.state.event = card;
     this.onEvent({ type: 'event', event: this.state.event });
   }
 
@@ -934,49 +1039,13 @@ export class CartelSimulation {
     if (!card) return { ok: false, reason: 'No open card.' };
     const choice = card.choices[index];
     if (!choice) return { ok: false, reason: 'That choice is not on the card.' };
-    const effect = choice.effect;
-    const valley = this.state.regions.rio_plata;
-    if (effect === 'fiesta_pay') {
-      if (this.state.cleanCash < 220) return { ok: false, reason: 'Need $220 Clean Cash.' };
-      this.state.cleanCash -= 220;
-      valley.loyalty = Math.min(100, valley.loyalty + 12);
-      valley.heat = Math.max(0, valley.heat - 8);
-      this.log('The band plays. Puerto Plata stays friendly.', 'ok');
-    } else if (effect === 'fiesta_skip') {
-      valley.loyalty = Math.max(0, valley.loyalty - 6);
-      this.log('The plaza notices the empty envelope.', 'warn');
-    } else if (effect === 'checkpoint_pay') {
-      if (this.state.dirtyCash < 180) return { ok: false, reason: 'Need $180 Dirty Cash.' };
-      this.state.dirtyCash -= 180;
-      valley.heat = Math.max(0, valley.heat - 10);
-      this.log('The captain waves the next trucks through.', 'ok');
-    } else if (effect === 'checkpoint_wait') {
-      valley.heat = Math.min(100, valley.heat + 8);
-      this.log('The line sits. Heat climbs while the tent stays up.', 'warn');
-    } else if (effect === 'surge_on') {
-      this.state.priceMood = 1.35;
-      this.log('Coast buyers are paying 35% over list.', 'ok');
-    } else if (effect === 'storm_on') {
-      this.state.weather = 'rain';
-      this.state.weatherTimer = 20;
-      this.log('Crews stay on the plots through the rain.', 'info');
-    } else if (effect === 'storm_hide') {
-      this.state.weather = 'fog';
-      this.state.weatherTimer = 16;
-      valley.heat = Math.max(0, valley.heat - 12);
-      this.log('Crews lay low. The valley cools under the fog.', 'ok');
-    } else if (effect === 'informant_buy') {
-      if (this.state.cleanCash < 300) return { ok: false, reason: 'Need $300 Clean Cash.' };
-      this.state.cleanCash -= 300;
-      const cesar = this.state.lieutenants.cesar;
-      if (cesar) cesar.loyalty = Math.max(20, cesar.loyalty - 4);
-      this.log('A gate on the ridge is marked. The assault will be cheaper.', 'ok');
-      this.state.informant = true;
-    }
+    const applied = applyEffect(this.state, choice.effect);
+    if (!applied.ok) return applied;
+    if (applied.text) this.log(applied.text, applied.kind || 'ok');
     this.state.eventsSeen.push(card.id);
     this.state.event = null;
     this.state.eventCooldown = 24;
-    this.onEvent({ type: 'event_resolved', id: card.id, effect });
+    this.onEvent({ type: 'event_resolved', id: card.id, effect: choice.effect });
     this.save();
     return { ok: true };
   }
@@ -1005,6 +1074,15 @@ export class CartelSimulation {
       current = slots.filter((s) => !!s.buildingId).length;
     } else if (mission.metric === 'aerodromeBuilt') {
       current = slots.some((s) => s.buildingId === 'aerodrome') ? 1 : 0;
+    } else if (mission.metric === 'ruralZones') {
+      current = ['jungle_alta', 'river_delta', 'mesa_strip'].filter((id) => this.state.zones[id] && this.state.zones[id].unlocked).length;
+    } else if (mission.metric === 'cityProperties') {
+      current = Object.values(this.state.lots).filter((lot) => {
+        if (!lot.owned || !lot.zoneId || !lot.zoneId.startsWith('ps_')) return false;
+        return lot.phase === 'operating' || lot.phase === 'building' || lot.phase === 'cleared' || lot.phase === 'encumbered';
+      }).length;
+    } else if (mission.metric === 'cityControl') {
+      current = Math.max(0, ...Object.values(this.state.zones).filter((zone) => String(zone.id).startsWith('ps_')).map((zone) => zone.control || 0));
     }
 
     let extraMet = true;
@@ -1070,6 +1148,7 @@ export class CartelSimulation {
       this.state.totalCleanEarned += mission.rewardClean;
       this.state.totalDirtyEarned += mission.rewardDirty;
       this.state.missionIndex += 1;
+      this.state.reputation = (this.state.reputation || 0) + 6;
 
       const nextM = this.getCurrentMission();
       if (nextM && nextM.act > this.state.act) {
@@ -1078,5 +1157,131 @@ export class CartelSimulation {
       this.log(`Objective Complete: ${mission.title} (+$${mission.rewardClean} Clean Cash)!`, 'ok');
       this.onEvent({ type: 'mission_completed', mission });
     }
+  }
+
+  // --- Gameplay hooks. The scene reads gameplayView() and calls these. ---
+
+  gameplayView() {
+    return gameplayView(this);
+  }
+
+  recommendedSlot() {
+    if (!this.state.tutorialDone && (this.state.tutorialStep || 0) === 0) return 'slot_rp_town1';
+    return null;
+  }
+
+  observeFrame() {
+    syncMap(this.state);
+    refreshControl(this.state);
+  }
+
+  zoneControl(zoneId) {
+    refreshControl(this.state);
+    return measureControl(this.state, zoneId);
+  }
+
+  unlockZone(zoneId) {
+    syncMap(this.state);
+    const result = unlockZone(this.state, zoneId);
+    if (!result.ok) return result;
+    this.log(`Opened ${result.zone.name}.`, 'ok');
+    this.onEvent({ type: 'zone_unlocked', zoneId });
+    refreshControl(this.state);
+    this.checkMissionsAndActs();
+    this.save();
+    return result;
+  }
+
+  buyAndConvert(lotId, role) {
+    const result = buyAndConvert(this.state, lotId, role);
+    if (!result.ok) return result;
+    this.log(`Converted the lot into a ${role}.`, 'ok');
+    this.onEvent({ type: 'converted', lotId, role });
+    refreshControl(this.state);
+    this.checkMissionsAndActs();
+    this.save();
+    return result;
+  }
+
+  buyLot(lotId) {
+    const result = buyLot(this.state, lotId);
+    if (!result.ok) return result;
+    this.log('Deed signed. The old building still stands until you demolish it.', 'ok');
+    this.onEvent({ type: 'lot_bought', lotId });
+    this.save();
+    return result;
+  }
+
+  startDemolish(lotId) {
+    const result = startDemolish(this.state, lotId);
+    if (!result.ok) return result;
+    this.log(`Demolition crew on site, ${result.seconds}s.`, 'info');
+    this.onEvent({ type: 'demolish_started', lotId });
+    this.save();
+    return result;
+  }
+
+  buildNew(lotId, buildingId) {
+    const result = buildNew(this.state, lotId, buildingId);
+    if (!result.ok) return result;
+    this.log('New build started on the cleared lot.', 'ok');
+    this.onEvent({ type: 'build_started', lotId, buildingId });
+    this.save();
+    return result;
+  }
+
+  buildOnPlot(lotId, buildingId) {
+    if (this.state.slots[lotId]) return this.buildOnSlot(lotId, buildingId);
+    const result = buildOnPlot(this.state, lotId, buildingId);
+    if (!result.ok) return result;
+    this.log('Crews broke ground on an open plot.', 'ok');
+    this.onEvent({ type: 'build_started', lotId, buildingId });
+    this.checkMissionsAndActs();
+    this.save();
+    return result;
+  }
+
+  negotiate(lotId) {
+    const result = negotiate(this.state, lotId);
+    if (!result.ok) return result;
+    this.log('The owner will sell.', 'ok');
+    this.save();
+    return result;
+  }
+
+  intimidate(lotId, spendDirty = 0) {
+    const result = intimidate(this.state, lotId, spendDirty);
+    if (!result.ok) {
+      if (result.reason) this.log(result.reason, 'warn');
+      return result;
+    }
+    this.log('They handed over the conversation. The price dropped.', 'ok');
+    this.save();
+    return result;
+  }
+
+  planRoute(request) {
+    const result = planRoute(this.state, request || {});
+    if (!result.ok) return result;
+    this.log(`${result.shipment.vehicleId} loaded with ${result.shipment.qty}. ${Math.ceil(result.shipment.left)}s out.`, 'info');
+    this.onEvent({ type: 'route_planned', shipment: result.shipment });
+    this.save();
+    return result;
+  }
+
+  hideFromPatrol(id) {
+    const result = hide(this.state, id);
+    if (!result.ok) return result;
+    const region = this.state.regions[id];
+    const zone = this.state.zones[id];
+    if (region && zone) {
+      zone.heat = region.heat;
+      zone.hiddenUntil = region.hiddenUntil;
+      zone.patrol = null;
+    }
+    this.log(result.slipped ? 'Lights out. The patrol rolled past.' : 'The block goes quiet.', result.slipped ? 'ok' : 'info');
+    this.onEvent({ type: 'hid', id });
+    this.save();
+    return result;
   }
 }

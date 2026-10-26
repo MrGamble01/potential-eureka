@@ -46,6 +46,40 @@ export const EVENTS = [
       { label: 'Buy the note ($300 Clean)', effect: 'informant_buy' },
       { label: 'Burn the note', effect: 'none' }
     ]
+  },
+  {
+    id: 'gas_widow',
+    requiresMap: true,
+    minAct: 1,
+    once: true,
+    title: 'The Widow at the Pump',
+    body: 'The gas station at mile 4 is hers. Pay what she asks and she prices the deed to move. Walk off and the valley notices.',
+    choices: [
+      { label: 'Pay her price ($200 Clean)', effect: 'widow_pay' },
+      { label: 'Walk away', effect: 'widow_walk' }
+    ]
+  },
+  {
+    id: 'army_column',
+    minAct: 1,
+    title: 'Army Column',
+    body: 'A truck column is using the valley road as a shortcut. Money sends them around. Darkness makes them miss the turn.',
+    choices: [
+      { label: 'Pay the sergeant ($260 Dirty)', effect: 'army_pay' },
+      { label: 'Cut the lights', effect: 'army_dark' }
+    ]
+  },
+  {
+    id: 'sol_rumor',
+    requiresMap: true,
+    minAct: 2,
+    once: true,
+    title: 'A Name in Puerto Sol',
+    body: 'A dock clerk will say your name in Barrio Sol. It is not a purchase. It is a reputation.',
+    choices: [
+      { label: 'Let him talk', effect: 'sol_rumor' },
+      { label: 'Stay unknown', effect: 'none' }
+    ]
   }
 ];
 

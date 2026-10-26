@@ -49,6 +49,54 @@ export const RESEARCH = [
     requires: 'seal',
     column: 2,
     desc: 'Aerodrome runs pay another 15% and a plane starts flying the highland loop.'
+  },
+  {
+    id: 'irrigation',
+    name: 'Ditch Irrigation',
+    cost: 500,
+    requires: 'lights',
+    column: 1,
+    desc: 'Plantations hold 4 more crates and the valley stops stalling at the shed.'
+  },
+  {
+    id: 'cold_store',
+    name: 'Cold Storage',
+    cost: 650,
+    requires: 'filters',
+    column: 2,
+    desc: 'Warehouses hold 12 more crates. The chain stops backing up at the crossroads.'
+  },
+  {
+    id: 'bribe_net',
+    name: 'Bribe Network',
+    cost: 800,
+    requires: 'manifests',
+    column: 3,
+    desc: 'Cooling a district costs less and drops a little more heat.'
+  },
+  {
+    id: 'decoys',
+    name: 'Decoy Manifests',
+    cost: 600,
+    requires: 'radios',
+    column: 1,
+    desc: 'Planned truck, boat, and plane runs are 6% less likely to be stopped.'
+  },
+  {
+    id: 'hulls',
+    name: 'Reinforced Hulls',
+    cost: 750,
+    requires: 'seal',
+    column: 2,
+    desc: 'Boats carry 4 more crates.'
+  },
+  {
+    id: 'night_ops',
+    name: 'Night Approaches',
+    cost: 1100,
+    requires: 'pilots',
+    column: 3,
+    desc: 'Planes are a little safer and a little faster.'
   }
 ];
 

@@ -765,6 +765,8 @@ function bootPhaser() {
 // Expose deterministic testing & inspection API on window.__growOp
 window.__growOp = {
   sim,
+  // Plain snapshot for the scene/HUD agent. Methods live on sim.
+  gameplay: () => sim.gameplayView(),
   selectSlot: (id) => selectSlot(id, true),
   openBuildMenuOnEmptySlot: () => {
     const emptySlot = Object.values(sim.state.slots).find(
