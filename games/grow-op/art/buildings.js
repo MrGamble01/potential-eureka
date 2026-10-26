@@ -28,6 +28,8 @@ const STUCCO = '#f7efe2';
 const BADGE = {
   plantation: '#3d8a46',
   coffee_estate: '#c4553a',
+  stash: '#8a6238',
+  hq: '#e0b43a',
   highland_farm: '#67a04a',
   drying_barn: '#c47a3a',
   packaging_mill: '#c47a3a',
@@ -285,7 +287,7 @@ const PAINTERS = {
     glass(g, 176, 126, 3, ctx);
     K.door(g, 214, 158, 14, 24, '#4e3018');
     chimney(g, 210, 104);
-    sign(g, 168, 108, 'CAFE', TERRA);
+    sign(g, 168, 108, 'FINCA', TERRA);
     gear(g, 200, 112, ctx);
   },
 
@@ -811,6 +813,61 @@ const PAINTERS = {
     gear(g, 70, 114, ctx);
   },
 
+  stash(g, ctx) {
+    K.walls(g, 84, 158, 100, 42, 46, '#e7d3b0', '#c9aa84');
+    K.gable(g, 84, 158, 100, 42, 46, 20, '#6b4428', '#4a2e18');
+    g.fillStyle = '#6b4428';
+    g.fillRect(102, 124, 24, 16);
+    g.strokeStyle = '#e2c48a';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(104, 126);
+    g.lineTo(124, 138);
+    g.moveTo(124, 126);
+    g.lineTo(104, 138);
+    g.stroke();
+    K.door(g, 148, 158, 14, 24, '#2a241c');
+    g.strokeStyle = '#e6c35a';
+    g.lineWidth = 1.6;
+    g.beginPath();
+    g.arc(155, 144, 3.2, Math.PI, 0);
+    g.stroke();
+    g.fillStyle = '#e6c35a';
+    g.fillRect(152, 144, 6, 5);
+    K.crate(g, 200, 162, 0.95);
+    K.crate(g, 220, 166, 0.7);
+    K.barrel(g, 62, 162);
+    gear(g, 150, 100, ctx);
+  },
+
+  hq(g, ctx) {
+    g.fillStyle = '#cbb892';
+    g.fillRect(58, 156, 156, 8);
+    K.box(g, 66, 154, 136, 50, 60, '#f4e2c6', '#c9aa84', '#8a3224');
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle = '#f7efe2';
+      g.fillRect(82 + i * 28, 110, 8, 44);
+      g.fillStyle = '#e6c35a';
+      g.fillRect(80 + i * 28, 106, 12, 5);
+    }
+    K.door(g, 122, 154, 18, 28, '#4e3018');
+    g.strokeStyle = '#6b4428';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(176, 94);
+    g.lineTo(176, 68);
+    g.stroke();
+    g.fillStyle = '#c4553a';
+    g.beginPath();
+    g.moveTo(176, 70);
+    g.lineTo(196, 75);
+    g.lineTo(176, 82);
+    g.closePath();
+    g.fill();
+    sign(g, 96, 84, 'HQ', '#1c2838', '#e6c35a');
+    gear(g, 160, 90, ctx);
+  },
+
   farmhouse(g, ctx) {
     fence(g, 28, 164, 6);
     K.walls(g, 78, 158, 110, 46, 42, '#e7d3b0', '#c9aa84');
@@ -1067,79 +1124,7 @@ export function renderStructure(kind, mode, night, level) {
   return c;
 }
 
-export function renderScaffold(frame) {
-  const c = K.canvas();
-  const g = c.getContext('2d');
-  K.groundPad(g);
-  g.fillStyle = '#cbb892';
-  g.beginPath();
-  g.ellipse(146, 162, 78, 16, 0, 0, Math.PI * 2);
-  g.fill();
-  K.walls(g, 84, 160, 112, 40, 18, '#e7d3b0', '#c9aa84');
-  const lift = frame ? 8 : 0;
-  g.strokeStyle = '#d7dde4';
-  g.lineWidth = 3;
-  const poles = [72, 112, 156, 196, 228];
-  for (const x of poles) {
-    g.beginPath();
-    g.moveTo(x, 170);
-    g.lineTo(x + 6, 62);
-    g.stroke();
-  }
-  g.strokeStyle = '#8a6238';
-  g.lineWidth = 2;
-  g.beginPath();
-  g.moveTo(72, 166);
-  g.lineTo(220, 78 + lift);
-  g.moveTo(220, 166);
-  g.lineTo(78, 86 - lift);
-  g.stroke();
-  g.fillStyle = WOOD_L;
-  g.fillRect(68, 118 - lift, 156, 6);
-  g.fillRect(80, 86 + (frame ? 0 : 6), 120, 5);
-  g.fillStyle = '#e24b3a';
-  g.fillRect(150 + (frame ? 18 : 0), 70, 8, 8);
-  g.strokeStyle = '#1c140e';
-  g.beginPath();
-  g.moveTo(154 + (frame ? 18 : 0), 70);
-  g.lineTo(154, 52);
-  g.stroke();
-  K.guard(g, frame ? 168 : 120, 150);
-  K.crate(g, 40, 164, 0.7);
-  return c;
-}
-
-export function renderDust(frame) {
-  const c = K.canvas();
-  const g = c.getContext('2d');
-  K.groundPad(g);
-  g.fillStyle = '#8a7a68';
-  const piles = 8 - frame;
-  for (let i = 0; i < piles; i++) {
-    g.fillRect(78 + ((i * 37) % 120), 150 - (i % 3) * 5 - frame, 12, 7);
-  }
-  g.fillStyle = TERRA_D;
-  g.fillRect(96 + frame * 4, 146, 14, 6);
-  g.fillRect(150 - frame * 3, 152, 10, 5);
-  const alpha = 0.78 - frame * 0.07;
-  const grow = 1.25 + frame * 0.3;
-  const clouds = [[112, 110, 42], [158, 88, 52], [94, 80, 32], [192, 116, 40], [138, 60, 28]];
-  for (const [x, y, r] of clouds) {
-    g.fillStyle = `rgba(176,156,128,${alpha})`;
-    g.beginPath();
-    g.ellipse(x + frame * 8, y - frame * 10, r * grow, r * 0.62 * grow, 0, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.fillStyle = `rgba(90,70,48,${alpha * 0.55})`;
-  g.beginPath();
-  g.ellipse(150, 132 - frame * 6, 40 * grow, 16 * grow, 0, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = WOOD;
-  g.fillRect(130 + frame * 12, 68 - frame * 16, 10, 5);
-  g.fillRect(96 - frame * 10, 80 - frame * 14, 8, 6);
-  g.fillRect(170 + frame * 6, 92 - frame * 12, 7, 4);
-  return c;
-}
+export { renderScaffold, renderCrumble as renderDust } from './construction.js';
 
 export function renderPlot(night) {
   const c = K.canvas();
@@ -1175,35 +1160,43 @@ export function renderCleared(night) {
   const c = K.canvas();
   const g = c.getContext('2d');
   K.groundPad(g);
-  g.fillStyle = night ? '#3a3228' : '#c4a36a';
+  g.fillStyle = night ? '#3a3228' : '#b08958';
   g.beginPath();
-  g.ellipse(150, 150, 96, 28, 0, 0, Math.PI * 2);
+  g.ellipse(150, 156, 112, 32, 0, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = night ? '#2a241c' : '#a68458';
+  g.fillStyle = night ? '#241c14' : '#7a5a38';
   g.beginPath();
-  g.ellipse(150, 154, 70, 16, 0.08, 0, Math.PI * 2);
+  g.ellipse(146, 160, 74, 16, -0.08, 0, Math.PI * 2);
   g.fill();
-  g.strokeStyle = 'rgba(70,48,28,0.4)';
-  g.lineWidth = 2;
+  g.strokeStyle = 'rgba(60,40,24,0.45)';
+  g.lineWidth = 3;
   g.beginPath();
-  g.moveTo(70, 156);
-  g.quadraticCurveTo(140, 146, 220, 158);
-  g.moveTo(78, 164);
-  g.quadraticCurveTo(150, 154, 214, 166);
+  g.moveTo(62, 158);
+  g.quadraticCurveTo(140, 146, 230, 162);
+  g.moveTo(70, 168);
+  g.quadraticCurveTo(150, 156, 220, 170);
   g.stroke();
+  g.fillStyle = '#6e6256';
+  g.fillRect(96, 146, 22, 8);
+  g.fillRect(108, 142, 10, 6);
   g.fillStyle = TERRA_D;
-  g.fillRect(96, 146, 12, 6);
-  g.fillRect(110, 150, 8, 4);
-  g.fillStyle = SIDE;
-  g.fillRect(186, 144, 14, 6);
+  g.fillRect(168, 150, 16, 6);
+  g.fillRect(180, 146, 8, 5);
+  g.fillStyle = '#8a939c';
+  g.fillRect(132, 152, 14, 6);
+  g.strokeStyle = 'rgba(244,241,234,0.75)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(70, 150);
+  g.lineTo(220, 144);
+  g.stroke();
   g.fillStyle = '#f4f1ea';
-  g.fillRect(64, 142, 3, 16);
-  g.fillRect(228, 140, 3, 16);
+  g.fillRect(66, 142, 3, 20);
+  g.fillRect(216, 136, 3, 20);
   g.fillStyle = '#c4553a';
-  g.fillRect(62, 140, 7, 5);
-  g.fillRect(226, 138, 7, 5);
-  K.weeds(g, 78, 160);
-  K.weeds(g, 200, 166);
+  g.fillRect(64, 140, 7, 5);
+  g.fillRect(214, 134, 7, 5);
+  K.weeds(g, 54, 166);
   if (night) {
     g.fillStyle = 'rgba(255,210,122,0.28)';
     g.beginPath();

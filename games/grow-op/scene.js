@@ -385,7 +385,8 @@ export class MapScene extends window.Phaser.Scene {
         propertyType: lot ? lot.propertyType : null,
         owned: lot ? !!lot.owned : !!state.buildingId,
         size: lot ? lot.size : null,
-        constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0
+        constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0,
+        demolishLeft: (lot && lot.demolishLeft) || 0
       };
       const key = typeof Art.textureKey === 'function'
         ? Art.textureKey(ctx)
@@ -533,7 +534,8 @@ export class MapScene extends window.Phaser.Scene {
       propertyType: lot ? lot.propertyType : null,
       owned: lot ? !!lot.owned : !!state.buildingId,
       size: lot ? lot.size : null,
-      constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0
+      constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0,
+      demolishLeft: (lot && lot.demolishLeft) || 0
     };
     if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
       Art.drawKeyed(g, Art.textureKey(ctx), ctx);
@@ -986,7 +988,8 @@ export class MapScene extends window.Phaser.Scene {
           propertyType: prop,
           owned: !!live.owned,
           size: live.size || lot.size || null,
-          constructLeft: live.constructLeft || 0
+          constructLeft: live.constructLeft || 0,
+          demolishLeft: live.demolishLeft || 0
         };
         const key = Art.textureKey(ctx);
         if (key !== node.key) {
