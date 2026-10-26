@@ -283,9 +283,9 @@ html, body {
 }
 
 .go-mix-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  right: 386px;
   z-index: 40;
   width: min(200px, calc(100vw - 24px));
   padding: 10px 12px;
@@ -1119,6 +1119,11 @@ html, body {
     height: min(62vh, 490px);
     border-radius: 18px 18px 0 0;
     z-index: 40;
+  }
+
+  .go-mix-panel {
+    top: 108px;
+    right: 10px;
   }
 
   .go-drawer.is-collapsed {
