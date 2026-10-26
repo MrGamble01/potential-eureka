@@ -43,7 +43,7 @@ export const REGIONS = [
     fertilityBonus: 1.25,
     baseHeatDecay: 0.35,
     townName: 'Villa Dorada',
-    bounds: { x: 1560, y: 210, w: 680, h: 860 },
+    bounds: { x: 1560, y: 180, w: 860, h: 900 },
     headerPos: { x: 1900, y: 258 },
     unlockPos: { x: 1900, y: 316 },
     tint: 0x475442,
@@ -59,8 +59,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_farm1',
     regionId: 'rio_plata',
     label: 'Old Garage Clearing',
-    x: 310,
-    y: 450,
+    x: 280,
+    y: 460,
     allowedCategories: ['production', 'processing', 'logistics'],
     starterBuilding: 'plantation'
   },
@@ -68,8 +68,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_barn1',
     regionId: 'rio_plata',
     label: 'Creekside Mill Lot',
-    x: 590,
-    y: 430,
+    x: 640,
+    y: 440,
     allowedCategories: ['processing', 'production', 'logistics'],
     starterBuilding: 'drying_barn'
   },
@@ -77,8 +77,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_wh1',
     regionId: 'rio_plata',
     label: 'Crossroads Depot',
-    x: 440,
-    y: 605,
+    x: 450,
+    y: 700,
     allowedCategories: ['logistics', 'processing', 'laundering'],
     starterBuilding: 'warehouse'
   },
@@ -86,8 +86,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_south',
     regionId: 'rio_plata',
     label: 'South Valley Terrace',
-    x: 685,
-    y: 585,
+    x: 760,
+    y: 680,
     allowedCategories: ['production', 'processing', 'logistics'],
     starterBuilding: null
   },
@@ -95,8 +95,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_town1',
     regionId: 'rio_plata',
     label: 'Puerto Plata Plaza',
-    x: 615,
-    y: 775,
+    x: 640,
+    y: 920,
     allowedCategories: ['laundering', 'logistics', 'production'],
     starterBuilding: null
   },
@@ -104,8 +104,8 @@ export const BUILD_SLOTS = [
     id: 'slot_rp_pier',
     regionId: 'rio_plata',
     label: 'Río Plata Embarcadero',
-    x: 320,
-    y: 805,
+    x: 280,
+    y: 960,
     allowedCategories: ['export'],
     starterBuilding: 'river_pier'
   },
@@ -115,8 +115,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_west',
     regionId: 'san_marco',
     label: 'Highway 4 Industrial Lot',
-    x: 980,
-    y: 455,
+    x: 1020,
+    y: 460,
     allowedCategories: ['processing', 'logistics', 'production'],
     starterBuilding: null
   },
@@ -124,8 +124,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_plaza',
     regionId: 'san_marco',
     label: 'Avenida Central Front',
-    x: 1290,
-    y: 445,
+    x: 1360,
+    y: 460,
     allowedCategories: ['laundering', 'logistics'],
     starterBuilding: null
   },
@@ -133,8 +133,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_hub',
     regionId: 'san_marco',
     label: 'San Marco Freight Yard',
-    x: 1115,
-    y: 625,
+    x: 1180,
+    y: 720,
     allowedCategories: ['logistics', 'processing', 'laundering'],
     starterBuilding: null
   },
@@ -142,8 +142,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_bank',
     regionId: 'san_marco',
     label: 'Cathedral Financial Block',
-    x: 1385,
-    y: 615,
+    x: 1480,
+    y: 700,
     allowedCategories: ['laundering', 'processing'],
     starterBuilding: null
   },
@@ -151,8 +151,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sm_port',
     regionId: 'san_marco',
     label: 'San Marco Customs Pier',
-    x: 1215,
-    y: 825,
+    x: 1280,
+    y: 960,
     allowedCategories: ['export', 'logistics'],
     starterBuilding: null
   },
@@ -162,8 +162,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_ridge1',
     regionId: 'sierra_alta',
     label: 'Cordillera North Terrace',
-    x: 1715,
-    y: 465,
+    x: 1780,
+    y: 480,
     allowedCategories: ['production', 'processing'],
     starterBuilding: null,
     rivalControlled: true
@@ -172,8 +172,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_lab1',
     regionId: 'sierra_alta',
     label: 'Canyon Hideout',
-    x: 2045,
-    y: 475,
+    x: 2140,
+    y: 500,
     allowedCategories: ['processing', 'production', 'logistics'],
     starterBuilding: null,
     rivalControlled: true
@@ -182,8 +182,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_town',
     regionId: 'sierra_alta',
     label: 'Villa Dorada Outpost',
-    x: 1755,
-    y: 675,
+    x: 1820,
+    y: 760,
     allowedCategories: ['laundering', 'logistics', 'processing'],
     starterBuilding: null
   },
@@ -191,8 +191,8 @@ export const BUILD_SLOTS = [
     id: 'slot_sa_airstrip',
     regionId: 'sierra_alta',
     label: 'Mesa Grande Runway',
-    x: 2040,
-    y: 780,
+    x: 2120,
+    y: 940,
     allowedCategories: ['export'],
     starterBuilding: null
   }
@@ -202,56 +202,51 @@ export const BUILD_SLOTS = [
 // stay on the pavement instead of cutting across the districts.
 export const ROAD_NETWORK = [
   [
-    { x: 310, y: 450 },
-    { x: 440, y: 450 },
-    { x: 590, y: 430 },
-    { x: 980, y: 455 },
-    { x: 1115, y: 450 },
-    { x: 1290, y: 445 },
-    { x: 1715, y: 465 },
-    { x: 1755, y: 465 },
-    { x: 2045, y: 475 }
+    { x: 280, y: 460 },
+    { x: 450, y: 460 },
+    { x: 640, y: 440 },
+    { x: 1020, y: 460 },
+    { x: 1180, y: 460 },
+    { x: 1360, y: 460 },
+    { x: 1480, y: 460 },
+    { x: 1780, y: 480 },
+    { x: 1820, y: 480 },
+    { x: 2140, y: 500 }
   ],
   [
-    { x: 440, y: 450 },
-    { x: 440, y: 605 },
-    { x: 320, y: 805 }
+    { x: 450, y: 460 },
+    { x: 450, y: 700 },
+    { x: 280, y: 960 }
   ],
   [
-    { x: 440, y: 605 },
-    { x: 615, y: 775 },
-    { x: 1215, y: 825 }
+    { x: 450, y: 700 },
+    { x: 640, y: 920 },
+    { x: 1280, y: 960 }
   ],
   [
-    { x: 590, y: 430 },
-    { x: 685, y: 585 }
+    { x: 640, y: 440 },
+    { x: 760, y: 680 },
+    { x: 640, y: 920 }
   ],
   [
-    { x: 685, y: 585 },
-    { x: 615, y: 775 }
+    { x: 1180, y: 460 },
+    { x: 1180, y: 720 },
+    { x: 1280, y: 960 }
   ],
   [
-    { x: 1115, y: 450 },
-    { x: 1115, y: 625 },
-    { x: 1215, y: 825 }
+    { x: 1360, y: 460 },
+    { x: 1480, y: 700 },
+    { x: 1280, y: 960 }
   ],
   [
-    { x: 1290, y: 445 },
-    { x: 1385, y: 615 }
+    { x: 1780, y: 480 },
+    { x: 1820, y: 480 },
+    { x: 1820, y: 760 },
+    { x: 2120, y: 940 }
   ],
   [
-    { x: 1385, y: 615 },
-    { x: 1215, y: 825 }
-  ],
-  [
-    { x: 1715, y: 465 },
-    { x: 1755, y: 465 },
-    { x: 1755, y: 675 },
-    { x: 2040, y: 780 }
-  ],
-  [
-    { x: 2045, y: 475 },
-    { x: 2040, y: 780 }
+    { x: 2140, y: 500 },
+    { x: 2120, y: 940 }
   ]
 ];
 

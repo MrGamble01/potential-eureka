@@ -86,6 +86,7 @@ export function createInitialState() {
     research: {},
     tutorialStep: 0,
     tutorialDone: false,
+    heatIntro: false,
     event: null,
     eventCooldown: 16,
     eventsSeen: [],
@@ -153,6 +154,7 @@ export class CartelSimulation {
         weatherTimer: Number.isFinite(data.weatherTimer) ? data.weatherTimer : fresh.weatherTimer,
         tutorialStep: Math.max(0, Math.floor(Number(data.tutorialStep) || 0)),
         tutorialDone: !!data.tutorialDone,
+        heatIntro: !!data.heatIntro,
         event: data.event && data.event.id ? data.event : null,
         eventCooldown: Number.isFinite(data.eventCooldown) ? data.eventCooldown : fresh.eventCooldown,
         eventsSeen: Array.isArray(data.eventsSeen) ? data.eventsSeen.filter((id) => typeof id === 'string') : [],
@@ -292,7 +294,7 @@ export class CartelSimulation {
     slot.raidLocked = false;
 
     this.log(`Constructed ${bDef.name} at ${slotDef.label}.`, 'ok');
-    if (!this.state.tutorialDone && (buildingId === 'taxi_co' || bDef.role === 'launderer')) this.advanceTutorial(4);
+    if (!this.state.tutorialDone && (buildingId === 'taxi_co' || bDef.role === 'launderer')) this.advanceTutorial(1);
     this.onEvent({ type: 'built', slotId, buildingId });
     this.checkMissionsAndActs();
     this.save();
@@ -612,6 +614,13 @@ export class CartelSimulation {
               this.state.totalDirtyEarned += earnedDirty;
               this.state.totalCleanEarned += earnedClean;
               this.state.totalExportedUnits += shippedUnits;
+              if (!this.state.tutorialDone && !this.state.heatIntro) {
+                this.state.heatIntro = true;
+                reg.heat = Math.min(92, reg.heat + 28);
+                this.advanceTutorial(3);
+                this.log('The pier run spiked heat in the valley. Cool it before a raid.', 'warn');
+                this.onEvent({ type: 'heat_spike', regionId: reg.id });
+              }
               this.onEvent({
                 type: 'exported',
                 slotId: slot.slotId,
@@ -637,6 +646,7 @@ export class CartelSimulation {
               this.state.cleanCash += cleanOut;
               this.state.totalCleanEarned += cleanOut;
               reg.loyalty = Math.min(100, reg.loyalty + bDef.loyaltyBonus);
+              if (!this.state.tutorialDone && this.state.tutorialStep < 2) this.advanceTutorial(2);
               this.onEvent({
                 type: 'laundered',
                 slotId: slot.slotId,
@@ -861,10 +871,11 @@ export class CartelSimulation {
     }
     if (this.state.priceMood > 1) this.state.priceMood = Math.max(1, this.state.priceMood - effDt * 0.01);
     if (!this.state.tutorialDone && this.state.mode === 'campaign') {
-      if (this.state.elapsedSeconds > 20 && this.state.tutorialStep < 1) this.state.tutorialStep = 1;
-      if (this.state.elapsedSeconds > 70 && this.state.tutorialStep < 3) this.state.tutorialStep = 3;
-      if (this.state.elapsedSeconds > 130 && this.state.tutorialStep < 4) this.state.tutorialStep = 4;
-      if (this.state.elapsedSeconds > 170) this.state.tutorialDone = true;
+      const t = this.state.elapsedSeconds;
+      if (this.state.tutorialStep < 1 && t > 55) this.state.tutorialStep = 1;
+      if (this.state.tutorialStep < 2 && t > 95) this.state.tutorialStep = 2;
+      if (this.state.tutorialStep < 3 && t > 130) this.state.tutorialStep = 3;
+      if (t > 175) this.state.tutorialDone = true;
     }
     if (this.state.event) return;
     this.state.eventCooldown -= effDt;

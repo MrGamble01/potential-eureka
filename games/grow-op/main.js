@@ -25,11 +25,11 @@ let mapScene = null;
 const audio = createAudio();
 
 const TUTORIAL = [
-  'Río Plata is already running: plantation, barn, warehouse, pier.',
-  'Trucks follow the roads. A crate that reaches the pier becomes dirty cash.',
-  'Build a taxi front on an empty plot. Fronts turn dirty cash into clean cash.',
-  'Heat belongs to a district. Bribe the town, or a raid locks the buildings.',
-  'Crew and the lab tab are how the valley becomes three provinces.'
+  'Puerto Plata is marked. Tap Build, choose the Taxi Fleet, and construct it. That washes dirty cash.',
+  'A truck is on the valley road. Follow the crate from the plantation to the pier.',
+  'The taxi front just turned dirty bills into clean cash. Clean cash unlocks the next district.',
+  'The pier run spiked heat in Río Plata. Bribe the town before the police lock a building.',
+  'You have the loop. Crew buffs a district. The lab spends clean cash on lasting edges.'
 ];
 
 const sim = new CartelSimulation((evt) => {
@@ -562,7 +562,18 @@ function begin(mode) {
     sim.save();
   }
   $('title-modal').hidden = true;
-  if (mapScene) mapScene.frameValley(false);
+  if (mode === 'campaign' && !sim.state.tutorialDone) {
+    sim.state.selectedSlotId = 'slot_rp_town1';
+    sim.state.selectedRegionId = 'rio_plata';
+    if (window.innerWidth > 720) {
+      activeTab = 'slot';
+      drawerOpen = true;
+    }
+  }
+  if (mapScene) {
+    if (mode === 'campaign' && !sim.state.tutorialDone) mapScene.focusOnSlot('slot_rp_town1', false);
+    else mapScene.frameValley(false);
+  }
   renderHud();
   renderDrawerContent();
 }
@@ -763,6 +774,7 @@ window.__growOp = {
   focusSmuggle: () => { if (mapScene) mapScene.focusOnSlot('slot_rp_pier', true); },
   frameOverview: () => { if (mapScene) mapScene.frameOverview(); },
   frameValley: () => { if (mapScene) mapScene.frameValley(true); },
+  frameClose: () => { if (mapScene) mapScene.frameClose(true); },
   openPanel: (tab) => {
     activeTab = tab;
     drawerOpen = true;
