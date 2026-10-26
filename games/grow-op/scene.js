@@ -1,10 +1,19 @@
-// Grow Op: San Verde '84 — top-down regional world.
-// Terrain, 3/4 buildings, road-following trucks, weather, and label LOD.
+// Grow Op: San Verde '84 — map, labels, camera, and onboarding chrome.
+//
+// Hooks for the other Grow Op branches (do not fold their files in here):
+//   art.js      drawWorld, drawFog, drawMiniTruck, paintStructure.
+//               If it also exports textureKey(ctx) and drawKeyed(g, key, ctx),
+//               structures go through that path. ctx is
+//               { buildingId, rival, level, night, progress }.
+//   simulation  recommendedSlot() and observeFrame(dt) are called when present.
+//   audio/juice registry key onJuice(evt) runs after the visual fx() below.
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
 import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, LIEUTENANTS } from './data/missions.js';
-import { WORLD_W, WORLD_H, RIVER, HARBOR, drawWorld, drawFog, paintStructure, drawMiniTruck } from './art.js';
+import * as Art from './art.js';
+
+const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
 
 const PLATES = {
   rio_plata: { x: 200, y: 340, title: 'RÍO PLATA VALLEY', sub: 'Puerto Plata' },
@@ -63,11 +72,16 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   drawTerrain() {
-    drawWorld(this.terrain, ROAD_NETWORK);
+    Art.drawWorld(this.terrain, ROAD_NETWORK);
   }
 
   drawHatch() {
-    drawFog(this.hatch, REGIONS);
+    Art.drawFog(this.hatch, REGIONS);
+  }
+
+  isNight() {
+    const hour = this.sim && this.sim.state ? this.sim.state.timeOfDay || 0 : 0;
+    return hour > 0.72 || hour < 0.18;
   }
 
   createPlates() {
@@ -245,6 +259,7 @@ export class MapScene extends window.Phaser.Scene {
     }
     if (!this.sim) this.sim = this.registry.get('sim');
     this.sim.step(dt);
+    if (typeof this.sim.observeFrame === 'function') this.sim.observeFrame(dt);
     if (this.cursors) {
       const step = 420 * dt;
       if (this.cursors.left.isDown || this.cursors.right.isDown || this.cursors.up.isDown || this.cursors.down.isDown) {
@@ -347,6 +362,10 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   recommendedSlot() {
+    if (this.sim && typeof this.sim.recommendedSlot === 'function') {
+      const picked = this.sim.recommendedSlot();
+      if (picked) return picked;
+    }
     const st = this.sim.state;
     if (!st.tutorialDone && st.tutorialStep === 0) return 'slot_rp_town1';
     const empty = Object.values(st.slots).find((s) => !s.buildingId && !s.rivalControlled && st.regions[s.regionId] && st.regions[s.regionId].unlocked);
@@ -446,7 +465,18 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   paintSite(g, state) {
-    paintStructure(g, state.buildingId, state.rivalControlled);
+    const ctx = {
+      buildingId: state.buildingId || null,
+      rival: !!state.rivalControlled,
+      level: state.level || 1,
+      night: this.isNight(),
+      progress: state.progress || 0,
+    };
+    if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+      Art.drawKeyed(g, Art.textureKey(ctx), ctx);
+      return;
+    }
+    Art.paintStructure(g, state.buildingId, state.rivalControlled);
   }
 
   syncTrucks() {
@@ -515,7 +545,7 @@ export class MapScene extends window.Phaser.Scene {
       van.at = (van.at + van.speed * dt) % 1;
       if (van.at < 0) van.at += 1;
       const p = this.along(road.map((pt) => [pt.x, pt.y]), van.at);
-      drawMiniTruck(g, p.x, p.y, van.color);
+      Art.drawMiniTruck(g, p.x, p.y, van.color);
     }
     this.plane.angle += dt * 0.45;
     const strip = BUILD_SLOTS.find((s) => s.id === 'slot_sa_airstrip');
@@ -618,22 +648,24 @@ export class MapScene extends window.Phaser.Scene {
   fx(evt) {
     if (!evt) return;
     if (evt.type === 'exported' || evt.type === 'laundered') {
-      const id = evt.slotId;
-      const def = BUILD_SLOTS.find((s) => s.id === id);
-      if (!def) return;
-      const text = evt.type === 'exported'
-        ? `+$${evt.earnedDirty || evt.earnedClean || 0}`
-        : `+$${evt.cleanEarned || 0} clean`;
-      const node = this.add.text(def.x, def.y - 20, text, {
-        fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontStyle: '700',
-        color: evt.type === 'laundered' ? '#8ec5ff' : '#7dcea0'
-      }).setOrigin(0.5).setDepth(20);
-      this.floaters.push({ node, x: def.x, y: def.y - 20, life: 1.1 });
+      const def = BUILD_SLOTS.find((s) => s.id === evt.slotId);
+      if (def) {
+        const text = evt.type === 'exported'
+          ? `+$${evt.earnedDirty || evt.earnedClean || 0}`
+          : `+$${evt.cleanEarned || 0} clean`;
+        const node = this.add.text(def.x, def.y - 20, text, {
+          fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontStyle: '700',
+          color: evt.type === 'laundered' ? '#8ec5ff' : '#7dcea0'
+        }).setOrigin(0.5).setDepth(20);
+        this.floaters.push({ node, x: def.x, y: def.y - 20, life: 1.1 });
+      }
     }
     if (evt.type === 'raid_started' || evt.type === 'rival_raid') this.cameras.main.shake(280, 0.004);
     if (evt.type === 'truck_delivered') {
       const def = BUILD_SLOTS.find((s) => s.id === evt.truck.toSlotId);
       if (def) this.puff(def.x, def.y);
     }
+    const juice = this.registry.get('onJuice');
+    if (typeof juice === 'function') juice(evt);
   }
 }

@@ -44,9 +44,6 @@ if (hasSave) {
 
 function handleSimEvent(evt) {
   if (mapScene && mapScene.sys && mapScene.sys.isActive()) mapScene.fx(evt);
-  if (evt.type === 'exported' || evt.type === 'laundered') audio.coin();
-  if (evt.type === 'built') audio.build();
-  if (evt.type === 'raid_started') audio.siren();
   if (
     evt.type === 'built' ||
     evt.type === 'upgraded' ||
@@ -745,6 +742,12 @@ function bootPhaser() {
   };
 
   phaserGame = new window.Phaser.Game(config);
+  phaserGame.registry.set('onJuice', (evt) => {
+    if (!evt) return;
+    if (evt.type === 'exported' || evt.type === 'laundered') audio.coin();
+    if (evt.type === 'built') audio.build();
+    if (evt.type === 'raid_started' || evt.type === 'rival_raid') audio.siren();
+  });
   phaserGame.registry.set('sim', sim);
   phaserGame.registry.set('onSlotSelected', (slotId) => {
     selectSlot(slotId, true);
