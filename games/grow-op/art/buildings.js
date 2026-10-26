@@ -47,6 +47,9 @@ const BADGE = {
   banco_regional: '#e0b43a',
   office_tower: '#3ee0ff',
   rival: '#c4553a',
+  fish_house: '#1c6e86',
+  garage: '#c47a3a',
+  office: '#3ee0ff',
   casino: '#e0b43a',
   mansion: '#ff4fbf',
   laundromat: '#3ee0ff',
@@ -936,6 +939,55 @@ const PAINTERS = {
     }
   },
 
+  fish_house(g, ctx) {
+    inlet(g, 168);
+    K.box(g, 70, 150, 96, 40, 36, '#d5e8ea', '#a8c4c8', '#1c6e86');
+    awning(g, 78, 122, 78, '#c4553a');
+    glass(g, 84, 126, 3, ctx);
+    K.door(g, 140, 150, 14, 20, '#245058');
+    g.strokeStyle = '#d7dde4';
+    g.lineWidth = 1.4;
+    g.beginPath();
+    g.moveTo(48, 132);
+    g.quadraticCurveTo(70, 150, 96, 140);
+    g.moveTo(180, 128);
+    g.quadraticCurveTo(200, 148, 220, 136);
+    g.stroke();
+    K.crate(g, 186, 156, 0.7, '#c5d4dc');
+    K.barrel(g, 40, 156);
+    sign(g, 86, 104, 'FISH', '#145e86');
+    gear(g, 120, 112, ctx);
+  },
+
+  garage(g, ctx) {
+    K.box(g, 48, 158, 140, 46, 40, '#d9d3c4', '#a39888', '#4b5663');
+    g.fillStyle = '#2a3440';
+    g.fillRect(64, 126, 40, 32);
+    g.fillRect(114, 126, 40, 32);
+    g.strokeStyle = K.INK;
+    g.strokeRect(64, 126, 40, 32);
+    g.strokeRect(114, 126, 40, 32);
+    g.fillStyle = '#e6c35a';
+    g.fillRect(66, 124, 36, 3);
+    g.fillRect(116, 124, 36, 3);
+    miniCar(g, 70, 154, '#c4553a');
+    K.barrel(g, 200, 160);
+    K.crate(g, 214, 158, 0.65);
+    sign(g, 64, 104, 'GARAGE', '#1c2838', '#f0c43a');
+    gear(g, 160, 116, ctx);
+  },
+
+  office(g, ctx) {
+    const floors = 4;
+    K.box(g, 86, 164, 96, 42, floors * 16, '#e7eef4', '#b7c4d0', '#d5efe8');
+    for (let i = 0; i < floors; i++) glass(g, 98, 146 - i * 14, 3, ctx);
+    g.fillStyle = '#1c2838';
+    g.fillRect(112, 148, 28, 16);
+    K.door(g, 118, 164, 16, 16, '#e6c35a');
+    sign(g, 100, 92, 'OFFICE', '#145e86');
+    gear(g, 150, 96, ctx);
+  },
+
   town_house(g, ctx) {
     const faces = [CREAM, '#f7c9d4', '#d5efe8'];
     const roofs = [TERRA, '#7d3b5c', '#3b6973'];
@@ -973,6 +1025,22 @@ const PAINTERS = {
 function paintKind(g, kind, ctx) {
   const fn = PAINTERS[kind] || PAINTERS.warehouse;
   fn(g, ctx);
+}
+
+export function spriteKind(propertyType, size) {
+  if (propertyType === 'warehouse_old') {
+    if (size === 'large') return 'warehouse_lg';
+    if (size === 'small') return 'warehouse_sm';
+    return 'warehouse_md';
+  }
+  if (propertyType === 'freight_shed') return size === 'large' ? 'warehouse_lg' : 'warehouse_md';
+  if (propertyType === 'office') return 'office';
+  if (propertyType === 'bank') return 'banco_regional';
+  if (propertyType === 'villa') return 'mansion';
+  if (propertyType === 'hangar') return 'aerodrome';
+  if (propertyType === 'airstrip') return 'abandoned_strip';
+  if (propertyType === 'outpost') return 'rival';
+  return propertyType || 'warehouse';
 }
 
 export function renderStructure(kind, mode, night, level) {
@@ -1069,6 +1137,36 @@ export function renderDust(frame) {
   g.fillStyle = WOOD;
   g.fillRect(130 + frame * 10, 78 - frame * 14, 8, 4);
   g.fillRect(96 - frame * 8, 88 - frame * 12, 6, 5);
+  return c;
+}
+
+export function renderPlot(night) {
+  const c = K.canvas();
+  const g = c.getContext('2d');
+  K.groundPad(g);
+  g.fillStyle = night ? '#243024' : '#6f8f46';
+  g.beginPath();
+  g.ellipse(150, 150, 90, 26, 0, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = night ? 'rgba(232,220,190,0.45)' : 'rgba(90,60,30,0.45)';
+  g.lineWidth = 2;
+  g.setLineDash([6, 6]);
+  g.beginPath();
+  g.ellipse(150, 150, 78, 20, 0, 0, Math.PI * 2);
+  g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = '#f4f1ea';
+  g.fillRect(78, 138, 3, 18);
+  g.fillRect(214, 136, 3, 18);
+  g.fillStyle = '#c4553a';
+  g.fillRect(76, 136, 7, 5);
+  g.fillRect(212, 134, 7, 5);
+  if (night) {
+    g.fillStyle = 'rgba(255,210,122,0.2)';
+    g.beginPath();
+    g.arc(214, 124, 12, 0, Math.PI * 2);
+    g.fill();
+  }
   return c;
 }
 

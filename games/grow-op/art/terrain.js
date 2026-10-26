@@ -17,7 +17,10 @@ export const HARBOR = [
 ];
 
 const STAMPS = [
-  { kind: 'warehouse_sm', x: 380, y: 280, s: 0.46 },
+  { kind: 'gas_station', x: 170, y: 320, s: 0.48 },
+  { kind: 'warehouse_sm', x: 380, y: 280, s: 0.44 },
+  { kind: 'warehouse_md', x: 210, y: 760, s: 0.46 },
+  { kind: 'warehouse_lg', x: 1520, y: 880, s: 0.42 },
   { kind: 'diner', x: 1000, y: 250, s: 0.46 },
   { kind: 'motel', x: 1260, y: 250, s: 0.44 },
   { kind: 'casino', x: 1420, y: 240, s: 0.44 },
@@ -28,6 +31,8 @@ const STAMPS = [
   { kind: 'apartments', x: 1680, y: 960, s: 0.46 },
   { kind: 'town_house', x: 480, y: 1000, s: 0.48 },
   { kind: 'sawmill', x: 1980, y: 660, s: 0.48 },
+  { kind: 'fish_house', x: 1500, y: 1145, s: 0.46 },
+  { kind: 'garage', x: 1320, y: 1145, s: 0.44 },
   { kind: 'terrace', x: 1980, y: 300, s: 0.5 },
   { kind: 'terrace', x: 2320, y: 430, s: 0.5 }
 ];
@@ -188,11 +193,12 @@ function container(g, x, y, color) {
   g.strokeRect(x + 2, y + 2, 28, 12);
 }
 
-function stamp(g, kind, x, y, scale) {
-  let c = stampCache.get(kind);
+function stamp(g, kind, x, y, scale, mode) {
+  const cacheKey = `${kind}:${mode}`;
+  let c = stampCache.get(cacheKey);
   if (!c) {
-    c = renderStructure(kind, 'ambient', false, 1);
-    stampCache.set(kind, c);
+    c = renderStructure(kind, mode, false, 1);
+    stampCache.set(cacheKey, c);
   }
   g.drawImage(c, x - 150 * scale, y - 168 * scale, 300 * scale, 200 * scale);
 }
@@ -328,7 +334,7 @@ function paintWorld(roads) {
   for (let i = 0; i < STAMPS.length; i++) {
     const s = STAMPS[i];
     if (nearSlot(s.x, s.y, 150)) continue;
-    stamp(g, s.kind, s.x, s.y, s.s);
+    stamp(g, s.kind, s.x, s.y, s.s, s.kind === 'terrace' ? 'ambient' : 'sale');
   }
 
   for (let i = 0; i < 36; i++) {

@@ -372,13 +372,19 @@ export class MapScene extends window.Phaser.Scene {
       const built = !!state.buildingId && !state.rivalControlled;
       node.pulse.setVisible(!built && !state.rivalControlled && id === recommend);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
+      const lot = this.sim.state.lots && this.sim.state.lots[id];
       const ctx = {
         buildingId: state.buildingId || null,
         rival: !!state.rivalControlled,
-        level: state.level || 1,
+        level: state.level || (lot && lot.level) || 1,
         night: this.isNight(),
         progress: state.progress || 0,
-        slotId: state.slotId || id
+        slotId: state.slotId || id,
+        phase: lot ? lot.phase : '',
+        propertyType: lot ? lot.propertyType : null,
+        owned: lot ? !!lot.owned : !!state.buildingId,
+        size: lot ? lot.size : null,
+        constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0
       };
       const key = typeof Art.textureKey === 'function'
         ? Art.textureKey(ctx)
@@ -514,13 +520,19 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   paintSite(g, state) {
+    const lot = this.sim.state.lots && state.slotId ? this.sim.state.lots[state.slotId] : null;
     const ctx = {
       buildingId: state.buildingId || null,
       rival: !!state.rivalControlled,
-      level: state.level || 1,
+      level: state.level || (lot && lot.level) || 1,
       night: this.isNight(),
       progress: state.progress || 0,
-      slotId: state.slotId || null
+      slotId: state.slotId || null,
+      phase: lot ? lot.phase : '',
+      propertyType: lot ? lot.propertyType : null,
+      owned: lot ? !!lot.owned : !!state.buildingId,
+      size: lot ? lot.size : null,
+      constructLeft: state.constructLeft || (lot && lot.constructLeft) || 0
     };
     if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
       Art.drawKeyed(g, Art.textureKey(ctx), ctx);
