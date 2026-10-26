@@ -3,9 +3,12 @@
 
 import { loadMix, saveMix, clamp01 } from './mix.js';
 import { BPM, LOOP_STEPS, notesForStep } from './pattern.js';
-import { SFX } from './sfx.js';
+import { SFX, WORK_HZ } from './sfx.js';
+import { cityNotesForStep } from './city.js';
+import { zoneMix, ambienceLevels } from './zones.js';
 
 const STEP_DUR = 60 / BPM / 4;
+const CITY_STEP = 60 / 110 / 4;
 
 function makeNoise(ac) {
   const rate = ac.sampleRate || 22050;
@@ -29,11 +32,56 @@ export function createAudio(options = {}) {
   let music = null;
   let sfxBus = null;
   let tension = null;
+  let ruralBus = null;
+  let cityBus = null;
+  let ambBus = null;
+  let workBus = null;
+  let beds = null;
   let noise = null;
   let timer = null;
   let nextTime = 0;
   let step = 0;
+  let cityStep = 0;
+  let cityNext = 0;
   let tensionOn = false;
+  let ruralLevel = 1;
+  let cityLevel = 0;
+  let flavors = {};
+  let nightOn = false;
+  let workBuild = false;
+  let workDemo = false;
+  const place = { x: 480, y: 640 };
+
+  function bed(ac, type, freq, q) {
+    const src = ac.createBufferSource();
+    src.buffer = noise;
+    src.loop = true;
+    const filter = ac.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.setValueAtTime(freq, ac.currentTime || 0);
+    filter.Q.setValueAtTime(q, ac.currentTime || 0);
+    const gain = ac.createGain();
+    gain.gain.value = 0.0001;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ambBus);
+    src.start(0);
+    return gain;
+  }
+
+  function hum(ac) {
+    const gain = ac.createGain();
+    gain.gain.value = 0.0001;
+    gain.connect(ambBus);
+    for (const freq of [196, 198.4]) {
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ac.currentTime || 0);
+      osc.connect(gain);
+      osc.start(0);
+    }
+    return gain;
+  }
 
   function resume(ac) {
     if (ac && ac.state === 'suspended' && ac.resume) {
@@ -54,12 +102,32 @@ export function createAudio(options = {}) {
       music.gain.value = mix.music;
       sfxBus.gain.value = mix.sfx;
       tension.gain.value = tensionOn ? 1 : 0;
+      ruralBus = ac.createGain();
+      cityBus = ac.createGain();
+      ambBus = ac.createGain();
+      workBus = ac.createGain();
+      ruralBus.gain.value = ruralLevel;
+      cityBus.gain.value = cityLevel;
+      ambBus.gain.value = 1;
+      workBus.gain.value = 1;
+      noise = makeNoise(ac);
+      beds = {
+        insects: bed(ac, 'highpass', 3800, 0.6),
+        river: bed(ac, 'lowpass', 420, 0.7),
+        traffic: bed(ac, 'bandpass', 900, 0.8),
+        gulls: bed(ac, 'bandpass', 2400, 3),
+        neon: hum(ac)
+      };
       tension.connect(music);
+      ruralBus.connect(music);
+      cityBus.connect(music);
+      ambBus.connect(music);
       music.connect(master);
+      workBus.connect(sfxBus);
       sfxBus.connect(master);
       master.connect(ac.destination);
-      noise = makeNoise(ac);
       ctx = ac;
+      applyZones();
       return ctx;
     } catch (e) {
       ctx = null;
@@ -80,10 +148,36 @@ export function createAudio(options = {}) {
     saveMix(storage, mix);
   }
 
+  function samplePlace() {
+    const heard = zoneMix(place.x, place.y);
+    ruralLevel = heard.rural;
+    cityLevel = heard.city;
+    flavors = heard.flavors;
+    return heard;
+  }
+
+  function applyZones() {
+    if (!ctx || !ruralBus || !cityBus) return;
+    const heard = samplePlace();
+    const now = ctx.currentTime;
+    ruralBus.gain.setTargetAtTime(ruralLevel, now, 0.4);
+    cityBus.gain.setTargetAtTime(cityLevel, now, 0.4);
+    const levels = ambienceLevels(heard, nightOn);
+    for (const key of Object.keys(beds || {})) {
+      const level = levels[key] || 0;
+      beds[key].gain.setTargetAtTime(level > 0 ? level : 0.0001, now, 0.35);
+    }
+  }
+
   function voice(when, note) {
     const ac = ctx;
     if (!ac || !note) return;
-    const dest = note.bus === 'sfx' ? sfxBus : note.bus === 'tension' ? tension : music;
+    const dest = note.bus === 'sfx' ? sfxBus
+      : note.bus === 'tension' ? tension
+      : note.bus === 'city' ? cityBus
+      : note.bus === 'work' ? workBus
+      : note.bus === 'amb' ? ambBus
+      : ruralBus;
     const dur = Math.max(0.04, note.dur || 0.1);
     const peak = Math.max(0.0002, note.gain || 0.02);
     const amp = ac.createGain();
@@ -126,8 +220,37 @@ export function createAudio(options = {}) {
     while (nextTime < horizon && guard < LOOP_STEPS) {
       const notes = notesForStep(step);
       for (let i = 0; i < notes.length; i++) voice(nextTime + (notes[i].at || 0), notes[i]);
+      if ((workBuild || workDemo) && step % 8 === 0) {
+        voice(nextTime, {
+          bus: 'work',
+          wave: workDemo && !workBuild ? 'sine' : 'triangle',
+          freq: workDemo && !workBuild ? 70 : WORK_HZ,
+          dur: 0.08,
+          gain: 0.07
+        });
+      }
       step = (step + 1) % LOOP_STEPS;
       nextTime += STEP_DUR;
+      guard += 1;
+    }
+    guard = 0;
+    while (cityNext < horizon && guard < LOOP_STEPS) {
+      if (cityLevel > 0.04) {
+        const live = Object.entries(flavors).filter((pair) => pair[1] >= 0.08);
+        const list = live.length ? live : [['downtown', cityLevel]];
+        for (let f = 0; f < list.length; f++) {
+          const weight = list[f][1];
+          const notes = cityNotesForStep(cityStep, list[f][0]);
+          for (let i = 0; i < notes.length; i++) {
+            const note = notes[i];
+            voice(cityNext + (note.at || 0), Object.assign({}, note, {
+              gain: Math.max(0.0002, (note.gain || 0.02) * Math.min(1, weight))
+            }));
+          }
+        }
+      }
+      cityStep = (cityStep + 1) % LOOP_STEPS;
+      cityNext += CITY_STEP;
       guard += 1;
     }
   }
@@ -175,6 +298,7 @@ export function createAudio(options = {}) {
       apply();
       if (timer != null || mix.muted) return;
       nextTime = ac.currentTime + 0.05;
+      cityNext = ac.currentTime + 0.05;
       pump();
       timer = schedule(pump, 90);
     },
@@ -205,6 +329,20 @@ export function createAudio(options = {}) {
       tensionOn = !!on;
       if (tension && ctx) tension.gain.setTargetAtTime(tensionOn ? 1 : 0, ctx.currentTime, 0.35);
     },
+    followCamera(x, y, night) {
+      if (Number.isFinite(x)) place.x = x;
+      if (Number.isFinite(y)) place.y = y;
+      nightOn = !!night;
+      samplePlace();
+      applyZones();
+    },
+    setWork(building, demolishing) {
+      workBuild = !!building;
+      workDemo = !!demolishing;
+    },
+    get sceneMix() {
+      return { rural: ruralLevel, city: cityLevel, flavors, night: nightOn, x: place.x, y: place.y };
+    },
     play,
     build() { play('build'); },
     truckDepart() { throttled('truckDepart', 0.12, departStamp); },
@@ -217,6 +355,15 @@ export function createAudio(options = {}) {
     research() { play('research'); },
     click() { play('click'); },
     coin() { play('cashClean'); },
+    unlock() { play('unlock'); },
+    buy() { play('buy'); },
+    convert() { play('convert'); },
+    demolish() { play('demolish'); },
+    negotiateOk() { play('negotiateOk'); },
+    negotiateFail() { play('negotiateFail'); },
+    intimidate() { play('intimidate'); },
+    intimidateFail() { play('intimidateFail'); },
+    control() { play('control'); },
     cue(evt) {
       if (!evt || !evt.type) return;
       if (evt.type === 'built') api.build();
@@ -229,6 +376,16 @@ export function createAudio(options = {}) {
       else if (evt.type === 'raid_started' || evt.type === 'rival_raid') api.siren();
       else if (evt.type === 'bribed') api.bribe();
       else if (evt.type === 'research') api.research();
+      else if (evt.type === 'zone_unlocked') api.unlock();
+      else if (evt.type === 'lot_bought') api.buy();
+      else if (evt.type === 'converted') api.convert();
+      else if (evt.type === 'demolish_started') api.demolish();
+      else if (evt.type === 'build_started') api.build();
+      else if (evt.type === 'negotiate_ok') api.negotiateOk();
+      else if (evt.type === 'negotiate_fail') api.negotiateFail();
+      else if (evt.type === 'intimidate_ok') api.intimidate();
+      else if (evt.type === 'intimidate_fail') api.intimidateFail();
+      else if (evt.type === 'control_gained') api.control();
     }
   };
 

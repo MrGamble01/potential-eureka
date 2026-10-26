@@ -29,13 +29,15 @@ import { BUILDINGS } from '../data/buildings.js';
 import { DIFFICULTIES, ZONES, zoneById } from '../data/zones.js';
 import { VEHICLE_LIST } from '../data/routes.js';
 import { RIVALS } from '../data/rivals.js';
-import { LIEUTENANTS } from '../data/missions.js';
+import { BUILD_SLOTS, LIEUTENANTS } from '../data/missions.js';
+import { LOT_POS } from '../map-layout.js';
 import { RESEARCH } from '../data/research.js';
 import { PROPERTY_TYPES, ROLES, buildingFits, lotDef } from '../data/lots.js';
 import { conversionMods, quote } from './lots.js';
 import { unlockBlockers } from './zones.js';
 import { chainReport } from './chains.js';
 import { loyaltyScale } from './lieutenants.js';
+import { zoneAnchor, crossedControl } from '../audio/zones.js';
 
 function lotActions(state, def, lot) {
   const actions = [];
@@ -163,6 +165,93 @@ export function gameplayView(sim) {
       chapters: chapters(state)
     },
     heatHandled: state.heatHandled || 0
+  };
+}
+
+function pointFor(evt, sim) {
+  const id = evt && (evt.lotId || evt.slotId);
+  if (id) {
+    if (LOT_POS[id]) return { x: LOT_POS[id].x, y: LOT_POS[id].y };
+    const slot = BUILD_SLOTS.find((row) => row.id === id);
+    if (slot) return { x: slot.x, y: slot.y };
+    const lot = sim && sim.state && sim.state.lots ? sim.state.lots[id] : null;
+    const def = lotDef(id);
+    const zoneId = (lot && lot.zoneId) || (def && def.zoneId) || evt.zoneId;
+    const anchor = zoneAnchor(zoneId);
+    return { x: anchor.x, y: anchor.y };
+  }
+  const anchor = zoneAnchor(evt && evt.zoneId);
+  return { x: anchor.x, y: anchor.y };
+}
+
+function anyRaid(sim) {
+  if (!sim || !sim.state) return false;
+  const regions = sim.state.regions || {};
+  const zones = sim.state.zones || {};
+  return Object.values(regions).some((row) => row && row.raidActive)
+    || Object.values(zones).some((row) => row && row.raidActive);
+}
+
+export function presentEvent(audio, juice, evt, sim) {
+  if (!evt || !evt.type) return;
+  if (audio && audio.cue) audio.cue(evt);
+  if (audio && audio.setTension) audio.setTension(anyRaid(sim));
+  if (!juice) return;
+  if (evt.type === 'zone_unlocked') {
+    const zone = zoneById(evt.zoneId);
+    juice.unlockSweep(pointFor(evt, sim), zone ? zone.name : 'Zone open');
+  } else if (evt.type === 'demolish_started') {
+    juice.demolishDust(pointFor(evt, sim));
+  } else if (evt.type === 'control_gained') {
+    juice.controlFlash(pointFor(evt, sim));
+  }
+}
+
+export function attachFeel(sim, audio, getJuice, getFrame) {
+  if (!sim || sim._feelAttached) return;
+  sim._feelAttached = true;
+  const prevControl = {};
+  const zones = sim.state && sim.state.zones ? sim.state.zones : {};
+  for (const [id, zone] of Object.entries(zones)) prevControl[id] = zone.control;
+
+  const originalObserve = sim.observeFrame.bind(sim);
+  sim.observeFrame = function observeFrame(dt) {
+    const result = originalObserve(dt);
+    const frame = getFrame ? getFrame() : null;
+    if (audio && frame && audio.followCamera) audio.followCamera(frame.x, frame.y, !!frame.night);
+    let building = false;
+    let demolishing = false;
+    const lots = sim.state && sim.state.lots ? Object.values(sim.state.lots) : [];
+    for (const lot of lots) {
+      if (lot.phase === 'building') building = true;
+      if (lot.phase === 'demolishing') demolishing = true;
+    }
+    if (audio && audio.setWork) audio.setWork(building, demolishing);
+    const juice = getJuice ? getJuice() : null;
+    const live = sim.state && sim.state.zones ? sim.state.zones : {};
+    for (const [id, zone] of Object.entries(live)) {
+      if (crossedControl(prevControl[id], zone.control)) {
+        presentEvent(audio, juice, { type: 'control_gained', zoneId: id }, sim);
+      }
+      prevControl[id] = zone.control;
+    }
+    return result;
+  };
+
+  const originalNegotiate = sim.negotiate.bind(sim);
+  sim.negotiate = function negotiate(lotId) {
+    const result = originalNegotiate(lotId);
+    const juice = getJuice ? getJuice() : null;
+    presentEvent(audio, juice, { type: result && result.ok ? 'negotiate_ok' : 'negotiate_fail', lotId }, sim);
+    return result;
+  };
+
+  const originalIntimidate = sim.intimidate.bind(sim);
+  sim.intimidate = function intimidate(lotId, spendDirty) {
+    const result = originalIntimidate(lotId, spendDirty);
+    const juice = getJuice ? getJuice() : null;
+    presentEvent(audio, juice, { type: result && result.ok ? 'intimidate_ok' : 'intimidate_fail', lotId }, sim);
+    return result;
   };
 }
 
