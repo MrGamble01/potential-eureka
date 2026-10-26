@@ -325,6 +325,7 @@ export class MapScene extends window.Phaser.Scene {
     const scale = Math.min(1, 1.2 / cam.zoom);
     node.label.setScale(scale);
     node.name.setText(title);
+    node.stock.setText(stock || '');
     node.stock.setPosition(0, 22);
     node.name.setVisible(!!showName);
     node.nameBg.setVisible(!!showName);
