@@ -7,6 +7,7 @@
 //               { buildingId, rival, level, night, progress }.
 //   simulation  recommendedSlot() and observeFrame(dt) are called when present.
 //   audio/juice registry key onJuice(evt) runs after the visual fx() below.
+//   registry key juice, when present, is the cashPop / shake / pulseBuilding / burst / step bag.
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
@@ -632,6 +633,11 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   syncFloaters(dt) {
+    const j = this.registry.get('juice');
+    if (j && j.step) {
+      j.step(dt);
+      return;
+    }
     this.floaters = this.floaters.filter((f) => {
       f.y -= 28 * dt;
       f.life -= dt;
@@ -647,25 +653,39 @@ export class MapScene extends window.Phaser.Scene {
 
   fx(evt) {
     if (!evt) return;
-    if (evt.type === 'exported' || evt.type === 'laundered') {
-      const def = BUILD_SLOTS.find((s) => s.id === evt.slotId);
-      if (def) {
-        const text = evt.type === 'exported'
-          ? `+$${evt.earnedDirty || evt.earnedClean || 0}`
-          : `+$${evt.cleanEarned || 0} clean`;
-        const node = this.add.text(def.x, def.y - 20, text, {
-          fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontStyle: '700',
-          color: evt.type === 'laundered' ? '#8ec5ff' : '#7dcea0'
-        }).setOrigin(0.5).setDepth(20);
-        this.floaters.push({ node, x: def.x, y: def.y - 20, life: 1.1 });
+    const j = this.registry.get('juice');
+    if (j && j.cashPop) {
+      if (evt.type === 'exported') {
+        if (evt.earnedDirty) j.cashPop(evt.slotId, evt.earnedDirty, 'dirty');
+        if (evt.earnedClean) j.cashPop(evt.slotId, evt.earnedClean, 'clean');
+      } else if (evt.type === 'laundered') {
+        j.cashPop(evt.slotId, evt.cleanEarned, 'clean');
+        j.burst(evt.slotId, 0x8ec5ff);
+      }
+      if (evt.type === 'produced' || evt.type === 'processed' || evt.type === 'built') j.pulseBuilding(evt.slotId);
+      if (evt.type === 'raid_started' || evt.type === 'rival_raid' || evt.type === 'raid_seized') j.shake();
+      if (evt.type === 'truck_delivered' && evt.truck) j.burst({ x: evt.truck.x, y: evt.truck.y }, 0xe7d3a1);
+    } else {
+      if (evt.type === 'exported' || evt.type === 'laundered') {
+        const def = BUILD_SLOTS.find((s) => s.id === evt.slotId);
+        if (def) {
+          const text = evt.type === 'exported'
+            ? `+$${evt.earnedDirty || evt.earnedClean || 0}`
+            : `+$${evt.cleanEarned || 0} clean`;
+          const node = this.add.text(def.x, def.y - 20, text, {
+            fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontStyle: '700',
+            color: evt.type === 'laundered' ? '#8ec5ff' : '#7dcea0'
+          }).setOrigin(0.5).setDepth(20);
+          this.floaters.push({ node, x: def.x, y: def.y - 20, life: 1.1 });
+        }
+      }
+      if (evt.type === 'raid_started' || evt.type === 'rival_raid') this.cameras.main.shake(280, 0.004);
+      if (evt.type === 'truck_delivered') {
+        const def = BUILD_SLOTS.find((s) => s.id === evt.truck.toSlotId);
+        if (def) this.puff(def.x, def.y);
       }
     }
-    if (evt.type === 'raid_started' || evt.type === 'rival_raid') this.cameras.main.shake(280, 0.004);
-    if (evt.type === 'truck_delivered') {
-      const def = BUILD_SLOTS.find((s) => s.id === evt.truck.toSlotId);
-      if (def) this.puff(def.x, def.y);
-    }
-    const juice = this.registry.get('onJuice');
-    if (typeof juice === 'function') juice(evt);
+    const onJuice = this.registry.get('onJuice');
+    if (typeof onJuice === 'function') onJuice(evt);
   }
 }

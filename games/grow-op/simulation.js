@@ -478,6 +478,7 @@ export class CartelSimulation {
     } else {
       this.log(`Donated civic funds in ${regDef.townName} (-48 Regional Heat).`, 'ok');
     }
+    this.onEvent({ type: 'bribed', regionId });
     this.save();
     return { ok: true };
   }
@@ -822,7 +823,7 @@ export class CartelSimulation {
 
           const path = findRoadPath(src.slotId, bestDest.slot.slotId);
           const last = path[path.length - 1] || { x: dstSlotDef.x, y: dstSlotDef.y };
-          this.state.activeTrucks.push({
+          const truck = {
             id: this.state.nextTruckId++,
             fromSlotId: src.slotId,
             toSlotId: bestDest.slot.slotId,
@@ -836,7 +837,9 @@ export class CartelSimulation {
             path,
             pathIndex: 0,
             speed: truckSpeed
-          });
+          };
+          this.state.activeTrucks.push(truck);
+          this.onEvent({ type: 'truck_departed', truck });
           break;
         }
       }
