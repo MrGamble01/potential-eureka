@@ -1071,7 +1071,8 @@ export class CartelSimulation {
             const storeMission = coreMode() && this.getCurrentMission();
             const wantStore = !!(storeMission && storeMission.metric === 'stored');
             const processed = GOODS[goodId] && GOODS[goodId].category !== 'raw';
-            const p = wantStore && processed ? 40 : 15;
+            // A short buffer in the shed sits between the lab and the pier, then the pier takes the rest.
+            const p = wantStore && processed ? 40 : (processed && dstOutCount < 4 ? 28 : 15);
             if (p > bestPriority) {
               bestPriority = p;
               bestDest = { slot: dst, targetBuffer: 'output' };
