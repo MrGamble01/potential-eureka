@@ -199,54 +199,75 @@ export const BUILD_SLOTS = [
   }
 ];
 
-// A highway and short spurs. Every build slot is a vertex so trucks
-// stay on the pavement instead of cutting across the districts.
+// Valley tracks bow between the build slots. Every slot stays a vertex so
+// trucks follow the curve instead of cutting a straight chord across a field.
 export const ROAD_NETWORK = [
   [
     { x: 280, y: 460 },
+    { x: 368, y: 422 },
     { x: 450, y: 460 },
+    { x: 548, y: 502 },
     { x: 640, y: 440 },
+    { x: 830, y: 396 },
     { x: 1020, y: 460 },
+    { x: 1104, y: 512 },
     { x: 1180, y: 460 },
+    { x: 1272, y: 408 },
     { x: 1360, y: 460 },
+    { x: 1424, y: 508 },
     { x: 1480, y: 460 },
+    { x: 1636, y: 416 },
     { x: 1780, y: 480 },
     { x: 1820, y: 480 },
+    { x: 1984, y: 438 },
     { x: 2140, y: 500 }
   ],
   [
     { x: 450, y: 460 },
+    { x: 508, y: 578 },
     { x: 450, y: 700 },
+    { x: 392, y: 838 },
     { x: 280, y: 960 }
   ],
   [
     { x: 450, y: 700 },
+    { x: 568, y: 792 },
     { x: 640, y: 920 },
+    { x: 960, y: 888 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 640, y: 440 },
+    { x: 688, y: 548 },
     { x: 760, y: 680 },
+    { x: 684, y: 812 },
     { x: 640, y: 920 }
   ],
   [
     { x: 1180, y: 460 },
+    { x: 1116, y: 588 },
     { x: 1180, y: 720 },
+    { x: 1256, y: 848 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 1360, y: 460 },
+    { x: 1544, y: 552 },
     { x: 1480, y: 700 },
+    { x: 1348, y: 842 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 1780, y: 480 },
     { x: 1820, y: 480 },
+    { x: 1748, y: 624 },
     { x: 1820, y: 760 },
+    { x: 1992, y: 852 },
     { x: 2120, y: 940 }
   ],
   [
     { x: 2140, y: 500 },
+    { x: 2048, y: 720 },
     { x: 2120, y: 940 }
   ]
 ];

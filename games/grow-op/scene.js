@@ -257,6 +257,7 @@ export class MapScene extends window.Phaser.Scene {
       maxY = Math.max(maxY, box.y + box.h);
     }
     if (!Number.isFinite(minX)) return { x: 0, y: 0, w: MAP_W, h: MAP_H };
+    if (minX < 80 && maxX > 5200 && minY < 250 && maxY > 2400) return { x: 0, y: 0, w: MAP_W, h: MAP_H };
     const pad = 200;
     return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
   }
@@ -264,12 +265,14 @@ export class MapScene extends window.Phaser.Scene {
   clampScroll() {
     const cam = this.cameras.main;
     const b = this.unlockedRect();
-    const viewW = cam.width / cam.zoom;
-    const viewH = cam.height / cam.zoom;
-    const maxX = b.x + b.w - viewW;
-    const maxY = b.y + b.h - viewH;
-    cam.scrollX = maxX < b.x ? b.x + (b.w - viewW) / 2 : Math.min(maxX, Math.max(b.x, cam.scrollX));
-    cam.scrollY = maxY < b.y ? b.y + (b.h - viewH) / 2 : Math.min(maxY, Math.max(b.y, cam.scrollY));
+    const dw = cam.displayWidth;
+    const dh = cam.displayHeight;
+    const minSX = b.x + (dw - cam.width) / 2;
+    const maxSX = Math.max(minSX, minSX + b.w - dw);
+    const minSY = b.y + (dh - cam.height) / 2;
+    const maxSY = Math.max(minSY, minSY + b.h - dh);
+    cam.scrollX = Math.min(maxSX, Math.max(minSX, cam.scrollX));
+    cam.scrollY = Math.min(maxSY, Math.max(minSY, cam.scrollY));
   }
 
   coastInertia() {
@@ -1014,7 +1017,7 @@ export class MapScene extends window.Phaser.Scene {
     const fit = Math.min(this.scale.width / MAP_W, (this.scale.height - 120) / MAP_H);
     const zoom = phone ? 0.46 : window.Phaser.Math.Clamp(fit * 0.98, 0.24, 0.42);
     const x = phone ? 2400 : MAP_W / 2;
-    const y = phone ? 1500 : MAP_H / 2;
+    const y = phone ? 1500 : 1340;
     cam.setZoom(zoom);
     cam.centerOn(x, y);
     const fn = this.registry.get('onMapRevealed');

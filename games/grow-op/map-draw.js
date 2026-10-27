@@ -183,72 +183,115 @@ function blocked(x, y, pad) {
   return false;
 }
 
+function organic(g, rx, ry, spin) {
+  g.beginPath();
+  const steps = 20;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const wob = 0.76 + 0.24 * Math.sin(a * 3 + spin);
+    const px = Math.cos(a) * rx * wob;
+    const py = Math.sin(a) * ry * (0.86 + 0.18 * Math.cos(a * 2 + spin * 0.7));
+    if (i === 0) g.moveTo(px, py);
+    else g.lineTo(px, py);
+  }
+  g.closePath();
+}
+
 function patch(g, x, y, rx, ry, rot, color) {
+  g.save();
+  g.translate(x + 8, y + 10);
+  g.rotate(rot);
+  g.fillStyle = 'rgba(16,20,8,0.22)';
+  organic(g, rx * 1.04, ry * 1.1, x * 0.01);
+  g.fill();
+  g.restore();
   g.save();
   g.translate(x, y);
   g.rotate(rot);
-  g.fillStyle = 'rgba(20,16,8,0.2)';
-  g.beginPath();
-  g.ellipse(8, 8, rx, ry, 0, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(62,92,40,0.42)';
+  organic(g, rx * 1.16, ry * 1.22, x * 0.01 + 1.2);
   g.fill();
   g.fillStyle = color;
-  g.beginPath();
-  g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  organic(g, rx, ry, x * 0.01);
   g.fill();
-  g.strokeStyle = 'rgba(36,58,22,0.38)';
-  g.lineWidth = 2;
-  for (let row = -ry + 10; row < ry - 6; row += 12) {
+  g.save();
+  organic(g, rx * 0.94, ry * 0.9, x * 0.01);
+  g.clip();
+  g.strokeStyle = 'rgba(62,48,18,0.48)';
+  g.lineWidth = 1.5;
+  const rows = Math.max(5, Math.round((ry * 2) / 13));
+  for (let i = 1; i < rows; i++) {
+    const t = i / rows;
+    const py = -ry * 0.86 + t * ry * 1.72;
+    const half = Math.sqrt(Math.max(0.04, 1 - (py / ry) * (py / ry))) * rx * 0.78;
+    const bow = Math.sin(t * 5.2 + rot) * ry * 0.12;
     g.beginPath();
-    g.moveTo(-rx + 12, row);
-    g.quadraticCurveTo(0, row + (row > 0 ? 5 : -4), rx - 12, row - 1);
+    g.moveTo(-half, py + bow * 0.3);
+    g.quadraticCurveTo(0, py + bow, half, py - bow * 0.25);
     g.stroke();
   }
+  g.restore();
   g.restore();
 }
 
 function farmstead(g, x, y, rot, seed) {
+  const ang = rot * 0.45;
+  g.save();
+  g.translate(x + 16, y + 18);
+  g.rotate(ang);
+  g.fillStyle = 'rgba(10,14,6,0.34)';
+  organic(g, 136, 76, seed);
+  g.fill();
+  g.restore();
   g.save();
   g.translate(x, y);
-  g.rotate(rot);
-  g.fillStyle = 'rgba(16,12,6,0.28)';
-  g.fillRect(-62, -40, 176, 118);
-  g.fillStyle = '#c9a56c';
-  g.fillRect(-78, -54, 172, 112);
-  g.fillStyle = '#e6d2a6';
-  g.fillRect(-74, -50, 62, 104);
-  const crops = ['#5c8a24', '#d2b044', '#6e9834', '#8a6428'];
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 2; c++) {
-      const px = -6 + c * 42;
-      const py = -46 + r * 24;
-      g.fillStyle = crops[(r + c + seed) % crops.length];
-      g.fillRect(px, py, 38, 18);
-      g.strokeStyle = 'rgba(48,32,14,0.55)';
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(px + 3, py + 6);
-      g.lineTo(px + 35, py + 6);
-      g.moveTo(px + 3, py + 12);
-      g.lineTo(px + 35, py + 12);
-      g.stroke();
-    }
+  g.rotate(ang);
+  g.fillStyle = 'rgba(78,104,46,0.5)';
+  organic(g, 132, 72, seed);
+  g.fill();
+  g.fillStyle = '#c4a36a';
+  organic(g, 108, 58, seed + 0.4);
+  g.fill();
+  g.fillStyle = '#e2cc9a';
+  organic(g, 48, 38, seed + 1.1);
+  g.fill();
+  g.save();
+  organic(g, 100, 52, seed + 0.4);
+  g.clip();
+  const crops = ['#5c8a24', '#c6a63c', '#6e9834', '#8a6428'];
+  for (let row = -3; row <= 3; row++) {
+    const py = row * 12;
+    g.fillStyle = crops[(row + seed + 4) % crops.length];
+    g.globalAlpha = 0.92;
+    g.fillRect(-86, py - 5, 168, 8);
+    g.globalAlpha = 1;
+    g.strokeStyle = 'rgba(48,36,16,0.4)';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(-78, py);
+    g.quadraticCurveTo(0, py + (row % 2 ? 4 : -3), 72, py + 1);
+    g.stroke();
   }
-  g.strokeStyle = '#f4efe2';
-  g.lineWidth = 2.5;
-  g.strokeRect(-78, -54, 172, 112);
-  g.fillStyle = '#f7f1e6';
-  const posts = [[-78, -54], [8, -54], [94, -54], [-78, 2], [94, 2], [-78, 58], [8, 58], [94, 58]];
-  for (let i = 0; i < posts.length; i++) g.fillRect(posts[i][0] - 2, posts[i][1] - 3, 4, 7);
   g.restore();
-  const lx = -46;
-  const ly = 2;
-  house(
-    g,
-    x + Math.cos(rot) * lx - Math.sin(rot) * ly,
-    y + Math.sin(rot) * lx + Math.cos(rot) * ly,
-    seed,
-    0.78
-  );
+  g.strokeStyle = 'rgba(244,239,226,0.78)';
+  g.lineWidth = 1.7;
+  const posts = [];
+  for (let i = 0; i < 11; i++) {
+    const a = (i / 11) * Math.PI * 2 + seed * 0.2;
+    const wob = 0.84 + 0.16 * Math.sin(a * 3 + seed);
+    posts.push([Math.cos(a) * 104 * wob, Math.sin(a) * 54 * (0.9 + 0.12 * Math.cos(a * 2 + seed))]);
+  }
+  g.beginPath();
+  g.moveTo(posts[0][0], posts[0][1]);
+  for (let i = 1; i < posts.length; i++) g.lineTo(posts[i][0], posts[i][1]);
+  g.closePath();
+  g.stroke();
+  g.fillStyle = '#f7f1e6';
+  for (let i = 0; i < posts.length; i++) g.fillRect(posts[i][0] - 1.6, posts[i][1] - 3.2, 3.2, 6.4);
+  g.restore();
+  const hx = x + Math.cos(ang) * -34 - Math.sin(ang) * 4;
+  const hy = y + Math.sin(ang) * -34 + Math.cos(ang) * 4;
+  house(g, hx, hy, seed, 0.78);
 }
 
 function house(g, x, y, seed, scale) {
@@ -347,7 +390,7 @@ function coastChains() {
   for (let i = 0; i < n; i++) {
     const a = LAND[i];
     const b = LAND[(i + 1) % n];
-    const border = (a[1] < 90 && b[1] < 90) || (a[1] > 2580 && b[1] > 2580) || (a[0] < 90 && b[0] < 90);
+    const border = (a[1] < 48 && b[1] < 48) || (a[0] < 48 && b[0] < 48) || (a[1] > MAP_H - 90 && b[1] > MAP_H - 90);
     if (border) {
       cur = null;
       continue;
@@ -605,8 +648,8 @@ function paintCoast(g) {
   for (let c = 0; c < chains.length; c++) {
     const shore = chains[c];
     if (shore.length < 2) continue;
-    ribbon(g, offsetChain(shore, 34), 46, 'rgba(64,206,214,0.78)');
-    ribbon(g, offsetChain(shore, 14), 32, '#f0ddb4');
+    ribbon(g, offsetChain(shore, 22), 26, 'rgba(56,176,186,0.5)');
+    ribbon(g, offsetChain(shore, 12), 28, '#f0ddb4');
     ribbon(g, offsetChain(shore, -3), 8, 'rgba(255,252,245,0.65)');
     for (let i = 0; i < shore.length; i += 2) {
       const p = shore[i];
@@ -626,27 +669,38 @@ function paintFull(roads) {
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = true;
 
-  const sea = g.createLinearGradient(4200, 0, MAP_W, MAP_H);
-  sea.addColorStop(0, '#1a7e9a');
-  sea.addColorStop(0.45, '#0e5674');
-  sea.addColorStop(1, '#072c44');
+  const sea = g.createLinearGradient(2800, 0, MAP_W, MAP_H);
+  sea.addColorStop(0, '#1c7f9c');
+  sea.addColorStop(0.22, '#146888');
+  sea.addColorStop(0.48, '#0c4e72');
+  sea.addColorStop(0.74, '#08344e');
+  sea.addColorStop(1, '#041c30');
   g.fillStyle = sea;
   g.fillRect(0, 0, MAP_W, MAP_H);
-  g.fillStyle = 'rgba(86,206,206,0.28)';
-  g.beginPath();
-  g.ellipse(5980, 640, 460, 220, 0.5, 0, Math.PI * 2);
-  g.fill();
-  g.beginPath();
-  g.ellipse(6120, 1680, 520, 240, -0.3, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = 'rgba(10,40,64,0.45)';
-  g.beginPath();
-  g.ellipse(6300, 2200, 380, 260, 0.2, 0, Math.PI * 2);
-  g.fill();
+  const pools = [
+    [4580, 1860, 980, 'rgba(6,32,52,0.42)'],
+    [5900, 1100, 1280, 'rgba(4,28,46,0.28)'],
+    [6200, 2500, 1500, 'rgba(3,18,32,0.5)'],
+    [1500, 3720, 980, 'rgba(36,150,168,0.22)'],
+    [900, 4080, 760, 'rgba(3,16,28,0.48)'],
+    [2600, 4240, 1100, 'rgba(2,12,22,0.5)'],
+    [2100, 3900, 1500, 'rgba(4,26,44,0.22)']
+  ];
+  for (let i = 0; i < pools.length; i++) {
+    const pool = pools[i];
+    const rad = g.createRadialGradient(pool[0], pool[1], pool[2] * 0.12, pool[0], pool[1], pool[2]);
+    rad.addColorStop(0, pool[3]);
+    rad.addColorStop(1, 'rgba(4,24,40,0)');
+    g.fillStyle = rad;
+    g.beginPath();
+    g.arc(pool[0], pool[1], pool[2], 0, Math.PI * 2);
+    g.fill();
+  }
 
   paintCoast(g);
   g.fillStyle = '#24562c';
-  g.fillRect(0, 0, 2800, MAP_H);
+  g.fillRect(0, 0, 340, 3400);
+  g.fillRect(0, 0, 2400, 140);
   fillShape(g, LAND, '#24562c');
   paintMottle(g);
 
@@ -823,6 +877,12 @@ function paintFull(roads) {
     if (!contains(ZONE_LAYOUT.jungle_alta.poly, x, y) || !onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 24)) continue;
     clump(g, x, y, i + 210);
   }
+  for (let i = 0; i < 110; i++) {
+    const x = 60 + hash(i, 121) * 4300;
+    const y = 2620 + hash(i, 122) * 980;
+    if (!onLand(x, y) || nearPath(x, y, roadPaths, 24)) continue;
+    clump(g, x, y, i + 420);
+  }
   for (let i = 0; i < 220; i++) {
     const x = hash(i, 61) * 4300;
     const y = 80 + hash(i, 62) * 2500;
@@ -996,14 +1056,20 @@ function paintFull(roads) {
 export function paintTerrainTiles(roads) {
   const full = paintFull(roads || []);
   const tiles = [];
-  for (let row = 0; row < MAP_H / TILE_H; row++) {
-    for (let col = 0; col < MAP_W / TILE_W; col++) {
+  const rows = Math.ceil(MAP_H / TILE_H);
+  const cols = Math.ceil(MAP_W / TILE_W);
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * TILE_W;
+      const y = row * TILE_H;
+      const w = Math.min(TILE_W, MAP_W - x);
+      const h = Math.min(TILE_H, MAP_H - y);
       const tile = document.createElement('canvas');
-      tile.width = TILE_W;
-      tile.height = TILE_H;
+      tile.width = w;
+      tile.height = h;
       const g = tile.getContext('2d');
-      g.drawImage(full, col * TILE_W, row * TILE_H, TILE_W, TILE_H, 0, 0, TILE_W, TILE_H);
-      tiles.push({ canvas: tile, x: col * TILE_W, y: row * TILE_H, key: `go-world-${col}-${row}` });
+      g.drawImage(full, x, y, w, h, 0, 0, w, h);
+      tiles.push({ canvas: tile, x, y, key: `go-world-${col}-${row}` });
     }
   }
   return tiles;

@@ -1126,31 +1126,49 @@ export function renderStructure(kind, mode, night, level) {
 
 export { renderScaffold, renderCrumble as renderDust } from './construction.js';
 
+function dirtPad(g, cx, cy, rx, ry, spin) {
+  g.beginPath();
+  const steps = 16;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const wob = 0.82 + 0.18 * Math.sin(a * 3 + spin);
+    const px = cx + Math.cos(a) * rx * wob;
+    const py = cy + Math.sin(a) * ry * (0.9 + 0.14 * Math.cos(a * 2 + spin));
+    if (i === 0) g.moveTo(px, py);
+    else g.lineTo(px, py);
+  }
+  g.closePath();
+}
+
 export function renderPlot(night) {
   const c = K.canvas();
   const g = c.getContext('2d');
   K.groundPad(g);
-  g.fillStyle = night ? '#243024' : '#6f8f46';
-  g.beginPath();
-  g.ellipse(150, 150, 90, 26, 0, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(20,16,8,0.28)';
+  dirtPad(g, 156, 158, 108, 30, 0.4);
   g.fill();
-  g.strokeStyle = night ? 'rgba(232,220,190,0.45)' : 'rgba(90,60,30,0.45)';
-  g.lineWidth = 2;
-  g.setLineDash([6, 6]);
-  g.beginPath();
-  g.ellipse(150, 150, 78, 20, 0, 0, Math.PI * 2);
+  g.fillStyle = night ? '#3a3228' : '#b08958';
+  dirtPad(g, 150, 152, 102, 28, 0.4);
+  g.fill();
+  g.fillStyle = night ? '#2a2318' : '#8d6840';
+  dirtPad(g, 148, 156, 64, 14, 1.1);
+  g.fill();
+  g.strokeStyle = night ? 'rgba(210,196,170,0.28)' : 'rgba(92,64,36,0.55)';
+  g.lineWidth = 1.5;
+  dirtPad(g, 150, 152, 102, 28, 0.4);
   g.stroke();
-  g.setLineDash([]);
-  g.fillStyle = '#f4f1ea';
-  g.fillRect(78, 138, 3, 18);
-  g.fillRect(214, 136, 3, 18);
-  g.fillStyle = '#c4553a';
-  g.fillRect(76, 136, 7, 5);
-  g.fillRect(212, 134, 7, 5);
+  g.strokeStyle = 'rgba(74,52,28,0.4)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(78, 150);
+  g.quadraticCurveTo(150, 142, 214, 154);
+  g.moveTo(86, 160);
+  g.quadraticCurveTo(148, 154, 206, 164);
+  g.stroke();
   if (night) {
-    g.fillStyle = 'rgba(255,210,122,0.2)';
+    g.fillStyle = 'rgba(255,210,122,0.18)';
     g.beginPath();
-    g.arc(214, 124, 12, 0, Math.PI * 2);
+    g.arc(206, 128, 10, 0, Math.PI * 2);
     g.fill();
   }
   return c;
@@ -1160,16 +1178,21 @@ export function renderCleared(night) {
   const c = K.canvas();
   const g = c.getContext('2d');
   K.groundPad(g);
+  g.fillStyle = 'rgba(16,12,8,0.3)';
+  dirtPad(g, 156, 162, 118, 34, 0.8);
+  g.fill();
   g.fillStyle = night ? '#3a3228' : '#b08958';
-  g.beginPath();
-  g.ellipse(150, 156, 112, 32, 0, 0, Math.PI * 2);
+  dirtPad(g, 150, 156, 112, 32, 0.8);
   g.fill();
   g.fillStyle = night ? '#241c14' : '#7a5a38';
-  g.beginPath();
-  g.ellipse(146, 160, 74, 16, -0.08, 0, Math.PI * 2);
+  dirtPad(g, 146, 160, 74, 16, 1.4);
   g.fill();
-  g.strokeStyle = 'rgba(60,40,24,0.45)';
-  g.lineWidth = 3;
+  g.strokeStyle = night ? 'rgba(210,196,170,0.26)' : 'rgba(74,52,30,0.5)';
+  g.lineWidth = 1.5;
+  dirtPad(g, 150, 156, 112, 32, 0.8);
+  g.stroke();
+  g.strokeStyle = 'rgba(60,40,24,0.4)';
+  g.lineWidth = 1.25;
   g.beginPath();
   g.moveTo(62, 158);
   g.quadraticCurveTo(140, 146, 230, 162);
@@ -1184,18 +1207,12 @@ export function renderCleared(night) {
   g.fillRect(180, 146, 8, 5);
   g.fillStyle = '#8a939c';
   g.fillRect(132, 152, 14, 6);
-  g.strokeStyle = 'rgba(244,241,234,0.75)';
+  g.strokeStyle = 'rgba(90,64,40,0.35)';
   g.lineWidth = 1;
   g.beginPath();
-  g.moveTo(70, 150);
-  g.lineTo(220, 144);
+  g.moveTo(78, 150);
+  g.quadraticCurveTo(146, 144, 210, 152);
   g.stroke();
-  g.fillStyle = '#f4f1ea';
-  g.fillRect(66, 142, 3, 20);
-  g.fillRect(216, 136, 3, 20);
-  g.fillStyle = '#c4553a';
-  g.fillRect(64, 140, 7, 5);
-  g.fillRect(214, 134, 7, 5);
   K.weeds(g, 54, 166);
   if (night) {
     g.fillStyle = 'rgba(255,210,122,0.28)';

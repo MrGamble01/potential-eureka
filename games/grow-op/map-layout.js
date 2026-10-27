@@ -5,7 +5,7 @@
 // the Puerto Sol neighborhoods carved out of one coastline.
 
 export const MAP_W = 6400;
-export const MAP_H = 2680;
+export const MAP_H = 4360;
 
 function wobble(poly, amp, seed) {
   const out = [];
@@ -69,6 +69,8 @@ export function contains(poly, x, y) {
 
 const LAND_RAW = [
   [0, 0],
+  [1500, 6],
+  [3000, 0],
   [5000, 24],
   [5200, 140],
   [5320, 280],
@@ -105,7 +107,18 @@ const LAND_RAW = [
   [5400, 2460],
   [5140, 2600],
   [4960, 2680],
-  [0, 2680]
+  [4480, 2860],
+  [3920, 2740],
+  [3320, 2980],
+  [2680, 2860],
+  [1980, 3120],
+  [1280, 2980],
+  [620, 3240],
+  [180, 3420],
+  [0, 3560],
+  [0, 2500],
+  [0, 1500],
+  [0, 700]
 ];
 
 export const LAND = wobble(LAND_RAW, 12, 4);
