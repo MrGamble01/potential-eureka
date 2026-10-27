@@ -199,54 +199,75 @@ export const BUILD_SLOTS = [
   }
 ];
 
-// A highway and short spurs. Every build slot is a vertex so trucks
-// stay on the pavement instead of cutting across the districts.
+// Valley tracks bow between the build slots. Every slot stays a vertex so
+// trucks follow the curve instead of cutting a straight chord across a field.
 export const ROAD_NETWORK = [
   [
     { x: 280, y: 460 },
+    { x: 368, y: 422 },
     { x: 450, y: 460 },
+    { x: 548, y: 502 },
     { x: 640, y: 440 },
+    { x: 830, y: 396 },
     { x: 1020, y: 460 },
+    { x: 1104, y: 512 },
     { x: 1180, y: 460 },
+    { x: 1272, y: 408 },
     { x: 1360, y: 460 },
+    { x: 1424, y: 508 },
     { x: 1480, y: 460 },
+    { x: 1636, y: 416 },
     { x: 1780, y: 480 },
     { x: 1820, y: 480 },
+    { x: 1984, y: 438 },
     { x: 2140, y: 500 }
   ],
   [
     { x: 450, y: 460 },
+    { x: 508, y: 578 },
     { x: 450, y: 700 },
+    { x: 392, y: 838 },
     { x: 280, y: 960 }
   ],
   [
     { x: 450, y: 700 },
+    { x: 568, y: 792 },
     { x: 640, y: 920 },
+    { x: 960, y: 888 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 640, y: 440 },
+    { x: 688, y: 548 },
     { x: 760, y: 680 },
+    { x: 684, y: 812 },
     { x: 640, y: 920 }
   ],
   [
     { x: 1180, y: 460 },
+    { x: 1116, y: 588 },
     { x: 1180, y: 720 },
+    { x: 1256, y: 848 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 1360, y: 460 },
+    { x: 1544, y: 552 },
     { x: 1480, y: 700 },
+    { x: 1348, y: 842 },
     { x: 1280, y: 960 }
   ],
   [
     { x: 1780, y: 480 },
     { x: 1820, y: 480 },
+    { x: 1748, y: 624 },
     { x: 1820, y: 760 },
+    { x: 1992, y: 852 },
     { x: 2120, y: 940 }
   ],
   [
     { x: 2140, y: 500 },
+    { x: 2048, y: 720 },
     { x: 2120, y: 940 }
   ]
 ];
@@ -470,11 +491,11 @@ export const MISSIONS = [
     speaker: 'cesar',
     title: 'First River Export',
     beat: 'César stands on the embarcadero. "If the river pays, we stay. If it doesn\'t, Ruiz already has the plate number."',
-    desc: 'Run the valley chain — farm, barn, warehouse, pier — until lifetime dirty cash reaches $800.',
+    desc: 'Run the valley chain — farm, barn, warehouse, pier — until lifetime dirty cash reaches $55,000.',
     failHint: 'A dead pier and an empty purse is how the valley ends.',
-    rewardClean: 250,
-    rewardDirty: 200,
-    targetValue: 800,
+    rewardClean: 500,
+    rewardDirty: 0,
+    targetValue: 55000,
     metric: 'totalDirtyEarned'
   },
   {
@@ -496,11 +517,11 @@ export const MISSIONS = [
     speaker: 'nia',
     title: 'Open a Legal Front',
     beat: 'Nia will not touch the books until a taxi fleet exists. "The city takes clean cash. Street bills are how you get arrested."',
-    desc: 'Build a taxi fleet on an open valley lot and launder lifetime clean cash to $900.',
+    desc: 'Build a taxi fleet on an open valley lot and launder lifetime clean cash to $5,000.',
     failHint: 'No front means no city, and a broke crew walks.',
-    rewardClean: 400,
+    rewardClean: 500,
     rewardDirty: 0,
-    targetValue: 900,
+    targetValue: 5000,
     metric: 'totalCleanEarned',
     requireBuilding: 'taxi_co'
   },
@@ -510,13 +531,14 @@ export const MISSIONS = [
     speaker: 'cesar',
     title: 'Open Boca del Río',
     beat: 'César wants the delta. "The valley road is a confession. Boats leave Boca quieter, and Costa Negra already knows the bends."',
-    desc: 'Unlock Boca del Río. It takes clean cash, a name, and the first export behind you.',
+    desc: 'Open Boca del Río, then keep washing until lifetime clean cash reaches $55,000.',
     failHint: 'Stay in the valley and Reina Solano keeps the water.',
-    rewardClean: 200,
+    rewardClean: 500,
     rewardDirty: 0,
-    targetValue: 1,
-    metric: 'zoneUnlocked',
-    zoneId: 'river_delta'
+    targetValue: 55000,
+    metric: 'totalCleanEarned',
+    zoneId: 'river_delta',
+    requireZone: 'river_delta'
   },
   {
     id: 'm2_delta_work',
@@ -577,13 +599,15 @@ export const MISSIONS = [
     speaker: 'reina',
     title: 'Barrio Sol',
     beat: 'Reina taps the map at Calle 8. "Puerto Sol starts in the barrio. Buy the laundromat and wash there, or you are a tourist with a boat."',
-    desc: 'Unlock Barrio Sol and own a working property there. The Calle 8 laundromat will take a laundry conversion.',
+    desc: 'Open Barrio Sol, own a working property there, and push lifetime dirty cash to $450,000.',
     failHint: 'No barrio deed and the city never opens.',
-    rewardClean: 300,
+    rewardClean: 500,
     rewardDirty: 0,
-    targetValue: 1,
-    metric: 'zoneProperty',
-    zoneId: 'ps_barrio'
+    targetValue: 450000,
+    metric: 'totalDirtyEarned',
+    zoneId: 'ps_barrio',
+    requireZone: 'ps_barrio',
+    requireProperty: 'ps_barrio'
   },
   {
     id: 'm3_docks',
@@ -668,5 +692,123 @@ export const MISSIONS = [
     rewardDirty: 600,
     targetValue: 5,
     metric: 'cityNeighborhoods'
+  }
+];
+
+// Core mode only. Cartel Tycoon's early loop, one step at a time:
+// production building, processing, storage, transport, then sale.
+// The sell target is the Act I clock. Flag off uses MISSIONS above.
+export const CORE_ACT1_EARN = 39000;
+
+export const CORE_MISSIONS = [
+  {
+    id: 'c1_grow',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Grow the crop',
+    beat: 'The plantation is in the ground. Let the first cutting come up.',
+    desc: 'Grow 8 raw botanicals on the valley plantation.',
+    failHint: 'A quiet field does not pay the pier.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 8,
+    metric: 'producedRaw'
+  },
+  {
+    id: 'c1_process',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Process the harvest',
+    beat: 'The barn cures what the field cuts.',
+    desc: 'Cure 8 packs in the drying barn.',
+    failHint: 'Raw leaf does not sell.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 8,
+    metric: 'producedCured'
+  },
+  {
+    id: 'c1_store',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Store the packs',
+    beat: 'The warehouse is the pile between the barn and the road.',
+    desc: 'Truck 6 crates into the valley warehouse.',
+    failHint: 'Packs left in the barn never reach the pier.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 6,
+    metric: 'stored'
+  },
+  {
+    id: 'c1_haul',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Haul it down the road',
+    beat: 'Trucks are the chain. Nothing moves itself.',
+    desc: 'Finish 4 truck runs on the valley road.',
+    failHint: 'A full shed with no truck is just a shed.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 4,
+    metric: 'hauled'
+  },
+  {
+    id: 'c1_sell',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Sell at the pier',
+    beat: 'The pier is the sale. Keep the chain moving until the river has paid.',
+    desc: `Sell downriver until lifetime dirty cash reaches $${CORE_ACT1_EARN.toLocaleString()}.`,
+    failHint: 'A pier that does not ship does not pay.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: CORE_ACT1_EARN,
+    metric: 'totalDirtyEarned',
+    alsoComplete: ['m1_first_export']
+  },
+  {
+    id: 'c1_plot',
+    act: 1,
+    speaker: 'cesar',
+    title: 'Build the next field',
+    beat: 'One plantation is the lesson. The south terrace is the next field.',
+    desc: 'Build a plantation on the south valley terrace.',
+    failHint: 'The chain you have is the chain you keep until you build.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'slotBuilding',
+    slotId: 'slot_rp_south',
+    buildingId: 'plantation',
+    alsoComplete: ['m2_first_front']
+  },
+  {
+    id: 'c2_zone',
+    act: 2,
+    speaker: 'cesar',
+    title: 'Open the next stretch',
+    beat: 'The valley road ends. Boca del Río is the next gate.',
+    desc: 'Unlock Boca del Río. The price comes out of dirty cash.',
+    failHint: 'Stay in one valley and the chain never grows.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneUnlocked',
+    zoneId: 'river_delta'
+  },
+  {
+    id: 'c2_lot',
+    act: 2,
+    speaker: 'cesar',
+    title: 'Buy the sawmill',
+    beat: 'The sawmill is already standing. Pay the price and it stores for you.',
+    desc: 'Buy the Boca sawmill and run it as a warehouse.',
+    failHint: 'A locked gate with no deed is not a route.',
+    rewardClean: 0,
+    rewardDirty: 0,
+    targetValue: 1,
+    metric: 'zoneProperty',
+    zoneId: 'river_delta'
   }
 ];

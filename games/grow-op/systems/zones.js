@@ -4,6 +4,7 @@
 import { ZONES, zoneById } from '../data/zones.js';
 import { lotDef } from '../data/lots.js';
 import { RIVALS } from '../data/rivals.js';
+import { coreMode } from '../data/config.js';
 
 const SIZE_WEIGHT = { small: 6, medium: 10, large: 15 };
 
@@ -18,8 +19,10 @@ export function unlockBlockers(state, zone) {
   if (need.mission && !(state.completedMissions || []).includes(need.mission)) {
     reasons.push('A valley objective is still open.');
   }
-  if (state.cleanCash < (need.clean || 0)) {
-    reasons.push(`Need $${need.clean} Clean Cash.`);
+  const purse = coreMode() ? state.dirtyCash : state.cleanCash;
+  const label = coreMode() ? 'Dirty' : 'Clean';
+  if ((purse || 0) < (need.clean || 0)) {
+    reasons.push(`Need $${need.clean} ${label} Cash.`);
   }
   return reasons;
 }
@@ -31,7 +34,9 @@ export function unlockZone(state, zoneId) {
   if (live.unlocked) return { ok: false, reason: 'Already open.' };
   const reasons = unlockBlockers(state, zone);
   if (reasons.length) return { ok: false, reason: reasons[0] };
-  state.cleanCash -= zone.unlock.clean || 0;
+  const cost = zone.unlock.clean || 0;
+  if (coreMode()) state.dirtyCash -= cost;
+  else state.cleanCash -= cost;
   live.unlocked = true;
   return { ok: true, zone };
 }

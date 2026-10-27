@@ -14,18 +14,41 @@
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, LIEUTENANTS } from './data/missions.js';
-import { LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
-import { drawExtended, paintOpen, paintProperty, paintRubble, paintScaffold } from './map-draw.js';
+import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, findRoadPath } from './data/missions.js';
+import { DISTRICT_EDGE, LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
+import { drawExtended, paintOpen, paintProperty } from './map-draw.js';
+import { artURL, iconKeyForBuilding, iconKeyForProperty, iconKeyForRole } from './art-keys.js';
 import * as Art from './art.js';
+
+const PIN_MARK = '<img alt="" width="64" height="64" draggable="false"><svg class="go-glyph go-glyph-plus" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="go-glyph go-glyph-crane" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17h14M5 17V9h7l3-5h3M8 9v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong hidden></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
 
 const { WORLD_W, WORLD_H, RIVER, HARBOR } = Art;
 
-const PLATES = {
-  rio_plata: { x: 200, y: 340, title: 'RÍO PLATA VALLEY', sub: 'Puerto Plata' },
-  san_marco: { x: 980, y: 340, title: 'SAN MARCO DISTRICT', sub: 'Ciudad San Marco' },
-  sierra_alta: { x: 1680, y: 340, title: 'SIERRA ALTA', sub: 'Villa Dorada' }
-};
+const SOFT_EDGE = new Map();
+
+function softEdge(poly) {
+  const cached = SOFT_EDGE.get(poly);
+  if (cached) return cached;
+  const n = poly.length;
+  const out = [];
+  const steps = 4;
+  for (let i = 0; i < n; i++) {
+    const prev = poly[(i - 1 + n) % n];
+    const c = poly[i];
+    const nxt = poly[(i + 1) % n];
+    const x0 = (prev[0] + c[0]) / 2;
+    const y0 = (prev[1] + c[1]) / 2;
+    const x1 = (c[0] + nxt[0]) / 2;
+    const y1 = (c[1] + nxt[1]) / 2;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      out.push([u * u * x0 + 2 * u * t * c[0] + t * t * x1, u * u * y0 + 2 * u * t * c[1] + t * t * y1]);
+    }
+  }
+  SOFT_EDGE.set(poly, out);
+  return out;
+}
 
 export class MapScene extends window.Phaser.Scene {
   constructor() {
@@ -73,15 +96,17 @@ export class MapScene extends window.Phaser.Scene {
     }
     this.pinHost = document.getElementById('go-pins');
     this.drawTerrain();
-    drawExtended(this.coast);
-    this.drawHatch();
-    this.createPlates();
+    if (!(typeof Art.coversExtendedMap === 'function' && Art.coversExtendedMap())) drawExtended(this.coast);
+    this.hatch.clear();
     this.createSlots();
-    this.createBadges();
     this.createPlacedLots();
     this.createZoneMarks();
     this.spawnAmbientCraft();
     this.bindCamera();
+    this.placeRoot = this.add.container(0, 0).setDepth(12).setVisible(false);
+    this.placeRing = this.add.graphics();
+    this.placeArt = this.add.graphics();
+    this.placeRoot.add([this.placeRing, this.placeArt]);
     this.frameValley(true);
     this.scale.on('resize', () => {
       if (!this.userPanned && !(this.sim && this.sim.state.mapOpen)) this.frameValley(true);
@@ -92,39 +117,9 @@ export class MapScene extends window.Phaser.Scene {
     Art.drawWorld(this.terrain, ROAD_NETWORK);
   }
 
-  drawHatch() {
-    Art.drawFog(this.hatch, REGIONS);
-  }
-
   isNight() {
     const hour = this.sim && this.sim.state ? this.sim.state.timeOfDay || 0 : 0;
     return hour > 0.72 || hour < 0.18;
-  }
-
-  createPlates() {
-    this.plates = {};
-    for (const [id, plate] of Object.entries(PLATES)) {
-      const el = document.createElement('div');
-      el.className = 'go-plate';
-      el.innerHTML = '<strong></strong><span></span>';
-      el.hidden = true;
-      this.pinHost.appendChild(el);
-      this.plates[id] = { el, x: plate.x, y: plate.y, title: plate.title, sub: plate.sub };
-    }
-  }
-
-  createBadges() {
-    for (const reg of REGIONS) {
-      if (!reg.unlockCostClean) continue;
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = 'go-badge';
-      el.innerHTML = `<strong>Unlock ${reg.name}</strong><span>$${reg.unlockCostClean} clean cash</span>`;
-      el.addEventListener('click', () => this.onRegionSelected(reg.id));
-      el.hidden = true;
-      this.pinHost.appendChild(el);
-      this.badges[reg.id] = { el, x: reg.unlockPos.x, y: reg.unlockPos.y };
-    }
   }
 
   createSlots() {
@@ -134,6 +129,10 @@ export class MapScene extends window.Phaser.Scene {
       hit.setInteractive({ useHandCursor: true });
       hit.on('pointerup', (pointer) => {
         if (this.dragMoved || this.pointingAtUi(pointer)) return;
+        if (this.registry.get('placing')) {
+          this.hover = { x: def.x, y: def.y };
+          return;
+        }
         this.sim.state.selectedSlotId = def.id;
         this.sim.state.selectedRegionId = def.regionId;
         this.onSlotSelected(def.id);
@@ -142,14 +141,19 @@ export class MapScene extends window.Phaser.Scene {
       const raid = this.add.ellipse(0, 12, 240, 150, 0xf85149, 0.1).setStrokeStyle(3, 0xf85149, 0.9).setVisible(false);
       const art = this.add.graphics();
       const pulse = this.add.ellipse(0, 18, 170, 78).setStrokeStyle(3, 0x8ec5ff, 1).setVisible(false);
+      const ring = this.add.graphics();
       const pin = document.createElement('div');
       pin.className = 'go-pin';
-      pin.innerHTML = '<strong></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
+      pin.innerHTML = PIN_MARK;
       pin.hidden = true;
+      const stack = document.createElement('div');
+      stack.className = 'go-stack';
+      stack.hidden = true;
       this.pinHost.appendChild(pin);
-      root.add([pulse, select, raid, hit, art]);
+      this.pinHost.appendChild(stack);
+      root.add([pulse, select, raid, hit, art, ring]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, pulse, pin, key: '' };
+      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
     }
   }
 
@@ -180,19 +184,18 @@ export class MapScene extends window.Phaser.Scene {
     if (cam.zoomEffect && cam.zoomEffect.isRunning) cam.zoomEffect.reset();
   }
 
-  clampCamera() {
-    const cam = this.cameras.main;
-    const open = this.sim && this.sim.state && this.sim.state.mapOpen;
-    cam.setBounds(0, 0, open ? MAP_W : WORLD_W, open ? MAP_H : WORLD_H);
-  }
-
   bindCamera() {
+    this.inertia = { x: 0, y: 0 };
+    this.samples = [];
     if (this.input.addPointer) this.input.addPointer(1);
     this.input.on('pointerdown', (p) => {
       if (this.pointingAtUi(p)) return;
       this.haltCamera();
       this.drag = true;
       this.dragMoved = false;
+      this.inertia.x = 0;
+      this.inertia.y = 0;
+      this.samples = [{ x: p.x, y: p.y, t: performance.now() }];
       this.dragFrom = { x: p.x, y: p.y, sx: this.cameras.main.scrollX, sy: this.cameras.main.scrollY };
     });
     this.input.on('pointermove', (p) => {
@@ -204,7 +207,7 @@ export class MapScene extends window.Phaser.Scene {
         if (this.pinch != null) {
           const zoom = window.Phaser.Math.Clamp(this.cameras.main.zoom + (d - this.pinch) * 0.003, this.minZoom(), 2.8);
           this.cameras.main.setZoom(zoom);
-          this.clampCamera();
+          this.clampScroll();
         }
         this.pinch = d;
         this.dragMoved = true;
@@ -212,48 +215,122 @@ export class MapScene extends window.Phaser.Scene {
         return;
       }
       this.pinch = null;
+      if (p) this.hover = { x: p.worldX, y: p.worldY };
       if (!this.drag || !p.isDown || !this.dragFrom) return;
       const dx = p.x - this.dragFrom.x;
       const dy = p.y - this.dragFrom.y;
-      if (Math.hypot(dx, dy) > 6) {
-        this.dragMoved = true;
-        this.userPanned = true;
-      }
-      if (this.dragMoved) {
-        const z = this.cameras.main.zoom;
-        this.cameras.main.scrollX = this.dragFrom.sx - dx / z;
-        this.cameras.main.scrollY = this.dragFrom.sy - dy / z;
-        this.clampCamera();
-      }
+      if (Math.hypot(dx, dy) <= 6) return;
+      this.dragMoved = true;
+      this.userPanned = true;
+      const z = this.cameras.main.zoom;
+      this.cameras.main.scrollX = this.dragFrom.sx - dx / z;
+      this.cameras.main.scrollY = this.dragFrom.sy - dy / z;
+      this.clampScroll();
+      const now = performance.now();
+      this.samples.push({ x: p.x, y: p.y, t: now });
+      this.samples = this.samples.filter((sample) => now - sample.t < 90);
     });
-    this.input.on('pointerup', () => { this.drag = false; this.pinch = null; });
-    this.input.on('wheel', (_p, _o, _dx, dy) => {
+    this.input.on('pointerup', () => {
+      if (this.dragMoved && this.samples.length >= 2) {
+        const first = this.samples[0];
+        const last = this.samples[this.samples.length - 1];
+        const dt = Math.max(16, last.t - first.t);
+        const z = this.cameras.main.zoom || 1;
+        this.inertia.x = ((last.x - first.x) / dt) * 16 / z;
+        this.inertia.y = ((last.y - first.y) / dt) * 16 / z;
+      }
+      this.drag = false;
+      this.pinch = null;
+    });
+    this.input.on('wheel', (p, _o, _dx, dy) => {
+      if (p && this.pointingAtUi(p)) return;
       this.haltCamera();
       this.userPanned = true;
-      this.cameras.main.setZoom(window.Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.0008, this.minZoom(), 2.8));
-      this.clampCamera();
+      const cam = this.cameras.main;
+      cam.setZoom(window.Phaser.Math.Clamp(cam.zoom - dy * 0.0008, this.minZoom(), 2.8));
+      this.clampScroll();
     });
     this.cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
+  }
+
+  unlockedRect() {
+    if (!this.sim || !this.sim.state.mapOpen) return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    const view = this.view || (this.sim.gameplayView ? this.sim.gameplayView() : { zones: [] });
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const zone of view.zones || []) {
+      if (!zone.unlocked && !zone.starter) continue;
+      const box = ZONE_LAYOUT[zone.id];
+      if (!box) continue;
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.w);
+      maxY = Math.max(maxY, box.y + box.h);
+    }
+    if (!Number.isFinite(minX)) return { x: 0, y: 0, w: MAP_W, h: MAP_H };
+    if (minX < 80 && maxX > 5200 && minY < 250 && maxY > 2400) return { x: 0, y: 0, w: MAP_W, h: MAP_H };
+    const pad = 200;
+    return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+  }
+
+  clampScroll() {
+    const cam = this.cameras.main;
+    const b = this.unlockedRect();
+    const dw = cam.displayWidth;
+    const dh = cam.displayHeight;
+    const minSX = b.x + (dw - cam.width) / 2;
+    const maxSX = Math.max(minSX, minSX + b.w - dw);
+    const minSY = b.y + (dh - cam.height) / 2;
+    const maxSY = Math.max(minSY, minSY + b.h - dh);
+    cam.scrollX = Math.min(maxSX, Math.max(minSX, cam.scrollX));
+    cam.scrollY = Math.min(maxSY, Math.max(minSY, cam.scrollY));
+  }
+
+  coastInertia() {
+    if (this.drag || !this.inertia) return;
+    if (Math.abs(this.inertia.x) < 0.12 && Math.abs(this.inertia.y) < 0.12) {
+      this.inertia.x = 0;
+      this.inertia.y = 0;
+      return;
+    }
+    this.cameras.main.scrollX -= this.inertia.x;
+    this.cameras.main.scrollY -= this.inertia.y;
+    this.inertia.x *= 0.9;
+    this.inertia.y *= 0.9;
+    this.clampScroll();
+  }
+
+  nearPoint(x, y, reach) {
+    if (!this.hover) return false;
+    return Math.hypot(this.hover.x - x, this.hover.y - y) < reach;
   }
 
   valleyZoom() {
     const vw = this.scale.width;
     const vh = this.scale.height;
-    const top = vw < 700 ? 176 : 156;
-    const bottom = 84;
-    const zoom = Math.min((vw - 28) / 640, (vh - top - bottom) / 820);
-    return window.Phaser.Math.Clamp(zoom * 0.98, 0.48, 1.2);
+    const top = 52;
+    const bottom = 64;
+    const zoom = Math.min((vw - 16) / 640, (vh - top - bottom) / 820);
+    return window.Phaser.Math.Clamp(zoom * 0.98, 0.55, 1.35);
+  }
+
+  stopCamera() {
+    this.haltCamera();
   }
 
   frameValley(instant) {
+    this.stopCamera();
     const cam = this.cameras.main;
     const zoom = this.valleyZoom();
     cam.setZoom(zoom);
-    const topInset = this.scale.width < 700 ? 188 : 164;
+    const topInset = 56;
     const viewY = 300 - topInset / zoom;
     const focus = { x: 470, y: viewY + (this.scale.height / zoom) / 2 };
     if (instant) cam.centerOn(focus.x, focus.y);
     else cam.pan(focus.x, focus.y, 420, 'Sine.easeInOut');
+    this.clampScroll();
   }
 
   frameClose(instant) {
@@ -302,6 +379,7 @@ export class MapScene extends window.Phaser.Scene {
       this.bound = true;
     }
     if (!this.sim) this.sim = this.registry.get('sim');
+    this.frameDt = dt;
     this.sim.step(dt);
     if (typeof this.sim.observeFrame === 'function') this.sim.observeFrame(dt);
     if (this.cursors) {
@@ -313,40 +391,57 @@ export class MapScene extends window.Phaser.Scene {
       if (this.cursors.right.isDown) this.cameras.main.scrollX += step;
       if (this.cursors.up.isDown) this.cameras.main.scrollY -= step;
       if (this.cursors.down.isDown) this.cameras.main.scrollY += step;
-      this.clampCamera();
+      this.clampScroll();
     }
-    this.syncRegions();
+    this.coastInertia();
+    this.view = this.sim.gameplayView ? this.sim.gameplayView() : null;
     this.syncSlots();
     this.syncTrucks();
+    this.syncPlacement();
     this.syncLife(dt);
     this.syncSky();
     this.syncFloaters(dt);
     this.syncWorld(dt);
+    this.syncTip();
   }
 
-  syncRegions() {
-    for (const reg of REGIONS) {
-      const state = this.sim.state.regions[reg.id];
-      const badge = this.badges[reg.id];
-      if (badge) {
-        badge.el.hidden = !(state && !state.unlocked && this.fontsReady);
-        if (!badge.el.hidden) this.placeScreen(badge.el, badge.x, badge.y);
-      }
-      const plate = this.plates[reg.id];
-      if (!plate || !state || !this.fontsReady) {
-        if (plate) plate.el.hidden = true;
-        continue;
-      }
-      const crew = LIEUTENANTS.filter((lt) => {
-        const row = this.sim.state.lieutenants[lt.id];
-        return row && row.hired && row.regionId === reg.id;
-      }).map((lt) => lt.name.split(' ')[0]);
-      const heat = state.unlocked ? ` · heat ${Math.floor(state.heat)}%` : ' · locked';
-      plate.el.querySelector('strong').textContent = plate.title;
-      plate.el.querySelector('span').textContent = `${plate.sub}${heat}${crew.length ? ' · ' + crew[0] : ''}`;
-      plate.el.hidden = false;
-      this.placeScreen(plate.el, plate.x, plate.y);
+  ensureTip() {
+    let tip = document.getElementById('map-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'map-tip';
+      tip.hidden = true;
+      document.body.appendChild(tip);
     }
+    return tip;
+  }
+
+  syncTip() {
+    const tip = this.ensureTip();
+    if (!this.hover) {
+      tip.hidden = true;
+      return;
+    }
+    let best = null;
+    let bestD = 80;
+    const nodes = [...Object.values(this.slots), ...Object.values(this.lots)];
+    for (const node of nodes) {
+      const x = node.def ? node.def.x : node.pos.x;
+      const y = node.def ? node.def.y : node.pos.y;
+      const d = Math.hypot(this.hover.x - x, this.hover.y - y);
+      if (d < bestD && node.pin && !node.pin.hidden && node.pin.title) {
+        best = { x, y, title: node.pin.title };
+        bestD = d;
+      }
+    }
+    if (!best) {
+      tip.hidden = true;
+      return;
+    }
+    const spot = this.worldToScreen(best.x, best.y - 96);
+    tip.hidden = false;
+    tip.textContent = best.title;
+    tip.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
   }
 
   worldToScreen(x, y) {
@@ -358,7 +453,7 @@ export class MapScene extends window.Phaser.Scene {
   underHud(sx, sy, hw, hh) {
     const w = this.scale.width;
     const h = this.scale.height;
-    const top = w < 700 ? 168 : 72;
+    const top = 56;
     if (sy - hh < top) return true;
     if (sy + hh > h - 78) return true;
     const objBottom = top + (w < 700 ? 78 : 132);
@@ -367,44 +462,116 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   syncSlots() {
-    const zoom = this.cameras.main.zoom;
-    const rel = zoom / this.valleyZoom();
-    const names = rel >= 0.82;
-    const detail = rel >= 0.92;
     const selected = this.sim.state.selectedSlotId;
     const recommend = this.recommendedSlot();
+    const supplyOnly = !this.view || this.view.coreMode !== false;
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
       if (!state) continue;
+      const lot = this.sim.state.lots && this.sim.state.lots[id];
+      const phase = lot ? lot.phase : '';
       node.select.setVisible(id === selected);
-      node.raid.setVisible(!!state.raidLocked);
-      if (state.raidLocked) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
+      node.raid.setVisible(!supplyOnly && !!state.raidLocked);
+      if (node.raid.visible) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
       const built = !!state.buildingId && !state.rivalControlled;
-      node.pulse.setVisible(!built && !state.rivalControlled && id === recommend);
+      const marked = id === recommend || id === this.recommendId();
+      node.pulse.setVisible(!built && !state.rivalControlled && marked);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
-      const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
-      if (key !== node.key) {
-        node.key = key;
-        this.paintSite(node.art, state);
-      }
-      if (built) {
-        const def = BUILDINGS[state.buildingId];
-        this.placeLabel(node, def.shortName, this.stockLine(state, def), names, detail, state.progress, state.raidLocked ? '#f85149' : '#7dcea0');
-        node.pin.classList.toggle('is-hot', !!state.raidLocked);
-        if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
-          if (Math.random() < 0.12) this.puff(node.def.x + 30, node.def.y - 70);
+      const ctx = this.siteCtx(state, lot, id);
+      if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+        const key = Art.textureKey(ctx);
+        if (key !== node.key) {
+          node.key = key;
+          Art.drawKeyed(node.art, key, ctx);
         }
-      } else if (state.rivalControlled) {
-        this.placeLabel(node, 'Los Lobos', 'Hostile gate', names, detail, 0, '#f85149');
-        node.pin.classList.add('is-hot');
-      } else if (id === recommend) {
-        this.placeLabel(node, 'Open plot', '', names, false, 0, '#8ec5ff');
-        node.pin.classList.remove('is-hot');
+      } else {
+        const key = `${state.buildingId || 'empty'}:${state.rivalControlled ? 1 : 0}:${state.level}`;
+        if (key !== node.key) {
+          node.key = key;
+          this.paintSite(node.art, state);
+        }
+      }
+      const buildingNow = phase === 'building' || phase === 'demolishing' || (state.constructLeft || 0) > 0;
+      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y });
+      this.syncStock(node, state);
+      const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
+      if (buildingNow) {
+        this.placeBadge(node, node.def.x, node.def.y, null, 'is-build', built ? BUILDINGS[state.buildingId].shortName : 'Build');
+      } else if (built) {
+        const def = BUILDINGS[state.buildingId];
+        this.placeBadge(node, node.def.x, node.def.y, iconKeyForBuilding(state.buildingId), working ? 'is-work' : 'is-idle', def ? def.shortName : '');
+        if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
+          if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
+        }
+      } else if (!state.rivalControlled && marked && !this.registry.get('placing')) {
+        this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
+        node.pin.classList.remove('is-hot', 'is-work', 'is-idle', 'is-build', 'is-plus');
       }
     }
     this.separatePins();
+  }
+
+  recommendId() {
+    const lots = this.view && this.view.lots;
+    if (!lots) return null;
+    const row = lots.find((lot) => lot.recommended);
+    return row ? row.id : null;
+  }
+
+  siteCtx(state, lot, id) {
+    return {
+      buildingId: (state && state.buildingId) || (lot && lot.buildingId) || null,
+      rival: !!(state && state.rivalControlled) || (lot && lot.propertyType === 'outpost'),
+      level: (state && state.level) || (lot && lot.level) || 1,
+      night: this.isNight(),
+      progress: (state && state.progress) || 0,
+      slotId: id,
+      phase: lot ? lot.phase : '',
+      propertyType: lot ? lot.propertyType : null,
+      owned: lot ? !!lot.owned : !!(state && state.buildingId),
+      size: lot ? lot.size : null,
+      constructLeft: (state && state.constructLeft) || (lot && lot.constructLeft) || 0,
+      demolishLeft: (lot && lot.demolishLeft) || 0,
+      phase: ((state && state.constructLeft > 0) || (lot && (lot.phase === 'building' || lot.phase === 'demolishing')))
+        ? ((lot && lot.phase === 'demolishing') ? 'demolishing' : 'building')
+        : (lot ? lot.phase : '')
+    };
+  }
+
+  placeBadge(node, x, y, iconKey, status, tip) {
+    const el = node.pin;
+    el.hidden = false;
+    el.classList.remove('is-work', 'is-idle', 'is-build', 'is-plus', 'is-hot');
+    if (status) el.classList.add(status);
+    const img = el.querySelector('img');
+    const src = iconKey ? artURL(iconKey) : '';
+    if (img) {
+      if (src) img.src = src;
+      img.hidden = !src || status === 'is-plus' || status === 'is-build';
+    }
+    const strong = el.querySelector('strong');
+    const span = el.querySelector('span');
+    if (strong) {
+      strong.hidden = true;
+      strong.textContent = '';
+    }
+    if (span) {
+      span.hidden = true;
+      span.textContent = '';
+    }
+    el.title = tip || '';
+    const bar = el.querySelector('.go-pin-bar');
+    if (bar) {
+      bar.hidden = status !== 'is-work' && status !== 'is-idle';
+      const fill = bar.querySelector('b');
+      if (fill) {
+        fill.style.width = status === 'is-work' ? '100%' : '35%';
+        fill.style.background = '#58a6ff';
+      }
+    }
+    this.placeScreen(el, x, y - 72);
   }
 
   recommendedSlot() {
@@ -419,30 +586,20 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   placeLabel(node, title, stock, showName, showStock, progress, barColor) {
-    const el = node.pin;
-    if (!showName || !this.fontsReady) {
-      el.hidden = true;
+    if (!showName) {
+      node.pin.hidden = true;
       return;
     }
-    el.hidden = false;
-    el.querySelector('strong').textContent = title;
-    const status = el.querySelector('span');
-    const line = showStock && stock ? stock : '';
-    status.hidden = !line;
-    status.textContent = line;
-    const bar = el.querySelector('.go-pin-bar');
-    bar.hidden = !showStock;
-    const fill = bar.querySelector('b');
-    fill.style.width = `${Math.round(Math.max(0, Math.min(1, progress || 0)) * 100)}%`;
-    fill.style.background = barColor || '#7dcea0';
-    this.placeScreen(el, node.def.x, node.def.y - 108);
+    const icon = title && BUILDINGS[title] ? iconKeyForBuilding(title) : null;
+    this.placeBadge(node, node.def.x, node.def.y, icon, progress > 0 ? 'is-work' : 'is-idle', title || '');
+    if (barColor) node.pin.style.setProperty('--go-ring', barColor);
   }
 
   placeScreen(el, worldX, worldY) {
     const spot = this.worldToScreen(worldX, worldY);
     const vw = this.scale.width;
     const vh = this.scale.height;
-    if (spot.x < -40 || spot.y < -40 || spot.x > vw + 40 || spot.y > vh + 40) {
+    if (spot.x < 0 || spot.y < 0 || spot.x > vw || spot.y > vh) {
       el.hidden = true;
       return false;
     }
@@ -452,10 +609,14 @@ export class MapScene extends window.Phaser.Scene {
     const h = el.offsetHeight;
     const hud = document.querySelector('.go-subhud');
     const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
-    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const topLimit = Math.max(48, hudBottom + 6);
     const bottomLimit = this.bottomLimit(vh);
     let left = spot.x - w / 2;
     let top = spot.y - h;
+    if (left < -24 || top < topLimit - 24 || left + w > vw + 24 || top + h > bottomLimit + 24) {
+      el.hidden = true;
+      return false;
+    }
     left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
     top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
     const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
@@ -466,7 +627,7 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   separatePins() {
-    const els = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate')].filter((el) => !el.hidden);
+    const els = [...this.pinHost.querySelectorAll('.go-pin, .go-badge, .go-plate, .go-mark, .go-zone, .go-area')].filter((el) => !el.hidden);
     const overlap = (a, b) => {
       const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
       const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -487,18 +648,26 @@ export class MapScene extends window.Phaser.Scene {
           let y = Number(match[2]) + dy;
           const vh = this.scale.height;
           const maxY = vh - 86 - lower.r.height;
-          if (y > maxY) {
-            if (lower.el.classList.contains('go-pin') && lower.el.querySelector('strong').textContent === 'Open plot') {
-              lower.el.hidden = true;
-            }
-            continue;
-          }
+          if (y > maxY) continue;
           lower.el.style.transform = `translate(${x}px, ${Math.round(y)}px)`;
           lower.r = lower.el.getBoundingClientRect();
           moved = true;
         }
       }
       if (!moved) break;
+    }
+    const rank = (el) => (el.classList.contains('go-zone') || el.classList.contains('go-area') ? 0 : 1);
+    const left = els.filter((el) => !el.hidden);
+    for (let i = 0; i < left.length; i++) {
+      if (left[i].hidden) continue;
+      const a = left[i].getBoundingClientRect();
+      for (let j = i + 1; j < left.length; j++) {
+        if (left[j].hidden) continue;
+        const b = left[j].getBoundingClientRect();
+        if (!overlap(a, b)) continue;
+        const drop = rank(left[i]) > rank(left[j]) ? left[i] : rank(left[j]) > rank(left[i]) ? left[j] : (a.top >= b.top ? left[i] : left[j]);
+        drop.hidden = true;
+      }
     }
   }
 
@@ -513,14 +682,180 @@ export class MapScene extends window.Phaser.Scene {
     return 'Working';
   }
 
+  paintProgress(g, p) {
+    g.clear();
+    const amount = Math.max(0.08, Math.min(1, p || 0));
+    const y = -52;
+    g.fillStyle(0x12181c, 0.88);
+    g.fillCircle(0, y, 18);
+    g.lineStyle(5, 0x2c3848, 1);
+    g.strokeCircle(0, y, 16);
+    g.lineStyle(5, 0x3ddc97, 1);
+    g.beginPath();
+    g.arc(0, y, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * amount);
+    g.strokePath();
+  }
+
+  syncStock(node, state) {
+    const el = node.stack;
+    if (!el) return;
+    const building = state && (state.constructLeft || 0) <= 0 && state.buildingId;
+    const rows = [];
+    if (building) {
+      for (const [id, qty] of Object.entries(state.outputBuffer || {})) if (qty > 0) rows.push([id, qty]);
+      for (const [id, qty] of Object.entries(state.inputBuffer || {})) if (qty > 0) rows.push([id, qty]);
+    }
+    if (!rows.length) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    const html = rows.slice(0, 3).map(([id, qty]) => {
+      const good = GOODS[id];
+      const bg = good ? good.badgeBg : '#333';
+      const ink = good ? good.badgeInk : '#fff';
+      const name = good ? good.shortName : id;
+      return `<i title="${name}"><b style="background:${ink};box-shadow:inset 0 0 0 1.5px ${bg}"></b><em>${qty}</em></i>`;
+    }).join('');
+    if (el.dataset.stack !== html) {
+      el.dataset.stack = html;
+      el.innerHTML = html;
+    }
+    const x = node.def ? node.def.x : node.pos.x;
+    const y = node.def ? node.def.y : node.pos.y;
+    this.placeStack(el, x, y + 46);
+  }
+
+  placeStack(el, worldX, worldY) {
+    const spot = this.worldToScreen(worldX, worldY);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    if (spot.x < 0 || spot.y < 40 || spot.x > vw || spot.y > vh - 48) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    const w = el.offsetWidth || 28;
+    const left = Math.max(6, Math.min(vw - w - 6, Math.round(spot.x - w / 2)));
+    el.style.transform = `translate(${left}px, ${Math.round(spot.y)}px)`;
+  }
+
+  noteBuild(node, active, left, point) {
+    if (node.wasBuilding && !active) {
+      const juice = this.registry.get('juice');
+      if (juice && juice.demolishDust) juice.demolishDust(point);
+      if (juice && juice.burst) juice.burst({ x: point.x, y: point.y - 24 }, 0x8ec5ff);
+      node.pop = 0.42;
+    }
+    node.wasBuilding = active;
+    if (node.pop > 0) {
+      node.pop = Math.max(0, node.pop - (this.frameDt || 0.016));
+      const u = 1 - node.pop / 0.42;
+      node.root.setScale(0.86 + Math.sin(u * Math.PI) * 0.2);
+    } else if (!active) node.root.setScale(1);
+    if (!node.ring) return;
+    if (active && left > 0) {
+      if (left > (node.buildMax || 0)) node.buildMax = left;
+      this.paintProgress(node.ring, node.buildMax ? 1 - left / node.buildMax : 0);
+      if (node.root.bringToTop) node.root.bringToTop(node.ring);
+    } else node.ring.clear();
+  }
+
+  placeSites(building) {
+    const st = this.sim.state;
+    const sites = [];
+    for (const def of BUILD_SLOTS) {
+      const slot = st.slots[def.id];
+      const reg = st.regions[def.regionId];
+      if (!slot || !reg || !reg.unlocked || slot.rivalControlled || slot.buildingId) continue;
+      const lot = st.lots && st.lots[def.id];
+      if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) continue;
+      if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') continue;
+      const fits = !def.allowedCategories || def.allowedCategories.includes(building.category);
+      const openPlot = !!(lot && lot.kind === 'open');
+      const dirty = openPlot ? Math.round(building.buildCostDirty * 0.85) : building.buildCostDirty;
+      const clean = openPlot ? Math.round(building.buildCostClean * 0.85) : building.buildCostClean;
+      const cash = st.dirtyCash >= dirty && st.cleanCash >= clean;
+      const actOk = st.mode === 'sandbox' || st.act >= building.act;
+      sites.push({ id: def.id, x: def.x, y: def.y, ok: !!(fits && cash && actOk) });
+    }
+    return sites;
+  }
+
+  syncPlacement() {
+    const placing = this.registry.get('placing');
+    const hud = document.getElementById('place-hud');
+    const okBtn = document.getElementById('place-ok');
+    const building = placing && BUILDINGS[placing.buildingId];
+    if (!building || !this.placeRoot) {
+      if (this.placeRoot) this.placeRoot.setVisible(false);
+      if (hud) hud.hidden = true;
+      this.registry.set('placeSnap', null);
+      return;
+    }
+    const sites = this.placeSites(building);
+    if (!sites.length) {
+      this.placeRoot.setVisible(false);
+      if (hud) hud.hidden = true;
+      this.registry.set('placeSnap', null);
+      return;
+    }
+    let pick = null;
+    let best = 260;
+    if (this.hover) {
+      for (const site of sites) {
+        const d = Math.hypot(this.hover.x - site.x, this.hover.y - site.y);
+        if (d < best) {
+          best = d;
+          pick = site;
+        }
+      }
+    }
+    if (!pick) {
+      const legal = sites.filter((site) => site.ok);
+      const pool = legal.length ? legal : sites;
+      const south = pool.find((site) => site.id === 'slot_rp_south');
+      if (south && building.category === 'production') pick = south;
+      else {
+        const cam = this.cameras.main.midPoint;
+        pick = pool.slice().sort((a, b) => Math.hypot(a.x - cam.x, a.y - cam.y) - Math.hypot(b.x - cam.x, b.y - cam.y))[0];
+      }
+    }
+    this.placeRoot.setVisible(true);
+    this.placeRoot.setPosition(pick.x, pick.y);
+    const color = pick.ok ? 0x3ddc97 : 0xf85149;
+    this.placeRing.clear();
+    this.placeRing.fillStyle(color, 0.18);
+    this.placeRing.fillEllipse(0, 16, 176, 84);
+    this.placeRing.lineStyle(4, color, 0.98);
+    this.placeRing.strokeEllipse(0, 16, 176, 84);
+    const ctx = this.siteCtx({ buildingId: building.id, level: 1 }, { phase: 'operating', owned: true, buildingId: building.id }, 'placing');
+    const key = typeof Art.textureKey === 'function' ? Art.textureKey(ctx) : building.id;
+    if (this.placeKey !== key && typeof Art.drawKeyed === 'function') {
+      this.placeKey = key;
+      Art.drawKeyed(this.placeArt, key, ctx);
+    }
+    const sprite = this.placeArt.getData && this.placeArt.getData('sprite');
+    if (sprite) {
+      sprite.setVisible(true);
+      sprite.setAlpha(0.66);
+    }
+    if (this.placeRoot.bringToTop) this.placeRoot.bringToTop(this.placeRing);
+    this.registry.set('placeSnap', { id: pick.id, x: pick.x, y: pick.y, ok: pick.ok, buildingId: building.id });
+    if (hud && okBtn) {
+      const spot = this.worldToScreen(pick.x + 96, pick.y - 28);
+      const x = Math.max(8, Math.min(this.scale.width - 92, spot.x));
+      const y = Math.max(58, Math.min(this.scale.height - 108, spot.y));
+      hud.hidden = false;
+      hud.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      okBtn.disabled = !pick.ok;
+      okBtn.classList.toggle('is-bad', !pick.ok);
+    }
+  }
+
   paintSite(g, state) {
-    const ctx = {
-      buildingId: state.buildingId || null,
-      rival: !!state.rivalControlled,
-      level: state.level || 1,
-      night: this.isNight(),
-      progress: state.progress || 0,
-    };
+    const lot = this.sim && this.sim.state.lots && state.slotId ? this.sim.state.lots[state.slotId] : null;
+    const ctx = this.siteCtx(state, lot, state.slotId || (state.buildingId || 'lot'));
     if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
       Art.drawKeyed(g, Art.textureKey(ctx), ctx);
       return;
@@ -528,36 +863,196 @@ export class MapScene extends window.Phaser.Scene {
     Art.paintStructure(g, state.buildingId, state.rivalControlled);
   }
 
+  goodKey(good) {
+    const id = good ? good.id : 'crate';
+    const key = 'go-good-' + id;
+    if (this.textures.exists(key)) return key;
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const g = c.getContext('2d');
+    g.fillStyle = good && good.badgeBg ? good.badgeBg : '#333';
+    g.beginPath();
+    g.moveTo(8, 2);
+    g.arcTo(30, 2, 30, 30, 8);
+    g.arcTo(30, 30, 2, 30, 8);
+    g.arcTo(2, 30, 2, 2, 8);
+    g.arcTo(2, 2, 30, 2, 8);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = good && good.badgeInk ? good.badgeInk : '#fff';
+    g.lineWidth = 2.4;
+    g.beginPath();
+    const raw = good && (good.category === 'raw' || good.category === 'legal');
+    if (raw) {
+      g.ellipse(16, 17, 6, 10, -0.7, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(16, 7);
+      g.lineTo(16, 26);
+    } else {
+      g.rect(8, 8, 16, 16);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(8, 14);
+      g.lineTo(24, 14);
+    }
+    g.stroke();
+    this.textures.addCanvas(key, c);
+    return key;
+  }
+
+  rigKey(kind) {
+    const key = kind === 'mule' ? 'go-rig-mule' : 'go-rig-truck';
+    if (this.textures.exists(key)) return key;
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 36;
+    const g = c.getContext('2d');
+    g.fillStyle = 'rgba(16,12,8,0.28)';
+    g.beginPath();
+    g.ellipse(32, 24, 22, 8, 0, 0, Math.PI * 2);
+    g.fill();
+    if (kind === 'mule') {
+      g.fillStyle = '#8a5a32';
+      g.beginPath();
+      g.ellipse(28, 16, 14, 8, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#c4a574';
+      g.beginPath();
+      g.arc(46, 14, 6, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = '#5c3a22';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(18, 20);
+      g.lineTo(14, 28);
+      g.moveTo(36, 20);
+      g.lineTo(40, 28);
+      g.stroke();
+    } else {
+      g.fillStyle = '#c4b08a';
+      g.fillRect(8, 10, 28, 14);
+      g.fillStyle = '#3d4c63';
+      g.fillRect(36, 8, 16, 16);
+      g.fillStyle = '#8ec4d4';
+      g.fillRect(42, 11, 7, 5);
+      g.fillStyle = '#1c140e';
+      g.beginPath();
+      g.arc(18, 25, 4, 0, Math.PI * 2);
+      g.arc(40, 25, 4, 0, Math.PI * 2);
+      g.fill();
+    }
+    this.textures.addCanvas(key, c);
+    return key;
+  }
+
   syncTrucks() {
     const live = new Set();
     this.flow.clear();
+    this.paintRoutes();
     for (const truck of this.sim.state.activeTrucks) {
-      live.add(truck.id);
+      live.add(String(truck.id));
       const good = GOODS[truck.goodId];
-      const color = good ? good.color : 0xd7c4a2;
-      if (truck.path && truck.path.length) {
-        this.flow.lineStyle(2, color, 0.28);
-        this.flow.lineBetween(truck.x, truck.y, truck.path[Math.min(truck.pathIndex, truck.path.length - 1)].x, truck.path[Math.min(truck.pathIndex, truck.path.length - 1)].y);
-      }
+      const mule = !!(good && (good.category === 'raw' || good.category === 'legal'));
       let node = this.trucks[truck.id];
       if (!node) {
-        const root = this.add.container(truck.x, truck.y).setDepth(8);
-        const body = this.add.rectangle(0, 0, 18, 10, color).setStrokeStyle(1, 0x1c140e);
-        const cab = this.add.rectangle(10, 0, 7, 8, 0xe8eef4).setStrokeStyle(1, 0x1c140e);
-        root.add([body, cab]);
-        node = { root, body, cab };
+        const root = this.add.container(truck.x, truck.y).setDepth(9);
+        const rig = this.add.image(0, 0, this.rigKey(mule ? 'mule' : 'truck')).setOrigin(0.5, 0.55).setScale(1.7);
+        root.add([rig]);
+        node = { root, rig, mule, tag: null };
         this.trucks[truck.id] = node;
       }
+      if (node.mule !== mule) {
+        node.mule = mule;
+        node.rig.setTexture(this.rigKey(mule ? 'mule' : 'truck'));
+      }
       node.root.setPosition(truck.x, truck.y);
-      const angle = truck.heading || 0;
-      node.body.setRotation(angle);
-      node.cab.setRotation(angle);
-      node.cab.setPosition(Math.cos(angle) * 10, Math.sin(angle) * 10);
+      node.rig.setRotation(truck.heading || 0);
+      this.placeCargo(node, good, truck);
     }
     for (const [id, node] of Object.entries(this.trucks)) {
-      if (!live.has(Number(id))) {
+      if (!live.has(id)) {
+        if (node.tag) node.tag.remove();
         node.root.destroy();
         delete this.trucks[id];
+      }
+    }
+  }
+
+  placeCargo(node, good, truck) {
+    if (!node.tag) {
+      const el = document.createElement('div');
+      el.className = 'go-cargo';
+      this.pinHost.appendChild(el);
+      node.tag = el;
+    }
+    const el = node.tag;
+    const spot = this.worldToScreen(truck.x, truck.y - 20);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    if (spot.x < 4 || spot.y < 40 || spot.x > vw - 4 || spot.y > vh - 40) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    const ink = good && good.badgeInk ? good.badgeInk : '#9ce6a8';
+    const bg = good && good.badgeBg ? good.badgeBg : '#274d2e';
+    const url = this.goodURL(good);
+    el.style.backgroundColor = ink;
+    el.style.backgroundImage = url ? `url(${url})` : '';
+    el.style.boxShadow = `0 1px 2px rgba(0,0,0,0.45), inset 0 0 0 2px ${bg}`;
+    el.title = good ? good.shortName : '';
+    el.style.transform = `translate(${Math.round(spot.x - 13)}px, ${Math.round(spot.y - 30)}px)`;
+  }
+
+  goodURL(good) {
+    const id = good ? good.id : 'crate';
+    if (!this.goodURLs) this.goodURLs = {};
+    if (this.goodURLs[id]) return this.goodURLs[id];
+    const key = this.goodKey(good);
+    const source = this.textures.get(key).getSourceImage();
+    this.goodURLs[id] = source && source.toDataURL ? source.toDataURL() : '';
+    return this.goodURLs[id];
+  }
+
+  chainPath(fromId, toId) {
+    if (!this.chainPaths) this.chainPaths = {};
+    const key = fromId + '>' + toId;
+    if (this.chainPaths[key]) return this.chainPaths[key];
+    const start = BUILD_SLOTS.find((slot) => slot.id === fromId);
+    const path = start ? [{ x: start.x, y: start.y }, ...findRoadPath(fromId, toId)] : [];
+    this.chainPaths[key] = path;
+    return path;
+  }
+
+  paintRoutes() {
+    const g = this.flow;
+    const slots = this.sim.state.slots;
+    const legs = [
+      ['slot_rp_farm1', 'slot_rp_barn1'],
+      ['slot_rp_barn1', 'slot_rp_wh1'],
+      ['slot_rp_wh1', 'slot_rp_pier']
+    ];
+    const cursor = (this.phase * 42) % 56;
+    for (const [from, to] of legs) {
+      if (!slots[from] || !slots[from].buildingId || !slots[to] || !slots[to].buildingId) continue;
+      const path = this.chainPath(from, to);
+      if (path.length < 2) continue;
+      g.lineStyle(4, 0x58a6ff, 0.16);
+      for (let i = 0; i < path.length - 1; i++) g.lineBetween(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+      let travel = cursor;
+      for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i];
+        const b = path[i + 1];
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        while (travel < len) {
+          const t = travel / len;
+          g.fillStyle(0x8ec5ff, 0.92);
+          g.fillCircle(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 3.5);
+          travel += 56;
+        }
+        travel -= len;
       }
     }
   }
@@ -645,11 +1140,15 @@ export class MapScene extends window.Phaser.Scene {
       g.fillCircle(p.x, p.y, p.r + (1 - p.life) * 4);
       return true;
     });
+    if (typeof Art.paintAmbient === 'function') Art.paintAmbient(this, g);
     if (this.sim.state.weather === 'rain') {
+      const view = this.cameras.main.worldView;
       g.lineStyle(1, 0xc5d4e0, 0.35);
-      for (let i = 0; i < 70; i++) {
-        const x = (i * 97 + this.phase * 240) % WORLD_W;
-        const y = (i * 53 + this.phase * 520) % WORLD_H;
+      const spanW = view.width + 24;
+      const spanH = view.height + 24;
+      for (let i = 0; i < 80; i++) {
+        const x = view.x + ((i * 97 + this.phase * 240) % spanW);
+        const y = view.y + ((i * 53 + this.phase * 520) % spanH);
         g.lineBetween(x, y, x - 3, y + 10);
       }
     }
@@ -677,7 +1176,9 @@ export class MapScene extends window.Phaser.Scene {
     if (this.sim.state.weather === 'rain') { color = 0x243044; alpha = Math.max(alpha, 0.18); }
     this.sky.clear();
     this.sky.fillStyle(color, alpha);
-    this.sky.fillRect(0, 0, MAP_W, MAP_H);
+    const view = this.cameras.main.worldView;
+    const pad = 12;
+    this.sky.fillRect(view.x - pad, view.y - pad, view.width + pad * 2, view.height + pad * 2);
   }
 
   syncFloaters(dt) {
@@ -748,25 +1249,23 @@ export class MapScene extends window.Phaser.Scene {
     const spot = this.worldToScreen(worldX, worldY);
     const vw = this.scale.width;
     const vh = this.scale.height;
+    if (spot.x < -20 || spot.y < -20 || spot.x > vw + 20 || spot.y > vh + 20) {
+      el.hidden = true;
+      return false;
+    }
     el.hidden = false;
     el.style.transform = 'translate(0px, 0px)';
     const w = el.offsetWidth || 80;
     const h = el.offsetHeight || 28;
     const hud = document.querySelector('.go-subhud');
     const hudBottom = hud ? hud.getBoundingClientRect().bottom : 0;
-    const topLimit = Math.max(vw < 700 ? 168 : 78, hudBottom + 8);
+    const topLimit = Math.max(48, hudBottom + 6);
     const bottomLimit = this.bottomLimit(vh);
-    const left = spot.x - w / 2;
-    const top = spot.y - h;
-    if (left < 8 || top < topLimit || left + w > vw - 8 || top + h > bottomLimit) {
-      el.hidden = true;
-      return false;
-    }
+    let left = spot.x - w / 2;
+    let top = spot.y - h;
+    left = Math.max(8, Math.min(Math.max(8, vw - w - 8), left));
+    top = Math.max(topLimit, Math.min(Math.max(topLimit, bottomLimit - h), top));
     const cleared = this.clearOfChrome(left, top, w, h, topLimit, bottomLimit);
-    if (cleared.left < 8 || cleared.top < topLimit) {
-      el.hidden = true;
-      return false;
-    }
     el.style.transform = `translate(${Math.round(cleared.left)}px, ${Math.round(cleared.top)}px)`;
     return true;
   }
@@ -783,25 +1282,27 @@ export class MapScene extends window.Phaser.Scene {
       });
       const select = this.add.ellipse(0, 10, 168, 100, 0x8ec5ff, 0.08).setStrokeStyle(2, 0x8ec5ff, 0.9).setVisible(false);
       const art = this.add.graphics();
+      const ghost = this.add.graphics().setAlpha(0.62);
+      const valid = this.add.graphics();
+      const ring = this.add.graphics();
       const pin = document.createElement('div');
       pin.className = 'go-mark';
-      pin.innerHTML = '<strong></strong><span></span>';
+      pin.innerHTML = PIN_MARK;
       pin.hidden = true;
       this.pinHost.appendChild(pin);
-      root.add([select, hit, art]);
+      root.add([select, valid, hit, art, ghost, ring]);
       root.setDepth(4);
-      this.lots[id] = { id, pos, root, hit, select, art, pin, key: '', phase: '', demoMax: 0, buildMax: 0 };
+      this.lots[id] = { id, pos, root, hit, select, art, ghost, valid, ring, pin, key: '', ghostKey: '', phase: '', demoMax: 0, buildMax: 0, hammer: 0, wasBuilding: false, pop: 0 };
     }
   }
 
   createZoneMarks() {
     for (const id of Object.keys(ZONE_LAYOUT)) {
-      if (id === 'rio_plata') continue;
       const spot = zoneCenter(id);
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'go-zone';
-      el.innerHTML = '<strong></strong><span></span>';
+      el.innerHTML = '<svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong></strong><span></span>';
       el.hidden = true;
       el.addEventListener('click', () => {
         const fn = this.registry.get('onZoneSelected');
@@ -818,10 +1319,11 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   applyBounds() {
-    const open = this.sim && this.sim.state.mapOpen;
-    const cam = this.cameras.main;
-    if (open) cam.setBounds(0, 0, MAP_W, MAP_H);
-    else cam.setBounds(0, 0, WORLD_W, WORLD_H);
+    const b = this.unlockedRect();
+    const key = `${Math.round(b.x)}|${Math.round(b.y)}|${Math.round(b.w)}|${Math.round(b.h)}`;
+    if (key === this.boundsKey) return;
+    this.boundsKey = key;
+    this.cameras.main.setBounds(b.x, b.y, b.w, b.h);
   }
 
   revealMap() {
@@ -829,13 +1331,12 @@ export class MapScene extends window.Phaser.Scene {
     this.applyBounds();
     const cam = this.cameras.main;
     const phone = this.scale.width < 800;
-    const zoom = phone
-      ? 0.58
-      : window.Phaser.Math.Clamp(Math.min(this.scale.width / 2800, (this.scale.height - 140) / 1600), 0.48, 0.85);
-    const x = phone ? 1900 : 4300;
-    const y = phone ? 2050 : 900;
+    const fit = Math.min(this.scale.width / MAP_W, (this.scale.height - 120) / MAP_H);
+    const zoom = phone ? 0.46 : window.Phaser.Math.Clamp(fit * 0.98, 0.24, 0.42);
+    const x = phone ? 2400 : MAP_W / 2;
+    const y = phone ? 1500 : 1340;
     cam.setZoom(zoom);
-    cam.pan(x, y, 1500, 'Sine.easeInOut');
+    cam.centerOn(x, y);
     const fn = this.registry.get('onMapRevealed');
     if (typeof fn === 'function') fn();
   }
@@ -860,8 +1361,8 @@ export class MapScene extends window.Phaser.Scene {
     const cam = this.cameras.main;
     const zoom = window.Phaser.Math.Clamp(Math.min(this.scale.width / (box.w + 180), this.scale.height / (box.h + 220)), this.minZoom(), 1.4);
     cam.setZoom(zoom);
-    const x = box.x + box.w / 2;
-    const y = box.y + box.h / 2;
+    const x = box.focusX != null ? box.focusX : box.x + box.w / 2;
+    const y = box.focusY != null ? box.focusY : box.y + box.h / 2;
     if (instant) cam.centerOn(x, y);
     else cam.pan(x, y, 420, 'Sine.easeInOut');
   }
@@ -888,48 +1389,99 @@ export class MapScene extends window.Phaser.Scene {
     this.settleMarks();
   }
 
+  fillPoly(g, poly) {
+    g.beginPath();
+    g.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) g.lineTo(poly[i][0], poly[i][1]);
+    g.closePath();
+    g.fillPath();
+  }
+
+  strokePoly(g, poly) {
+    g.beginPath();
+    g.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) g.lineTo(poly[i][0], poly[i][1]);
+    g.closePath();
+    g.strokePath();
+  }
+
+  veilZone(g, poly, alpha) {
+    if (!poly || poly.length < 3 || alpha < 0.02) return;
+    g.fillStyle(0x1a221c, 0.34 * alpha);
+    this.fillPoly(g, poly);
+    g.lineStyle(28, 0x101612, 0.22 * alpha);
+    this.strokePoly(g, poly);
+  }
+
+  dashZone(g, poly, alpha) {
+    if (!poly || poly.length < 3 || alpha < 0.02) return;
+    g.lineStyle(5, 0xc5d6b0, 0.1 * alpha);
+    this.strokePoly(g, poly);
+    g.lineStyle(1.5, 0xe7f2df, 0.42 * alpha);
+    const dash = 16;
+    const gap = 12;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      let walked = 0;
+      while (walked < len) {
+        const end = Math.min(len, walked + dash);
+        g.lineBetween(
+          a[0] + (dx * walked) / len,
+          a[1] + (dy * walked) / len,
+          a[0] + (dx * end) / len,
+          a[1] + (dy * end) / len
+        );
+        walked += dash + gap;
+      }
+    }
+  }
+
   syncFog(view) {
     const g = this.zoneFog;
     if (!g) return;
     g.clear();
     const chart = this.chartAlpha;
-    if (chart > 0.02) {
-      this.hatchRect(g, 0, 1360, MAP_W, MAP_H - 1360, chart);
-      this.hatchRect(g, 2520, 0, MAP_W - 2520, 1360, chart);
-    }
     for (const zone of view.zones) {
       const box = ZONE_LAYOUT[zone.id];
-      if (!box || zone.id === 'rio_plata') continue;
+      if (!box || !box.poly) continue;
       const target = zone.unlocked ? 0 : 1;
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      if (this.fogAlpha[zone.id] > 0.02 && this.chartAlpha < 0.85) {
-        this.hatchRect(g, box.x, box.y, box.w, box.h, this.fogAlpha[zone.id]);
-      }
+      const edge = softEdge(box.poly);
+      if (!zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.85);
+      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.72);
+      const ink = this.fogAlpha[zone.id] > 0.15 ? 0.42 + this.fogAlpha[zone.id] * 0.28 : 0.28;
+      this.dashZone(g, edge, ink * (1 - chart * 0.45));
+    }
+    for (const reg of REGIONS) {
+      if (!reg.unlockCostClean) continue;
+      const state = this.sim.state.regions[reg.id];
+      if (!state || state.unlocked) continue;
+      const poly = DISTRICT_EDGE[reg.id];
+      if (poly) this.veilZone(g, softEdge(poly), 0.7);
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
         if (!zone.unlocked) continue;
         const box = ZONE_LAYOUT[zone.id];
-        if (!box) continue;
-        g.fillStyle(0x58a6ff, 0.14);
-        g.fillRect(box.x, box.y, box.w, box.h);
+        if (!box || !box.poly) continue;
+        g.fillStyle(0x58a6ff, 0.12);
+        this.fillPoly(g, softEdge(box.poly));
       }
     }
   }
 
-  hatchRect(g, x, y, w, h, alpha) {
-    g.fillStyle(0x121812, 0.52 * alpha);
+  veil(g, x, y, w, h, alpha) {
+    if (alpha <= 0.02) return;
+    g.fillStyle(0x121816, 0.38 * alpha);
     g.fillRect(x, y, w, h);
-    g.lineStyle(2, 0xb7c7a4, 0.22 * alpha);
-    for (let i = 24; i < w + h; i += 36) {
-      const x1 = x + Math.min(i, w);
-      const y1 = y + Math.max(0, i - w);
-      const x2 = x + Math.max(0, i - h);
-      const y2 = y + Math.min(i, h);
-      g.lineBetween(x1, y1, x2, y2);
-    }
+    g.fillStyle(0x1c2820, 0.16 * alpha);
+    g.fillEllipse(x + w * 0.5, y + h * 0.5, w * 0.92, h * 0.86);
   }
 
   syncPlacedLots(view) {
@@ -945,43 +1497,41 @@ export class MapScene extends window.Phaser.Scene {
       const locked = zone && !zone.unlocked;
       node.select.setVisible(selected === node.id);
       node.root.setAlpha(locked ? 0.55 : 1);
-      if (live.phase === 'demolishing') {
-        if (node.phase !== 'demolishing') {
-          node.demoMax = Math.max(0.2, live.demolishLeft || lot.demolishLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.shake) juice.shake(240, 0.003);
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      const juice = this.registry.get('juice');
+      if (live.phase === 'demolishing' && node.phase !== 'demolishing') {
+        if (juice && juice.shake) juice.shake(220, 0.003);
+        if (juice && juice.demolishDust) juice.demolishDust({ x: node.pos.x, y: node.pos.y });
+      } else if (live.phase === 'building' && node.phase !== 'building') {
+        if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0xc4a574);
+      }
+      if (live.phase === 'building') {
+        node.hammer += 0.016;
+        if (node.hammer > 1.3) {
+          node.hammer = 0;
+          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y - 20 }, 0xc4a574);
         }
-        const total = node.demoMax || 1;
-        paintRubble(node.art, 1 - Math.max(0, live.demolishLeft) / total);
-        node.key = '';
-        if (Math.random() < 0.35) this.puff(node.pos.x + (Math.random() - 0.5) * 40, node.pos.y - 10);
-      } else if (live.phase === 'building') {
-        if (node.phase !== 'building') {
-          node.buildMax = Math.max(0.2, live.constructLeft || lot.constructLeft || 1);
-          const juice = this.registry.get('juice');
-          if (juice && juice.burst) juice.burst({ x: node.pos.x, y: node.pos.y }, 0x8ec5ff);
+      }
+      const ctx = this.siteCtx({ buildingId: live.buildingId, level: live.level, rivalControlled: lot.owner === 'rival' }, live, node.id);
+      if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
+        const key = Art.textureKey(ctx);
+        if (key !== node.key || live.phase === 'building' || live.phase === 'demolishing') {
+          node.key = key;
+          Art.drawKeyed(node.art, key, ctx);
         }
-        const total = node.buildMax || 1;
-        paintScaffold(node.art, 1 - Math.max(0, live.constructLeft) / total);
+      } else if (live.phase === 'demolishing' || live.phase === 'building') {
         node.key = '';
       } else if (live.buildingId && live.phase === 'operating') {
         if (node.key !== 'b:' + live.buildingId) {
           node.key = 'b:' + live.buildingId;
-          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1 });
+          this.paintSite(node.art, { buildingId: live.buildingId, rivalControlled: false, level: live.level || 1, progress: 1, slotId: node.id });
         }
       } else if (lot.kind === 'open') {
         if (node.key !== 'open') {
           node.key = 'open';
           paintOpen(node.art);
         }
-      } else if (typeof Art.drawKeyed === 'function' && lot.propertyType && node.key !== 'k:' + lot.propertyType) {
-        node.key = 'k:' + lot.propertyType;
-        const ctx = { buildingId: lot.propertyType, rival: lot.owner === 'rival', level: 1, night: this.isNight(), progress: 0 };
-        node.art.clear();
-        Art.drawKeyed(node.art, lot.propertyType, ctx);
-      } else if (!(typeof Art.drawKeyed === 'function' && lot.propertyType) && node.key !== 'p:' + (lot.propertyType || lot.kind)) {
-        node.key = 'p:' + (lot.propertyType || lot.kind);
+      } else if (lot.propertyType && node.key !== 'p:' + lot.propertyType) {
+        node.key = 'p:' + lot.propertyType;
         paintProperty(node.art, lot.propertyType);
       }
       if (node.phase === 'demolishing' && live.phase === 'cleared') {
@@ -994,48 +1544,76 @@ export class MapScene extends window.Phaser.Scene {
         if (tick) tick();
       }
       node.shownLeft = shown;
+      const buildingNow = live.phase === 'building' || live.phase === 'demolishing';
+      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos);
       node.phase = live.phase;
-      const title = live.phase === 'demolishing' ? 'Demolishing' : live.phase === 'building' ? 'Scaffolding' : lot.propertyLabel || lot.label;
-      const sub = live.phase === 'operating' && lot.role ? lot.role : lot.kind === 'open' ? 'Open plot' : '';
-      this.placeMark(node, title, sub, zoom >= 0.55 && !locked);
+      const ghost = this.registry.get('ghost');
+      const showGhost = ghost && ghost.lotId === node.id && ghost.buildingId && live.phase !== 'building' && live.phase !== 'demolishing';
+      node.ghost.setVisible(!!showGhost);
+      const ghostSprite = node.ghost.getData && node.ghost.getData('sprite');
+      if (ghostSprite) ghostSprite.setVisible(!!showGhost);
+      node.valid.clear();
+      if (showGhost) {
+        if (node.ghostKey !== ghost.buildingId) {
+          node.ghostKey = ghost.buildingId;
+          const ghostCtx = this.siteCtx({ buildingId: ghost.buildingId, level: 1 }, { phase: 'operating', owned: true, buildingId: ghost.buildingId }, node.id + ':ghost');
+          if (typeof Art.drawKeyed === 'function') Art.drawKeyed(node.ghost, Art.textureKey(ghostCtx), ghostCtx);
+        }
+        const sprite = node.ghost.getData && node.ghost.getData('sprite');
+        if (sprite) {
+          sprite.setVisible(true);
+          sprite.setAlpha(0.72);
+        }
+        node.valid.lineStyle(3, 0x58a6ff, 0.95);
+        node.valid.strokeEllipse(0, 12, 160, 72);
+      }
+      const rel = zoom / this.valleyZoom();
+      const close = rel >= 1.15 || this.nearPoint(node.pos.x, node.pos.y, 150) || lot.recommended;
+      let icon = null;
+      let status = 'is-idle';
+      if (live.phase === 'building' || live.phase === 'demolishing') status = 'is-build';
+      else if (lot.kind === 'open') status = 'is-plus';
+      else if (live.buildingId) icon = iconKeyForBuilding(live.buildingId);
+      else if (live.role) icon = iconKeyForRole(live.role);
+      else if (lot.propertyType) icon = iconKeyForProperty(lot.propertyType);
+      const showIcon = !locked && close && (status === 'is-build' || status === 'is-plus' || !!icon);
+      if (!showIcon) node.pin.hidden = true;
+      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, lot.propertyLabel || lot.label || '');
     }
   }
 
-  placeMark(node, title, sub, show) {
-    const el = node.pin;
-    if (!show || !this.fontsReady) {
-      el.hidden = true;
-      return;
-    }
-    el.querySelector('strong').textContent = title;
-    const span = el.querySelector('span');
-    span.hidden = !sub;
-    span.textContent = sub || '';
-    this.placeFree(el, node.pos.x, node.pos.y - 78);
+  shortZone(zone) {
+    const name = zone.name || '';
+    if (name.indexOf('Puerto Sol ') === 0) return name.slice('Puerto Sol '.length);
+    if (name === 'Río Plata Valley') return 'Río Plata';
+    return name;
   }
 
   syncZoneChrome(view) {
     const open = !!this.sim.state.mapOpen;
-    const zoom = this.cameras.main.zoom;
-    const control = !!this.registry.get('showControl');
+    const zoomedOut = this.cameras.main.zoom < 0.42;
     for (const zone of view.zones) {
       const mark = this.zoneMarks[zone.id];
       if (!mark) continue;
-      const showUnlock = open && !zone.unlocked;
-      mark.el.hidden = !showUnlock;
-      if (showUnlock) {
-        mark.el.querySelector('strong').textContent = `Unlock ${zone.name}`;
-        const cost = zone.unlock && zone.unlock.clean ? `$${zone.unlock.clean} clean` : 'Open';
-        mark.el.querySelector('span').textContent = cost;
-        this.placeFree(mark.el, mark.x, mark.y);
+      mark.area.hidden = true;
+      const affordable = !zone.blockers || zone.blockers.length === 0;
+      const show = open && zoomedOut && (zone.unlocked || affordable);
+      mark.el.hidden = !show;
+      if (!show) continue;
+      mark.el.classList.toggle('is-locked', !zone.unlocked);
+      const strong = mark.el.querySelector('strong');
+      const span = mark.el.querySelector('span');
+      strong.hidden = false;
+      strong.textContent = this.shortZone(zone);
+      if (!zone.unlocked && zone.unlock && zone.unlock.clean) {
+        span.hidden = false;
+        span.textContent = `$${zone.unlock.clean}`;
+      } else {
+        span.hidden = true;
+        span.textContent = '';
       }
-      const showArea = open && zone.unlocked && zoom < 0.9;
-      mark.area.hidden = !showArea;
-      if (showArea) {
-        const pct = control ? ` · ${zone.control}%` : '';
-        mark.area.querySelector('strong').textContent = `${zone.name}${pct}`;
-        this.placeFree(mark.area, mark.x, mark.y);
-      }
+      const box = ZONE_LAYOUT[zone.id];
+      this.placeFree(mark.el, box.x + box.w * 0.5, box.y + 48);
     }
   }
 

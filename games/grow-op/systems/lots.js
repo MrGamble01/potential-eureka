@@ -3,11 +3,11 @@
 
 import { BUILDINGS } from '../data/buildings.js';
 import { LIEUTENANTS } from '../data/missions.js';
+import { coreMode, riskLive } from '../data/config.js';
 import { zoneById } from '../data/zones.js';
 import { launderTake } from './chains.js';
 import { crewMods } from './lieutenants.js';
 import {
-  BUILDING_SIZE,
   PROPERTY_TYPES,
   buildingFits,
   lotDef,
@@ -35,11 +35,11 @@ export function quote(state, def, which) {
   const live = state.zones[def.zoneId];
   const heat = live ? Number(live.heat) || 0 : 0;
   const control = live && Number.isFinite(live.control) ? live.control : (zone ? zone.baseControl : 40);
-  const base = which === 'lot' ? def.baseLot : def.baseBuy;
+  const base = (which === 'lot' ? def.baseLot : def.baseBuy) * 4;
   const heatMult = 1 + Math.max(0, heat) / 180;
   const controlMult = 1 + Math.max(0, 40 - control) / 160;
   const prices = state.difficultyMods && state.difficultyMods.prices ? state.difficultyMods.prices : 1;
-  return Math.max(40, Math.round(base * heatMult * controlMult * prices));
+  return Math.max(100, Math.round((base * heatMult * controlMult * prices) / 100) * 100);
 }
 
 function purse(zone) {
@@ -47,7 +47,7 @@ function purse(zone) {
 }
 
 function pay(state, zone, amount) {
-  const key = purse(zone);
+  const key = coreMode() ? 'dirtyCash' : purse(zone);
   if (state[key] < amount) {
     const label = key === 'cleanCash' ? 'Clean' : 'Dirty';
     return { ok: false, reason: `Need $${amount - Math.floor(state[key])} more ${label} Cash.` };
@@ -72,6 +72,7 @@ function accessOpen(lot) {
 }
 
 export function negotiate(state, lotId) {
+  if (coreMode()) return { ok: false, reason: 'Pay the asking price.' };
   const def = lotDef(lotId);
   const lot = state.lots[lotId];
   const zone = def && zoneById(def.zoneId);
@@ -81,7 +82,7 @@ export function negotiate(state, lotId) {
   const live = state.zones[def.zoneId];
   if (!live || !live.unlocked) return { ok: false, reason: 'Unlock the zone first.' };
   const rival = def.owner === 'rival';
-  let cost = rival ? 480 : 180;
+  let cost = rival ? 500 : 200;
   if (rival && live.control < 30) cost *= 2;
   const paid = pay(state, { kind: 'city' }, cost);
   if (!paid.ok) return paid;
@@ -91,6 +92,7 @@ export function negotiate(state, lotId) {
 }
 
 export function intimidate(state, lotId, spendDirty = 0) {
+  if (coreMode()) return { ok: false, reason: 'Pay the asking price.' };
   const def = lotDef(lotId);
   const lot = state.lots[lotId];
   const zone = def && zoneById(def.zoneId);
@@ -115,6 +117,7 @@ export function intimidate(state, lotId, spendDirty = 0) {
 }
 
 function mustAccess(lot, def) {
+  if (coreMode()) return null;
   if (def.owner === 'market' || lot.access === 'negotiated' || lot.access === 'intimidated') return null;
   if (def.owner === 'player') return null;
   return { ok: false, reason: 'Talk to the owner, or lean on them, before you buy.' };
@@ -190,11 +193,8 @@ export function startDemolish(state, lotId) {
   return { ok: true, seconds: def.demolishSeconds, cost: def.demolishCost };
 }
 
-export function buildSeconds(def, buildingId, starterSlot) {
-  if (starterSlot) return 3;
-  const need = BUILDING_SIZE[buildingId] || 'small';
-  const base = need === 'large' ? 12 : need === 'medium' ? 8 : 5;
-  return def && def.kind === 'standing' ? Math.round(base * 1.15) : base;
+export function buildSeconds() {
+  return 60;
 }
 
 export function buildOnPlot(state, lotId, buildingId) {
@@ -315,22 +315,23 @@ function tickOperation(state, lot, dt) {
   const type = PROPERTY_TYPES[lot.propertyType] || null;
   const mods = type ? conversionMods(lot.propertyType, lot.role) : { speed: 1, capacity: 1, heat: 1, suspicion: 0.1 };
   const bonus = def.bonus || {};
-  const crew = crewMods(state, lot.zoneId);
+  const crew = coreMode()
+    ? { prodMult: 1, launderMult: 1, heatMult: 1, defensePower: 0 }
+    : crewMods(state, lot.zoneId);
   const live = state.zones[lot.zoneId];
-  if (live && type) {
+  if (live && type && riskLive(state)) {
     const heat = (type.upkeep ? 0.02 : 0.01) * mods.heat * (bonus.heatMult || 1) * crew.heatMult * dt;
     live.heat = Math.max(0, Math.min(100, (Number(live.heat) || 0) + heat));
   }
-  if (type && state.dirtyCash > 0 && !state.noSeizure) {
+  if (type && state.dirtyCash > 0 && riskLive(state)) {
     state.dirtyCash = Math.max(0, state.dirtyCash - (type.upkeep * dt) / 20);
   }
   const speed = (mods.speed || 1) * (bonus.growMult || 1);
-  if (lot.role === 'launder' && launderTake(state.dirtyCash, 80) > 0) {
-    lot.progress += (dt * speed * crew.launderMult) / 5;
+  if (lot.role === 'launder' && launderTake(state.dirtyCash, 100) > 0) {
+    lot.progress += (dt * speed * crew.launderMult) / 20;
     if (lot.progress >= 1) {
       lot.progress = 0;
-      const cap = Math.round((type ? type.capacity : 12) * (mods.capacity || 1));
-      const dirty = launderTake(state.dirtyCash, cap * 8);
+      const dirty = launderTake(state.dirtyCash, 100);
       const clean = Math.round(dirty * 0.9 * (mods.fit === 'boost' ? 1.1 : mods.fit === 'limit' ? 0.8 : 1));
       state.dirtyCash -= dirty;
       state.cleanCash += clean;

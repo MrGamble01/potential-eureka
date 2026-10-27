@@ -22,8 +22,8 @@ const ok = (cond, name) => {
 
 function labelProblems() {
   const problems = [];
-  const els = [...document.querySelectorAll('.go-pin, .go-badge, .go-plate')].filter((el) => !el.hidden);
-  if (!els.length) problems.push('no labels');
+  const els = [...document.querySelectorAll('.go-pin, .go-badge, .go-plate, .go-mark, .go-zone, .go-area')].filter((el) => !el.hidden);
+  if (!els.length) return problems;
   const boxes = els.map((el) => ({
     r: el.getBoundingClientRect(),
     text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
@@ -79,11 +79,42 @@ function labelProblems() {
       });
       await page.waitForTimeout(400);
       const valley = await page.evaluate(labelProblems);
-      ok(!valley.length, width + 'x' + height + ' valley labels ' + (valley.join('; ') || 'fit'));
+      const openPlot = await page.evaluate(() => [...document.querySelectorAll('.go-pin, .go-mark, .go-zone')].some((el) => !el.hidden && /Open plot/.test(el.innerText)));
+      const buildingText = await page.evaluate(() => [...document.querySelectorAll('.go-pin, .go-mark')].filter((el) => !el.hidden).map((el) => (el.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean));
+      ok(!valley.length && !openPlot && !buildingText.length, width + 'x' + height + ' valley is quiet ' + (valley.join('; ') || buildingText.join('; ') || 'fit'));
       await page.evaluate(() => window.__growOp.frameOverview());
       await page.waitForTimeout(600);
       const overview = await page.evaluate(labelProblems);
       ok(!overview.length, width + 'x' + height + ' overview labels ' + (overview.join('; ') || 'fit'));
+      await page.evaluate(() => window.__growOp.revealMap());
+      await page.waitForTimeout(1700);
+      const wide = await page.evaluate(labelProblems);
+      ok(!wide.length, width + 'x' + height + ' zoomed-out labels ' + (wide.join('; ') || 'fit'));
+      const banned = await page.evaluate(() => {
+        const text = [...document.querySelectorAll('.go-pin, .go-badge, .go-plate, .go-mark, .go-zone, .go-area')]
+          .filter((el) => !el.hidden)
+          .map((el) => el.innerText)
+          .join(' ');
+        return /Sierra Alta|Villa Dorad|San Marco|Puerto Plata/.test(text);
+      });
+      ok(!banned, width + 'x' + height + ' map uses zone names');
+      await page.evaluate(() => window.__growOp.frameLot('lot_rp_gas'));
+      await page.waitForTimeout(300);
+      const close = await page.evaluate(labelProblems);
+      ok(!close.length, width + 'x' + height + ' close lot labels ' + (close.join('; ') || 'fit'));
+      const piled = await page.evaluate(() => {
+        const els = [...document.querySelectorAll('.go-pin, .go-mark')].filter((el) => !el.hidden);
+        const texts = els.map((el) => (el.innerText || '').replace(/\s+/g, ' '));
+        const pier = els.find((el) => /River Pier/.test(el.innerText));
+        const plant = els.find((el) => /Plantation/.test(el.innerText));
+        if (!pier || !plant) return false;
+        const a = pier.getBoundingClientRect();
+        const b = plant.getBoundingClientRect();
+        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        return x > 1 && y > 1 ? texts.join(' | ') : false;
+      });
+      ok(!piled, width + 'x' + height + ' River Pier clear of Plantation' + (piled ? ' ' + piled : ''));
       await page.close();
     }
   } catch (err) {

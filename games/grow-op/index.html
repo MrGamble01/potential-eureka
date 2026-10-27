@@ -31,81 +31,70 @@
       </div>
     </div>
 
-    <div class="go-meters" role="region" aria-label="Financial &amp; Heat Telemetry">
-      <div class="go-meter go-meter--dirty" title="Dirty Cash: Earned from smuggling exports. Spent on field construction and upkeep.">
-        <span class="go-meter-icon" aria-hidden="true">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="16" height="10" rx="2"/><circle cx="10" cy="10" r="2.2"/><path d="M5 8v4M15 8v4"/></svg>
-        </span>
-        <div class="go-meter-body">
-          <span class="go-meter-label">Dirty Cash</span>
+    <div class="go-meters" role="region" aria-label="Cash">
+      <button type="button" class="go-cash" id="cash-chip" data-hud="1" aria-expanded="false">
+        <span class="go-cash-bit go-cash-bit--dirty">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
           <strong class="go-meter-val" id="dirty-cash-val">$850</strong>
-        </div>
-      </div>
-
-      <div class="go-meter go-meter--clean" title="Clean Cash: Laundered through legal fronts (Taxi Co, Salsa Club, Bank) or Coffee exports. Unlocks regions, upgrades, and lieutenants.">
-        <span class="go-meter-icon" aria-hidden="true">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7-5 7 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z"/><path d="M7 18v-6h6v6"/></svg>
         </span>
-        <div class="go-meter-body">
-          <span class="go-meter-label">Clean Cash</span>
+        <span class="go-cash-bit go-cash-bit--clean">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8l7-5 7 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 18v-6h6v6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
           <strong class="go-meter-val" id="clean-cash-val">$350</strong>
-        </div>
-      </div>
-
-      <div class="go-meter go-meter--heat" id="heat-meter" title="Regional Heat: High heat triggers DEA &amp; Policía raids. Lower with legal fronts, bribes, or security lieutenants.">
-        <span class="go-meter-icon" aria-hidden="true">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2.5 16.5h15L10 2z"/><path d="M10 8v4"/><circle cx="10" cy="14.5" r="0.6" fill="currentColor"/></svg>
         </span>
-        <div class="go-meter-body">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
-            <span class="go-meter-label">Heat</span>
-            <strong class="go-meter-val" id="heat-val">14%</strong>
-          </div>
-          <div class="go-heat-bar-track" aria-hidden="true">
-            <div class="go-heat-bar-fill" id="heat-bar-fill"></div>
-          </div>
-        </div>
+      </button>
+      <div class="go-meter go-meter--heat" id="heat-meter" data-hud="heat" hidden>
+        <strong class="go-meter-val" id="heat-val">14%</strong>
+        <div class="go-heat-bar-track" aria-hidden="true"><div class="go-heat-bar-fill" id="heat-bar-fill"></div></div>
       </div>
     </div>
 
     <div class="go-top-actions">
-      <button type="button" class="go-icon-btn" id="btn-pause" aria-label="Pause or Resume Simulation">
+      <button type="button" class="go-icon-btn" id="btn-pause" data-hud="1" aria-label="Pause">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5v10M13 5v10"/></svg>
-        <span>Pause</span>
       </button>
-      <button type="button" class="go-icon-btn" id="btn-speed" aria-label="Simulation Speed">1×</button>
-      <div class="go-mix" id="go-mix">
-        <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Sound mix" aria-expanded="false" aria-controls="mix-panel">Sound</button>
-        <div class="go-mix-panel" id="mix-panel" hidden>
-          <label class="go-mix-row"><span>Mute</span><input type="checkbox" id="mix-muted"></label>
-          <label class="go-mix-row"><span>Master</span><input type="range" id="mix-master" min="0" max="100" value="80"></label>
-          <label class="go-mix-row"><span>Music</span><input type="range" id="mix-music" min="0" max="100" value="62"></label>
-          <label class="go-mix-row"><span>SFX</span><input type="range" id="mix-sfx" min="0" max="100" value="85"></label>
+      <div class="go-menu-wrap">
+        <button type="button" class="go-icon-btn" id="btn-menu" data-hud="1" aria-label="Menu" aria-expanded="false" aria-controls="menu-panel">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="2.2"/><path d="M10 3.2v2.1M10 14.7v2.1M3.2 10h2.1M14.7 10h2.1M5.2 5.2l1.5 1.5M13.3 13.3l1.5 1.5M14.8 5.2l-1.5 1.5M6.7 13.3l-1.5 1.5"/></svg>
+        </button>
+        <div id="menu-panel" hidden>
+          <button type="button" class="go-icon-btn" id="btn-speed" aria-label="Simulation Speed">1×</button>
+          <div class="go-mix" id="go-mix">
+            <button type="button" class="go-icon-btn" id="btn-mute" aria-label="Sound mix" aria-expanded="false" aria-controls="mix-panel">Sound</button>
+            <div class="go-mix-panel" id="mix-panel" hidden>
+              <label class="go-mix-row"><span>Mute</span><input type="checkbox" id="mix-muted"></label>
+              <label class="go-mix-row"><span>Master</span><input type="range" id="mix-master" min="0" max="100" value="80"></label>
+              <label class="go-mix-row"><span>Music</span><input type="range" id="mix-music" min="0" max="100" value="62"></label>
+              <label class="go-mix-row"><span>SFX</span><input type="range" id="mix-sfx" min="0" max="100" value="85"></label>
+            </div>
+          </div>
+          <button type="button" class="go-icon-btn" id="btn-briefing" aria-label="Open Operation Briefing">Brief</button>
+          <button type="button" class="go-menu-tab" id="menu-crew" data-tab="lieutenants">Crew</button>
+          <button type="button" class="go-menu-tab" data-tab="territory">Land</button>
+          <button type="button" class="go-menu-tab" data-tab="research">Lab</button>
+          <button type="button" id="btn-log" aria-expanded="false" aria-controls="log-panel">Log</button>
+          <div class="go-log" id="log-panel" hidden></div>
         </div>
       </div>
-      <button type="button" class="go-icon-btn" id="btn-briefing" aria-label="Open Operation Briefing">Brief</button>
     </div>
   </header>
 
   <!-- Prominent Current Objective Card & Raid Alert Strip -->
   <section class="go-subhud" aria-label="Current Objective &amp; Alerts">
     <article class="go-objective-card" id="objective-card">
-      <div class="go-obj-header">
-        <span class="go-obj-kicker">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="10" r="3.5"/></svg>
-          CURRENT OBJECTIVE
-        </span>
-        <span class="go-obj-reward" id="obj-reward">+$250 Clean</span>
+      <button type="button" class="go-obj-line" id="obj-toggle" data-hud="1" aria-expanded="false">
+        <span class="go-obj-title" id="obj-title">Grow the crop</span>
+        <span id="obj-prog-text" hidden>150 / 1,200</span>
+        <i class="go-obj-bar" aria-hidden="true"><b class="go-obj-bar-fill" id="obj-bar-fill"></b></i>
+      </button>
+      <div id="obj-more" hidden>
+        <p class="go-side-goal" id="side-goal" hidden></p>
+        <p class="go-obj-desc" id="obj-desc"></p>
+        <p class="go-obj-beat" id="obj-beat"></p>
+        <p class="go-obj-reward" id="obj-reward"></p>
+        <p class="go-obj-meta" id="obj-meta"></p>
+        <button type="button" id="obj-next" hidden>Next</button>
       </div>
-      <h2 class="go-obj-title" id="obj-title">First River Export</h2>
-      <p class="go-obj-desc" id="obj-desc">Run your Río Plata supply chain (Plantation → Drying Barn → River Pier) until you accumulate $1,200 in total Dirty Cash.</p>
-      <div class="go-obj-prog-row">
-        <div class="go-obj-bar" aria-hidden="true">
-          <div class="go-obj-bar-fill" id="obj-bar-fill"></div>
-        </div>
-        <span id="obj-prog-text">150 / 1,200</span>
-      </div>
-      <p id="route-line">Routes quiet until a truck rolls.</p>
+      <p id="route-line" hidden>Routes quiet until a truck rolls.</p>
     </article>
 
     <article class="go-raid-banner" id="raid-banner" role="alert">
@@ -126,7 +115,7 @@
   <aside class="go-drawer" id="go-drawer" aria-label="Facility Inspector &amp; Build Menu">
     <div class="go-drawer-header">
       <div class="go-drawer-title-wrap">
-        <span class="go-drawer-kicker" id="drawer-kicker">Río Plata Valley · Puerto Plata</span>
+        <span class="go-drawer-kicker" id="drawer-kicker">Río Plata Valley</span>
         <h2 class="go-drawer-title" id="drawer-title">Botanical Plantation</h2>
       </div>
       <button type="button" class="go-drawer-close" id="drawer-close" aria-label="Close Inspector">
@@ -157,29 +146,24 @@
   </aside>
 
   <!-- Bottom Action Dock & Live Logistics Ticker -->
+  <div id="build-strip" class="go-build-strip" hidden></div>
+  <div id="place-hud" hidden>
+    <button type="button" id="place-ok" aria-label="Confirm placement">
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button type="button" id="place-no" aria-label="Cancel placement">
+      <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
   <footer class="go-bottom-bar">
-    <div class="go-quick-dock" role="toolbar" aria-label="Syndicate Operations">
-      <button type="button" class="go-dock-btn is-active" id="dock-build-btn" data-tab="slot" aria-label="Build and inspect">
+    <div class="go-quick-dock" role="toolbar" aria-label="Build">
+      <button type="button" class="go-dock-btn" id="dock-build-btn" data-hud="1" aria-label="Build">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 4v12M4 10h12"/></svg>
         <span>Build</span>
       </button>
-      <button type="button" class="go-dock-btn" id="dock-lt-btn" data-tab="lieutenants" aria-label="Lieutenants">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
-        <span>Crew</span>
-      </button>
-      <button type="button" class="go-dock-btn" id="dock-territory-btn" data-tab="territory" aria-label="Territory">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17.5s5.5-4.8 5.5-9A5.5 5.5 0 0 0 4.5 8.5c0 4.2 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>
-        <span>Land</span>
-      </button>
-      <button type="button" class="go-dock-btn" id="dock-lab-btn" data-tab="research" aria-label="Research">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 3h5M8.5 3v4.5L4 15.5a1.5 1.5 0 0 0 1.3 2.2h9.4a1.5 1.5 0 0 0 1.3-2.2L11.5 7.5V3"/></svg>
-        <span>Lab</span>
-      </button>
     </div>
-
-    <div class="go-feed-ticker" id="feed-ticker" role="status" aria-live="polite">
-      <strong>[Day 1]</strong> Río Plata supply chain online: Plantation → Drying Barn → Warehouse → River Pier.
-    </div>
+    <div class="go-feed-ticker" id="feed-ticker" hidden></div>
   </footer>
 
   <!-- Title / Operation Briefing Modal -->
@@ -221,7 +205,7 @@
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="6.5" r="3.2"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
             <span>Lieutenants &amp; Rivals</span>
           </div>
-          <p>Station specialist lieutenants across provinces for production, laundering, and defense buffs—and push Los Lobos Syndicate out of Sierra Alta.</p>
+          <p>Station specialist lieutenants across the zones for production, laundering, and defense — and push Los Lobos out of Selva Alta.</p>
         </div>
       </div>
 
