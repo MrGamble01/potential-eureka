@@ -286,7 +286,9 @@ export class MapScene extends window.Phaser.Scene {
 
   clampScroll() {
     const cam = this.cameras.main;
-    const b = this.unlockedRect();
+    let b = this.unlockedRect();
+    const guide = this.registry.get('guide');
+    if (guide && guide.slotId) b = { x: b.x - 720, y: b.y - 420, w: b.w + 1440, h: b.h + 840 };
     const dw = cam.displayWidth;
     const dh = cam.displayHeight;
     const minSX = b.x + (dw - cam.width) / 2;
@@ -475,17 +477,23 @@ export class MapScene extends window.Phaser.Scene {
     const selected = this.sim.state.selectedSlotId;
     const recommend = this.recommendedSlot();
     const supplyOnly = !this.view || this.view.coreMode !== false;
+    const guide = this.registry.get('guide');
+    const guiding = !!(guide && guide.live);
+    const guideId = guide && guide.slotId;
+    const guided = !!guideId;
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
       if (!state) continue;
       const lot = this.sim.state.lots && this.sim.state.lots[id];
       const phase = lot ? lot.phase : '';
-      node.select.setVisible(id === selected);
+      node.select.setVisible(!guiding && id === selected);
       node.raid.setVisible(!supplyOnly && !!state.raidLocked);
       if (node.raid.visible) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
       const built = !!state.buildingId && !state.rivalControlled;
-      const marked = id === recommend || id === this.recommendId();
-      node.pulse.setVisible(!built && !state.rivalControlled && marked);
+      const marked = !guided && (id === recommend || id === this.recommendId());
+      node.pulse.setVisible(!guided && !built && !state.rivalControlled && marked);
+      if (guiding) node.root.setAlpha(id === guideId ? 1 : 0.4);
+      else if (node.root.alpha !== 1) node.root.setAlpha(1);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const ctx = this.siteCtx(state, lot, id);
       if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
@@ -514,7 +522,7 @@ export class MapScene extends window.Phaser.Scene {
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
         }
-      } else if (!state.rivalControlled && marked && !this.registry.get('placing')) {
+      } else if (!built && !state.rivalControlled && !this.registry.get('placing') && (guided ? id === guideId : marked)) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
@@ -828,35 +836,64 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   syncGuide() {
+    const tick = this.registry.get('guideTick');
+    if (typeof tick === 'function') tick();
     const guide = this.registry.get('guide');
-    const arrow = this.ensureGuideEl('go-guide', '<svg viewBox="0 0 20 20" width="22" height="22" aria-hidden="true"><path d="M10 3v12M5 11l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-    const done = this.ensureGuideEl('go-done', '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    const arrow = this.ensureGuideEl('go-guide', '<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><path d="M32 6v36M16 30l16 20 16-20" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    const done = this.ensureGuideEl('go-done', '<svg viewBox="0 0 20 20" width="22" height="22" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    if (!this.guideRing) this.guideRing = this.add.graphics().setDepth(13);
+    if (!this.guideShade) this.guideShade = this.add.graphics().setDepth(3);
     const flash = this.registry.get('guideFlash');
     const now = typeof performance !== 'undefined' ? performance.now() : 0;
     if (flash && flash.slot && now < flash.until) {
       const node = this.slots[flash.slot];
       if (node) {
-        const spot = this.worldToScreen(node.def.x, node.def.y - 96);
+        const spot = this.worldToScreen(node.def.x + 54, node.def.y - 70);
         done.hidden = false;
         done.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
       }
     } else done.hidden = true;
     const slotId = guide && guide.slotId;
+    if (slotId) {
+      for (const other of Object.values(this.slots)) {
+        other.pulse.setVisible(false);
+        if (guide.live) other.select.setVisible(false);
+      }
+      if (guide.live) {
+        for (const other of Object.values(this.lots)) other.select.setVisible(false);
+      }
+    }
     const node = slotId ? this.slots[slotId] : null;
+    this.guideRing.clear();
+    this.guideShade.clear();
     if (!node) {
       arrow.hidden = true;
       return;
     }
-    node.pulse.setVisible(true);
-    node.pulse.setAlpha(0.45 + Math.sin(this.phase * 4) * 0.4);
-    const spot = this.worldToScreen(node.def.x, node.def.y - 124);
-    const bob = Math.sin(this.phase * 5) * 6;
-    const vw = this.scale.width;
-    const vh = this.scale.height;
-    const x = Math.max(18, Math.min(vw - 18, spot.x));
-    const y = Math.max(62, Math.min(vh - 76, spot.y + bob));
+    if (guide.live) {
+      this.guideShade.fillStyle(0x0c1410, 0.34);
+      this.guideShade.fillRect(-400, -400, 9000, 9000);
+    }
+    if (this.guideFocus !== slotId) {
+      this.guideFocus = slotId;
+      this.userPanned = true;
+      this.haltCamera();
+      const cam = this.cameras.main;
+      const zoom = this.scale.width < 700 ? 1.2 : this.scale.width < 1100 ? 1.28 : 1.45;
+      cam.setBounds(-720, -420, WORLD_W + 1440, WORLD_H + 840);
+      cam.setZoom(zoom);
+      cam.pan(node.def.x, node.def.y + 16, 420, 'Sine.easeInOut');
+    }
+    const pulse = 1 + Math.sin(this.phase * 4.2) * 0.07;
+    const radius = 86 * pulse;
+    this.guideRing.lineStyle(12, 0x39e58a, 0.28);
+    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius + 14);
+    this.guideRing.lineStyle(7, 0x39e58a, 1);
+    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius);
+    const spot = this.worldToScreen(node.def.x, node.def.y - 150);
+    const bob = Math.sin(this.phase * 5.2) * 16;
     arrow.hidden = false;
-    arrow.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    arrow.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y + bob)}px)`;
   }
 
   noteBuild(node, active, left, point) {
@@ -1161,6 +1198,8 @@ export class MapScene extends window.Phaser.Scene {
       const path = this.chainPath(from, to);
       if (path.length < 2) continue;
       const live = hot.has(`${from}>${to}`) || hot.has(`${to}>${from}`);
+      const guiding = !!(this.registry.get('guide') && this.registry.get('guide').live);
+      if (!live && guiding) continue;
       g.lineStyle(live ? 7 : 3, live ? 0xf4d35e : 0x58a6ff, live ? 0.9 : 0.14);
       for (let i = 0; i < path.length - 1; i++) g.lineBetween(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
       if (!live) continue;
@@ -1541,37 +1580,8 @@ export class MapScene extends window.Phaser.Scene {
 
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x1a221c, 0.34 * alpha);
+    g.fillStyle(0x1a2820, 0.28 * alpha);
     this.fillPoly(g, poly);
-    g.lineStyle(28, 0x101612, 0.22 * alpha);
-    this.strokePoly(g, poly);
-  }
-
-  dashZone(g, poly, alpha) {
-    if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.lineStyle(5, 0xc5d6b0, 0.1 * alpha);
-    this.strokePoly(g, poly);
-    g.lineStyle(1.5, 0xe7f2df, 0.42 * alpha);
-    const dash = 16;
-    const gap = 12;
-    for (let i = 0; i < poly.length; i++) {
-      const a = poly[i];
-      const b = poly[(i + 1) % poly.length];
-      const dx = b[0] - a[0];
-      const dy = b[1] - a[1];
-      const len = Math.hypot(dx, dy) || 1;
-      let walked = 0;
-      while (walked < len) {
-        const end = Math.min(len, walked + dash);
-        g.lineBetween(
-          a[0] + (dx * walked) / len,
-          a[1] + (dy * walked) / len,
-          a[0] + (dx * end) / len,
-          a[1] + (dy * end) / len
-        );
-        walked += dash + gap;
-      }
-    }
   }
 
   syncFog(view) {
@@ -1587,10 +1597,8 @@ export class MapScene extends window.Phaser.Scene {
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
       const edge = softEdge(box.poly);
-      if (!zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.85);
-      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.72);
-      const ink = this.fogAlpha[zone.id] > 0.15 ? 0.42 + this.fogAlpha[zone.id] * 0.28 : 0.28;
-      this.dashZone(g, edge, ink * (1 - chart * 0.45));
+      if (!zone.unlocked && !zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.55);
+      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.7);
     }
     for (const reg of REGIONS) {
       if (!reg.unlockCostClean) continue;
@@ -1730,9 +1738,21 @@ export class MapScene extends window.Phaser.Scene {
       const mark = this.zoneMarks[zone.id];
       if (!mark) continue;
       mark.area.hidden = true;
+      if (!mark.lock) {
+        const lock = document.createElement('div');
+        lock.className = 'go-lock';
+        lock.hidden = true;
+        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+        this.pinHost.appendChild(lock);
+        mark.lock = lock;
+      }
       const affordable = !zone.blockers || zone.blockers.length === 0;
       const show = open && zoomedOut && (zone.unlocked || affordable);
       mark.el.hidden = !show;
+      const spot = this.worldToScreen(mark.x, mark.y);
+      const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
+      mark.lock.hidden = zone.unlocked || show || !onScreen;
+      if (!mark.lock.hidden) mark.lock.style.transform = `translate(${Math.round(spot.x - 12)}px, ${Math.round(spot.y - 12)}px)`;
       if (!show) continue;
       mark.el.classList.toggle('is-locked', !zone.unlocked);
       const strong = mark.el.querySelector('strong');
