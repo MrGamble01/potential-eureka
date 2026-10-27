@@ -1273,7 +1273,7 @@ export class MapScene extends window.Phaser.Scene {
 
   syncZoneChrome(view) {
     const open = !!this.sim.state.mapOpen;
-    const zoomedOut = this.cameras.main.zoom / this.valleyZoom() < 0.72;
+    const zoomedOut = this.cameras.main.zoom < 0.42;
     for (const zone of view.zones) {
       const mark = this.zoneMarks[zone.id];
       if (!mark) continue;
