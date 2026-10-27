@@ -14,7 +14,7 @@
 
 import { GOODS } from './data/goods.js';
 import { BUILDINGS } from './data/buildings.js';
-import { REGIONS, BUILD_SLOTS, ROAD_NETWORK } from './data/missions.js';
+import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, findRoadPath } from './data/missions.js';
 import { DISTRICT_EDGE, LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
 import { drawExtended, paintOpen, paintProperty } from './map-draw.js';
 import { artURL, iconKeyForBuilding, iconKeyForProperty, iconKeyForRole } from './art-keys.js';
@@ -103,6 +103,10 @@ export class MapScene extends window.Phaser.Scene {
     this.createZoneMarks();
     this.spawnAmbientCraft();
     this.bindCamera();
+    this.placeRoot = this.add.container(0, 0).setDepth(12).setVisible(false);
+    this.placeRing = this.add.graphics();
+    this.placeArt = this.add.graphics();
+    this.placeRoot.add([this.placeRing, this.placeArt]);
     this.frameValley(true);
     this.scale.on('resize', () => {
       if (!this.userPanned && !(this.sim && this.sim.state.mapOpen)) this.frameValley(true);
@@ -125,6 +129,10 @@ export class MapScene extends window.Phaser.Scene {
       hit.setInteractive({ useHandCursor: true });
       hit.on('pointerup', (pointer) => {
         if (this.dragMoved || this.pointingAtUi(pointer)) return;
+        if (this.registry.get('placing')) {
+          this.hover = { x: def.x, y: def.y };
+          return;
+        }
         this.sim.state.selectedSlotId = def.id;
         this.sim.state.selectedRegionId = def.regionId;
         this.onSlotSelected(def.id);
@@ -133,14 +141,19 @@ export class MapScene extends window.Phaser.Scene {
       const raid = this.add.ellipse(0, 12, 240, 150, 0xf85149, 0.1).setStrokeStyle(3, 0xf85149, 0.9).setVisible(false);
       const art = this.add.graphics();
       const pulse = this.add.ellipse(0, 18, 170, 78).setStrokeStyle(3, 0x8ec5ff, 1).setVisible(false);
+      const ring = this.add.graphics();
       const pin = document.createElement('div');
       pin.className = 'go-pin';
       pin.innerHTML = PIN_MARK;
       pin.hidden = true;
+      const stack = document.createElement('div');
+      stack.className = 'go-stack';
+      stack.hidden = true;
       this.pinHost.appendChild(pin);
-      root.add([pulse, select, raid, hit, art]);
+      this.pinHost.appendChild(stack);
+      root.add([pulse, select, raid, hit, art, ring]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, pulse, pin, key: '' };
+      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
     }
   }
 
@@ -366,6 +379,7 @@ export class MapScene extends window.Phaser.Scene {
       this.bound = true;
     }
     if (!this.sim) this.sim = this.registry.get('sim');
+    this.frameDt = dt;
     this.sim.step(dt);
     if (typeof this.sim.observeFrame === 'function') this.sim.observeFrame(dt);
     if (this.cursors) {
@@ -383,6 +397,7 @@ export class MapScene extends window.Phaser.Scene {
     this.view = this.sim.gameplayView ? this.sim.gameplayView() : null;
     this.syncSlots();
     this.syncTrucks();
+    this.syncPlacement();
     this.syncLife(dt);
     this.syncSky();
     this.syncFloaters(dt);
@@ -476,8 +491,11 @@ export class MapScene extends window.Phaser.Scene {
           this.paintSite(node.art, state);
         }
       }
+      const buildingNow = phase === 'building' || phase === 'demolishing' || (state.constructLeft || 0) > 0;
+      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y });
+      this.syncStock(node, state);
       const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
-      if (phase === 'building' || phase === 'demolishing') {
+      if (buildingNow) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-build', built ? BUILDINGS[state.buildingId].shortName : 'Build');
       } else if (built) {
         const def = BUILDINGS[state.buildingId];
@@ -485,7 +503,7 @@ export class MapScene extends window.Phaser.Scene {
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
         }
-      } else if (!state.rivalControlled && marked) {
+      } else if (!state.rivalControlled && marked && !this.registry.get('placing')) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
@@ -514,8 +532,11 @@ export class MapScene extends window.Phaser.Scene {
       propertyType: lot ? lot.propertyType : null,
       owned: lot ? !!lot.owned : !!(state && state.buildingId),
       size: lot ? lot.size : null,
-      constructLeft: lot ? lot.constructLeft || 0 : 0,
-      demolishLeft: lot ? lot.demolishLeft || 0 : 0
+      constructLeft: (state && state.constructLeft) || (lot && lot.constructLeft) || 0,
+      demolishLeft: (lot && lot.demolishLeft) || 0,
+      phase: ((state && state.constructLeft > 0) || (lot && (lot.phase === 'building' || lot.phase === 'demolishing')))
+        ? ((lot && lot.phase === 'demolishing') ? 'demolishing' : 'building')
+        : (lot ? lot.phase : '')
     };
   }
 
@@ -661,6 +682,177 @@ export class MapScene extends window.Phaser.Scene {
     return 'Working';
   }
 
+  paintProgress(g, p) {
+    g.clear();
+    const amount = Math.max(0.08, Math.min(1, p || 0));
+    const y = -52;
+    g.fillStyle(0x12181c, 0.88);
+    g.fillCircle(0, y, 18);
+    g.lineStyle(5, 0x2c3848, 1);
+    g.strokeCircle(0, y, 16);
+    g.lineStyle(5, 0x3ddc97, 1);
+    g.beginPath();
+    g.arc(0, y, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * amount);
+    g.strokePath();
+  }
+
+  syncStock(node, state) {
+    const el = node.stack;
+    if (!el) return;
+    const building = state && (state.constructLeft || 0) <= 0 && state.buildingId;
+    const rows = [];
+    if (building) {
+      for (const [id, qty] of Object.entries(state.outputBuffer || {})) if (qty > 0) rows.push([id, qty]);
+      for (const [id, qty] of Object.entries(state.inputBuffer || {})) if (qty > 0) rows.push([id, qty]);
+    }
+    if (!rows.length) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    const html = rows.slice(0, 3).map(([id, qty]) => {
+      const good = GOODS[id];
+      const bg = good ? good.badgeBg : '#333';
+      const ink = good ? good.badgeInk : '#fff';
+      const name = good ? good.shortName : id;
+      return `<i title="${name}"><b style="background:${bg};box-shadow:inset 0 0 0 1.5px ${ink}"></b><em>${qty}</em></i>`;
+    }).join('');
+    if (el.dataset.stack !== html) {
+      el.dataset.stack = html;
+      el.innerHTML = html;
+    }
+    const x = node.def ? node.def.x : node.pos.x;
+    const y = node.def ? node.def.y : node.pos.y;
+    this.placeStack(el, x, y + 46);
+  }
+
+  placeStack(el, worldX, worldY) {
+    const spot = this.worldToScreen(worldX, worldY);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    if (spot.x < 0 || spot.y < 40 || spot.x > vw || spot.y > vh - 48) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    const w = el.offsetWidth || 28;
+    const left = Math.max(6, Math.min(vw - w - 6, Math.round(spot.x - w / 2)));
+    el.style.transform = `translate(${left}px, ${Math.round(spot.y)}px)`;
+  }
+
+  noteBuild(node, active, left, point) {
+    if (node.wasBuilding && !active) {
+      const juice = this.registry.get('juice');
+      if (juice && juice.demolishDust) juice.demolishDust(point);
+      if (juice && juice.burst) juice.burst({ x: point.x, y: point.y - 24 }, 0x8ec5ff);
+      node.pop = 0.42;
+    }
+    node.wasBuilding = active;
+    if (node.pop > 0) {
+      node.pop = Math.max(0, node.pop - (this.frameDt || 0.016));
+      const u = 1 - node.pop / 0.42;
+      node.root.setScale(0.86 + Math.sin(u * Math.PI) * 0.2);
+    } else if (!active) node.root.setScale(1);
+    if (!node.ring) return;
+    if (active && left > 0) {
+      if (left > (node.buildMax || 0)) node.buildMax = left;
+      this.paintProgress(node.ring, node.buildMax ? 1 - left / node.buildMax : 0);
+      if (node.root.bringToTop) node.root.bringToTop(node.ring);
+    } else node.ring.clear();
+  }
+
+  placeSites(building) {
+    const st = this.sim.state;
+    const sites = [];
+    for (const def of BUILD_SLOTS) {
+      const slot = st.slots[def.id];
+      const reg = st.regions[def.regionId];
+      if (!slot || !reg || !reg.unlocked || slot.rivalControlled || slot.buildingId) continue;
+      const lot = st.lots && st.lots[def.id];
+      if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) continue;
+      if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') continue;
+      const fits = !def.allowedCategories || def.allowedCategories.includes(building.category);
+      const openPlot = !!(lot && lot.kind === 'open');
+      const dirty = openPlot ? Math.round(building.buildCostDirty * 0.85) : building.buildCostDirty;
+      const clean = openPlot ? Math.round(building.buildCostClean * 0.85) : building.buildCostClean;
+      const cash = st.dirtyCash >= dirty && st.cleanCash >= clean;
+      const actOk = st.mode === 'sandbox' || st.act >= building.act;
+      sites.push({ id: def.id, x: def.x, y: def.y, ok: !!(fits && cash && actOk) });
+    }
+    return sites;
+  }
+
+  syncPlacement() {
+    const placing = this.registry.get('placing');
+    const hud = document.getElementById('place-hud');
+    const okBtn = document.getElementById('place-ok');
+    const building = placing && BUILDINGS[placing.buildingId];
+    if (!building || !this.placeRoot) {
+      if (this.placeRoot) this.placeRoot.setVisible(false);
+      if (hud) hud.hidden = true;
+      this.registry.set('placeSnap', null);
+      return;
+    }
+    const sites = this.placeSites(building);
+    if (!sites.length) {
+      this.placeRoot.setVisible(false);
+      if (hud) hud.hidden = true;
+      this.registry.set('placeSnap', null);
+      return;
+    }
+    let pick = null;
+    let best = 260;
+    if (this.hover) {
+      for (const site of sites) {
+        const d = Math.hypot(this.hover.x - site.x, this.hover.y - site.y);
+        if (d < best) {
+          best = d;
+          pick = site;
+        }
+      }
+    }
+    if (!pick) {
+      const legal = sites.filter((site) => site.ok);
+      const pool = legal.length ? legal : sites;
+      const south = pool.find((site) => site.id === 'slot_rp_south');
+      if (south && building.category === 'production') pick = south;
+      else {
+        const cam = this.cameras.main.midPoint;
+        pick = pool.slice().sort((a, b) => Math.hypot(a.x - cam.x, a.y - cam.y) - Math.hypot(b.x - cam.x, b.y - cam.y))[0];
+      }
+    }
+    this.placeRoot.setVisible(true);
+    this.placeRoot.setPosition(pick.x, pick.y);
+    const color = pick.ok ? 0x3ddc97 : 0xf85149;
+    this.placeRing.clear();
+    this.placeRing.fillStyle(color, 0.18);
+    this.placeRing.fillEllipse(0, 16, 176, 84);
+    this.placeRing.lineStyle(4, color, 0.98);
+    this.placeRing.strokeEllipse(0, 16, 176, 84);
+    const ctx = this.siteCtx({ buildingId: building.id, level: 1 }, { phase: 'operating', owned: true, buildingId: building.id }, 'placing');
+    const key = typeof Art.textureKey === 'function' ? Art.textureKey(ctx) : building.id;
+    if (this.placeKey !== key && typeof Art.drawKeyed === 'function') {
+      this.placeKey = key;
+      Art.drawKeyed(this.placeArt, key, ctx);
+    }
+    const sprite = this.placeArt.getData && this.placeArt.getData('sprite');
+    if (sprite) {
+      sprite.setVisible(true);
+      sprite.setAlpha(0.66);
+    }
+    if (this.placeRoot.bringToTop) this.placeRoot.bringToTop(this.placeRing);
+    this.registry.set('placeSnap', { id: pick.id, x: pick.x, y: pick.y, ok: pick.ok, buildingId: building.id });
+    if (hud && okBtn) {
+      const spot = this.worldToScreen(pick.x + 96, pick.y - 28);
+      const x = Math.max(8, Math.min(this.scale.width - 92, spot.x));
+      const y = Math.max(58, Math.min(this.scale.height - 108, spot.y));
+      hud.hidden = false;
+      hud.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      okBtn.disabled = !pick.ok;
+      okBtn.classList.toggle('is-bad', !pick.ok);
+    }
+  }
+
   paintSite(g, state) {
     const lot = this.sim && this.sim.state.lots && state.slotId ? this.sim.state.lots[state.slotId] : null;
     const ctx = this.siteCtx(state, lot, state.slotId || (state.buildingId || 'lot'));
@@ -671,70 +863,159 @@ export class MapScene extends window.Phaser.Scene {
     Art.paintStructure(g, state.buildingId, state.rivalControlled);
   }
 
+  goodKey(good) {
+    const id = good ? good.id : 'crate';
+    const key = 'go-good-' + id;
+    if (this.textures.exists(key)) return key;
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const g = c.getContext('2d');
+    g.fillStyle = good && good.badgeBg ? good.badgeBg : '#333';
+    g.beginPath();
+    g.moveTo(8, 2);
+    g.arcTo(30, 2, 30, 30, 8);
+    g.arcTo(30, 30, 2, 30, 8);
+    g.arcTo(2, 30, 2, 2, 8);
+    g.arcTo(2, 2, 30, 2, 8);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = good && good.badgeInk ? good.badgeInk : '#fff';
+    g.lineWidth = 2.4;
+    g.beginPath();
+    const raw = good && (good.category === 'raw' || good.category === 'legal');
+    if (raw) {
+      g.ellipse(16, 17, 6, 10, -0.7, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(16, 7);
+      g.lineTo(16, 26);
+    } else {
+      g.rect(8, 8, 16, 16);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(8, 14);
+      g.lineTo(24, 14);
+    }
+    g.stroke();
+    this.textures.addCanvas(key, c);
+    return key;
+  }
+
+  rigKey(kind) {
+    const key = kind === 'mule' ? 'go-rig-mule' : 'go-rig-truck';
+    if (this.textures.exists(key)) return key;
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 36;
+    const g = c.getContext('2d');
+    g.fillStyle = 'rgba(16,12,8,0.28)';
+    g.beginPath();
+    g.ellipse(32, 24, 22, 8, 0, 0, Math.PI * 2);
+    g.fill();
+    if (kind === 'mule') {
+      g.fillStyle = '#8a5a32';
+      g.beginPath();
+      g.ellipse(28, 16, 14, 8, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#c4a574';
+      g.beginPath();
+      g.arc(46, 14, 6, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = '#5c3a22';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(18, 20);
+      g.lineTo(14, 28);
+      g.moveTo(36, 20);
+      g.lineTo(40, 28);
+      g.stroke();
+    } else {
+      g.fillStyle = '#c4b08a';
+      g.fillRect(8, 10, 28, 14);
+      g.fillStyle = '#3d4c63';
+      g.fillRect(36, 8, 16, 16);
+      g.fillStyle = '#8ec4d4';
+      g.fillRect(42, 11, 7, 5);
+      g.fillStyle = '#1c140e';
+      g.beginPath();
+      g.arc(18, 25, 4, 0, Math.PI * 2);
+      g.arc(40, 25, 4, 0, Math.PI * 2);
+      g.fill();
+    }
+    this.textures.addCanvas(key, c);
+    return key;
+  }
+
   syncTrucks() {
     const live = new Set();
     this.flow.clear();
+    this.paintRoutes();
     for (const truck of this.sim.state.activeTrucks) {
-      live.add(truck.id);
+      live.add(String(truck.id));
       const good = GOODS[truck.goodId];
-      const color = good ? good.color : 0xd7c4a2;
-      if (truck.path && truck.path.length) {
-        this.flow.lineStyle(2, color, 0.28);
-        this.flow.lineBetween(truck.x, truck.y, truck.path[Math.min(truck.pathIndex, truck.path.length - 1)].x, truck.path[Math.min(truck.pathIndex, truck.path.length - 1)].y);
-      }
+      const mule = !!(good && (good.category === 'raw' || good.category === 'legal'));
       let node = this.trucks[truck.id];
       if (!node) {
-        const root = this.add.container(truck.x, truck.y).setDepth(8);
-        const body = this.add.rectangle(0, 0, 18, 10, color).setStrokeStyle(1, 0x1c140e);
-        const cab = this.add.rectangle(10, 0, 7, 8, 0xe8eef4).setStrokeStyle(1, 0x1c140e);
-        root.add([body, cab]);
-        node = { root, body, cab };
+        const root = this.add.container(truck.x, truck.y).setDepth(9);
+        const rig = this.add.image(0, 0, this.rigKey(mule ? 'mule' : 'truck')).setOrigin(0.5, 0.55).setScale(1.45);
+        const badge = this.add.circle(0, -36, 16, 0x12181c, 0.94).setStrokeStyle(2, 0xf4f7fb, 0.95);
+        const icon = this.add.image(0, -36, this.goodKey(good)).setOrigin(0.5, 0.5).setScale(1.15);
+        root.add([rig, badge, icon]);
+        node = { root, rig, icon, mule };
         this.trucks[truck.id] = node;
       }
+      if (node.mule !== mule) {
+        node.mule = mule;
+        node.rig.setTexture(this.rigKey(mule ? 'mule' : 'truck'));
+      }
+      node.icon.setTexture(this.goodKey(good));
       node.root.setPosition(truck.x, truck.y);
-      const angle = truck.heading || 0;
-      node.body.setRotation(angle);
-      node.cab.setRotation(angle);
-      node.cab.setPosition(Math.cos(angle) * 10, Math.sin(angle) * 10);
+      node.rig.setRotation(truck.heading || 0);
     }
-    this.paintRoutes();
     for (const [id, node] of Object.entries(this.trucks)) {
-      if (!live.has(Number(id))) {
+      if (!live.has(id)) {
         node.root.destroy();
         delete this.trucks[id];
       }
     }
   }
 
+  chainPath(fromId, toId) {
+    if (!this.chainPaths) this.chainPaths = {};
+    const key = fromId + '>' + toId;
+    if (this.chainPaths[key]) return this.chainPaths[key];
+    const start = BUILD_SLOTS.find((slot) => slot.id === fromId);
+    const path = start ? [{ x: start.x, y: start.y }, ...findRoadPath(fromId, toId)] : [];
+    this.chainPaths[key] = path;
+    return path;
+  }
+
   paintRoutes() {
     const g = this.flow;
-    const paths = [
-      [{ x: 280, y: 460 }, { x: 450, y: 460 }, { x: 640, y: 440 }],
-      [{ x: 640, y: 440 }, { x: 450, y: 460 }, { x: 450, y: 700 }],
-      [{ x: 450, y: 700 }, { x: 280, y: 960 }]
+    const slots = this.sim.state.slots;
+    const legs = [
+      ['slot_rp_farm1', 'slot_rp_barn1'],
+      ['slot_rp_barn1', 'slot_rp_wh1'],
+      ['slot_rp_wh1', 'slot_rp_pier']
     ];
-    let cursor = (this.phase * 42) % 64;
-    for (const path of paths) {
-      g.lineStyle(5, 0x58a6ff, 0.22);
+    const cursor = (this.phase * 42) % 56;
+    for (const [from, to] of legs) {
+      if (!slots[from] || !slots[from].buildingId || !slots[to] || !slots[to].buildingId) continue;
+      const path = this.chainPath(from, to);
+      if (path.length < 2) continue;
+      g.lineStyle(4, 0x58a6ff, 0.16);
       for (let i = 0; i < path.length - 1; i++) g.lineBetween(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
       let travel = cursor;
       for (let i = 0; i < path.length - 1; i++) {
         const a = path[i];
         const b = path[i + 1];
         const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-        const ang = Math.atan2(b.y - a.y, b.x - a.x);
         while (travel < len) {
           const t = travel / len;
-          const x = a.x + (b.x - a.x) * t;
-          const y = a.y + (b.y - a.y) * t;
-          g.fillStyle(0x8ec5ff, 0.95);
-          g.fillCircle(x, y, 4.5);
-          g.fillTriangle(
-            x + Math.cos(ang) * 9, y + Math.sin(ang) * 9,
-            x + Math.cos(ang + 2.4) * 6, y + Math.sin(ang + 2.4) * 6,
-            x + Math.cos(ang - 2.4) * 6, y + Math.sin(ang - 2.4) * 6
-          );
-          travel += 64;
+          g.fillStyle(0x8ec5ff, 0.92);
+          g.fillCircle(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 3.5);
+          travel += 56;
         }
         travel -= len;
       }
@@ -968,14 +1249,15 @@ export class MapScene extends window.Phaser.Scene {
       const art = this.add.graphics();
       const ghost = this.add.graphics().setAlpha(0.62);
       const valid = this.add.graphics();
+      const ring = this.add.graphics();
       const pin = document.createElement('div');
       pin.className = 'go-mark';
       pin.innerHTML = PIN_MARK;
       pin.hidden = true;
       this.pinHost.appendChild(pin);
-      root.add([select, valid, hit, art, ghost]);
+      root.add([select, valid, hit, art, ghost, ring]);
       root.setDepth(4);
-      this.lots[id] = { id, pos, root, hit, select, art, ghost, valid, pin, key: '', ghostKey: '', phase: '', demoMax: 0, buildMax: 0, hammer: 0 };
+      this.lots[id] = { id, pos, root, hit, select, art, ghost, valid, ring, pin, key: '', ghostKey: '', phase: '', demoMax: 0, buildMax: 0, hammer: 0, wasBuilding: false, pop: 0 };
     }
   }
 
@@ -1227,8 +1509,9 @@ export class MapScene extends window.Phaser.Scene {
         if (tick) tick();
       }
       node.shownLeft = shown;
+      const buildingNow = live.phase === 'building' || live.phase === 'demolishing';
+      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos);
       node.phase = live.phase;
-      if (live.phase !== 'building') node.root.setScale(1);
       const ghost = this.registry.get('ghost');
       const showGhost = ghost && ghost.lotId === node.id && ghost.buildingId && live.phase !== 'building' && live.phase !== 'demolishing';
       node.ghost.setVisible(!!showGhost);

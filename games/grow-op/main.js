@@ -236,7 +236,7 @@ function renderHud() {
     $('obj-beat').textContent = '';
     $('obj-meta').textContent = '';
     $('obj-next').hidden = true;
-  } else if (tutoring) {
+  } else if (tutoring && !supplyChainOnly(view)) {
     const copy = tutorialCopy();
     const step = Math.min(copy.lines.length - 1, st.tutorialStep || 0);
     $('obj-title').textContent = copy.titles[step];
@@ -802,6 +802,9 @@ function renderLot() {
   const zone = data.zones.find((item) => item.id === lot.zoneId);
   const def = lotDef(lot.id);
   card.hidden = false;
+  const cardBox = card.querySelector('.go-sheet-card');
+  const compact = lot.phase === 'building' || lot.phase === 'demolishing' || (lot.phase === 'operating' && lot.buildingId && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert'));
+  if (cardBox) cardBox.classList.toggle('is-ops', !!compact);
   $('lot-kicker').textContent = zone ? zone.name : '';
   $('lot-title').textContent = lot.propertyLabel || lot.label;
   const pay = purseWord(zone);
@@ -823,16 +826,12 @@ function renderLot() {
   if (lot.kind === 'open' && lot.phase !== 'building' && lot.phase !== 'operating') {
     paths.className = 'go-lot-paths is-single';
     paths.innerHTML = plotColumn(lot);
-  } else if (lot.phase === 'demolishing' || lot.phase === 'building') {
+  } else if (lot.phase === 'demolishing' || lot.phase === 'building' || (lot.phase === 'operating' && lot.buildingId && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert'))) {
     paths.className = 'go-lot-paths is-single';
-    const left = lot.phase === 'demolishing' ? lot.demolishLeft : lot.constructLeft;
-    const queued = queuedBuild[lot.id];
-    const name = queued && BUILDINGS[queued] ? BUILDINGS[queued].shortName : '';
-    paths.innerHTML = `<section class="go-path"><h3>${name || 'In progress'}</h3><p>${left}s</p></section>`;
-  } else if (lot.phase === 'operating' && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert')) {
-    paths.className = 'go-lot-paths is-single';
-    const title = lot.buildingId && BUILDINGS[lot.buildingId] ? BUILDINGS[lot.buildingId].name : (ROLE_NAME[lot.role] || 'Operating');
-    paths.innerHTML = `<section class="go-path"><h3>${title}</h3><p>${bonus || 'The building is working.'}</p></section>`;
+    paths.innerHTML = opsPanel(lot);
+    $('lot-title').textContent = lot.buildingId && BUILDINGS[lot.buildingId] ? BUILDINGS[lot.buildingId].shortName : (lot.propertyLabel || lot.label);
+    $('lot-meta').textContent = '';
+    $('lot-kicker').textContent = '';
   } else {
     paths.className = 'go-lot-paths';
     const canBuy = lot.actions.includes('buyAndConvert');
@@ -840,6 +839,114 @@ function renderLot() {
     paths.innerHTML = convertColumn(lot, pay, canBuy) + rebuildColumn(lot, def, canLot, pay);
   }
   $('lot-note').textContent = sheetNote;
+}
+
+function goodSwatch(goodId) {
+  const good = GOODS[goodId];
+  if (!good) return '';
+  return `<i class="go-good" title="${good.shortName}" style="background:${good.badgeBg};box-shadow:inset 0 0 0 1.5px ${good.badgeInk}"></i>`;
+}
+
+function opsPanel(lot) {
+  const slotId = lot.slotId || lot.id;
+  const slot = sim.state.slots[slotId];
+  const buildingId = (slot && slot.buildingId) || lot.buildingId || queuedBuild[lot.id];
+  const building = buildingId ? BUILDINGS[buildingId] : null;
+  const icon = building ? artURL(iconKeyForBuilding(building.id)) : '';
+  const bits = [];
+  if (lot.phase === 'building' || lot.phase === 'demolishing') {
+    const left = lot.phase === 'demolishing' ? lot.demolishLeft : lot.constructLeft;
+    const total = lot.phase === 'demolishing' ? Math.max(left, 8) : 60;
+    const pct = Math.max(4, Math.min(100, Math.round((1 - left / total) * 100)));
+    bits.push(`<i class="go-mini-ring" style="--p:${pct}"></i>`);
+  } else if (building) {
+    const ins = Object.entries(building.inputs || {});
+    const outs = Object.entries(building.outputs || {});
+    const rate = [];
+    ins.forEach(([id, qty]) => rate.push(`${goodSwatch(id)}<b>${qty}</b>`));
+    if (ins.length && outs.length) rate.push('<span class="go-ops-arrow" aria-hidden="true"></span>');
+    outs.forEach(([id, qty]) => rate.push(`${goodSwatch(id)}<b>${qty}</b>`));
+    if (!ins.length && !outs.length && building.role === 'launderer') rate.push(`<b>$${building.launderPerCycle}</b>`);
+    else if (!ins.length && !outs.length && building.trucksProvided) rate.push(`<b>+${building.trucksProvided}</b>`);
+    else if (!ins.length && !outs.length && building.exportCapPerCycle) rate.push(`<b>${building.exportCapPerCycle}</b>`);
+    if (building.cycleSeconds) rate.push(`<em>${building.cycleSeconds}s</em>`);
+    bits.push(`<div class="go-ops-rate">${rate.join('')}</div>`);
+    const stock = [];
+    if (slot) {
+      for (const [id, qty] of Object.entries(slot.outputBuffer || {})) if (qty > 0) stock.push(`${goodSwatch(id)}<b>${qty}</b>`);
+      for (const [id, qty] of Object.entries(slot.inputBuffer || {})) if (qty > 0) stock.push(`${goodSwatch(id)}<b>${qty}</b>`);
+    }
+    bits.push(`<div class="go-ops-stock">${stock.join('')}</div>`);
+    if (slot && building.upgradeCostClean) {
+      const maxed = slot.level >= 3;
+      const cost = building.upgradeCostClean[slot.level - 1];
+      if (!maxed && cost) {
+        const afford = sim.state.cleanCash >= cost;
+        bits.push(`<button type="button" class="go-ops-up" data-deal="upgrade" ${afford ? '' : 'disabled'} aria-label="Upgrade"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>${fmtCash(cost)}${purse('clean')}</small></button>`);
+      }
+    }
+  }
+  return `<section class="go-ops">${icon ? `<img alt="" width="64" height="64" src="${icon}">` : ''}${bits.join('')}</section>`;
+}
+
+let placingId = null;
+
+function buildChoices() {
+  const st = sim.state;
+  const empty = BUILD_SLOTS.filter((def) => {
+    const slot = st.slots[def.id];
+    const reg = st.regions[def.regionId];
+    return slot && reg && reg.unlocked && !slot.buildingId && !slot.rivalControlled;
+  });
+  return BUILDING_LIST.filter((building) => {
+    if (st.mode !== 'sandbox' && st.act < building.act) return false;
+    return empty.some((def) => !def.allowedCategories || def.allowedCategories.includes(building.category));
+  });
+}
+
+function renderBuildStrip() {
+  const strip = $('build-strip');
+  if (!strip || strip.hidden) return;
+  const mission = (sim.gameplayView().campaign || {}).mission;
+  const rec = mission && mission.buildingId;
+  strip.innerHTML = buildChoices().map((building) => {
+    const icon = artURL(iconKeyForBuilding(building.id));
+    const on = placingId === building.id ? ' is-on' : '';
+    const mark = rec === building.id ? ' is-rec' : '';
+    return `<button type="button" class="go-build-ico${on}${mark}" data-place="${building.id}" aria-label="${building.shortName}">${icon ? `<img alt="" src="${icon}">` : ''}</button>`;
+  }).join('');
+}
+
+function beginPlace(buildingId) {
+  placingId = buildingId;
+  setGhost(null);
+  closeSheets();
+  const strip = $('build-strip');
+  if (strip) strip.hidden = false;
+  if (phaserGame) phaserGame.registry.set('placing', { buildingId });
+  renderBuildStrip();
+}
+
+function stopPlace() {
+  placingId = null;
+  if (phaserGame) {
+    phaserGame.registry.set('placing', null);
+    phaserGame.registry.set('placeSnap', null);
+  }
+  const hud = $('place-hud');
+  if (hud) hud.hidden = true;
+  renderBuildStrip();
+}
+
+function confirmPlace() {
+  const snap = phaserGame && phaserGame.registry.get('placeSnap');
+  if (!snap || !snap.ok) return;
+  const result = sim.buildOnSlot(snap.id, snap.buildingId);
+  if (!result.ok) return;
+  stopPlace();
+  const strip = $('build-strip');
+  if (strip) strip.hidden = true;
+  if (mapScene) mapScene.focusOnSlot(snap.id, true);
 }
 
 function setGhost(next) {
@@ -1067,6 +1174,10 @@ function onDeal(action, el) {
   } else if (action === 'intimidate') {
     const result = sim.intimidate(openLotId, 0);
     if (!result.ok) sheetNote = result.reason || 'They stayed.';
+  } else if (action === 'upgrade') {
+    const lot = sim.gameplayView().lots.find((item) => item.id === openLotId);
+    const result = sim.upgradeSlot(lot && lot.slotId ? lot.slotId : openLotId);
+    if (!result.ok) sheetNote = '';
   } else if (action === 'build-plot') {
     const result = sim.buildOnPlot(openLotId, el.dataset.building);
     if (!result.ok) sheetNote = result.reason || 'Cannot build.';
@@ -1255,7 +1366,14 @@ function wireEvents() {
     onDeal(btn.dataset.deal, btn);
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSheets();
+    if (e.key !== 'Escape') return;
+    const strip = $('build-strip');
+    if (placingId || (strip && !strip.hidden)) {
+      stopPlace();
+      if (strip) strip.hidden = true;
+      return;
+    }
+    closeSheets();
   });
 
   // Raid banner action
@@ -1285,10 +1403,37 @@ function wireEvents() {
   const buildBtn = $('dock-build-btn');
   if (buildBtn) {
     buildBtn.addEventListener('click', () => {
-      const view = sim.gameplayView();
-      const picked = (view.lots || []).find((lot) => lot.recommended);
-      const id = (picked && picked.id) || sim.state.selectedSlotId;
-      if (id) openLot(id);
+      const strip = $('build-strip');
+      if (!strip) return;
+      if (!strip.hidden) {
+        strip.hidden = true;
+        stopPlace();
+        return;
+      }
+      closeSheets();
+      drawerOpen = false;
+      syncDrawerVisibility();
+      strip.hidden = false;
+      renderBuildStrip();
+    });
+  }
+  const buildStrip = $('build-strip');
+  if (buildStrip) {
+    buildStrip.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-place]');
+      if (!btn) return;
+      beginPlace(btn.dataset.place);
+    });
+  }
+  const placeOk = $('place-ok');
+  const placeNo = $('place-no');
+  if (placeOk) placeOk.addEventListener('click', () => confirmPlace());
+  if (placeNo) {
+    placeNo.addEventListener('click', () => {
+      stopPlace();
+      const strip = $('build-strip');
+      if (strip) strip.hidden = false;
+      renderBuildStrip();
     });
   }
   for (const dockBtn of document.querySelectorAll('.go-dock-btn')) {
@@ -1459,6 +1604,12 @@ window.__growOp = {
     renderDrawerContent();
   },
   openLot: (id) => openLot(id),
+  startPlace: (buildingId) => beginPlace(buildingId || 'plantation'),
+  stopPlace: () => {
+    stopPlace();
+    const strip = $('build-strip');
+    if (strip) strip.hidden = true;
+  },
   openZone: (id) => openZone(id),
   frameLot: (id) => { if (mapScene) mapScene.frameLot(id, true); },
   frameZone: (id) => { if (mapScene) mapScene.frameZone(id, true); },
