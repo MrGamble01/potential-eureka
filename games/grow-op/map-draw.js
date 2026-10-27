@@ -166,6 +166,116 @@ function nearPath(x, y, paths, r) {
   return false;
 }
 
+function edgeDistance(x, y, poly) {
+  let best = 1e9;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy || 1;
+    let t = ((x - a[0]) * dx + (y - a[1]) * dy) / len2;
+    if (t < 0) t = 0;
+    else if (t > 1) t = 1;
+    const px = a[0] + dx * t - x;
+    const py = a[1] + dy * t - y;
+    const d = px * px + py * py;
+    if (d < best) best = d;
+  }
+  return Math.sqrt(best);
+}
+
+function pushFlat(segs, flat) {
+  for (let i = 0; i < flat.length - 1; i++) {
+    const ax = flat[i][0];
+    const ay = flat[i][1];
+    const bx = flat[i + 1][0];
+    const by = flat[i + 1][1];
+    const dx = bx - ax;
+    const dy = by - ay;
+    segs.push({ ax, ay, dx, dy, len2: dx * dx + dy * dy || 1 });
+  }
+}
+
+function indexRoads(roads, cell) {
+  const segs = [];
+  for (let i = 0; i < CITY_AVENUES.length; i++) pushFlat(segs, roadFlat(CITY_AVENUES[i], i < 3 ? 16 : 12));
+  for (let i = 0; i < SCENIC_ROADS.length; i++) pushFlat(segs, roadFlat(SCENIC_ROADS[i], i === 2 ? 12 : 14));
+  const dirt = roads && roads.length ? roads : [];
+  for (let i = 0; i < dirt.length; i++) pushFlat(segs, roadFlat(dirt[i], i === 0 ? 16 : 11));
+  const buckets = new Map();
+  for (let s = 0; s < segs.length; s++) {
+    const seg = segs[s];
+    const minx = Math.min(seg.ax, seg.ax + seg.dx);
+    const maxx = Math.max(seg.ax, seg.ax + seg.dx);
+    const miny = Math.min(seg.ay, seg.ay + seg.dy);
+    const maxy = Math.max(seg.ay, seg.ay + seg.dy);
+    const x0 = Math.floor(minx / cell);
+    const x1 = Math.floor(maxx / cell);
+    const y0 = Math.floor(miny / cell);
+    const y1 = Math.floor(maxy / cell);
+    for (let x = x0; x <= x1; x++) {
+      for (let y = y0; y <= y1; y++) {
+        const key = (x + 128) * 8192 + (y + 128);
+        let bucket = buckets.get(key);
+        if (!bucket) buckets.set(key, (bucket = []));
+        bucket.push(seg);
+      }
+    }
+  }
+  return { buckets, cell };
+}
+
+function segDist(x, y, index) {
+  const cell = index.cell;
+  const cx = Math.floor(x / cell);
+  const cy = Math.floor(y / cell);
+  let best = cell * cell * 4;
+  for (let ix = cx - 1; ix <= cx + 1; ix++) {
+    for (let iy = cy - 1; iy <= cy + 1; iy++) {
+      const bucket = index.buckets.get((ix + 128) * 8192 + (iy + 128));
+      if (!bucket) continue;
+      for (let i = 0; i < bucket.length; i++) {
+        const s = bucket[i];
+        let t = ((x - s.ax) * s.dx + (y - s.ay) * s.dy) / s.len2;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+        const px = s.ax + s.dx * t - x;
+        const py = s.ay + s.dy * t - y;
+        const d = px * px + py * py;
+        if (d < best) best = d;
+      }
+    }
+  }
+  return Math.sqrt(best);
+}
+
+function coverScale(x, y, index, fields) {
+  const road = segDist(x, y, index);
+  let field = 1e9;
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    let d;
+    if (f.ell) {
+      const n = Math.hypot((x - f.cx) / f.rx, (y - f.cy) / f.ry);
+      d = n <= 1 ? 0 : (n - 1) * Math.min(f.rx, f.ry);
+    } else {
+      const dx = Math.max(f.x0 - x, 0, x - f.x1);
+      const dy = Math.max(f.y0 - y, 0, y - f.y1);
+      d = dx === 0 && dy === 0 ? 0 : Math.hypot(dx, dy);
+    }
+    if (d < field) field = d;
+  }
+  if (contains(CITY_GROUND, x, y)) return 0;
+  const jungle = contains(ZONE_LAYOUT.jungle_alta.poly, x, y);
+  if (!jungle && hash(Math.floor(x / 280), Math.floor(y / 200) + 3) > 0.86) return 0;
+  if (field <= 0) return 0;
+  const near = Math.min(road, field);
+  if (near <= 14) return 0;
+  if (near >= 34) return 1;
+  return (near - 14) / 20;
+}
+
 function blocked(x, y, pad) {
   const extra = pad || 0;
   for (let i = 0; i < BUILD_SLOTS.length; i++) {
@@ -234,50 +344,286 @@ function patch(g, x, y, rx, ry, rot, color) {
   g.restore();
 }
 
+function plotFrame(w, h, seed) {
+  const shrink = 0.7 * (0.92 + hash(seed, 3) * 0.16);
+  return {
+    ang: (hash(seed, 2) - 0.5) * 0.32,
+    sw: w * shrink,
+    sh: h * shrink * (0.94 + hash(seed, 4) * 0.12)
+  };
+}
+
+function plotField(plot) {
+  const frame = plotFrame(plot.w, plot.h, plot.seed);
+  const c = Math.abs(Math.cos(frame.ang));
+  const s = Math.abs(Math.sin(frame.ang));
+  const hw = (frame.sw * c + frame.sh * s) / 2 + 6;
+  const hh = (frame.sw * s + frame.sh * c) / 2 + 6;
+  const cx = plot.x + plot.w / 2;
+  const cy = plot.y + plot.h / 2;
+  return { x0: cx - hw, y0: cy - hh, x1: cx + hw, y1: cy + hh };
+}
+
+function placePlots(roadPaths) {
+  const plots = [];
+  const planted = [];
+  const farmAnchors = [
+    [280, 460],
+    [760, 680],
+    [1780, 480],
+    [1080, 1220],
+    [420, 1780],
+    [880, 1700],
+    [640, 2160],
+    [1620, 1760],
+    [2920, 1760]
+  ];
+  const farmShifts = [[160, 36], [-160, 48], [36, 150], [48, -150], [170, 110], [-150, 120]];
+  for (let i = 0; i < farmAnchors.length; i++) {
+    const anchor = farmAnchors[i];
+    for (let s = 0; s < farmShifts.length; s++) {
+      const x = anchor[0] + farmShifts[s][0];
+      const y = anchor[1] + farmShifts[s][1];
+      if (!onLand(x, y) || contains(COVE, x, y) || contains(CITY_GROUND, x, y)) continue;
+      if (nearPath(x, y, roadPaths, 42)) continue;
+      plots.push({ x: x - 130, y: y - 72, w: 260, h: 148, seed: 40 + i });
+      planted.push([x, y]);
+      break;
+    }
+  }
+  const compounds = [[200, 1320], [1540, 300], [2060, 2280], [2360, 1240], [520, 860]];
+  for (let i = 0; i < compounds.length; i++) {
+    const spot = compounds[i];
+    if (!onLand(spot[0], spot[1]) || contains(COVE, spot[0], spot[1]) || contains(CITY_GROUND, spot[0], spot[1])) continue;
+    if (blocked(spot[0], spot[1], 10) || nearPath(spot[0], spot[1], roadPaths, 70)) continue;
+    plots.push({
+      x: spot[0] - 40,
+      y: spot[1] - 30,
+      w: 220,
+      h: 130,
+      seed: 90 + i,
+      hx: spot[0] + 190,
+      hy: spot[1] + 24,
+      house: 110 + i
+    });
+    planted.push(spot);
+  }
+  return { plots, planted };
+}
+
+function yardPath(g, w, h, seed, grow) {
+  const power = 3.1;
+  const spin = hash(seed, 8) * 6.2;
+  g.beginPath();
+  const steps = 40;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const c = Math.cos(a);
+    const s = Math.sin(a);
+    const nx = Math.sign(c) * Math.pow(Math.abs(c), 2 / power);
+    const ny = Math.sign(s) * Math.pow(Math.abs(s), 2 / power);
+    const wob = 0.9 + 0.1 * Math.sin(a * 3 + spin);
+    const px = nx * (w / 2) * grow * wob;
+    const py = ny * (h / 2) * grow * (0.92 + 0.08 * Math.cos(a * 2 + spin));
+    if (i === 0) g.moveTo(px, py);
+    else g.lineTo(px, py);
+  }
+  g.closePath();
+}
+
+function paintClearings(g) {
+  const seen = [];
+  const add = (x, y) => {
+    for (let i = 0; i < seen.length; i++) {
+      const dx = seen[i][0] - x;
+      const dy = seen[i][1] - y;
+      if (dx * dx + dy * dy < 36 * 36) return;
+    }
+    seen.push([x, y]);
+  };
+  for (let i = 0; i < BUILD_SLOTS.length; i++) add(BUILD_SLOTS[i].x, BUILD_SLOTS[i].y);
+  const lots = Object.values(LOT_POS);
+  for (let i = 0; i < lots.length; i++) add(lots[i].x, lots[i].y);
+  for (let i = 0; i < seen.length; i++) {
+    const x = seen[i][0];
+    const y = seen[i][1];
+    if (!onLand(x, y)) continue;
+    const seed = Math.round(x) + Math.round(y) * 3;
+    const w = 132 * (0.94 + hash(seed, 1) * 0.1);
+    const h = 86 * (0.94 + hash(seed, 2) * 0.1);
+    g.save();
+    g.translate(x, y);
+    g.rotate((hash(seed, 3) - 0.5) * 0.14);
+    g.fillStyle = '#c4a36e';
+    g.globalAlpha = 0.1;
+    yardPath(g, w, h, seed, 1.28);
+    g.fill();
+    g.globalAlpha = 0.22;
+    yardPath(g, w, h, seed, 1.12);
+    g.fill();
+    g.globalAlpha = 0.78;
+    yardPath(g, w, h, seed, 1);
+    g.fill();
+    g.globalAlpha = 1;
+    g.restore();
+  }
+}
+
+function crowdLot(x, y) {
+  const r2 = 74 * 74;
+  for (let i = 0; i < BUILD_SLOTS.length; i++) {
+    const s = BUILD_SLOTS[i];
+    const dx = s.x - x;
+    const dy = s.y - y;
+    if (dx * dx + dy * dy < r2) return true;
+  }
+  const lots = Object.values(LOT_POS);
+  for (let i = 0; i < lots.length; i++) {
+    const dx = lots[i].x - x;
+    const dy = lots[i].y - y;
+    if (dx * dx + dy * dy < r2) return true;
+  }
+  return false;
+}
+
+function packTown(g, index) {
+  const KX = 0.62;
+  const KY = 0.34;
+  let row = 0;
+  for (let y = 90; y <= 1100; y += 46) {
+    row += 1;
+    let col = 0;
+    for (let x = 2780; x <= 5340; x += 70) {
+      col += 1;
+      const jx = x + (hash(row, col) - 0.5) * 16;
+      const jy = y + (hash(col, row + 5) - 0.5) * 10;
+      if (!contains(CITY_GROUND, jx, jy) || !onLand(jx, jy) || contains(COVE, jx, jy)) continue;
+      const depth = edgeDistance(jx, jy, CITY_GROUND);
+      if (depth < 30) continue;
+      const t = Math.min(1, (depth - 30) / 180);
+      const seed = row * 17 + col * 3;
+      if (segDist(jx, jy, index) < 30) continue;
+      if (crowdLot(jx + 16, jy - 6)) continue;
+      if (hash(row, col + 4) < 0.07 + (1 - t) * 0.08) {
+        canopy(g, jx + 8, jy - 4, seed, 0.32 + hash(seed, 7) * 0.12);
+        continue;
+      }
+      if (hash(row + 3, col + 9) > 0.22 + t * 0.7) continue;
+      const scale = (0.78 + t * 0.22) * (0.92 + hash(row, col + 2) * 0.14);
+      const span = townSpan(seed, scale);
+      const pts = [
+        [jx, jy],
+        [jx + span.w, jy],
+        [jx + span.w + span.d * KX, jy - span.d * KY],
+        [jx + span.d * KX, jy - span.h - span.d * KY]
+      ];
+      let onStreet = false;
+      for (let p = 0; p < pts.length; p++) {
+        if (segDist(pts[p][0], pts[p][1], index) < 16) {
+          onStreet = true;
+          break;
+        }
+      }
+      if (onStreet) continue;
+      house(g, jx, jy, seed, scale, 'town');
+    }
+  }
+}
+
 function cropPlot(g, x, y, w, h, seed) {
-  g.fillStyle = 'rgba(16,28,10,0.28)';
-  g.fillRect(x + 10, y + 12, w, h);
-  g.fillStyle = '#c6a56c';
-  g.fillRect(x, y, w, h);
-  g.fillStyle = '#9a7444';
-  g.fillRect(x, y + h - 7, w, 7);
-  const plants = ['#8a3424', '#a3462c', '#6e3a22', '#c25830', '#7a3e28', '#3f6e32'];
-  for (let row = 8; row < h - 8; row += 11) {
-    g.fillStyle = '#8d6840';
-    g.fillRect(x + 5, y + row + 3, w - 10, 2);
-    for (let col = 8; col < w - 6; col += 12) {
+  const frame = plotFrame(w, h, seed);
+  const left = -frame.sw / 2;
+  const top = -frame.sh / 2;
+  g.save();
+  g.translate(x + w / 2, y + h / 2);
+  g.rotate(frame.ang);
+  g.fillStyle = 'rgba(40,26,12,0.2)';
+  g.fillRect(left + 4, top + 5, frame.sw, frame.sh);
+  g.fillStyle = 'rgba(92,64,32,0.1)';
+  g.fillRect(left - 6, top - 4, frame.sw + 12, frame.sh + 8);
+  g.fillStyle = '#8d6844';
+  g.fillRect(left - 3, top - 3, frame.sw + 6, frame.sh + 6);
+  g.fillStyle = '#d4bc92';
+  g.fillRect(left, top, frame.sw, frame.sh);
+  const reds = ['#c44532', '#e25a3a', '#a33a28'];
+  const greens = ['#3d8a46', '#5ea04a', '#2f6b34'];
+  let rowN = 0;
+  for (let row = 7; row < frame.sh - 5; row += 9) {
+    rowN += 1;
+    const family = hash(seed, rowN) > 0.46 ? reds : greens;
+    g.fillStyle = family[0];
+    g.globalAlpha = 0.9;
+    g.fillRect(left + 4, top + row - 1.5, frame.sw - 8, 3.5);
+    g.globalAlpha = 1;
+    for (let col = 6; col < frame.sw - 4; col += 9) {
       const n = hash(seed + col, row);
-      g.fillStyle = plants[Math.floor(n * plants.length) % plants.length];
+      g.fillStyle = family[Math.floor(n * family.length) % family.length];
       g.beginPath();
-      g.ellipse(x + col, y + row, 4.4, 2.7, 0, 0, Math.PI * 2);
+      g.ellipse(left + col, top + row, 3.4, 2.4, 0, 0, Math.PI * 2);
       g.fill();
     }
   }
+  g.restore();
+}
+
+function townSpan(seed, scale) {
+  const s = scale || 1;
+  return {
+    w: (22 + hash(seed, 1) * 12) * s,
+    d: (16 + hash(seed, 2) * 10) * s,
+    h: (12 + hash(seed, 3) * 6) * s
+  };
+}
+
+function townLook(seed) {
+  const looks = [
+    ['#9bb6c8', '#6e8ea3', '#f7f4ee', '#d5e0e4'],
+    ['#7fa4ba', '#5f849c', '#f4f7f8', '#c9d6dc'],
+    ['#b7d0de', '#8aabbe', '#fbfaf6', '#e0e8ea'],
+    ['#e07a55', '#b44832', '#f6efe4', '#e6d0b8'],
+    ['#d4654a', '#a33b2c', '#f4e8d8', '#ddc4a4'],
+    ['#ef9a72', '#c46248', '#f7f1e6', '#ead8c0'],
+    ['#f4efe6', '#d5cbb8', '#fbf8f2', '#e7dcc8'],
+    ['#f7f4ee', '#e0d6c6', '#fffdf8', '#efe4d2'],
+    ['#e7d8c0', '#c4b296', '#f6efe2', '#e6d4b8']
+  ];
+  const look = looks[Math.floor(hash(seed, 5) * looks.length) % looks.length];
+  return { roof: look[0], roofSide: look[1], face: look[2], side: look[3] };
 }
 
 function house(g, x, y, seed, scale, kind) {
   const s = scale || 1;
   const town = kind === 'town';
-  const w = (town ? 34 : 30) + hash(seed, 1) * (town ? 16 : 14);
-  const d = (town ? 30 : 18) + hash(seed, 2) * (town ? 14 : 8);
-  const h = (town ? 5 : 14) + hash(seed, 3) * (town ? 4 : 10);
-  const ww = w * s;
-  const dd = d * s;
-  const hh = h * s;
-  const face = town ? '#d5dee6' : '#f4e2c6';
-  const side = town ? '#8ea0b0' : '#c9aa84';
-  const townRoofs = ['#4a6278', '#3e5670', '#5a7084', '#2f4560', '#607488', '#3a4e62'];
+  const span = town
+    ? townSpan(seed, s)
+    : {
+        w: (30 + hash(seed, 1) * 14) * s,
+        d: (18 + hash(seed, 2) * 8) * s,
+        h: (14 + hash(seed, 3) * 10) * s
+      };
+  const ww = span.w;
+  const dd = span.d;
+  const hh = span.h;
+  const look = town ? townLook(seed) : null;
+  const face = town ? look.face : '#f4e2c6';
+  const side = town ? look.side : '#c9aa84';
   const ruralRoofs = ['#c25038', '#8a4034', '#5c6e80', '#6b4428', '#4a5c6c'];
-  const roofs = town ? townRoofs : ruralRoofs;
-  const roof = roofs[Math.floor(hash(seed, 5) * roofs.length) % roofs.length];
-  const roofSide = town ? '#3a4a58' : '#6a3024';
-  shadow(g, x + ww * 0.62, y + 5 * s, Math.max(16, ww * 0.58));
+  const roof = town ? look.roof : ruralRoofs[Math.floor(hash(seed, 5) * ruralRoofs.length) % ruralRoofs.length];
+  const roofSide = town ? look.roofSide : '#6a3024';
+  if (town) {
+    g.fillStyle = 'rgba(30,24,14,0.16)';
+    g.beginPath();
+    g.ellipse(x + ww * 0.55, y + 4 * s, Math.max(10, ww * 0.42), 4.5 * s, 0, 0, Math.PI * 2);
+    g.fill();
+  } else {
+    shadow(g, x + ww * 0.62, y + 5 * s, Math.max(16, ww * 0.58));
+  }
   box(g, x, y, ww, dd, hh, face, side, roof);
-  if (!town || hash(seed, 6) > 0.78) gable(g, x, y, ww, dd, hh, 7 * s, roof, roofSide);
+  if (!town || hash(seed, 6) > 0.62) gable(g, x, y, ww, dd, hh, 6 * s, roof, roofSide);
   g.fillStyle = '#7eb4c4';
-  g.fillRect(x + 5 * s, y - hh * 0.62, 5 * s, 4 * s);
+  g.fillRect(x + 4 * s, y - hh * 0.62, 5 * s, 4 * s);
   g.fillStyle = '#4e3018';
-  g.fillRect(x + ww * 0.4, y - 7 * s, 5 * s, 7 * s);
+  g.fillRect(x + ww * 0.42, y - Math.min(7 * s, hh * 0.7), 4 * s, Math.min(7 * s, hh * 0.7));
 }
 
 function yard(g, x, y, seed) {
@@ -299,10 +645,18 @@ function yard(g, x, y, seed) {
   }
 }
 
-function canopy(g, x, y, seed) {
+function canopy(g, x, y, seed, scale) {
+  const sc = scale || 1;
   const kind = hash(seed, 9);
-  const rx = kind > 0.7 ? 62 + hash(seed, 1) * 34 : kind > 0.35 ? 36 + hash(seed, 1) * 20 : 20 + hash(seed, 1) * 12;
+  const rx = (kind > 0.7 ? 62 + hash(seed, 1) * 34 : kind > 0.35 ? 36 + hash(seed, 1) * 20 : 20 + hash(seed, 1) * 12) * sc;
   const ry = rx * (0.48 + hash(seed, 2) * 0.14);
+  g.save();
+  g.globalAlpha = 0.12;
+  g.fillStyle = '#1c4428';
+  g.beginPath();
+  g.ellipse(x, y - ry * 0.04, rx * 1.12, ry * 1.16, 0.1, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
   g.fillStyle = 'rgba(48,40,22,0.26)';
   g.beginPath();
   g.ellipse(x + rx * 0.42, y + ry * 0.9, rx * 0.95, ry * 0.5, 0.3, 0, Math.PI * 2);
@@ -329,10 +683,24 @@ function canopy(g, x, y, seed) {
   g.fill();
 }
 
-function clump(g, x, y, seed) {
-  canopy(g, x, y, seed);
-  if (hash(seed, 11) > 0.22) canopy(g, x + 20 + hash(seed, 16) * 26, y + 8 + hash(seed, 18) * 10, seed + 19);
-  if (hash(seed, 12) > 0.58) canopy(g, x - 22 - hash(seed, 17) * 14, y + 12, seed + 37);
+function clump(g, x, y, seed, scale) {
+  const sc = scale || 1;
+  canopy(g, x, y, seed, sc);
+  if (sc > 0.6 && hash(seed, 11) > 0.22) {
+    canopy(g, x + (20 + hash(seed, 16) * 26) * sc, y + (8 + hash(seed, 18) * 10) * sc, seed + 19, sc * 0.9);
+  }
+  if (sc > 0.78 && hash(seed, 12) > 0.58) {
+    canopy(g, x - (22 + hash(seed, 17) * 14) * sc, y + 12 * sc, seed + 37, sc * 0.86);
+  }
+}
+
+function plantTree(g, x, y, seed, scale) {
+  if (scale < 0.05) return;
+  if (scale < 0.5) {
+    bush(g, x, y, seed);
+    return;
+  }
+  clump(g, x, y, seed, scale < 0.9 ? 0.62 + (scale - 0.5) * 0.7 : 1);
 }
 
 function rock(g, x, y, s) {
@@ -762,6 +1130,7 @@ function paintFull(roads) {
     const x = 2920 + hash(i, 21) * 2300;
     const y = 140 + hash(i, 22) * 900;
     if (!contains(CITY_GROUND, x, y) || !onLand(x, y)) continue;
+    if (edgeDistance(x, y, CITY_GROUND) > 150) continue;
     g.fillStyle = 'rgba(40,120,48,0.32)';
     g.beginPath();
     g.ellipse(x, y, 28 + hash(i, 23) * 46, 16 + hash(i, 24) * 18, hash(i, 25), 0, Math.PI * 2);
@@ -811,6 +1180,7 @@ function paintFull(roads) {
     }
   }
 
+  paintClearings(g);
   const roadPaths = ROAD_NETWORK.concat(SCENIC_ROADS.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] })))).concat(CITY_AVENUES.map((poly) => poly.map((p) => ({ x: p[0], y: p[1] }))));
   if (roads) {
     for (let i = 0; i < roads.length; i++) dirtRoad(g, roads[i], i === 0 ? 16 : 11);
@@ -840,85 +1210,55 @@ function paintFull(roads) {
   for (let i = 0; i < 9; i++) g.fillRect(-230 + i * 54, -2, 20, 3);
   g.restore();
 
-  const openField = (x, y) => (x < 2500 && y < 1280) || (x > 2860 && x < 4100 && y > 1080 && y < 1760);
-  const meadow = (x, y) => {
-    const pockets = [[480, 1640, 210, 120], [900, 1980, 180, 110], [1320, 2160, 160, 96], [2140, 2460, 170, 96], [3680, 2260, 150, 86]];
-    for (let i = 0; i < pockets.length; i++) {
-      const m = pockets[i];
-      const dx = (x - m[0]) / m[2];
-      const dy = (y - m[1]) / m[3];
-      if (dx * dx + dy * dy < 1) return true;
-    }
-    return hash(Math.floor(x / 280), Math.floor(y / 200) + 3) > 0.86;
-  };
+  const roadIndex = indexRoads(roads, 200);
+  const fields = [
+    { x0: -4000, y0: -4000, x1: 2500, y1: 1280 },
+    { x0: 2860, y0: 1080, x1: 4100, y1: 1760 },
+    { ell: true, cx: 480, cy: 1640, rx: 210, ry: 120 },
+    { ell: true, cx: 900, cy: 1980, rx: 180, ry: 110 },
+    { ell: true, cx: 1320, cy: 2160, rx: 160, ry: 96 },
+    { ell: true, cx: 2140, cy: 2460, rx: 170, ry: 96 },
+    { ell: true, cx: 3680, cy: 2260, rx: 150, ry: 86 }
+  ];
+  const placed = placePlots(roadPaths);
+  for (let i = 0; i < placed.plots.length; i++) fields.push(plotField(placed.plots[i]));
   for (let i = 0; i < 200; i++) {
     const x = 60 + hash(i, 81) * 2500;
     const y = 40 + hash(i, 82) * 1600;
-    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 26) || openField(x, y) || meadow(x, y)) continue;
-    if (contains(CITY_GROUND, x, y) || contains(MESA, x, y)) continue;
-    clump(g, x, y, i + 90);
+    if (!onLand(x, y) || blocked(x, y) || contains(MESA, x, y)) continue;
+    plantTree(g, x, y, i + 90, coverScale(x, y, roadIndex, fields));
   }
   for (let i = 0; i < 360; i++) {
     const x = hash(i, 31) * 4300;
     const y = 80 + hash(i, 32) * 2500;
-    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 28) || openField(x, y) || meadow(x, y)) continue;
+    if (!onLand(x, y) || blocked(x, y)) continue;
     if (contains(MESA, x, y) && hash(i, 33) > 0.28) continue;
-    if (contains(CITY_GROUND, x, y)) continue;
-    clump(g, x, y, i + 3);
+    plantTree(g, x, y, i + 3, coverScale(x, y, roadIndex, fields));
   }
   for (let i = 0; i < 360; i++) {
     const x = 40 + hash(i, 101) * 1500;
     const y = 1360 + hash(i, 102) * 1280;
-    if (!contains(ZONE_LAYOUT.jungle_alta.poly, x, y) || !onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 16)) continue;
-    if (meadow(x, y) && hash(i, 104) > 0.62) continue;
-    clump(g, x, y, i + 210);
+    if (!contains(ZONE_LAYOUT.jungle_alta.poly, x, y) || !onLand(x, y) || blocked(x, y)) continue;
+    plantTree(g, x, y, i + 210, coverScale(x, y, roadIndex, fields));
   }
   for (let i = 0; i < 100; i++) {
     const x = 60 + hash(i, 121) * 4300;
     const y = 2620 + hash(i, 122) * 980;
-    if (!onLand(x, y) || nearPath(x, y, roadPaths, 24) || meadow(x, y)) continue;
-    clump(g, x, y, i + 420);
+    if (!onLand(x, y)) continue;
+    plantTree(g, x, y, i + 420, coverScale(x, y, roadIndex, fields));
   }
   for (let i = 0; i < 220; i++) {
     const x = hash(i, 61) * 4300;
     const y = 80 + hash(i, 62) * 2500;
-    if (!onLand(x, y) || blocked(x, y) || nearPath(x, y, roadPaths, 22)) continue;
-    if (contains(CITY_GROUND, x, y) || openField(x, y)) continue;
+    if (!onLand(x, y) || blocked(x, y)) continue;
+    if (coverScale(x, y, roadIndex, fields) <= 0) continue;
     bush(g, x, y, i + 9);
   }
-  const farmAnchors = [
-    [280, 460],
-    [760, 680],
-    [1780, 480],
-    [1080, 1220],
-    [420, 1780],
-    [880, 1700],
-    [640, 2160],
-    [1620, 1760],
-    [2920, 1760]
-  ];
-  const farmShifts = [[160, 36], [-160, 48], [36, 150], [48, -150], [170, 110], [-150, 120]];
-  const planted = [];
-  for (let i = 0; i < farmAnchors.length; i++) {
-    const anchor = farmAnchors[i];
-    for (let s = 0; s < farmShifts.length; s++) {
-      const x = anchor[0] + farmShifts[s][0];
-      const y = anchor[1] + farmShifts[s][1];
-      if (!onLand(x, y) || contains(COVE, x, y) || contains(CITY_GROUND, x, y)) continue;
-      if (nearPath(x, y, roadPaths, 42)) continue;
-      cropPlot(g, x - 130, y - 72, 260, 148, 40 + i);
-      planted.push([x, y]);
-      break;
-    }
-  }
-  const compounds = [[200, 1320], [1540, 300], [2060, 2280], [2360, 1240], [520, 860]];
-  for (let i = 0; i < compounds.length; i++) {
-    const spot = compounds[i];
-    if (!onLand(spot[0], spot[1]) || contains(COVE, spot[0], spot[1]) || contains(CITY_GROUND, spot[0], spot[1])) continue;
-    if (blocked(spot[0], spot[1], 10) || nearPath(spot[0], spot[1], roadPaths, 70)) continue;
-    cropPlot(g, spot[0] - 40, spot[1] - 30, 220, 130, 90 + i);
-    house(g, spot[0] + 190, spot[1] + 24, 110 + i, 1, 'rural');
-    planted.push(spot);
+  const planted = placed.planted;
+  for (let i = 0; i < placed.plots.length; i++) {
+    const plot = placed.plots[i];
+    cropPlot(g, plot.x, plot.y, plot.w, plot.h, plot.seed);
+    if (plot.house) house(g, plot.hx, plot.hy, plot.house, 1, 'rural');
   }
   for (let i = 0; i < 40; i++) {
     const x = 1500 + hash(i, 41) * 1100;
@@ -973,57 +1313,7 @@ function paintFull(roads) {
     }
   }
 
-  const placedBlocks = [];
-  const blockTaken = (x, y) => {
-    for (let k = 0; k < placedBlocks.length; k++) {
-      const dx = placedBlocks[k][0] - x;
-      const dy = placedBlocks[k][1] - y;
-      if (dx * dx + dy * dy < 40 * 40) return true;
-    }
-    return false;
-  };
-  let houseN = 0;
-  for (let a = 0; a < CITY_AVENUES.length; a++) {
-    const poly = curveSamples(CITY_AVENUES[a]);
-    for (let i = 1; i < poly.length - 1; i += 2) {
-      const p = poly[i];
-      const q = poly[Math.min(poly.length - 1, i + 1)];
-      const dx = q[0] - p[0];
-      const dy = q[1] - p[1];
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len;
-      const ny = dx / len;
-      for (let side = -1; side <= 1; side += 2) {
-        houseN += 1;
-        if (hash(houseN, 7) > 0.94) continue;
-        const downtown = p[0] > 3920 && p[1] < 780;
-        const gap = downtown ? 38 + hash(houseN, 1) * 10 : 48 + hash(houseN, 1) * 12;
-        const x = p[0] + nx * gap * side;
-        const y = p[1] + ny * gap * side;
-        if (!contains(CITY_GROUND, x, y) || !onLand(x, y) || contains(COVE, x, y)) continue;
-        if (blocked(x, y) || nearPath(x, y, roadPaths, 28) || blockTaken(x, y)) continue;
-        const scale = downtown ? 1.2 + hash(houseN, 2) * 0.25 : 1.05 + hash(houseN, 3) * 0.2;
-        house(g, x, y, houseN + 4, scale, 'town');
-        placedBlocks.push([x, y]);
-        if (downtown && hash(houseN, 8) > 0.4) {
-          const px = x + nx * (34 + hash(houseN, 9) * 10) * side;
-          const py = y + ny * (34 + hash(houseN, 9) * 10) * side;
-          if (contains(CITY_GROUND, px, py) && onLand(px, py) && !blocked(px, py) && !nearPath(px, py, roadPaths, 26) && !blockTaken(px, py)) {
-            house(g, px, py, houseN + 80, 1.05 + hash(houseN, 6) * 0.2, 'town');
-            placedBlocks.push([px, py]);
-          }
-        }
-      }
-    }
-  }
-  for (let i = 0; i < 180; i++) {
-    const x = 3960 + hash(i, 21) * 1240;
-    const y = 150 + hash(i, 22) * 640;
-    if (!contains(CITY_GROUND, x, y) || !onLand(x, y) || contains(COVE, x, y)) continue;
-    if (blocked(x, y) || nearPath(x, y, roadPaths, 30) || blockTaken(x, y)) continue;
-    house(g, x, y, 400 + i, 1.15 + hash(i, 23) * 0.2, 'town');
-    placedBlocks.push([x, y]);
-  }
+  packTown(g, roadIndex);
 
   for (let i = 0; i < 28; i++) {
     const x = 200 + hash(i, 51) * 900;
