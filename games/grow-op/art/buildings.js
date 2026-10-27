@@ -266,7 +266,7 @@ function warehouseBody(g, ctx, opt) {
 
 const PAINTERS = {
   plantation(g, ctx) {
-    cropRows(g, 28, 118, 4, 8, '#67a04a', null);
+    cropRows(g, 28, 112, 5, 9, '#8a3a28', '#c45a32');
     fence(g, 24, 162, 8);
     K.box(g, 168, 156, 62, 36, 40, CREAM, SIDE, TERRA);
     K.gable(g, 168, 156, 62, 36, 40, 16, TERRA, TERRA_D);
@@ -278,7 +278,7 @@ const PAINTERS = {
   },
 
   coffee_estate(g, ctx) {
-    cropRows(g, 26, 124, 3, 7, '#2f6b34', '#c4553a');
+    cropRows(g, 26, 118, 4, 8, '#6e3a28', '#c4553a');
     g.fillStyle = '#e7d3b0';
     g.fillRect(118, 132, 46, 28);
     g.strokeStyle = K.INK;
@@ -299,7 +299,7 @@ const PAINTERS = {
       g.fillStyle = bands[i];
       g.fillRect(40 + i * 8, 108 + i * 14, 142 - i * 10, 8);
       for (let c = 0; c < 8 - i; c++) {
-        g.fillStyle = c % 2 ? '#67a04a' : '#2f6b34';
+        g.fillStyle = c % 2 ? '#a3462c' : '#6e3a22';
         g.beginPath();
         g.ellipse(52 + i * 8 + c * 14, 112 + i * 14, 5, 3, 0, 0, Math.PI * 2);
         g.fill();
