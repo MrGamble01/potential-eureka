@@ -286,9 +286,7 @@ export class MapScene extends window.Phaser.Scene {
 
   clampScroll() {
     const cam = this.cameras.main;
-    let b = this.unlockedRect();
-    const guide = this.registry.get('guide');
-    if (guide && guide.slotId) b = { x: b.x - 720, y: b.y - 420, w: b.w + 1440, h: b.h + 840 };
+    const b = this.unlockedRect();
     const dw = cam.displayWidth;
     const dh = cam.displayHeight;
     const minSX = b.x + (dw - cam.width) / 2;
@@ -872,17 +870,27 @@ export class MapScene extends window.Phaser.Scene {
     }
     if (guide.live) {
       this.guideShade.fillStyle(0x0c1410, 0.34);
-      this.guideShade.fillRect(-400, -400, 9000, 9000);
+      this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
     }
     if (this.guideFocus !== slotId) {
       this.guideFocus = slotId;
       this.userPanned = true;
       this.haltCamera();
       const cam = this.cameras.main;
+      const b = this.unlockedRect();
+      cam.setBounds(b.x, b.y, b.w, b.h);
       const zoom = this.scale.width < 700 ? 1.2 : this.scale.width < 1100 ? 1.28 : 1.45;
-      cam.setBounds(-720, -420, WORLD_W + 1440, WORLD_H + 840);
       cam.setZoom(zoom);
-      cam.pan(node.def.x, node.def.y + 16, 420, 'Sine.easeInOut');
+      const dw = cam.displayWidth;
+      const dh = cam.displayHeight;
+      const minCX = b.x + dw / 2;
+      const maxCX = b.x + b.w - dw / 2;
+      const minCY = b.y + dh / 2;
+      const maxCY = b.y + b.h - dh / 2;
+      const cx = minCX <= maxCX ? Math.min(maxCX, Math.max(minCX, node.def.x)) : b.x + b.w / 2;
+      const cy = minCY <= maxCY ? Math.min(maxCY, Math.max(minCY, node.def.y + 16)) : b.y + b.h / 2;
+      cam.centerOn(cx, cy);
+      this.clampScroll();
     }
     const pulse = 1 + Math.sin(this.phase * 4.2) * 0.07;
     const radius = 86 * pulse;
