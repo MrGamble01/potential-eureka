@@ -83,7 +83,8 @@
   <section class="go-subhud" aria-label="Current Objective &amp; Alerts">
     <article class="go-objective-card" id="objective-card">
       <button type="button" class="go-obj-line" id="obj-toggle" data-hud="1" aria-expanded="false">
-        <span class="go-obj-title" id="obj-title">Grow the crop</span>
+        <span class="go-obj-title" id="obj-title">Tap Build</span>
+        <span id="obj-hint" hidden></span>
         <span id="obj-prog-text" hidden>150 / 1,200</span>
         <i class="go-obj-bar" aria-hidden="true"><b class="go-obj-bar-fill" id="obj-bar-fill"></b></i>
       </button>
@@ -147,6 +148,7 @@
   </aside>
 
   <!-- Bottom Action Dock & Live Logistics Ticker -->
+  <div id="lot-picker" class="go-lot-picker" hidden></div>
   <div id="build-strip" class="go-build-strip" hidden></div>
   <div id="place-hud" hidden>
     <button type="button" id="place-ok" aria-label="Confirm placement">
