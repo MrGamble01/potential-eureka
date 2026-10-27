@@ -1126,62 +1126,39 @@ export function renderStructure(kind, mode, night, level) {
 
 export { renderScaffold, renderCrumble as renderDust } from './construction.js';
 
-function stakeYard(g, night, rough) {
-  const x = 42;
-  const y = 126;
-  const w = 216;
-  const h = 50;
-  g.fillStyle = 'rgba(28,18,10,0.32)';
-  g.fillRect(x + 7, y + 7, w, h);
-  g.fillStyle = night ? '#3a3228' : '#a68458';
-  g.fillRect(x, y, w, h);
-  g.fillStyle = night ? '#2c2418' : '#8d6840';
-  g.fillRect(x + 8, y + 8, w - 16, h - 16);
-  if (rough) {
-    g.strokeStyle = 'rgba(90,62,36,0.28)';
-    g.lineWidth = 1;
-    g.beginPath();
-    g.moveTo(x + 28, y + 24);
-    g.lineTo(x + w - 36, y + 26);
-    g.stroke();
-  }
-  g.strokeStyle = night ? 'rgba(220,206,180,0.22)' : 'rgba(92,64,36,0.28)';
-  g.lineWidth = 1;
-  g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-  g.strokeStyle = night ? 'rgba(230,214,186,0.38)' : 'rgba(72,48,26,0.46)';
-  g.lineWidth = 1.25;
-  const corners = [
-    [x, y],
-    [x + w, y],
-    [x, y + h],
-    [x + w, y + h]
+function stakeYard(g, night) {
+  // The dirt yard is baked into the ground. These marks sit on that patch:
+  // canvas (150, 168) is the sprite anchor at local (0, 20), so lot center
+  // local (0, 0) is canvas (150, 139.4).
+  g.strokeStyle = night ? 'rgba(230,214,186,0.4)' : 'rgba(92,62,32,0.45)';
+  g.lineWidth = 1.6;
+  g.lineCap = 'round';
+  const marks = [
+    [-46, -24],
+    [46, -24],
+    [-46, 24],
+    [46, 24]
   ];
-  for (let i = 0; i < corners.length; i++) {
-    const sx = corners[i][0];
-    const sy = corners[i][1];
+  for (let i = 0; i < marks.length; i++) {
+    const cx = 150 + marks[i][0] / 0.7;
+    const cy = 168 + (marks[i][1] - 20) / 0.7;
     g.beginPath();
-    g.moveTo(sx, sy - 8);
-    g.lineTo(sx, sy + 6);
-    g.moveTo(sx - 5, sy);
-    g.lineTo(sx + 5, sy);
+    g.moveTo(cx, cy - 5);
+    g.lineTo(cx, cy + 6);
     g.stroke();
-  }
-  if (night) {
-    g.fillStyle = 'rgba(255,210,122,0.28)';
-    g.fillRect(x + w - 16, y + 10, 5, 5);
   }
 }
 
 export function renderPlot(night) {
   const c = K.canvas();
   const g = c.getContext('2d');
-  stakeYard(g, night, true);
+  stakeYard(g, night);
   return c;
 }
 
 export function renderCleared(night) {
   const c = K.canvas();
   const g = c.getContext('2d');
-  stakeYard(g, night, false);
+  stakeYard(g, night);
   return c;
 }
