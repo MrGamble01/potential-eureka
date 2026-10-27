@@ -77,6 +77,107 @@ function tutorialCopy() {
     : { lines: TUTORIAL, titles: TUTORIAL_LINE };
 }
 
+const CHAIN_GUIDE = [
+  { id: 'grow', slot: 'slot_rp_farm1', line: 'Tap the farm: it grows leaf', test: (evt) => evt.type === 'produced' && evt.slotId === 'slot_rp_farm1' },
+  { id: 'process', slot: 'slot_rp_barn1', line: 'Build a lab: turns leaf into product', test: (evt) => evt.type === 'processed' && evt.slotId === 'slot_rp_barn1' },
+  { id: 'store', slot: 'slot_rp_wh1', line: 'Store it in the warehouse', test: (evt) => evt.type === 'truck_delivered' && evt.truck && evt.truck.toSlotId === 'slot_rp_wh1' },
+  { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
+];
+
+let guideStep = 0;
+let guideFlash = null;
+let guideHoldUntil = 0;
+let lastSale = null;
+const earnSamples = [];
+
+function guideLive() {
+  return coreMode() && sim.state.mode === 'campaign' && guideStep < CHAIN_GUIDE.length;
+}
+
+function nextHint(view) {
+  const south = sim.state.slots.slot_rp_south;
+  if (south && !south.buildingId) return { slotId: 'slot_rp_south', button: 'dock-build-btn', line: 'Build another farm: it grows more leaf' };
+  const mission = view && view.campaign ? view.campaign.mission : null;
+  const hints = {
+    c1_grow: { slotId: 'slot_rp_farm1', line: 'Farm grows leaf' },
+    c1_process: { slotId: 'slot_rp_barn1', line: 'Lab turns leaf into product' },
+    c1_store: { slotId: 'slot_rp_wh1', line: 'Warehouse holds the packs' },
+    c1_haul: { slotId: 'slot_rp_wh1', line: 'Trucks haul the packs' },
+    c1_sell: { slotId: 'slot_rp_pier', line: 'Sell at the pier for cash' },
+    c1_plot: { slotId: 'slot_rp_south', button: 'dock-build-btn', line: 'Build another farm: it grows more leaf' },
+    c2_zone: { line: 'Open the next stretch' },
+    c2_lot: { line: 'Buy the sawmill' }
+  };
+  if (mission && hints[mission.id]) return hints[mission.id];
+  const slotId = sim.recommendedLotId ? sim.recommendedLotId() : null;
+  return { slotId, line: mission ? mission.title : 'The chain is running' };
+}
+
+function currentGuide(view) {
+  if (!coreMode() || sim.state.mode !== 'campaign') return null;
+  if (guideHoldUntil && guideStep < CHAIN_GUIDE.length) {
+    const step = CHAIN_GUIDE[guideStep];
+    return { slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
+  }
+  if (guideLive()) {
+    const step = CHAIN_GUIDE[guideStep];
+    return { slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
+  }
+  const hint = nextHint(view || sim.gameplayView());
+  return { slotId: hint.slotId || null, button: hint.button || null, line: hint.line, live: false, index: CHAIN_GUIDE.length, total: CHAIN_GUIDE.length };
+}
+
+function publishGuide(view) {
+  const guide = currentGuide(view);
+  if (phaserGame) {
+    phaserGame.registry.set('guide', guide);
+    phaserGame.registry.set('guideTick', guideTick);
+    if (guideFlash) phaserGame.registry.set('guideFlash', guideFlash);
+  }
+  const buildBtn = $('dock-build-btn');
+  if (buildBtn) buildBtn.classList.toggle('is-next', !!(guide && guide.button === 'dock-build-btn'));
+  return guide;
+}
+
+function noteGuide(evt) {
+  if (evt.type === 'exported' && (evt.earnedDirty || evt.earnedClean)) lastSale = evt;
+  if (guideHoldUntil) return;
+  if (!guideLive()) return;
+  const step = CHAIN_GUIDE[guideStep];
+  if (!step.test(evt)) return;
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  guideFlash = { slot: step.slot, until: now + 1500 };
+  if (phaserGame) phaserGame.registry.set('guideFlash', guideFlash);
+  if (step.id === 'sell') {
+    guideHoldUntil = now + 1800;
+    return;
+  }
+  guideStep += 1;
+  if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell' && lastSale && mapScene && mapScene.fx) {
+    mapScene.fx({ type: 'exported', slotId: lastSale.slotId, earnedDirty: lastSale.earnedDirty || 0, earnedClean: lastSale.earnedClean || 0 });
+  }
+}
+
+function guideTick() {
+  if (!guideHoldUntil) return;
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (now < guideHoldUntil) return;
+  guideHoldUntil = 0;
+  if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') guideStep += 1;
+  renderHud();
+}
+
+function earnPerMinute(st) {
+  const now = st.elapsedSeconds || 0;
+  const value = (st.totalDirtyEarned || 0) + (st.totalCleanEarned || 0);
+  const last = earnSamples[earnSamples.length - 1];
+  if (!last || now - last.t >= 1 || value !== last.v) earnSamples.push({ t: now, v: value });
+  while (earnSamples.length && now - earnSamples[0].t > 60) earnSamples.shift();
+  if (earnSamples.length < 2) return 0;
+  const span = Math.max(4, earnSamples[earnSamples.length - 1].t - earnSamples[0].t);
+  return Math.max(0, ((earnSamples[earnSamples.length - 1].v - earnSamples[0].v) / span) * 60);
+}
+
 const ROLE_NAME = {
   launder: 'Front',
   stash: 'Stash house',
@@ -107,6 +208,7 @@ if (hasSave) {
 }
 
 function handleSimEvent(evt) {
+  noteGuide(evt);
   const sceneLive = mapScene && mapScene.sys && mapScene.sys.isActive();
   if (sceneLive) mapScene.fx(evt);
   else presentEvent(audio, null, evt, sim);
@@ -173,6 +275,8 @@ function renderHud() {
 
   $('dirty-cash-val').textContent = fmtCash(st.dirtyCash);
   $('clean-cash-val').textContent = fmtCash(st.cleanCash);
+  const rate = $('earn-rate');
+  if (rate) rate.textContent = `+${fmtCash(earnPerMinute(st))}/m`;
 
   const actDef = camp.actInfo || ACTS[st.act] || ACTS[1];
   $('act-kicker').textContent = actDef.badge;
@@ -254,6 +358,19 @@ function renderHud() {
     $('obj-meta').textContent = '';
     $('obj-next').hidden = true;
     $('raid-action-btn').dataset.region = raidRegion.id;
+  } else if (supplyChainOnly(view)) {
+    const guide = publishGuide(view);
+    $('obj-title').textContent = guide ? guide.line : 'The chain is running';
+    $('obj-prog-text').textContent = '';
+    $('obj-desc').textContent = '';
+    $('obj-beat').textContent = '';
+    $('obj-meta').textContent = '';
+    $('obj-reward').textContent = '';
+    $('obj-next').hidden = true;
+    if ($('obj-bar-fill')) {
+      const pct = guide && guide.live ? (guide.index / guide.total) * 100 : (prog ? prog.pct : 0);
+      $('obj-bar-fill').style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    }
   } else if (mission) {
     $('obj-title').textContent = mission.title;
     $('obj-prog-text').textContent = '';
@@ -1604,6 +1721,7 @@ window.__growOp = {
     renderDrawerContent();
   },
   openLot: (id) => openLot(id),
+  guide: () => currentGuide(),
   startPlace: (buildingId) => beginPlace(buildingId || 'plantation'),
   stopPlace: () => {
     stopPlace();

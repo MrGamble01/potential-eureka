@@ -1454,7 +1454,7 @@ html, body {
   top: 52px;
   left: 12px;
   right: auto;
-  width: min(280px, calc(100vw - 24px));
+  width: min(440px, calc(100vw - 24px));
   max-height: none;
   padding: 0;
 }
@@ -1470,7 +1470,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: min(280px, calc(100vw - 24px));
+  width: min(440px, calc(100vw - 24px));
   padding: 6px 10px;
   border-radius: 10px;
   background: rgba(18, 22, 30, 0.92);
@@ -1776,4 +1776,82 @@ html, body {
   border-radius: 50%;
   background: conic-gradient(#3ddc97 calc(var(--p) * 1%), rgba(255, 255, 255, 0.14) 0);
   mask: radial-gradient(circle 8px, transparent 8px, #000 9px);
+}
+.go-flow, .go-block, .go-guide, .go-done {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 26;
+}
+.go-flow[hidden], .go-block[hidden], .go-guide[hidden], .go-done[hidden] { display: none !important; }
+.go-flow, .go-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  padding: 1px 4px;
+  border-radius: 8px;
+  background: rgba(18, 22, 30, 0.9);
+  border: 1px solid rgba(126, 184, 255, 0.3);
+}
+.go-flow b, .go-block b {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: block;
+}
+.go-flow s {
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid #8ec5ff;
+  border-top: 2px solid #8ec5ff;
+  transform: rotate(45deg);
+}
+.go-block em {
+  font: 700 10px Outfit, sans-serif;
+  font-style: normal;
+  color: #ffd7a8;
+}
+.go-bill { background: #3ddc97 !important; box-shadow: inset 0 0 0 1.5px #146b45 !important; }
+.go-guide {
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  color: #39e58a;
+  filter: drop-shadow(0 4px 0 #102018) drop-shadow(0 0 10px rgba(57, 229, 138, 0.85));
+}
+.go-guide svg { width: 64px; height: 64px; display: block; }
+.go-lock {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(16, 22, 18, 0.72);
+  color: #d5e6d0;
+  pointer-events: none;
+  z-index: 22;
+}
+.go-lock[hidden] { display: none !important; }
+.go-done {
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border-radius: 50%;
+  background: #146b45;
+  color: #e7fff3;
+  border: 2px solid #3ddc97;
+  display: grid;
+  place-items: center;
+}
+#dock-build-btn.is-next { box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.9); }
+.go-earn {
+  font: 700 11px Outfit, sans-serif;
+  color: #9ce6a8;
+  padding-left: 6px;
+  border-left: 1px solid rgba(157, 230, 168, 0.35);
 }

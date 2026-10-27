@@ -31,11 +31,13 @@ export function createJuice(scene) {
     const x = node.def.x;
     const y = node.def.y - 22 - stack * 16;
     const clean = kind === 'clean';
-    const text = scene.add.text(x, y, `+$${Math.floor(Number(amount) || 0)}${clean ? ' clean' : ''}`, {
+    const n = Math.floor(Number(amount) || 0);
+    const sign = n < 0 ? '-' : '+';
+    const text = scene.add.text(x, y, `${sign}$${Math.abs(n)}${clean ? ' clean' : ''}`, {
       fontFamily: 'Outfit, sans-serif',
       fontSize: '16px',
       fontStyle: '700',
-      color: clean ? CLEAN : DIRTY
+      color: n < 0 ? '#ffb4ae' : (clean ? CLEAN : DIRTY)
     });
     if (text.setOrigin) text.setOrigin(0.5);
     if (text.setDepth) text.setDepth(33);

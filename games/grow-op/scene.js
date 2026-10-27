@@ -18,6 +18,7 @@ import { REGIONS, BUILD_SLOTS, ROAD_NETWORK, findRoadPath } from './data/mission
 import { DISTRICT_EDGE, LOT_POS, MAP_H, MAP_W, ZONE_LAYOUT, zoneCenter } from './map-layout.js';
 import { drawExtended, paintOpen, paintProperty } from './map-draw.js';
 import { artURL, iconKeyForBuilding, iconKeyForProperty, iconKeyForRole } from './art-keys.js';
+import { capExtra, storageCap } from './systems/chains.js';
 import * as Art from './art.js';
 
 const PIN_MARK = '<img alt="" width="64" height="64" draggable="false"><svg class="go-glyph go-glyph-plus" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="go-glyph go-glyph-crane" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17h14M5 17V9h7l3-5h3M8 9v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="go-glyph go-glyph-lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><strong hidden></strong><span hidden></span><i class="go-pin-bar" hidden><b></b></i>';
@@ -149,11 +150,19 @@ export class MapScene extends window.Phaser.Scene {
       const stack = document.createElement('div');
       stack.className = 'go-stack';
       stack.hidden = true;
+      const flow = document.createElement('div');
+      flow.className = 'go-flow';
+      flow.hidden = true;
+      const block = document.createElement('div');
+      block.className = 'go-block';
+      block.hidden = true;
       this.pinHost.appendChild(pin);
       this.pinHost.appendChild(stack);
+      this.pinHost.appendChild(flow);
+      this.pinHost.appendChild(block);
       root.add([pulse, select, raid, hit, art, ring]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
+      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, flow, block, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
     }
   }
 
@@ -403,6 +412,7 @@ export class MapScene extends window.Phaser.Scene {
     this.syncFloaters(dt);
     this.syncWorld(dt);
     this.syncTip();
+    this.syncGuide();
   }
 
   ensureTip() {
@@ -465,17 +475,23 @@ export class MapScene extends window.Phaser.Scene {
     const selected = this.sim.state.selectedSlotId;
     const recommend = this.recommendedSlot();
     const supplyOnly = !this.view || this.view.coreMode !== false;
+    const guide = this.registry.get('guide');
+    const guiding = !!(guide && guide.live);
+    const guideId = guide && guide.slotId;
+    const guided = !!guideId;
     for (const [id, node] of Object.entries(this.slots)) {
       const state = this.sim.state.slots[id];
       if (!state) continue;
       const lot = this.sim.state.lots && this.sim.state.lots[id];
       const phase = lot ? lot.phase : '';
-      node.select.setVisible(id === selected);
+      node.select.setVisible(!guiding && id === selected);
       node.raid.setVisible(!supplyOnly && !!state.raidLocked);
       if (node.raid.visible) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
       const built = !!state.buildingId && !state.rivalControlled;
-      const marked = id === recommend || id === this.recommendId();
-      node.pulse.setVisible(!built && !state.rivalControlled && marked);
+      const marked = !guided && (id === recommend || id === this.recommendId());
+      node.pulse.setVisible(!guided && !built && !state.rivalControlled && marked);
+      if (guiding) node.root.setAlpha(id === guideId ? 1 : 0.4);
+      else if (node.root.alpha !== 1) node.root.setAlpha(1);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const ctx = this.siteCtx(state, lot, id);
       if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
@@ -494,6 +510,7 @@ export class MapScene extends window.Phaser.Scene {
       const buildingNow = phase === 'building' || phase === 'demolishing' || (state.constructLeft || 0) > 0;
       this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y });
       this.syncStock(node, state);
+      this.syncChain(node, state);
       const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
       if (buildingNow) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-build', built ? BUILDINGS[state.buildingId].shortName : 'Build');
@@ -503,7 +520,7 @@ export class MapScene extends window.Phaser.Scene {
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
         }
-      } else if (!state.rivalControlled && marked && !this.registry.get('placing')) {
+      } else if (!built && !state.rivalControlled && !this.registry.get('placing') && (guided ? id === guideId : marked)) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
@@ -738,6 +755,153 @@ export class MapScene extends window.Phaser.Scene {
     const w = el.offsetWidth || 28;
     const left = Math.max(6, Math.min(vw - w - 6, Math.round(spot.x - w / 2)));
     el.style.transform = `translate(${left}px, ${Math.round(spot.y)}px)`;
+  }
+
+  goodSwatch(id) {
+    const good = GOODS[id];
+    if (!good) return '';
+    return `<b style="background:${good.badgeInk};box-shadow:inset 0 0 0 1.5px ${good.badgeBg}" title="${good.shortName}"></b>`;
+  }
+
+  pileCount(buffer) {
+    let sum = 0;
+    for (const value of Object.values(buffer || {})) sum += value || 0;
+    return sum;
+  }
+
+  chainMark(def) {
+    if (!def) return '';
+    const ins = Object.keys(def.inputs || {});
+    const outs = Object.keys(def.outputs || {});
+    if (ins.length && outs.length) return `${ins.map((id) => this.goodSwatch(id)).join('')}<s></s>${outs.map((id) => this.goodSwatch(id)).join('')}`;
+    if (outs.length) return outs.map((id) => this.goodSwatch(id)).join('');
+    if (def.role === 'smuggling') return `${this.goodSwatch('cured_pack')}<s></s><b class="go-bill" title="Cash"></b>`;
+    if (def.role === 'warehouse') return '<b class="go-bill" title="Store"></b>';
+    return '';
+  }
+
+  blockMark(state, def) {
+    if (!state || !def || (state.constructLeft || 0) > 0) return null;
+    const cap = storageCap(def, state.level || 1, capExtra(this.sim.state, def));
+    const out = this.pileCount(state.outputBuffer);
+    const inn = this.pileCount(state.inputBuffer);
+    if (def.role === 'producer' && cap && out >= cap) return { word: 'Full', good: Object.keys(def.outputs || {})[0] };
+    if (def.role === 'processor') {
+      if (cap && out >= cap) return { word: 'Full', good: Object.keys(def.outputs || {})[0] };
+      const missing = Object.keys(def.inputs || {}).find((id) => (state.inputBuffer[id] || 0) < def.inputs[id]);
+      if (missing && (state.progress || 0) < 0.05) return { word: 'Need', good: missing };
+    }
+    if (def.role === 'warehouse' && cap && out + inn >= cap) return { word: 'Full', good: null };
+    if (def.role === 'smuggling' && inn < 1 && (state.progress || 0) < 0.05) return { word: 'Need', good: 'cured_pack' };
+    return null;
+  }
+
+  syncChain(node, state) {
+    if (!node.flow || !node.block) return;
+    const def = state && state.buildingId ? BUILDINGS[state.buildingId] : null;
+    const recipe = def && (state.constructLeft || 0) <= 0 ? this.chainMark(def) : '';
+    if (!recipe) node.flow.hidden = true;
+    else {
+      if (node.flow.dataset.flow !== recipe) {
+        node.flow.dataset.flow = recipe;
+        node.flow.innerHTML = recipe;
+      }
+      this.placeStack(node.flow, node.def.x + 86, node.def.y - 6);
+    }
+    const blocked = def ? this.blockMark(state, def) : null;
+    if (!blocked) {
+      node.block.hidden = true;
+      return;
+    }
+    const html = `${blocked.good ? this.goodSwatch(blocked.good) : ''}<em>${blocked.word}</em>`;
+    if (node.block.dataset.block !== html) {
+      node.block.dataset.block = html;
+      node.block.innerHTML = html;
+    }
+    this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
+  }
+
+  ensureGuideEl(className, html) {
+    let el = this.pinHost.querySelector('.' + className);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = className;
+      el.hidden = true;
+      el.innerHTML = html;
+      this.pinHost.appendChild(el);
+    }
+    return el;
+  }
+
+  syncGuide() {
+    const tick = this.registry.get('guideTick');
+    if (typeof tick === 'function') tick();
+    const guide = this.registry.get('guide');
+    const arrow = this.ensureGuideEl('go-guide', '<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><path d="M32 6v36M16 30l16 20 16-20" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    const done = this.ensureGuideEl('go-done', '<svg viewBox="0 0 20 20" width="22" height="22" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    if (!this.guideRing) this.guideRing = this.add.graphics().setDepth(13);
+    if (!this.guideShade) this.guideShade = this.add.graphics().setDepth(3);
+    const flash = this.registry.get('guideFlash');
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    if (flash && flash.slot && now < flash.until) {
+      const node = this.slots[flash.slot];
+      if (node) {
+        const spot = this.worldToScreen(node.def.x + 54, node.def.y - 70);
+        done.hidden = false;
+        done.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
+      }
+    } else done.hidden = true;
+    const slotId = guide && guide.slotId;
+    if (slotId) {
+      for (const other of Object.values(this.slots)) {
+        other.pulse.setVisible(false);
+        if (guide.live) other.select.setVisible(false);
+      }
+      if (guide.live) {
+        for (const other of Object.values(this.lots)) other.select.setVisible(false);
+      }
+    }
+    const node = slotId ? this.slots[slotId] : null;
+    this.guideRing.clear();
+    this.guideShade.clear();
+    if (!node) {
+      arrow.hidden = true;
+      return;
+    }
+    if (guide.live) {
+      this.guideShade.fillStyle(0x0c1410, 0.34);
+      this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+    if (this.guideFocus !== slotId) {
+      this.guideFocus = slotId;
+      this.userPanned = true;
+      this.haltCamera();
+      const cam = this.cameras.main;
+      const b = this.unlockedRect();
+      cam.setBounds(b.x, b.y, b.w, b.h);
+      const zoom = this.scale.width < 700 ? 1.2 : this.scale.width < 1100 ? 1.28 : 1.45;
+      cam.setZoom(zoom);
+      const dw = cam.displayWidth;
+      const dh = cam.displayHeight;
+      const minCX = b.x + dw / 2;
+      const maxCX = b.x + b.w - dw / 2;
+      const minCY = b.y + dh / 2;
+      const maxCY = b.y + b.h - dh / 2;
+      const cx = minCX <= maxCX ? Math.min(maxCX, Math.max(minCX, node.def.x)) : b.x + b.w / 2;
+      const cy = minCY <= maxCY ? Math.min(maxCY, Math.max(minCY, node.def.y + 16)) : b.y + b.h / 2;
+      cam.centerOn(cx, cy);
+      this.clampScroll();
+    }
+    const pulse = 1 + Math.sin(this.phase * 4.2) * 0.07;
+    const radius = 86 * pulse;
+    this.guideRing.lineStyle(12, 0x39e58a, 0.28);
+    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius + 14);
+    this.guideRing.lineStyle(7, 0x39e58a, 1);
+    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius);
+    const spot = this.worldToScreen(node.def.x, node.def.y - 150);
+    const bob = Math.sin(this.phase * 5.2) * 16;
+    arrow.hidden = false;
+    arrow.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y + bob)}px)`;
   }
 
   noteBuild(node, active, left, point) {
@@ -1029,6 +1193,8 @@ export class MapScene extends window.Phaser.Scene {
   paintRoutes() {
     const g = this.flow;
     const slots = this.sim.state.slots;
+    const trucks = this.sim.state.activeTrucks || [];
+    const hot = new Set(trucks.map((truck) => `${truck.fromSlotId}>${truck.toSlotId}`));
     const legs = [
       ['slot_rp_farm1', 'slot_rp_barn1'],
       ['slot_rp_barn1', 'slot_rp_wh1'],
@@ -1039,8 +1205,12 @@ export class MapScene extends window.Phaser.Scene {
       if (!slots[from] || !slots[from].buildingId || !slots[to] || !slots[to].buildingId) continue;
       const path = this.chainPath(from, to);
       if (path.length < 2) continue;
-      g.lineStyle(4, 0x58a6ff, 0.16);
+      const live = hot.has(`${from}>${to}`) || hot.has(`${to}>${from}`);
+      const guiding = !!(this.registry.get('guide') && this.registry.get('guide').live);
+      if (!live && guiding) continue;
+      g.lineStyle(live ? 7 : 3, live ? 0xf4d35e : 0x58a6ff, live ? 0.9 : 0.14);
       for (let i = 0; i < path.length - 1; i++) g.lineBetween(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+      if (!live) continue;
       let travel = cursor;
       for (let i = 0; i < path.length - 1; i++) {
         const a = path[i];
@@ -1048,11 +1218,22 @@ export class MapScene extends window.Phaser.Scene {
         const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
         while (travel < len) {
           const t = travel / len;
-          g.fillStyle(0x8ec5ff, 0.92);
-          g.fillCircle(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 3.5);
-          travel += 56;
+          g.fillStyle(0xfff4d2, 0.95);
+          g.fillCircle(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 4.5);
+          travel += 48;
         }
         travel -= len;
+      }
+    }
+    for (const truck of trucks) {
+      if (!truck.path || !truck.path.length) continue;
+      const good = GOODS[truck.goodId];
+      g.lineStyle(4, good ? good.color : 0xf4d35e, 0.95);
+      let prev = { x: truck.x, y: truck.y };
+      for (let i = truck.pathIndex || 0; i < truck.path.length; i++) {
+        const next = truck.path[i];
+        g.lineBetween(prev.x, prev.y, next.x, next.y);
+        prev = next;
       }
     }
   }
@@ -1407,37 +1588,8 @@ export class MapScene extends window.Phaser.Scene {
 
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x1a221c, 0.34 * alpha);
+    g.fillStyle(0x1a2820, 0.28 * alpha);
     this.fillPoly(g, poly);
-    g.lineStyle(28, 0x101612, 0.22 * alpha);
-    this.strokePoly(g, poly);
-  }
-
-  dashZone(g, poly, alpha) {
-    if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.lineStyle(5, 0xc5d6b0, 0.1 * alpha);
-    this.strokePoly(g, poly);
-    g.lineStyle(1.5, 0xe7f2df, 0.42 * alpha);
-    const dash = 16;
-    const gap = 12;
-    for (let i = 0; i < poly.length; i++) {
-      const a = poly[i];
-      const b = poly[(i + 1) % poly.length];
-      const dx = b[0] - a[0];
-      const dy = b[1] - a[1];
-      const len = Math.hypot(dx, dy) || 1;
-      let walked = 0;
-      while (walked < len) {
-        const end = Math.min(len, walked + dash);
-        g.lineBetween(
-          a[0] + (dx * walked) / len,
-          a[1] + (dy * walked) / len,
-          a[0] + (dx * end) / len,
-          a[1] + (dy * end) / len
-        );
-        walked += dash + gap;
-      }
-    }
   }
 
   syncFog(view) {
@@ -1453,10 +1605,8 @@ export class MapScene extends window.Phaser.Scene {
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
       const edge = softEdge(box.poly);
-      if (!zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.85);
-      if (this.fogAlpha[zone.id] > 0.02 && chart < 0.85) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.72);
-      const ink = this.fogAlpha[zone.id] > 0.15 ? 0.42 + this.fogAlpha[zone.id] * 0.28 : 0.28;
-      this.dashZone(g, edge, ink * (1 - chart * 0.45));
+      if (!zone.unlocked && !zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.55);
+      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.7);
     }
     for (const reg of REGIONS) {
       if (!reg.unlockCostClean) continue;
@@ -1596,9 +1746,21 @@ export class MapScene extends window.Phaser.Scene {
       const mark = this.zoneMarks[zone.id];
       if (!mark) continue;
       mark.area.hidden = true;
+      if (!mark.lock) {
+        const lock = document.createElement('div');
+        lock.className = 'go-lock';
+        lock.hidden = true;
+        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+        this.pinHost.appendChild(lock);
+        mark.lock = lock;
+      }
       const affordable = !zone.blockers || zone.blockers.length === 0;
       const show = open && zoomedOut && (zone.unlocked || affordable);
       mark.el.hidden = !show;
+      const spot = this.worldToScreen(mark.x, mark.y);
+      const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
+      mark.lock.hidden = zone.unlocked || show || !onScreen;
+      if (!mark.lock.hidden) mark.lock.style.transform = `translate(${Math.round(spot.x - 12)}px, ${Math.round(spot.y - 12)}px)`;
       if (!show) continue;
       mark.el.classList.toggle('is-locked', !zone.unlocked);
       const strong = mark.el.querySelector('strong');
@@ -1638,6 +1800,17 @@ export class MapScene extends window.Phaser.Scene {
       if (evt.type === 'exported') {
         if (evt.earnedDirty) j.cashPop(evt.slotId, evt.earnedDirty, 'dirty');
         if (evt.earnedClean) j.cashPop(evt.slotId, evt.earnedClean, 'clean');
+      } else if (evt.type === 'built' || evt.type === 'build_started') {
+        const id = evt.slotId || evt.lotId;
+        const built = evt.buildingId && BUILDINGS[evt.buildingId];
+        const lot = id && this.sim.state.lots ? this.sim.state.lots[id] : null;
+        const open = !!(lot && lot.kind === 'open');
+        if (built && id && this.slots[id]) {
+          const dirty = open ? Math.round(built.buildCostDirty * 0.85) : built.buildCostDirty;
+          const clean = open ? Math.round(built.buildCostClean * 0.85) : built.buildCostClean;
+          if (dirty) j.cashPop(id, -dirty, 'dirty');
+          if (clean) j.cashPop(id, -clean, 'clean');
+        }
       } else if (evt.type === 'laundered') {
         j.cashPop(evt.slotId, evt.cleanEarned, 'clean');
         j.burst(evt.slotId, 0x8ec5ff);
