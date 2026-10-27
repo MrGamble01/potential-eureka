@@ -1750,12 +1750,76 @@ html, body {
   gap: 8px;
   max-width: calc(100vw - 16px);
   overflow-x: auto;
-  padding: 8px;
+  padding: 10px;
   border-radius: 16px;
   background: rgba(18, 22, 30, 0.96);
   border: 1px solid rgba(57, 229, 138, 0.55);
   pointer-events: auto;
 }
+.go-build-strip { align-items: stretch; padding: 10px; }
+.go-build-card {
+  flex: 0 0 auto;
+  width: 156px;
+  min-height: 148px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  border-radius: 12px;
+  border: 1px solid rgba(126, 184, 255, 0.28);
+  background: #12151c;
+  color: #f4f7fb;
+  text-align: left;
+  pointer-events: auto;
+}
+.go-build-card img { width: 40px; height: 40px; border-radius: 8px; display: block; }
+.go-build-card b { font: 700 15px Outfit, sans-serif; }
+.go-build-card em {
+  font: 600 13px Outfit, sans-serif;
+  font-style: normal;
+  color: #e7eef8;
+  line-height: 1.25;
+  min-height: 2.5em;
+}
+@media (max-width: 820px) {
+  .go-build-card { width: 112px; min-height: 158px; }
+  .go-build-strip, .go-lot-picker { gap: 6px; }
+}
+.go-build-card small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 700 12px Outfit, sans-serif;
+  color: #f4f7fb;
+}
+.go-build-flow { display: flex; align-items: center; gap: 3px; min-height: 18px; }
+.go-build-card:disabled { opacity: 0.55; }
+.go-build-card.is-on { border-color: #58a6ff; }
+.go-sheet-card.is-ops .go-sheet-kicker {
+  font: 600 14px Outfit, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #d7e6f8;
+}
+#build-toast {
+  position: fixed;
+  left: 50%;
+  top: 112px;
+  transform: translateX(-50%);
+  z-index: 38;
+  margin: 0;
+  max-width: calc(100vw - 24px);
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(18, 22, 30, 0.96);
+  border: 1px solid rgba(61, 220, 151, 0.65);
+  color: #e7fff3;
+  font: 700 15px Outfit, sans-serif;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#build-toast[hidden] { display: none !important; }
 #place-hud {
   position: fixed;
   left: 0;
@@ -1887,6 +1951,7 @@ html, body {
 }
 #dock-build-btn.is-next,
 .go-build-ico.is-aim,
+.go-build-card.is-aim,
 #place-ok.is-aim:not(.is-bad) { animation: go-ring 1s ease-in-out infinite; }
 #obj-hint {
   font: 600 13px Outfit, sans-serif;

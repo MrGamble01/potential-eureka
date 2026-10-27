@@ -521,8 +521,9 @@ export class MapScene extends window.Phaser.Scene {
           this.paintSite(node.art, state);
         }
       }
-      const buildingNow = phase === 'building' || phase === 'demolishing' || (state.constructLeft || 0) > 0;
-      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y });
+      const constructing = phase === 'building' || (state.constructLeft || 0) > 0;
+      const buildingNow = constructing || phase === 'demolishing';
+      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y }, state.buildingId, constructing);
       this.syncStock(node, state);
       this.syncChain(node, state);
       const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
@@ -976,14 +977,19 @@ export class MapScene extends window.Phaser.Scene {
     arrow.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y + bob)}px)`;
   }
 
-  noteBuild(node, active, left, point) {
+  noteBuild(node, active, left, point, buildingId, constructing) {
     if (node.wasBuilding && !active) {
       const juice = this.registry.get('juice');
       if (juice && juice.demolishDust) juice.demolishDust(point);
       if (juice && juice.burst) juice.burst({ x: point.x, y: point.y - 24 }, 0x8ec5ff);
       node.pop = 0.42;
+      if (node.wasConstruct && buildingId) {
+        const ready = this.registry.get('onBuildingReady');
+        if (ready) ready(buildingId);
+      }
     }
-    node.wasBuilding = active;
+    node.wasBuilding = !!active;
+    node.wasConstruct = !!(active && constructing);
     if (node.pop > 0) {
       node.pop = Math.max(0, node.pop - (this.frameDt || 0.016));
       const u = 1 - node.pop / 0.42;
@@ -1779,8 +1785,9 @@ export class MapScene extends window.Phaser.Scene {
         if (tick) tick();
       }
       node.shownLeft = shown;
-      const buildingNow = live.phase === 'building' || live.phase === 'demolishing';
-      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos);
+      const constructing = live.phase === 'building';
+      const buildingNow = constructing || live.phase === 'demolishing';
+      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos, live.buildingId, constructing);
       node.phase = live.phase;
       const ghost = this.registry.get('ghost');
       const showGhost = ghost && ghost.lotId === node.id && ghost.buildingId && live.phase !== 'building' && live.phase !== 'demolishing';

@@ -1108,9 +1108,11 @@ function renderLot() {
   } else if (lot.phase === 'demolishing' || lot.phase === 'building' || (lot.phase === 'operating' && lot.buildingId && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert'))) {
     paths.className = 'go-lot-paths is-single';
     paths.innerHTML = opsPanel(lot);
-    $('lot-title').textContent = lot.buildingId && BUILDINGS[lot.buildingId] ? BUILDINGS[lot.buildingId].shortName : (lot.propertyLabel || lot.label);
+    const built = lot.buildingId ? BUILDINGS[lot.buildingId] : null;
+    const talk = built ? buildingTalk(built) : null;
+    $('lot-title').textContent = talk ? talk.name : (lot.propertyLabel || lot.label);
     $('lot-meta').textContent = '';
-    $('lot-kicker').textContent = '';
+    $('lot-kicker').textContent = talk ? talk.line : '';
   } else {
     paths.className = 'go-lot-paths';
     const canBuy = lot.actions.includes('buyAndConvert');
@@ -1124,6 +1126,108 @@ function goodSwatch(goodId) {
   const good = GOODS[goodId];
   if (!good) return '';
   return `<i class="go-good" title="${good.shortName}" style="background:${good.badgeBg};box-shadow:inset 0 0 0 1.5px ${good.badgeInk}"></i>`;
+}
+
+const BUILD_TALK = {
+  plantation: ['Farm', 'Grows leaf', 'Farm is growing leaf'],
+  coffee_estate: ['Coffee farm', 'Grows coffee', 'Coffee farm is growing coffee'],
+  highland_farm: ['Highland farm', 'Grows leaf', 'Highland farm is growing leaf'],
+  drying_barn: ['Lab', 'Turns leaf into product', 'Lab is making product'],
+  packaging_mill: ['Packer', 'Hides product in coffee', 'Packer is hiding product'],
+  chem_lab: ['Chem lab', 'Turns leaf into product', 'Chem lab is making product'],
+  warehouse: ['Warehouse', 'Stores product', 'Warehouse is storing product'],
+  transport_depot: ['Depot', 'Adds trucks', 'Depot is sending trucks'],
+  river_pier: ['Pier', 'Sells product for cash', 'Pier is selling for cash'],
+  aerodrome: ['Airstrip', 'Sells product for cash', 'Airstrip is selling for cash'],
+  taxi_co: ['Taxi front', 'Turns dirty cash clean', 'Taxi front is cleaning cash'],
+  salsa_club: ['Club', 'Turns dirty cash clean', 'Club is cleaning cash'],
+  banco_regional: ['Bank', 'Turns dirty cash clean', 'Bank is cleaning cash']
+};
+
+function buildingTalk(building) {
+  const row = building && BUILD_TALK[building.id];
+  if (row) return { name: row[0], line: row[1], done: row[2] };
+  return { name: building ? building.shortName : 'Building', line: 'Does its job', done: 'Building is working' };
+}
+
+function quoteBuild(building, slotId) {
+  const homes = [];
+  const consider = (def) => {
+    if (!def) return;
+    const slot = sim.state.slots[def.id];
+    const reg = sim.state.regions[def.regionId];
+    if (!slot || !reg || !reg.unlocked || slot.buildingId || slot.rivalControlled) return;
+    if (def.allowedCategories && !def.allowedCategories.includes(building.category)) return;
+    homes.push(def);
+  };
+  if (slotId) consider(slotDefOf(slotId));
+  else BUILD_SLOTS.forEach(consider);
+  let dirty = building.buildCostDirty || 0;
+  let clean = building.buildCostClean || 0;
+  homes.forEach((def) => {
+    const lot = sim.state.lots && sim.state.lots[def.id];
+    const scale = lot && lot.kind === 'open' ? 0.85 : 1;
+    const nextDirty = Math.round((building.buildCostDirty || 0) * scale);
+    const nextClean = Math.round((building.buildCostClean || 0) * scale);
+    if (nextDirty + nextClean < dirty + clean) {
+      dirty = nextDirty;
+      clean = nextClean;
+    }
+  });
+  return { dirty, clean };
+}
+
+function recipeRow(building) {
+  const ins = Object.entries(building.inputs || {});
+  const outs = Object.entries(building.outputs || {});
+  const left = [];
+  const right = [];
+  ins.forEach(([id, qty]) => left.push(`${goodSwatch(id)}<b>${qty}</b>`));
+  outs.forEach(([id, qty]) => right.push(`${goodSwatch(id)}<b>${qty}</b>`));
+  if (!left.length && !right.length && building.role === 'launderer') {
+    left.push(purse('dirty'));
+    right.push(purse('clean'));
+  } else if (!left.length && !right.length && building.role === 'smuggling') {
+    left.push(goodSwatch('cured_pack'));
+    right.push(purse('dirty'));
+  } else if (!left.length && !right.length && building.role === 'warehouse') {
+    left.push(goodSwatch('cured_pack'));
+  } else if (!left.length && !right.length && building.trucksProvided) {
+    left.push(`<b>+${building.trucksProvided}</b>`);
+  }
+  const bits = left.slice();
+  if (left.length && right.length) bits.push('<span class="go-ops-arrow" aria-hidden="true"></span>');
+  right.forEach((bit) => bits.push(bit));
+  if (!bits.length) return '';
+  return `<span class="go-build-flow">${bits.join('')}</span>`;
+}
+
+function buildCard(building, opts) {
+  const talk = buildingTalk(building);
+  const icon = artURL(iconKeyForBuilding(building.id));
+  const price = quoteBuild(building, opts.slotId);
+  const attr = opts.attr || 'place';
+  return `<button type="button" class="go-build-card${opts.cls || ''}" data-${attr}="${building.id}" aria-label="${talk.name}. ${talk.line}" ${opts.off ? 'disabled' : ''}>${icon ? `<img alt="" src="${icon}">` : ''}<b>${talk.name}</b><em>${talk.line}</em><small>${costBits(price.dirty, price.clean)}</small>${recipeRow(building)}</button>`;
+}
+
+const seenBuild = new Set();
+let toastTimer = 0;
+
+function showBuildToast(text) {
+  const el = $('build-toast');
+  if (!el || !text) return;
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
+}
+
+function onBuildingReady(buildingId) {
+  if (!buildingId || seenBuild.has(buildingId)) return;
+  const building = BUILDINGS[buildingId];
+  if (!building) return;
+  seenBuild.add(buildingId);
+  showBuildToast(buildingTalk(building).done);
 }
 
 function opsPanel(lot) {
@@ -1192,26 +1296,19 @@ function renderBuildStrip() {
   const aiming = lock && TEACH[teachStep].id === 'pick';
   const choices = buildChoices().slice();
   if (lock) {
-    const lab = BUILDINGS[TEACH_LAB];
-    const rest = choices.filter((building) => building.id !== TEACH_LAB);
-    const mid = Math.ceil(rest.length / 2);
-    choices.length = 0;
-    rest.slice(0, mid).forEach((building) => choices.push(building));
-    if (lab) choices.push(lab);
-    rest.slice(mid).forEach((building) => choices.push(building));
+    const rank = { plantation: 0, drying_barn: 1, warehouse: 2 };
+    choices.sort((a, b) => (rank[a.id] ?? 9) - (rank[b.id] ?? 9));
   }
   strip.innerHTML = choices.map((building) => {
-    const icon = artURL(iconKeyForBuilding(building.id));
     const on = placingId === building.id ? ' is-on' : '';
     const mark = !lock && rec === building.id ? ' is-rec' : '';
     const aim = aiming && building.id === TEACH_LAB ? ' is-aim' : '';
-    const label = lock && building.id === TEACH_LAB ? 'Lab' : building.shortName;
-    const off = lock && building.id !== TEACH_LAB;
-    const caption = aim ? '<span>Lab</span>' : '';
-    return `<button type="button" class="go-build-ico${on}${mark}${aim}" data-place="${building.id}" aria-label="${label}" ${off ? 'disabled' : ''}>${icon ? `<img alt="" src="${icon}">` : ''}${caption}</button>`;
+    return buildCard(building, { cls: `${on}${mark}${aim}`, off: lock && building.id !== TEACH_LAB });
   }).join('');
   const aimBtn = strip.querySelector('.is-aim');
-  if (aimBtn) strip.scrollLeft = Math.max(0, aimBtn.offsetLeft - (strip.clientWidth - aimBtn.offsetWidth) / 2);
+  if (aimBtn && window.innerWidth >= 820) {
+    strip.scrollLeft = Math.max(0, aimBtn.offsetLeft - (strip.clientWidth - aimBtn.offsetWidth) / 2);
+  }
 }
 
 function closeLotPicker() {
@@ -1238,13 +1335,10 @@ function openLotPicker(slotId) {
     choices = lab ? [lab] : [];
   }
   picker.innerHTML = choices.map((building) => {
-    const icon = artURL(iconKeyForBuilding(building.id));
     const isLab = building.id === TEACH_LAB;
     const allow = lock ? isLab && labFits(slotId) : true;
-    const label = isLab && (lock || allow) ? 'Lab' : building.shortName;
     const aim = lock && isLab && allow ? ' is-aim' : '';
-    const caption = lock && isLab ? '<span>Lab</span>' : '';
-    return `<button type="button" class="go-build-ico${aim}" data-pick="${building.id}" aria-label="${label}" ${allow ? '' : 'disabled'}>${icon ? `<img alt="" src="${icon}">` : ''}${caption}</button>`;
+    return buildCard(building, { attr: 'pick', slotId, cls: aim, off: !allow });
   }).join('');
   picker.hidden = false;
 }
@@ -1697,6 +1791,9 @@ function wireEvents() {
       guideStep = 0;
       guideHoldUntil = 0;
       guideFlash = null;
+      seenBuild.clear();
+      const toast = $('build-toast');
+      if (toast) toast.hidden = true;
       closeLotPicker();
       stopPlace();
       const strip = $('build-strip');
@@ -2003,6 +2100,7 @@ function bootPhaser() {
   phaserGame.registry.set('onLotSelected', (lotId) => openLot(lotId));
   phaserGame.registry.set('onEmptyLot', (slotId) => onEmptyLot(slotId));
   phaserGame.registry.set('onLotTapped', (slotId) => onLotTapped(slotId));
+  phaserGame.registry.set('onBuildingReady', (buildingId) => onBuildingReady(buildingId));
   phaserGame.registry.set('onZoneSelected', (zoneId) => openZone(zoneId));
   phaserGame.registry.set('onMapRevealed', () => showReveal());
   phaserGame.registry.set('onLotReady', (lotId) => onLotReady(lotId));
