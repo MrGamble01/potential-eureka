@@ -715,7 +715,7 @@ export class MapScene extends window.Phaser.Scene {
       const bg = good ? good.badgeBg : '#333';
       const ink = good ? good.badgeInk : '#fff';
       const name = good ? good.shortName : id;
-      return `<i title="${name}"><b style="background:${bg};box-shadow:inset 0 0 0 1.5px ${ink}"></b><em>${qty}</em></i>`;
+      return `<i title="${name}"><b style="background:${ink};box-shadow:inset 0 0 0 1.5px ${bg}"></b><em>${qty}</em></i>`;
     }).join('');
     if (el.dataset.stack !== html) {
       el.dataset.stack = html;
@@ -958,27 +958,62 @@ export class MapScene extends window.Phaser.Scene {
       let node = this.trucks[truck.id];
       if (!node) {
         const root = this.add.container(truck.x, truck.y).setDepth(9);
-        const rig = this.add.image(0, 0, this.rigKey(mule ? 'mule' : 'truck')).setOrigin(0.5, 0.55).setScale(1.45);
-        const badge = this.add.circle(0, -36, 16, 0x12181c, 0.94).setStrokeStyle(2, 0xf4f7fb, 0.95);
-        const icon = this.add.image(0, -36, this.goodKey(good)).setOrigin(0.5, 0.5).setScale(1.15);
-        root.add([rig, badge, icon]);
-        node = { root, rig, icon, mule };
+        const rig = this.add.image(0, 0, this.rigKey(mule ? 'mule' : 'truck')).setOrigin(0.5, 0.55).setScale(1.7);
+        root.add([rig]);
+        node = { root, rig, mule, tag: null };
         this.trucks[truck.id] = node;
       }
       if (node.mule !== mule) {
         node.mule = mule;
         node.rig.setTexture(this.rigKey(mule ? 'mule' : 'truck'));
       }
-      node.icon.setTexture(this.goodKey(good));
       node.root.setPosition(truck.x, truck.y);
       node.rig.setRotation(truck.heading || 0);
+      this.placeCargo(node, good, truck);
     }
     for (const [id, node] of Object.entries(this.trucks)) {
       if (!live.has(id)) {
+        if (node.tag) node.tag.remove();
         node.root.destroy();
         delete this.trucks[id];
       }
     }
+  }
+
+  placeCargo(node, good, truck) {
+    if (!node.tag) {
+      const el = document.createElement('div');
+      el.className = 'go-cargo';
+      this.pinHost.appendChild(el);
+      node.tag = el;
+    }
+    const el = node.tag;
+    const spot = this.worldToScreen(truck.x, truck.y - 20);
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    if (spot.x < 4 || spot.y < 40 || spot.x > vw - 4 || spot.y > vh - 40) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    const ink = good && good.badgeInk ? good.badgeInk : '#9ce6a8';
+    const bg = good && good.badgeBg ? good.badgeBg : '#274d2e';
+    const url = this.goodURL(good);
+    el.style.backgroundColor = ink;
+    el.style.backgroundImage = url ? `url(${url})` : '';
+    el.style.boxShadow = `0 1px 2px rgba(0,0,0,0.45), inset 0 0 0 2px ${bg}`;
+    el.title = good ? good.shortName : '';
+    el.style.transform = `translate(${Math.round(spot.x - 13)}px, ${Math.round(spot.y - 30)}px)`;
+  }
+
+  goodURL(good) {
+    const id = good ? good.id : 'crate';
+    if (!this.goodURLs) this.goodURLs = {};
+    if (this.goodURLs[id]) return this.goodURLs[id];
+    const key = this.goodKey(good);
+    const source = this.textures.get(key).getSourceImage();
+    this.goodURLs[id] = source && source.toDataURL ? source.toDataURL() : '';
+    return this.goodURLs[id];
   }
 
   chainPath(fromId, toId) {

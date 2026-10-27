@@ -1657,7 +1657,18 @@ html, body {
   pointer-events: none;
   z-index: 25;
 }
-.go-stack[hidden], #place-hud[hidden], .go-build-strip[hidden] { display: none !important; }
+.go-stack[hidden], .go-cargo[hidden], #place-hud[hidden], .go-build-strip[hidden] { display: none !important; }
+.go-cargo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background-size: cover;
+  pointer-events: none;
+  z-index: 26;
+}
 .go-stack i {
   display: inline-flex;
   align-items: center;
