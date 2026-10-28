@@ -15,6 +15,8 @@ import { attachFeel, presentEvent } from './systems/hooks.js';
 import { artURL, cardKeyForBuilding, cardKeyForRole, iconKeyForBuilding, iconKeyForRole } from './art-keys.js';
 import { coreMode, riskLive } from './data/config.js';
 
+if (coreMode() && typeof document !== 'undefined') document.body.classList.add('go-core');
+
 function supplyChainOnly(view) {
   if (!view || view.coreMode !== false) return true;
   return false;
@@ -516,6 +518,7 @@ function selectSlot(slotId, openPanel = true) {
 }
 
 function selectRegion(regionId) {
+  if (coreMode()) return;
   sim.state.selectedRegionId = regionId;
   const regState = sim.state.regions[regionId];
   if (regState && !regState.unlocked) {
@@ -572,6 +575,10 @@ function renderHud() {
   }
   const crewBtn = $('menu-crew');
   if (crewBtn) crewBtn.hidden = supplyChainOnly(view);
+  for (const tabBtn of document.querySelectorAll('.go-menu-tab')) {
+    if (tabBtn.id === 'menu-crew') continue;
+    tabBtn.hidden = supplyChainOnly(view);
+  }
   const sideEl = $('side-goal');
   const side = !supplyChainOnly(view) && camp.goals ? camp.goals.side : null;
   if (sideEl) {
@@ -843,8 +850,7 @@ function renderDrawerContent() {
             </button>
           </div>
         </div>
-
-        <div class="go-card">
+        ${coreMode() ? '' : `<div class="go-card">
           <div class="go-card-top">
             <div>
               <h3 class="go-card-name">Regional Security & Heat (${regDef.name})</h3>
@@ -857,7 +863,7 @@ function renderDrawerContent() {
               ${ICONS.shield} Cool Regional Heat ($160 Clean / $200 Dirty)
             </button>
           </div>
-        </div>
+        </div>`}
       `;
       return;
     }
@@ -2075,6 +2081,7 @@ function wireEvents() {
   });
   for (const tabBtn of document.querySelectorAll('.go-menu-tab')) {
     tabBtn.addEventListener('click', () => {
+      if (coreMode()) return;
       activeTab = tabBtn.dataset.tab;
       drawerOpen = true;
       const panel = $('menu-panel');
@@ -2143,6 +2150,7 @@ function wireEvents() {
 
   for (const tabBtn of document.querySelectorAll('.go-tab-btn')) {
     tabBtn.addEventListener('click', () => {
+      if (coreMode()) return;
       activeTab = tabBtn.dataset.tab;
       drawerOpen = true;
       syncDrawerVisibility();

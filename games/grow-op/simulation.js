@@ -20,6 +20,7 @@ import { campaignFailure } from './systems/campaign.js';
 import { gameplayView } from './systems/hooks.js';
 
 export const SAVE_KEY = 'growop-cartel-v1';
+export const SAVE_VERSION = 2;
 
 export function createInitialState() {
   const slots = {};
@@ -65,7 +66,7 @@ export function createInitialState() {
   }
 
   const state = {
-    version: 1,
+    version: SAVE_VERSION,
     started: false,
     paused: false,
     speed: 1,
@@ -168,24 +169,35 @@ export class CartelSimulation {
     this.saveTimer = 0;
   }
 
+  saveCurrent(data) {
+    if (!data || data.version !== SAVE_VERSION || !data.slots) return false;
+    if (coreMode() && data.build !== 'core') return false;
+    return true;
+  }
+
   hasSavedGame() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      return !!(parsed && parsed.version === 1 && parsed.slots);
+      if (this.saveCurrent(parsed)) return true;
+      localStorage.removeItem(SAVE_KEY);
+      return false;
     } catch (e) {
+      try { localStorage.removeItem(SAVE_KEY); } catch (err) { /* ignore */ }
       return false;
     }
   }
 
   save() {
     try {
+      delete this.state.coreMode;
       const payload = JSON.stringify({
         ...this.state,
-        // Cap transient arrays on save
-        activeTrucks: this.state.activeTrucks.slice(0, 24),
-        feed: this.state.feed.slice(0, 14)
+        activeTrucks: (this.state.activeTrucks || []).slice(0, 24),
+        feed: (this.state.feed || []).slice(0, 14),
+        version: SAVE_VERSION,
+        build: coreMode() ? 'core' : 'campaign'
       });
       localStorage.setItem(SAVE_KEY, payload);
       return true;
@@ -199,7 +211,10 @@ export class CartelSimulation {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
-      if (!data || !data.slots) return false;
+      if (!this.saveCurrent(data)) {
+        localStorage.removeItem(SAVE_KEY);
+        return false;
+      }
       const fresh = createInitialState();
       this.state = {
         ...fresh,
@@ -236,7 +251,16 @@ export class CartelSimulation {
         riskReadyAt: Number.isFinite(data.riskReadyAt) ? data.riskReadyAt : null,
         lossWarning: typeof data.lossWarning === 'string' ? data.lossWarning : null
       };
-      if (coreMode()) this.state.noSeizure = true;
+      delete this.state.coreMode;
+      if (coreMode()) {
+        this.state.noSeizure = true;
+        this.state.lossWarning = null;
+        this.state.event = null;
+        this.state.heatIntro = false;
+        const jungle = this.state.zones && this.state.zones.jungle_alta && this.state.zones.jungle_alta.unlocked;
+        if (!jungle) this.state.mapOpen = false;
+        this.state.feed = (this.state.feed || []).filter((row) => !/heat|bribe|raid|polic/i.test(row.text || ''));
+      }
       // Ensure every slot has clean objects
       for (const s of BUILD_SLOTS) {
         if (!this.state.slots[s.id]) {

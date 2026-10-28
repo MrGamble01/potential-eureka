@@ -578,7 +578,8 @@ export class MapScene extends window.Phaser.Scene {
       span.hidden = true;
       span.textContent = '';
     }
-    el.title = tip || '';
+    el.title = '';
+    void tip;
     const bar = el.querySelector('.go-pin-bar');
     if (bar) {
       bar.hidden = status !== 'is-work' && status !== 'is-idle';
@@ -1917,7 +1918,8 @@ export class MapScene extends window.Phaser.Scene {
         mark.lock = lock;
       }
       const affordable = !zone.blockers || zone.blockers.length === 0;
-      const show = open && zoomedOut && (zone.unlocked || affordable);
+      const core = !view || view.coreMode !== false;
+      const show = !core && open && zoomedOut && (zone.unlocked || affordable);
       mark.el.hidden = !show;
       const spot = this.worldToScreen(mark.x, mark.y);
       const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
@@ -1928,7 +1930,6 @@ export class MapScene extends window.Phaser.Scene {
         priceEl.textContent = price ? `$${Number(price).toLocaleString()}` : '';
       }
       mark.lock.dataset.zone = zone.id;
-      const core = !view || view.coreMode !== false;
       const badge = !zone.unlocked && onScreen && (!core || zone.id === 'jungle_alta');
       mark.lock.hidden = !badge;
       if (!mark.lock.hidden) {

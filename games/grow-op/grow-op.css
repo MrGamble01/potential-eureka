@@ -1509,7 +1509,31 @@ html, body {
   align-items: center;
   gap: 3px;
 }
-.go-cash-bit svg { width: 12px; height: 12px; flex: none; }
+.go-cash-bit svg { width: 12px; height: 12px; max-width: 12px; max-height: 12px; flex: none; }
+#cash-chip {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: max-content !important;
+  max-height: 36px !important;
+  flex: none !important;
+}
+#cash-chip svg { width: 12px !important; height: 12px !important; }
+body.go-core .go-brand-group,
+body.go-core #heat-meter,
+body.go-core .go-raid-banner,
+body.go-core .go-control-toggle,
+body.go-core .go-tutorial,
+body.go-core .go-reveal,
+body.go-core #go-drawer,
+body.go-core .go-zone strong,
+body.go-core .go-zone span,
+body.go-core .go-mark strong,
+body.go-core .go-mark span,
+body.go-core .go-pin strong,
+body.go-core .go-pin span {
+  display: none !important;
+}
 .go-cash-bit--dirty, .go-purse--dirty { color: #3ddc97; }
 .go-cash-bit--clean, .go-purse--clean { color: #58a6ff; }
 .go-price { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
