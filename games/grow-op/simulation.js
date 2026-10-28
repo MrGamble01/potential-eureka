@@ -29,7 +29,7 @@ export function createInitialState() {
       regionId: s.regionId,
       buildingId: s.starterBuilding || null,
       level: 1,
-      progress: s.starterBuilding ? 0.35 : 0,
+      progress: s.starterBuilding === 'plantation' ? 0.1 : s.starterBuilding ? 0.35 : 0,
       inputBuffer: {},
       outputBuffer: s.starterBuilding === 'plantation' ? { raw_herb: 2 } : s.starterBuilding === 'drying_barn' ? { cured_pack: 1 } : {},
       rivalControlled: !!s.rivalControlled,

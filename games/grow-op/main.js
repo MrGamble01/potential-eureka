@@ -83,8 +83,8 @@ const CHAIN_GUIDE = [
   { id: 'store', slot: 'slot_rp_wh1', line: 'Store it in the warehouse', hint: 'The pips on the shed are your trucks', test: (evt) => evt.type === 'truck_delivered' && evt.truck && evt.truck.toSlotId === 'slot_rp_wh1' },
   { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', hint: 'Street pays dirty. Cafe pays clean', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
 ];
-const CHAIN_NEED = { grow: 4, process: 4, store: 5, sell: 3 };
-const POST_SALES = 2;
+const CHAIN_NEED = { grow: 1, process: 1, store: 1, sell: 1 };
+const POST_SALES = 3;
 
 const TEACH_LAB = 'drying_barn';
 const TEACH_LOT = 'slot_rp_south';
@@ -96,7 +96,7 @@ const TEACH = [
 ];
 
 const NEXT_ZONE = 'jungle_alta';
-const NEXT_CASH = 6800;
+const NEXT_CASH = 3000;
 const POST = [
   { id: 'sales', line: 'Sell 2 more times', hint: 'Keep selling at the pier', slot: 'slot_rp_pier', reward: 150 },
   { id: 'cash', line: `Reach $${NEXT_CASH.toLocaleString('en-US')}`, hint: 'Upgrade the pier to sell faster', slot: 'slot_rp_pier', reward: 200 },
@@ -1196,7 +1196,10 @@ function renderLot() {
   card.hidden = false;
   const cardBox = card.querySelector('.go-sheet-card');
   const compact = lot.phase === 'building' || lot.phase === 'demolishing' || (lot.phase === 'operating' && lot.buildingId && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert'));
-  if (cardBox) cardBox.classList.toggle('is-ops', !!compact);
+  if (cardBox) {
+    cardBox.classList.toggle('is-ops', !!compact);
+    cardBox.classList.remove('is-need');
+  }
   $('lot-kicker').textContent = zone ? zone.name : '';
   $('lot-title').textContent = lot.propertyLabel || lot.label;
   const pay = purseWord(zone);
@@ -1225,7 +1228,9 @@ function renderLot() {
     const talk = built ? buildingTalk(built) : null;
     $('lot-title').textContent = talk ? talk.name : (lot.propertyLabel || lot.label);
     $('lot-meta').textContent = '';
-    $('lot-kicker').textContent = talk ? talk.line : '';
+    const fix = starveFix(lot);
+    $('lot-kicker').textContent = fix ? fix.line : (talk ? talk.line : '');
+    if (cardBox) cardBox.classList.toggle('is-need', !!fix);
   } else {
     paths.className = 'go-lot-paths';
     const canBuy = lot.actions.includes('buyAndConvert');
@@ -1242,7 +1247,7 @@ function goodSwatch(goodId) {
 }
 
 const BUILD_TALK = {
-  plantation: ['Farm', 'Grows leaf. Pays dirty', 'Farm is growing leaf'],
+  plantation: ['Farm', 'Grows leaf', 'Farm is growing leaf'],
   coffee_estate: ['Coffee farm', 'Grows coffee. Pays clean', 'Coffee farm is growing coffee'],
   highland_farm: ['Highland farm', 'Grows leaf', 'Highland farm is growing leaf'],
   drying_barn: ['Lab', 'Turns leaf into product', 'Lab is making product'],
@@ -1343,6 +1348,45 @@ function onBuildingReady(buildingId) {
   showBuildToast(buildingTalk(building).done);
 }
 
+function farmHome() {
+  const building = BUILDINGS.plantation;
+  for (const def of BUILD_SLOTS) {
+    const slot = sim.state.slots[def.id];
+    const reg = sim.state.regions[def.regionId];
+    if (!slot || !reg || !reg.unlocked || slot.buildingId || slot.rivalControlled) continue;
+    if (def.allowedCategories && !def.allowedCategories.includes(building.category)) continue;
+    const lot = sim.state.lots && sim.state.lots[def.id];
+    if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) continue;
+    if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') continue;
+    return def.id;
+  }
+  return null;
+}
+
+function starveFix(lot) {
+  const slotId = lot.slotId || lot.id;
+  const slot = sim.state.slots[slotId];
+  const building = slot && slot.buildingId ? BUILDINGS[slot.buildingId] : null;
+  if (!slot || !building || building.role !== 'processor' || (slot.constructLeft || 0) > 0) return null;
+  const missing = Object.keys(building.inputs || {}).find((id) => (slot.inputBuffer[id] || 0) < building.inputs[id] && (slot.progress || 0) < 0.05);
+  if (missing === 'raw_herb') {
+    const home = farmHome();
+    if (home) {
+      const gate = sim.state.lots && sim.state.lots[home];
+      const scale = gate && gate.kind === 'open' ? 0.85 : 1;
+      return {
+        line: 'Needs leaf. Build another farm',
+        deal: 'fix-farm',
+        slot: home,
+        cost: Math.round((BUILDINGS.plantation.buildCostDirty || 0) * scale),
+        clean: Math.round((BUILDINGS.plantation.buildCostClean || 0) * scale)
+      };
+    }
+    if (sim.upgradeQuote('slot_rp_farm1')) return { line: 'Needs leaf. Upgrade the farm', deal: 'fix-upgrade', slot: 'slot_rp_farm1' };
+  }
+  return null;
+}
+
 function opsPanel(lot) {
   const slotId = lot.slotId || lot.id;
   const slot = sim.state.slots[slotId];
@@ -1375,16 +1419,27 @@ function opsPanel(lot) {
       for (const [id, qty] of Object.entries(slot.inputBuffer || {})) if (qty > 0) stock.push(`${goodSwatch(id)}<b>${qty}</b>`);
     }
     bits.push(`<div class="go-ops-stock">${stock.join('')}</div>`);
+    const fix = starveFix(lot);
+    if (fix && fix.deal === 'fix-farm') {
+      const afford = sim.state.dirtyCash >= fix.cost && sim.state.cleanCash >= (fix.clean || 0);
+      bits.push(`<button type="button" class="go-ops-fix" data-deal="fix-farm" data-slot="${fix.slot}" ${afford ? '' : 'disabled'} aria-label="Build another farm">Farm <small>${fmtCash(fix.cost)}${purse('dirty')}</small></button>`);
+    } else if (fix && fix.deal === 'fix-upgrade') {
+      const quote = sim.upgradeQuote(fix.slot);
+      const afford = quote && sim.state.dirtyCash >= (quote.dirty || 0) && sim.state.cleanCash >= (quote.clean || 0);
+      const price = quote && quote.dirty ? `${fmtCash(quote.dirty)}${purse('dirty')}` : quote ? `${fmtCash(quote.clean)}${purse('clean')}` : '';
+      bits.push(`<button type="button" class="go-ops-fix" data-deal="fix-upgrade" data-slot="${fix.slot}" ${afford ? '' : 'disabled'} aria-label="Upgrade the farm"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>+40% ${price}</small></button>`);
+    }
     if (slot && building.role === 'smuggling') {
       const buyer = slot.buyer === 'cafe' ? 'cafe' : 'street';
-      bits.push(`<div class="go-buyer"><button type="button" data-deal="buyer" data-buyer="street" class="${buyer === 'street' ? 'is-on' : ''}" aria-label="Street, more dirty cash">${purse('dirty')}${purse('dirty')}</button><button type="button" data-deal="buyer" data-buyer="cafe" class="${buyer === 'cafe' ? 'is-on' : ''}" aria-label="Cafe, more clean cash">${purse('dirty')}${purse('clean')}</button></div>`);
+      bits.push(`<div class="go-buyer"><button type="button" data-deal="buyer" data-buyer="street" class="${buyer === 'street' ? 'is-on' : ''}" aria-label="Street, more dirty cash"><b>Street</b> <small>$ more dirty</small></button><button type="button" data-deal="buyer" data-buyer="cafe" class="${buyer === 'cafe' ? 'is-on' : ''}" aria-label="Cafe, more clean cash"><b>Cafe</b> <small>$ more clean</small></button></div>`);
     }
     if (slot) {
       const quote = sim.upgradeQuote(slotId);
       if (quote) {
         const afford = sim.state.dirtyCash >= (quote.dirty || 0) && sim.state.cleanCash >= (quote.clean || 0);
         const price = quote.dirty ? `${fmtCash(quote.dirty)}${purse('dirty')}` : `${fmtCash(quote.clean)}${purse('clean')}`;
-        bits.push(`<button type="button" class="go-ops-up" data-deal="upgrade" ${afford ? '' : 'disabled'} aria-label="Upgrade, faster cycle"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>${price}</small></button>`);
+        const effect = building.trucksProvided ? '+1 truck' : '+40% speed';
+        bits.push(`<button type="button" class="go-ops-up" data-deal="upgrade" ${afford ? '' : 'disabled'} aria-label="Upgrade, ${effect}"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>${effect} ${price}</small></button>`);
       }
     }
   }
@@ -1826,6 +1881,12 @@ function onDeal(action, el) {
   } else if (action === 'upgrade') {
     const lot = sim.gameplayView().lots.find((item) => item.id === openLotId);
     const result = sim.upgradeSlot(lot && lot.slotId ? lot.slotId : openLotId);
+    if (!result.ok) sheetNote = result.reason || '';
+  } else if (action === 'fix-farm') {
+    const result = sim.buildOnSlot(el.dataset.slot, 'plantation');
+    if (!result.ok) sheetNote = result.reason || 'Cannot build.';
+  } else if (action === 'fix-upgrade') {
+    const result = sim.upgradeSlot(el.dataset.slot);
     if (!result.ok) sheetNote = result.reason || '';
   } else if (action === 'buyer') {
     const lot = sim.gameplayView().lots.find((item) => item.id === openLotId);

@@ -490,8 +490,7 @@ export class MapScene extends window.Phaser.Scene {
       const built = !!state.buildingId && !state.rivalControlled;
       const marked = !guided && (id === recommend || id === this.recommendId());
       node.pulse.setVisible(!guiding && !built && !state.rivalControlled && marked);
-      if (guiding && guideId) node.root.setAlpha(id === guideId ? 1 : 0.4);
-      else if (node.root.alpha !== 1) node.root.setAlpha(1);
+      if (node.root.alpha !== 1) node.root.setAlpha(1);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const ctx = this.siteCtx(state, lot, id);
       if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
@@ -823,8 +822,19 @@ export class MapScene extends window.Phaser.Scene {
       this.placeStack(node.flow, node.def.x + 86, node.def.y - 6);
     }
     const blocked = def ? this.blockMark(state, def) : null;
-    if (!blocked) node.block.hidden = true;
-    else {
+    if (!blocked) {
+      node.block.hidden = true;
+      node.block.classList.remove('is-need');
+    } else if (blocked.kind === 'need') {
+      node.block.classList.add('is-need');
+      const html = `<span class="go-miss">${blocked.good ? this.goodSwatch(blocked.good) : ''}</span><i class="go-bang">!</i>`;
+      if (node.block.dataset.block !== html) {
+        node.block.dataset.block = html;
+        node.block.innerHTML = html;
+      }
+      this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
+    } else {
+      node.block.classList.remove('is-need');
       const glyph = blocked.kind === 'full' ? ' is-full' : blocked.kind === 'jam' ? ' is-jam' : '';
       const html = `${blocked.good ? this.goodSwatch(blocked.good) : ''}<i class="go-gap${glyph}"></i>`;
       if (node.block.dataset.block !== html) {
@@ -968,11 +978,7 @@ export class MapScene extends window.Phaser.Scene {
     }
     const dom = this.guideTarget(guide);
     this.guideRing.clear();
-    this.guideShade.clear();
-    if (live && !(guide && guide.aim === 'zone')) {
-      this.guideShade.fillStyle(0x0c1410, 0.34);
-      this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
-    }
+    if (this.guideShade) this.guideShade.clear();
     const frameIt = !!(node && (live || !aim));
     const focusKey = slotId || (guide && (guide.lotId || guide.zoneId)) || null;
     if (frameIt && this.guideFocus !== focusKey) {
