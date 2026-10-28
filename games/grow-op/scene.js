@@ -277,7 +277,12 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   unlockedRect() {
-    if (!this.sim || !this.sim.state.mapOpen) return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    if (!this.sim || !this.sim.state.mapOpen) {
+      const view = this.view;
+      const core = !view || view.coreMode !== false;
+      if (core) return { x: 0, y: 0, w: Math.max(WORLD_W, 1600), h: 2720 };
+      return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    }
     const view = this.view || (this.sim.gameplayView ? this.sim.gameplayView() : { zones: [] });
     let minX = Infinity;
     let minY = Infinity;
@@ -442,30 +447,7 @@ export class MapScene extends window.Phaser.Scene {
 
   syncTip() {
     const tip = this.ensureTip();
-    if (!this.hover) {
-      tip.hidden = true;
-      return;
-    }
-    let best = null;
-    let bestD = 80;
-    const nodes = [...Object.values(this.slots), ...Object.values(this.lots)];
-    for (const node of nodes) {
-      const x = node.def ? node.def.x : node.pos.x;
-      const y = node.def ? node.def.y : node.pos.y;
-      const d = Math.hypot(this.hover.x - x, this.hover.y - y);
-      if (d < bestD && node.pin && !node.pin.hidden && node.pin.title) {
-        best = { x, y, title: node.pin.title };
-        bestD = d;
-      }
-    }
-    if (!best) {
-      tip.hidden = true;
-      return;
-    }
-    const spot = this.worldToScreen(best.x, best.y - 96);
-    tip.hidden = false;
-    tip.textContent = best.title;
-    tip.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
+    tip.hidden = true;
   }
 
   worldToScreen(x, y) {
@@ -941,17 +923,26 @@ export class MapScene extends window.Phaser.Scene {
         for (const other of Object.values(this.lots)) other.select.setVisible(false);
       }
     }
-    const node = slotId ? this.slots[slotId] : null;
+    let node = slotId ? this.slots[slotId] : null;
+    if (!node && guide && guide.lotId && LOT_POS[guide.lotId]) {
+      const pos = LOT_POS[guide.lotId];
+      node = { def: { x: pos.x, y: pos.y } };
+    }
+    if (!node && guide && guide.zoneId) {
+      const center = zoneCenter(guide.zoneId);
+      if (center) node = { def: { x: center.x, y: center.y } };
+    }
     const dom = this.guideTarget(guide);
     this.guideRing.clear();
     this.guideShade.clear();
-    if (live) {
+    if (live && !(guide && guide.aim === 'zone')) {
       this.guideShade.fillStyle(0x0c1410, 0.34);
       this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
     }
     const frameIt = !!(node && (live || !aim));
-    if (frameIt && this.guideFocus !== slotId) {
-      this.guideFocus = slotId;
+    const focusKey = slotId || (guide && (guide.lotId || guide.zoneId)) || null;
+    if (frameIt && this.guideFocus !== focusKey) {
+      this.guideFocus = focusKey;
       this.frameGuide(node);
     } else if (!node) this.guideFocus = null;
     const drawRing = !!(node && (live || !aim) && (!dom || aim === 'world' || aim === 'place-ok' || !aim));
@@ -1677,17 +1668,49 @@ export class MapScene extends window.Phaser.Scene {
     g.strokePath();
   }
 
+  dashPoly(g, poly, dash, gap, width, color, alpha) {
+    if (!poly || poly.length < 2) return;
+    g.lineStyle(width, color, alpha);
+    const pts = poly.concat([poly[0]]);
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const x0 = pts[i][0];
+      const y0 = pts[i][1];
+      const x1 = pts[i + 1][0];
+      const y1 = pts[i + 1][1];
+      const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+      let dist = 0;
+      let draw = true;
+      while (dist < len) {
+        const step = Math.min(draw ? dash : gap, len - dist);
+        const a = dist / len;
+        const b = (dist + step) / len;
+        if (draw) {
+          g.beginPath();
+          g.moveTo(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a);
+          g.lineTo(x0 + (x1 - x0) * b, y0 + (y1 - y0) * b);
+          g.strokePath();
+        }
+        dist += step;
+        draw = !draw;
+      }
+    }
+  }
+
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x1a2820, 0.28 * alpha);
+    const haze = Math.max(0.08, Math.min(0.2, 0.16 * alpha));
+    g.fillStyle(0xb7c2ae, haze);
     this.fillPoly(g, poly);
+    g.lineStyle(14, 0xe7fff3, 0.22 * alpha);
+    this.strokePoly(g, poly);
+    this.dashPoly(g, poly, 34, 18, 4, 0xf4fff6, Math.min(1, alpha));
   }
 
   syncFog(view) {
     const g = this.zoneFog;
     if (!g) return;
     g.clear();
-    const chart = this.chartAlpha;
+    const core = !view || view.coreMode !== false;
     for (const zone of view.zones) {
       const box = ZONE_LAYOUT[zone.id];
       if (!box || !box.poly) continue;
@@ -1695,16 +1718,16 @@ export class MapScene extends window.Phaser.Scene {
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      const edge = softEdge(box.poly);
-      if (!zone.unlocked && !zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.55);
-      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.7);
+      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, softEdge(box.poly), this.fogAlpha[zone.id]);
     }
-    for (const reg of REGIONS) {
-      if (!reg.unlockCostClean) continue;
-      const state = this.sim.state.regions[reg.id];
-      if (!state || state.unlocked) continue;
-      const poly = DISTRICT_EDGE[reg.id];
-      if (poly) this.veilZone(g, softEdge(poly), 0.7);
+    if (!core) {
+      for (const reg of REGIONS) {
+        if (!reg.unlockCostClean) continue;
+        const state = this.sim.state.regions[reg.id];
+        if (!state || state.unlocked) continue;
+        const poly = DISTRICT_EDGE[reg.id];
+        if (poly) this.veilZone(g, softEdge(poly), 0.7);
+      }
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
@@ -1820,7 +1843,7 @@ export class MapScene extends window.Phaser.Scene {
       else if (lot.propertyType) icon = iconKeyForProperty(lot.propertyType);
       const showIcon = !locked && close && (status === 'is-build' || status === 'is-plus' || !!icon);
       if (!showIcon) node.pin.hidden = true;
-      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, lot.propertyLabel || lot.label || '');
+      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, '');
     }
   }
 
@@ -1842,7 +1865,12 @@ export class MapScene extends window.Phaser.Scene {
         const lock = document.createElement('div');
         lock.className = 'go-lock';
         lock.hidden = true;
-        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><b></b>';
+        lock.addEventListener('click', () => {
+          const id = lock.dataset.zone;
+          const fn = this.registry.get('onZoneSelected');
+          if (id && fn) fn(id);
+        });
         this.pinHost.appendChild(lock);
         mark.lock = lock;
       }
@@ -1851,8 +1879,20 @@ export class MapScene extends window.Phaser.Scene {
       mark.el.hidden = !show;
       const spot = this.worldToScreen(mark.x, mark.y);
       const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
-      mark.lock.hidden = zone.unlocked || show || !onScreen;
-      if (!mark.lock.hidden) mark.lock.style.transform = `translate(${Math.round(spot.x - 12)}px, ${Math.round(spot.y - 12)}px)`;
+      const price = !zone.unlocked && zone.unlock ? zone.unlock.clean : 0;
+      const priceEl = mark.lock.querySelector('b');
+      if (priceEl) {
+        priceEl.hidden = !price;
+        priceEl.textContent = price ? `$${Number(price).toLocaleString()}` : '';
+      }
+      mark.lock.dataset.zone = zone.id;
+      const core = !view || view.coreMode !== false;
+      const badge = !zone.unlocked && onScreen && (!core || zone.id === 'jungle_alta');
+      mark.lock.hidden = !badge;
+      if (!mark.lock.hidden) {
+        const shift = price ? 36 : 12;
+        mark.lock.style.transform = `translate(${Math.round(spot.x - shift)}px, ${Math.round(spot.y - 14)}px)`;
+      }
       if (!show) continue;
       mark.el.classList.toggle('is-locked', !zone.unlocked);
       const strong = mark.el.querySelector('strong');

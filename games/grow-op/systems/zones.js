@@ -8,9 +8,20 @@ import { coreMode } from '../data/config.js';
 
 const SIZE_WEIGHT = { small: 6, medium: 10, large: 15 };
 
+export function zoneCost(zone) {
+  if (!zone) return 0;
+  if (coreMode() && zone.id === 'jungle_alta') return zone.coreUnlock || 1500;
+  return (zone.unlock && zone.unlock.clean) || 0;
+}
+
 export function unlockBlockers(state, zone) {
   const reasons = [];
   if (!zone || zone.starter) return reasons;
+  const cost = zoneCost(zone);
+  if (coreMode() && zone.id === 'jungle_alta') {
+    if ((state.dirtyCash || 0) < cost) reasons.push(`Need $${cost}.`);
+    return reasons;
+  }
   if (!state.mapOpen) reasons.push('Finish the valley tutorial. The rest of the map is still shut.');
   const need = zone.unlock || {};
   if ((state.reputation || 0) < (need.reputation || 0)) {
@@ -21,8 +32,8 @@ export function unlockBlockers(state, zone) {
   }
   const purse = coreMode() ? state.dirtyCash : state.cleanCash;
   const label = coreMode() ? 'Dirty' : 'Clean';
-  if ((purse || 0) < (need.clean || 0)) {
-    reasons.push(`Need $${need.clean} ${label} Cash.`);
+  if ((purse || 0) < cost) {
+    reasons.push(`Need $${cost} ${label} Cash.`);
   }
   return reasons;
 }
@@ -34,11 +45,11 @@ export function unlockZone(state, zoneId) {
   if (live.unlocked) return { ok: false, reason: 'Already open.' };
   const reasons = unlockBlockers(state, zone);
   if (reasons.length) return { ok: false, reason: reasons[0] };
-  const cost = zone.unlock.clean || 0;
+  const cost = zoneCost(zone);
   if (coreMode()) state.dirtyCash -= cost;
   else state.cleanCash -= cost;
   live.unlocked = true;
-  return { ok: true, zone };
+  return { ok: true, zone, cost };
 }
 
 export function measureControl(state, zoneId) {
@@ -70,5 +81,10 @@ export function refreshControl(state) {
 }
 
 export function syncMap(state) {
+  if (coreMode()) {
+    const next = state.zones && state.zones.jungle_alta;
+    if (next && next.unlocked) state.mapOpen = true;
+    return;
+  }
   if (state.tutorialDone || (state.tutorialStep || 0) >= 4) state.mapOpen = true;
 }

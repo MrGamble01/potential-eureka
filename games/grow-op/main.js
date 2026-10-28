@@ -93,6 +93,17 @@ const TEACH = [
   { id: 'confirm', line: 'Confirm', hint: 'Tap the green check', aim: 'place-ok', slot: TEACH_LOT }
 ];
 
+const NEXT_ZONE = 'jungle_alta';
+const NEXT_CASH = 2000;
+const POST = [
+  { id: 'sales', line: 'Sell 3 more times', hint: 'Keep selling at the pier', slot: 'slot_rp_pier', reward: 150 },
+  { id: 'cash', line: 'Reach $2,000', hint: 'The pier pays', slot: 'slot_rp_pier', reward: 200 },
+  { id: 'zone', line: 'Unlock the next valley: $1,500', hint: 'Tap the lock', zone: NEXT_ZONE },
+  { id: 'coffee', line: 'Build a coffee farm', hint: 'It grows coffee', lot: 'lot_ja_clearing', building: 'coffee_estate', reward: 100 },
+  { id: 'depot', line: 'Build a depot', hint: 'It adds trucks', lot: 'lot_ja_wh', building: 'transport_depot', reward: 100 },
+  { id: 'taxi', line: 'Build a taxi front', hint: 'It cleans cash', lot: 'lot_ja_gas', building: 'taxi_co', reward: 150 }
+];
+
 let guideStep = 0;
 let guideFlash = null;
 let guideHoldUntil = 0;
@@ -103,6 +114,10 @@ let teachTouch = 0;
 let teachNudge = false;
 let teachPulse = 0;
 let pickerSlot = null;
+let postStep = 0;
+let postSales = 0;
+let postDone = false;
+let postShown = 0;
 const earnSamples = [];
 
 function guideLive() {
@@ -111,6 +126,10 @@ function guideLive() {
 
 function teachActive() {
   return coreMode() && sim.state.started && sim.state.mode === 'campaign' && !teachDone && teachStep < TEACH.length;
+}
+
+function postLive() {
+  return coreMode() && sim.state.started && sim.state.mode === 'campaign' && !teachActive() && guideStep >= CHAIN_GUIDE.length && !postDone && postStep < POST.length;
 }
 
 function refreshTeach() {
@@ -212,7 +231,7 @@ function currentGuide(view) {
     };
   }
   const south = sim.state.slots[TEACH_LOT];
-  if (teachDone && south && south.buildingId === TEACH_LAB && (south.constructLeft || 0) > 0) {
+  if (teachDone && guideStep < CHAIN_GUIDE.length && south && south.buildingId === TEACH_LAB && (south.constructLeft || 0) > 0) {
     return { id: 'rising', slotId: TEACH_LOT, button: null, line: 'The lab is going up', live: false, index: TEACH.length, total: TEACH.length };
   }
   if (guideHoldUntil && guideStep < CHAIN_GUIDE.length) {
@@ -222,6 +241,26 @@ function currentGuide(view) {
   if (guideLive()) {
     const step = CHAIN_GUIDE[guideStep];
     return { id: step.id, slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
+  }
+  if (postLive()) {
+    const step = POST[postStep];
+    const left = Math.max(1, 3 - postSales);
+    const line = step.id === 'sales'
+      ? (postSales ? `Sell ${left} more ${left === 1 ? 'time' : 'times'}` : 'Sell 3 more times')
+      : step.line;
+    return {
+      id: step.id,
+      aim: step.zone ? 'zone' : null,
+      slotId: step.slot || null,
+      lotId: step.lot || null,
+      zoneId: step.zone || null,
+      button: null,
+      line,
+      hint: teachNudge ? step.hint : '',
+      live: true,
+      index: CHAIN_GUIDE.length + postStep,
+      total: CHAIN_GUIDE.length + POST.length
+    };
   }
   const hint = nextHint(view || sim.gameplayView());
   return { slotId: hint.slotId || null, button: hint.button || null, line: hint.line, live: false, index: CHAIN_GUIDE.length, total: CHAIN_GUIDE.length };
@@ -283,6 +322,10 @@ function noteGuide(evt) {
     if (phaserGame) phaserGame.registry.set('guideFlash', guideFlash);
   }
   if (!sim.state.started || teachActive()) return;
+  if (postLive()) {
+    notePost(evt);
+    return;
+  }
   if (guideHoldUntil) return;
   if (!guideLive()) return;
   const step = CHAIN_GUIDE[guideStep];
@@ -300,24 +343,56 @@ function noteGuide(evt) {
   }
 }
 
-function guideTick() {
+function grantReward(amount) {
+  if (!amount) return;
+  sim.state.dirtyCash += amount;
+  const juice = mapScene && mapScene.registry ? mapScene.registry.get('juice') : null;
+  if (juice && juice.cashPop) juice.cashPop('slot_rp_pier', amount, 'dirty');
+  else showBuildToast(`+$${amount}`);
+}
+
+function advancePost() {
+  const step = POST[postStep];
+  if (!step) return;
+  if (step.reward) grantReward(step.reward);
   const now = teachNow();
-  if (guideHoldUntil && now >= guideHoldUntil) {
-    guideHoldUntil = 0;
-    if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') guideStep += 1;
-    renderHud();
+  guideFlash = { slot: step.slot || 'slot_rp_pier', until: now + 1200 };
+  if (phaserGame) phaserGame.registry.set('guideFlash', guideFlash);
+  postStep += 1;
+  postShown = now;
+  teachNudge = false;
+  teachTouch = now;
+  if (postStep >= POST.length) postDone = true;
+  renderHud();
+}
+
+function notePost(evt) {
+  const step = POST[postStep];
+  if (!step) return;
+  if (step.id === 'sales' && evt.type === 'exported' && (evt.earnedDirty || evt.earnedClean)) {
+    postSales += 1;
+    if (postSales >= 3) advancePost();
+    else renderHud();
+    return;
   }
-  if (!teachActive()) return;
+  if ((evt.type === 'built' || evt.type === 'build_started') && step.building && evt.buildingId === step.building) {
+    advancePost();
+    return;
+  }
+  if (evt.type === 'zone_unlocked' && step.id === 'zone' && evt.zoneId === step.zone) advancePost();
+}
+
+function idleGuide(hint) {
+  const now = teachNow();
   if (!teachTouch) teachTouch = now;
   if (now - teachTouch < 6000) return;
-  const step = TEACH[teachStep];
   if (!teachNudge) {
     teachNudge = true;
     teachPulse = now;
-    const hint = $('obj-hint');
-    if (hint && step) {
-      hint.hidden = false;
-      hint.textContent = step.hint;
+    const el = $('obj-hint');
+    if (el && hint) {
+      el.hidden = false;
+      el.textContent = hint;
     }
     pulseGuideArrow();
     return;
@@ -326,6 +401,29 @@ function guideTick() {
     teachPulse = now;
     pulseGuideArrow();
   }
+}
+
+function guideTick() {
+  const now = teachNow();
+  if (guideHoldUntil && now >= guideHoldUntil) {
+    guideHoldUntil = 0;
+    if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') {
+      guideStep += 1;
+      teachTouch = now;
+      teachNudge = false;
+    }
+    renderHud();
+  }
+  if (postLive()) {
+    const step = POST[postStep];
+    if (!postShown) postShown = now;
+    if (step.id === 'cash' && sim.state.dirtyCash >= NEXT_CASH && now - postShown > 900) advancePost();
+    else if (step.id === 'zone' && sim.state.zones[NEXT_ZONE] && sim.state.zones[NEXT_ZONE].unlocked) advancePost();
+    else idleGuide(step.hint);
+    return;
+  }
+  if (!teachActive()) return;
+  idleGuide(TEACH[teachStep] && TEACH[teachStep].hint);
 }
 
 function earnPerMinute(st) {
@@ -1294,15 +1392,18 @@ function renderBuildStrip() {
   const rec = mission && mission.buildingId;
   const lock = teachActive();
   const aiming = lock && TEACH[teachStep].id === 'pick';
+  const goal = postLive() ? POST[postStep] : null;
   const choices = buildChoices().slice();
   if (lock) {
     const rank = { plantation: 0, drying_barn: 1, warehouse: 2 };
     choices.sort((a, b) => (rank[a.id] ?? 9) - (rank[b.id] ?? 9));
+  } else if (goal && goal.building) {
+    choices.sort((a, b) => (a.id === goal.building ? -1 : b.id === goal.building ? 1 : 0));
   }
   strip.innerHTML = choices.map((building) => {
     const on = placingId === building.id ? ' is-on' : '';
     const mark = !lock && rec === building.id ? ' is-rec' : '';
-    const aim = aiming && building.id === TEACH_LAB ? ' is-aim' : '';
+    const aim = (aiming && building.id === TEACH_LAB) || (goal && goal.building === building.id) ? ' is-aim' : '';
     return buildCard(building, { cls: `${on}${mark}${aim}`, off: lock && building.id !== TEACH_LAB });
   }).join('');
   const aimBtn = strip.querySelector('.is-aim');
@@ -1486,12 +1587,23 @@ function tileButton(opts) {
 
 function previewRow(nowKind, nextKind, nowName, nextName) {
   if (!ghost || ghost.lotId !== openLotId) return '';
-  return `<div class="go-preview"><span>${thumb(nowKind)}<small>Now</small><b>${nowName}</b></span><span>${thumb(nextKind)}<small>After</small><b>${nextName}</b></span></div><button type="button" class="go-cta-btn" data-deal="confirm">Place it</button>`;
+  return `<div class="go-preview"><span>${thumb(nowKind)}<small>Now</small><b>${nowName}</b></span><span>${thumb(nextKind)}<small>After</small><b>${nextName}</b></span></div><button type="button" class="go-cta-btn" data-deal="confirm">Confirm</button>`;
+}
+
+function purseCash(pay) {
+  return pay === 'clean' ? sim.state.cleanCash : sim.state.dirtyCash;
+}
+
+function affordNote(amount, pay, okNote) {
+  const gap = Math.max(0, Math.ceil((amount || 0) - purseCash(pay)));
+  return { gap, note: gap ? `Need ${fmtCash(gap)}` : okNote };
 }
 
 function convertColumn(lot, pay, enabled) {
   const roles = Object.entries(lot.fits || {}).filter(([, fit]) => fit && fit.allowed);
   const rec = roles.find(([, fit]) => fit.fit === 'boost') || roles[0];
+  const afford = affordNote(lot.buyPrice || 0, pay, 'Cheaper, faster');
+  const can = enabled && !afford.gap;
   const buttons = roles.map(([role, fit]) => tileButton({
     lotId: lot.id,
     path: 'convert',
@@ -1501,12 +1613,27 @@ function convertColumn(lot, pay, enabled) {
     name: ROLE_NAME[role] || role,
     cost: `${fmtCash(lot.buyPrice)}${purse(pay)}`,
     effect: fit.fit === 'boost' ? 'Strong fit' : fit.fit === 'limit' ? 'Tight fit' : 'Fits',
-    enabled,
+    enabled: can,
     rec: rec && rec[0] === role
   })).join('');
   const picked = ghost && ghost.path === 'convert' && ghost.lotId === lot.id;
   const after = picked ? (ROLE_NAME[ghost.role] || ghost.role) : '';
-  return `<section class="go-path" data-path="convert"><h3>Buy &amp; convert</h3><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', lot.propertyType || 'lot', lot.propertyLabel || lot.label, after) : ''}</section>`;
+  const best = roles.find(([, fit]) => fit.fit === 'boost') || roles[0];
+  const one = coreMode() && best
+    ? tileButton({
+      lotId: lot.id,
+      path: 'convert',
+      key: 'convert:' + best[0],
+      role: best[0],
+      thumb: lot.propertyType || 'lot',
+      name: ROLE_NAME[best[0]] || best[0],
+      cost: `${fmtCash(lot.buyPrice)}${purse(pay)}`,
+      effect: 'Cheaper, faster',
+      enabled: can,
+      rec: true
+    })
+    : buttons;
+  return `<section class="go-path${afford.gap ? ' is-short' : ''}" data-path="convert"><h3>Buy &amp; convert</h3><p class="go-path-note">${afford.note}</p><div class="go-tile-row">${one}</div>${picked ? previewRow(lot.propertyType || 'lot', lot.propertyType || 'lot', lot.propertyLabel || lot.label, after) : ''}</section>`;
 }
 
 function offerBuilding(zone, buildingId) {
@@ -1530,6 +1657,8 @@ function listedBuilds(lot) {
 
 function rebuildColumn(lot, def, enabled, pay) {
   const seconds = def ? def.demolishSeconds : 0;
+  const afford = affordNote((lot.lotPrice || 0) + (lot.demolishCost || 0), pay, '');
+  const can = enabled && !afford.gap;
   const ids = listedBuilds(lot);
   const rec = ids.includes('taxi_co') ? 'taxi_co' : ids[0];
   const buttons = ids.map((id) => {
@@ -1545,14 +1674,15 @@ function rebuildColumn(lot, def, enabled, pay) {
       name: quote.name,
       cost: `${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s`,
       effect: effectOf(building),
-      enabled,
+      enabled: can,
       rec: id === rec
     });
   }).join('');
   const picked = ghost && ghost.path === 'rebuild' && ghost.lotId === lot.id && ghost.buildingId;
   const nextName = picked && BUILDINGS[ghost.buildingId] ? BUILDINGS[ghost.buildingId].shortName : '';
   const note = lot.actions.includes('buildNew') ? 'Lot is clear.' : `Demolish ${seconds}s, then build.`;
-  return `<section class="go-path" data-path="rebuild"><h3>Demolish &amp; build new</h3><p class="go-path-note">${note} ${fmtCash(lot.lotPrice)}${purse(pay)}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
+  const line = afford.gap ? `${note} Need ${fmtCash(afford.gap)}` : `${note} ${fmtCash(lot.lotPrice)}${purse(pay)}`;
+  return `<section class="go-path${afford.gap ? ' is-short' : ''}" data-path="rebuild"><h3>Tear down &amp; build new</h3><p class="go-path-note">${line}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
 }
 
 function plotColumn(lot) {
@@ -1591,6 +1721,15 @@ function renderZone() {
     return;
   }
   card.hidden = false;
+  if (coreMode() && !zone.unlocked) {
+    const price = (zone.unlock && zone.unlock.clean) || 0;
+    const ready = !(zone.blockers || []).length;
+    $('zone-kicker').textContent = '';
+    $('zone-title').textContent = zone.name;
+    $('zone-body').innerHTML = `<p class="go-zone-price">${fmtCash(price)}</p><button type="button" class="go-cta-btn" data-deal="unlock" ${ready ? '' : 'disabled'}>Confirm</button>`;
+    $('zone-note').textContent = ready ? '' : 'Need more cash.';
+    return;
+  }
   $('zone-kicker').textContent = zone.city || (zone.kind === 'rural' ? 'Countryside' : 'Zone');
   $('zone-title').textContent = zone.name;
   const lots = data.lots.filter((lot) => lot.zoneId === zone.id && !lot.slotId);

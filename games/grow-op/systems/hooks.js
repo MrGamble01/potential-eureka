@@ -184,7 +184,9 @@ export function gameplayView(sim) {
       raidActive: !!(live && live.raidActive),
       hidden: !!(live && live.hiddenUntil && state.elapsedSeconds < live.hiddenUntil),
       blockers: unlockBlockers(state, zone),
-      unlock: zone.unlock
+      unlock: coreMode() && zone.id === 'jungle_alta'
+        ? { ...zone.unlock, clean: zone.coreUnlock || 1500 }
+        : zone.unlock
     };
   });
   const recommendId = sim.recommendedLotId ? sim.recommendedLotId() : null;

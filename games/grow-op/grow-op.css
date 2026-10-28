@@ -1300,7 +1300,10 @@ html, body {
 .go-path-list button b { font-family: Outfit, sans-serif; font-size: 13px; }
 .go-path-list button small { color: var(--go-muted); font-size: 11px; }
 .go-path-list button:disabled { opacity: 0.45; cursor: default; }
-.go-lot-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
+.go-lot-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; min-height: 0; align-items: start; }
+.go-path.is-short { opacity: 0.4; }
+.go-path.is-short .go-tile { pointer-events: none; }
+.go-lot-paths .go-cta-btn { flex: none; width: 100%; min-height: 44px; }
 .go-lot-paths.is-single { grid-template-columns: 1fr; }
 .go-path { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #1b212d; border: 1px solid var(--go-border); border-radius: 12px; padding: 10px; }
 .go-path h3 { margin: 0 0 4px; font-family: Outfit, sans-serif; font-size: 15px; }
@@ -1435,6 +1438,7 @@ html, body {
 .go-thumb--salsa_club { background: #2a2438; }
 .go-thumb--banco_regional, .go-thumb--bank { background: #1d3348; }
 .go-path-note { margin: 0 0 6px; color: var(--go-muted); font-size: 12px; }
+.go-zone-price { margin: 4px 0 12px; font: 700 28px Outfit, sans-serif; color: #9ce6a8; }
 .go-preview { display: flex; gap: 8px; margin: 8px 0; }
 .go-preview span { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
 .go-preview .go-thumb { height: 48px; }
@@ -1961,16 +1965,23 @@ html, body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
+  width: auto;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
   border-radius: 8px;
-  background: rgba(16, 22, 18, 0.72);
-  color: #d5e6d0;
-  pointer-events: none;
+  background: rgba(16, 22, 18, 0.82);
+  color: #e7fff3;
+  border: 1px solid rgba(61, 220, 151, 0.55);
+  pointer-events: auto;
   z-index: 22;
+  cursor: pointer;
 }
+.go-lock b { font: 700 13px Outfit, sans-serif; color: #9ce6a8; }
+.go-lock b[hidden] { display: none !important; }
 .go-lock[hidden] { display: none !important; }
 .go-done {
   width: 28px;

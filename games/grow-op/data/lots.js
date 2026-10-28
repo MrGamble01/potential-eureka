@@ -171,7 +171,7 @@ export const PROPERTY_TYPES = {
   },
   farmhouse: {
     id: 'farmhouse',
-    label: 'Old farmhouse',
+    label: 'Barn',
     suspicion: 0.08,
     upkeep: 8,
     capacity: 8,
@@ -360,9 +360,37 @@ const EXTRA_LOTS = [
     bonus: { storage: 10, growMult: 1.22, heatMult: 0.9, level: 2 }
   },
   {
+    id: 'lot_ja_gas',
+    zoneId: 'jungle_alta',
+    label: 'Jungle gas station',
+    kind: 'standing',
+    size: 'small',
+    owner: 'market',
+    propertyType: 'gas_station',
+    baseBuy: 280,
+    baseLot: 520,
+    demolishCost: 100,
+    demolishSeconds: 8,
+    bonus: null
+  },
+  {
+    id: 'lot_ja_wh',
+    zoneId: 'jungle_alta',
+    label: 'Old warehouse',
+    kind: 'standing',
+    size: 'medium',
+    owner: 'market',
+    propertyType: 'warehouse_old',
+    baseBuy: 640,
+    baseLot: 980,
+    demolishCost: 160,
+    demolishSeconds: 10,
+    bonus: { storage: 10 }
+  },
+  {
     id: 'lot_ja_farm',
     zoneId: 'jungle_alta',
-    label: 'Abandoned farmhouse',
+    label: 'Old barn',
     kind: 'standing',
     size: 'small',
     owner: 'local',
