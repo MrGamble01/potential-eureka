@@ -277,7 +277,12 @@ export class MapScene extends window.Phaser.Scene {
   }
 
   unlockedRect() {
-    if (!this.sim || !this.sim.state.mapOpen) return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    if (!this.sim || !this.sim.state.mapOpen) {
+      const view = this.view;
+      const core = !view || view.coreMode !== false;
+      if (core) return { x: 0, y: 0, w: Math.max(WORLD_W, 1600), h: 2720 };
+      return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+    }
     const view = this.view || (this.sim.gameplayView ? this.sim.gameplayView() : { zones: [] });
     let minX = Infinity;
     let minY = Infinity;
@@ -941,7 +946,15 @@ export class MapScene extends window.Phaser.Scene {
         for (const other of Object.values(this.lots)) other.select.setVisible(false);
       }
     }
-    const node = slotId ? this.slots[slotId] : null;
+    let node = slotId ? this.slots[slotId] : null;
+    if (!node && guide && guide.lotId && LOT_POS[guide.lotId]) {
+      const pos = LOT_POS[guide.lotId];
+      node = { def: { x: pos.x, y: pos.y } };
+    }
+    if (!node && guide && guide.zoneId) {
+      const center = zoneCenter(guide.zoneId);
+      if (center) node = { def: { x: center.x, y: center.y } };
+    }
     const dom = this.guideTarget(guide);
     this.guideRing.clear();
     this.guideShade.clear();
@@ -950,8 +963,9 @@ export class MapScene extends window.Phaser.Scene {
       this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
     }
     const frameIt = !!(node && (live || !aim));
-    if (frameIt && this.guideFocus !== slotId) {
-      this.guideFocus = slotId;
+    const focusKey = slotId || (guide && (guide.lotId || guide.zoneId)) || null;
+    if (frameIt && this.guideFocus !== focusKey) {
+      this.guideFocus = focusKey;
       this.frameGuide(node);
     } else if (!node) this.guideFocus = null;
     const drawRing = !!(node && (live || !aim) && (!dom || aim === 'world' || aim === 'place-ok' || !aim));
@@ -1679,7 +1693,7 @@ export class MapScene extends window.Phaser.Scene {
 
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x1a2820, 0.28 * alpha);
+    g.fillStyle(0x102018, 0.5 * alpha);
     this.fillPoly(g, poly);
   }
 
@@ -1842,7 +1856,12 @@ export class MapScene extends window.Phaser.Scene {
         const lock = document.createElement('div');
         lock.className = 'go-lock';
         lock.hidden = true;
-        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+        lock.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><b></b>';
+        lock.addEventListener('click', () => {
+          const id = lock.dataset.zone;
+          const fn = this.registry.get('onZoneSelected');
+          if (id && fn) fn(id);
+        });
         this.pinHost.appendChild(lock);
         mark.lock = lock;
       }
@@ -1851,8 +1870,18 @@ export class MapScene extends window.Phaser.Scene {
       mark.el.hidden = !show;
       const spot = this.worldToScreen(mark.x, mark.y);
       const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
-      mark.lock.hidden = zone.unlocked || show || !onScreen;
-      if (!mark.lock.hidden) mark.lock.style.transform = `translate(${Math.round(spot.x - 12)}px, ${Math.round(spot.y - 12)}px)`;
+      const price = !zone.unlocked && zone.unlock ? zone.unlock.clean : 0;
+      const priceEl = mark.lock.querySelector('b');
+      if (priceEl) {
+        priceEl.hidden = !price;
+        priceEl.textContent = price ? `$${Number(price).toLocaleString()}` : '';
+      }
+      mark.lock.dataset.zone = zone.id;
+      mark.lock.hidden = zone.unlocked || !onScreen;
+      if (!mark.lock.hidden) {
+        const shift = price ? 36 : 12;
+        mark.lock.style.transform = `translate(${Math.round(spot.x - shift)}px, ${Math.round(spot.y - 14)}px)`;
+      }
       if (!show) continue;
       mark.el.classList.toggle('is-locked', !zone.unlocked);
       const strong = mark.el.querySelector('strong');

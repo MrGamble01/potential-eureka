@@ -45,7 +45,7 @@ const ok = (cond, name) => {
         const text = document.getElementById('lot-card').innerText;
         return {
           side: a.right <= b.left + 2 && Math.abs(a.top - b.top) < 24,
-          both: text.includes('Buy & convert') && text.includes('Demolish & build new'),
+          both: text.includes('Buy & convert') && text.includes('Tear down & build new'),
           cost: /\d+s/.test(text) && !!document.querySelector('#lot-card .go-purse--dirty'),
         };
       });

@@ -62,6 +62,7 @@ export const ZONES = [
     starter: false,
     town: 'El Manglar',
     unlock: { clean: 4000, reputation: 10, mission: 'm2_first_front' },
+    coreUnlock: 1500,
     baseHeat: 20,
     baseControl: 24,
     bonus: { fertility: 1.28, heatMult: 1.08 },
