@@ -79,19 +79,101 @@ function tutorialCopy() {
 
 const CHAIN_GUIDE = [
   { id: 'grow', slot: 'slot_rp_farm1', line: 'Tap the farm: it grows leaf', test: (evt) => evt.type === 'produced' && evt.slotId === 'slot_rp_farm1' },
-  { id: 'process', slot: 'slot_rp_barn1', line: 'Build a lab: turns leaf into product', test: (evt) => evt.type === 'processed' && evt.slotId === 'slot_rp_barn1' },
+  { id: 'process', slot: 'slot_rp_barn1', line: 'Watch the lab: it turns leaf into product', test: (evt) => evt.type === 'processed' && evt.slotId === 'slot_rp_barn1' },
   { id: 'store', slot: 'slot_rp_wh1', line: 'Store it in the warehouse', test: (evt) => evt.type === 'truck_delivered' && evt.truck && evt.truck.toSlotId === 'slot_rp_wh1' },
   { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
+];
+
+const TEACH_LAB = 'drying_barn';
+const TEACH_LOT = 'slot_rp_south';
+const TEACH = [
+  { id: 'build', line: 'Tap Build', hint: 'Tap the Build button', aim: 'build' },
+  { id: 'pick', line: 'Pick the Lab', hint: 'Tap the Lab icon', aim: 'menu' },
+  { id: 'lot', line: 'Tap this lot', hint: 'Tap the glowing lot', aim: 'world', slot: TEACH_LOT },
+  { id: 'confirm', line: 'Confirm', hint: 'Tap the green check', aim: 'place-ok', slot: TEACH_LOT }
 ];
 
 let guideStep = 0;
 let guideFlash = null;
 let guideHoldUntil = 0;
 let lastSale = null;
+let teachStep = 0;
+let teachDone = false;
+let teachTouch = 0;
+let teachNudge = false;
+let teachPulse = 0;
+let pickerSlot = null;
 const earnSamples = [];
 
 function guideLive() {
-  return coreMode() && sim.state.mode === 'campaign' && guideStep < CHAIN_GUIDE.length;
+  return coreMode() && sim.state.started && sim.state.mode === 'campaign' && guideStep < CHAIN_GUIDE.length;
+}
+
+function teachActive() {
+  return coreMode() && sim.state.started && sim.state.mode === 'campaign' && !teachDone && teachStep < TEACH.length;
+}
+
+function refreshTeach() {
+  const south = sim.state.slots[TEACH_LOT];
+  if (south && south.buildingId) {
+    teachDone = true;
+    teachStep = TEACH.length;
+  }
+}
+
+function teachNow() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function bumpTeach() {
+  teachTouch = teachNow();
+  teachPulse = teachTouch;
+  if (!teachNudge) return;
+  teachNudge = false;
+  const hint = $('obj-hint');
+  if (hint) hint.hidden = true;
+  const arrow = document.querySelector('.go-guide');
+  if (arrow) arrow.classList.remove('is-nudge');
+}
+
+function pulseGuideArrow() {
+  const arrow = document.querySelector('.go-guide');
+  if (!arrow) return;
+  arrow.classList.remove('is-nudge');
+  void arrow.offsetWidth;
+  arrow.classList.add('is-nudge');
+}
+
+function slotDefOf(slotId) {
+  return BUILD_SLOTS.find((item) => item.id === slotId) || null;
+}
+
+function labFits(slotId) {
+  const def = slotDefOf(slotId);
+  const building = BUILDINGS[TEACH_LAB];
+  const slot = sim.state.slots[slotId];
+  if (!def || !building || !slot || slot.buildingId || slot.rivalControlled) return false;
+  const reg = sim.state.regions[def.regionId];
+  if (!reg || !reg.unlocked) return false;
+  if (def.allowedCategories && !def.allowedCategories.includes(building.category)) return false;
+  const lot = sim.state.lots && sim.state.lots[slotId];
+  if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') return false;
+  const scale = lot && lot.kind === 'open' ? 0.85 : 1;
+  const dirty = Math.round((building.buildCostDirty || 0) * scale);
+  const clean = Math.round((building.buildCostClean || 0) * scale);
+  return sim.state.dirtyCash >= dirty && sim.state.cleanCash >= clean;
+}
+
+function canBuildOn(slotId) {
+  const def = slotDefOf(slotId);
+  const slot = sim.state.slots[slotId];
+  if (!def || !slot || slot.buildingId || slot.rivalControlled) return false;
+  const reg = sim.state.regions[def.regionId];
+  if (!reg || !reg.unlocked) return false;
+  const lot = sim.state.lots && sim.state.lots[slotId];
+  if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) return false;
+  if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') return false;
+  return true;
 }
 
 function nextHint(view) {
@@ -114,17 +196,51 @@ function nextHint(view) {
 }
 
 function currentGuide(view) {
-  if (!coreMode() || sim.state.mode !== 'campaign') return null;
+  if (!coreMode() || !sim.state.started || sim.state.mode !== 'campaign') return null;
+  if (teachActive()) {
+    const step = TEACH[teachStep];
+    return {
+      id: step.id,
+      aim: step.aim,
+      slotId: step.slot || null,
+      button: step.aim === 'build' ? 'dock-build-btn' : null,
+      line: step.line,
+      hint: teachNudge ? step.hint : '',
+      live: true,
+      index: teachStep,
+      total: TEACH.length
+    };
+  }
+  const south = sim.state.slots[TEACH_LOT];
+  if (teachDone && south && south.buildingId === TEACH_LAB && (south.constructLeft || 0) > 0) {
+    return { id: 'rising', slotId: TEACH_LOT, button: null, line: 'The lab is going up', live: false, index: TEACH.length, total: TEACH.length };
+  }
   if (guideHoldUntil && guideStep < CHAIN_GUIDE.length) {
     const step = CHAIN_GUIDE[guideStep];
-    return { slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
+    return { id: step.id, slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
   }
   if (guideLive()) {
     const step = CHAIN_GUIDE[guideStep];
-    return { slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
+    return { id: step.id, slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
   }
   const hint = nextHint(view || sim.gameplayView());
   return { slotId: hint.slotId || null, button: hint.button || null, line: hint.line, live: false, index: CHAIN_GUIDE.length, total: CHAIN_GUIDE.length };
+}
+
+function canAffordBuild() {
+  const st = sim.state;
+  return buildChoices().some((building) => {
+    return BUILD_SLOTS.some((def) => {
+      const slot = st.slots[def.id];
+      const reg = st.regions[def.regionId];
+      if (!slot || !reg || !reg.unlocked || slot.buildingId || slot.rivalControlled) return false;
+      if (def.allowedCategories && !def.allowedCategories.includes(building.category)) return false;
+      const lot = st.lots && st.lots[def.id];
+      const scale = lot && lot.kind === 'open' ? 0.85 : 1;
+      return st.dirtyCash >= Math.round((building.buildCostDirty || 0) * scale)
+        && st.cleanCash >= Math.round((building.buildCostClean || 0) * scale);
+    });
+  });
 }
 
 function publishGuide(view) {
@@ -135,12 +251,38 @@ function publishGuide(view) {
     if (guideFlash) phaserGame.registry.set('guideFlash', guideFlash);
   }
   const buildBtn = $('dock-build-btn');
-  if (buildBtn) buildBtn.classList.toggle('is-next', !!(guide && guide.button === 'dock-build-btn'));
+  if (buildBtn) {
+    buildBtn.classList.toggle('is-next', !!(guide && guide.aim === 'build'));
+    buildBtn.classList.toggle('is-afford', canAffordBuild());
+  }
+  const ok = $('place-ok');
+  if (ok) ok.classList.toggle('is-aim', !!(guide && guide.aim === 'place-ok'));
+  const hint = $('obj-hint');
+  if (hint) {
+    if (guide && guide.hint) {
+      hint.hidden = false;
+      hint.textContent = guide.hint;
+    } else {
+      hint.hidden = true;
+      hint.textContent = '';
+    }
+  }
   return guide;
 }
 
 function noteGuide(evt) {
   if (evt.type === 'exported' && (evt.earnedDirty || evt.earnedClean)) lastSale = evt;
+  if (evt.type === 'built' && evt.slotId === TEACH_LOT && evt.buildingId === TEACH_LAB) {
+    teachDone = true;
+    teachStep = TEACH.length;
+    teachNudge = false;
+    const hint = $('obj-hint');
+    if (hint) hint.hidden = true;
+    const now = teachNow();
+    guideFlash = { slot: TEACH_LOT, until: now + 1500 };
+    if (phaserGame) phaserGame.registry.set('guideFlash', guideFlash);
+  }
+  if (!sim.state.started || teachActive()) return;
   if (guideHoldUntil) return;
   if (!guideLive()) return;
   const step = CHAIN_GUIDE[guideStep];
@@ -159,12 +301,31 @@ function noteGuide(evt) {
 }
 
 function guideTick() {
-  if (!guideHoldUntil) return;
-  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  if (now < guideHoldUntil) return;
-  guideHoldUntil = 0;
-  if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') guideStep += 1;
-  renderHud();
+  const now = teachNow();
+  if (guideHoldUntil && now >= guideHoldUntil) {
+    guideHoldUntil = 0;
+    if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') guideStep += 1;
+    renderHud();
+  }
+  if (!teachActive()) return;
+  if (!teachTouch) teachTouch = now;
+  if (now - teachTouch < 6000) return;
+  const step = TEACH[teachStep];
+  if (!teachNudge) {
+    teachNudge = true;
+    teachPulse = now;
+    const hint = $('obj-hint');
+    if (hint && step) {
+      hint.hidden = false;
+      hint.textContent = step.hint;
+    }
+    pulseGuideArrow();
+    return;
+  }
+  if (now - teachPulse >= 6000) {
+    teachPulse = now;
+    pulseGuideArrow();
+  }
 }
 
 function earnPerMinute(st) {
@@ -206,6 +367,7 @@ const hasSave = sim.hasSavedGame();
 if (hasSave) {
   sim.load();
 }
+refreshTeach();
 
 function handleSimEvent(evt) {
   noteGuide(evt);
@@ -946,9 +1108,11 @@ function renderLot() {
   } else if (lot.phase === 'demolishing' || lot.phase === 'building' || (lot.phase === 'operating' && lot.buildingId && !lot.actions.includes('buildNew') && !lot.actions.includes('buyAndConvert'))) {
     paths.className = 'go-lot-paths is-single';
     paths.innerHTML = opsPanel(lot);
-    $('lot-title').textContent = lot.buildingId && BUILDINGS[lot.buildingId] ? BUILDINGS[lot.buildingId].shortName : (lot.propertyLabel || lot.label);
+    const built = lot.buildingId ? BUILDINGS[lot.buildingId] : null;
+    const talk = built ? buildingTalk(built) : null;
+    $('lot-title').textContent = talk ? talk.name : (lot.propertyLabel || lot.label);
     $('lot-meta').textContent = '';
-    $('lot-kicker').textContent = '';
+    $('lot-kicker').textContent = talk ? talk.line : '';
   } else {
     paths.className = 'go-lot-paths';
     const canBuy = lot.actions.includes('buyAndConvert');
@@ -962,6 +1126,108 @@ function goodSwatch(goodId) {
   const good = GOODS[goodId];
   if (!good) return '';
   return `<i class="go-good" title="${good.shortName}" style="background:${good.badgeBg};box-shadow:inset 0 0 0 1.5px ${good.badgeInk}"></i>`;
+}
+
+const BUILD_TALK = {
+  plantation: ['Farm', 'Grows leaf', 'Farm is growing leaf'],
+  coffee_estate: ['Coffee farm', 'Grows coffee', 'Coffee farm is growing coffee'],
+  highland_farm: ['Highland farm', 'Grows leaf', 'Highland farm is growing leaf'],
+  drying_barn: ['Lab', 'Turns leaf into product', 'Lab is making product'],
+  packaging_mill: ['Packer', 'Hides product in coffee', 'Packer is hiding product'],
+  chem_lab: ['Chem lab', 'Turns leaf into product', 'Chem lab is making product'],
+  warehouse: ['Warehouse', 'Stores product', 'Warehouse is storing product'],
+  transport_depot: ['Depot', 'Adds trucks', 'Depot is sending trucks'],
+  river_pier: ['Pier', 'Sells product for cash', 'Pier is selling for cash'],
+  aerodrome: ['Airstrip', 'Sells product for cash', 'Airstrip is selling for cash'],
+  taxi_co: ['Taxi front', 'Turns dirty cash clean', 'Taxi front is cleaning cash'],
+  salsa_club: ['Club', 'Turns dirty cash clean', 'Club is cleaning cash'],
+  banco_regional: ['Bank', 'Turns dirty cash clean', 'Bank is cleaning cash']
+};
+
+function buildingTalk(building) {
+  const row = building && BUILD_TALK[building.id];
+  if (row) return { name: row[0], line: row[1], done: row[2] };
+  return { name: building ? building.shortName : 'Building', line: 'Does its job', done: 'Building is working' };
+}
+
+function quoteBuild(building, slotId) {
+  const homes = [];
+  const consider = (def) => {
+    if (!def) return;
+    const slot = sim.state.slots[def.id];
+    const reg = sim.state.regions[def.regionId];
+    if (!slot || !reg || !reg.unlocked || slot.buildingId || slot.rivalControlled) return;
+    if (def.allowedCategories && !def.allowedCategories.includes(building.category)) return;
+    homes.push(def);
+  };
+  if (slotId) consider(slotDefOf(slotId));
+  else BUILD_SLOTS.forEach(consider);
+  let dirty = building.buildCostDirty || 0;
+  let clean = building.buildCostClean || 0;
+  homes.forEach((def) => {
+    const lot = sim.state.lots && sim.state.lots[def.id];
+    const scale = lot && lot.kind === 'open' ? 0.85 : 1;
+    const nextDirty = Math.round((building.buildCostDirty || 0) * scale);
+    const nextClean = Math.round((building.buildCostClean || 0) * scale);
+    if (nextDirty + nextClean < dirty + clean) {
+      dirty = nextDirty;
+      clean = nextClean;
+    }
+  });
+  return { dirty, clean };
+}
+
+function recipeRow(building) {
+  const ins = Object.entries(building.inputs || {});
+  const outs = Object.entries(building.outputs || {});
+  const left = [];
+  const right = [];
+  ins.forEach(([id, qty]) => left.push(`${goodSwatch(id)}<b>${qty}</b>`));
+  outs.forEach(([id, qty]) => right.push(`${goodSwatch(id)}<b>${qty}</b>`));
+  if (!left.length && !right.length && building.role === 'launderer') {
+    left.push(purse('dirty'));
+    right.push(purse('clean'));
+  } else if (!left.length && !right.length && building.role === 'smuggling') {
+    left.push(goodSwatch('cured_pack'));
+    right.push(purse('dirty'));
+  } else if (!left.length && !right.length && building.role === 'warehouse') {
+    left.push(goodSwatch('cured_pack'));
+  } else if (!left.length && !right.length && building.trucksProvided) {
+    left.push(`<b>+${building.trucksProvided}</b>`);
+  }
+  const bits = left.slice();
+  if (left.length && right.length) bits.push('<span class="go-ops-arrow" aria-hidden="true"></span>');
+  right.forEach((bit) => bits.push(bit));
+  if (!bits.length) return '';
+  return `<span class="go-build-flow">${bits.join('')}</span>`;
+}
+
+function buildCard(building, opts) {
+  const talk = buildingTalk(building);
+  const icon = artURL(iconKeyForBuilding(building.id));
+  const price = quoteBuild(building, opts.slotId);
+  const attr = opts.attr || 'place';
+  return `<button type="button" class="go-build-card${opts.cls || ''}" data-${attr}="${building.id}" aria-label="${talk.name}. ${talk.line}" ${opts.off ? 'disabled' : ''}>${icon ? `<img alt="" src="${icon}">` : ''}<b>${talk.name}</b><em>${talk.line}</em><small>${costBits(price.dirty, price.clean)}</small>${recipeRow(building)}</button>`;
+}
+
+const seenBuild = new Set();
+let toastTimer = 0;
+
+function showBuildToast(text) {
+  const el = $('build-toast');
+  if (!el || !text) return;
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
+}
+
+function onBuildingReady(buildingId) {
+  if (!buildingId || seenBuild.has(buildingId)) return;
+  const building = BUILDINGS[buildingId];
+  if (!building) return;
+  seenBuild.add(buildingId);
+  showBuildToast(buildingTalk(building).done);
 }
 
 function opsPanel(lot) {
@@ -1026,22 +1292,111 @@ function renderBuildStrip() {
   if (!strip || strip.hidden) return;
   const mission = (sim.gameplayView().campaign || {}).mission;
   const rec = mission && mission.buildingId;
-  strip.innerHTML = buildChoices().map((building) => {
-    const icon = artURL(iconKeyForBuilding(building.id));
+  const lock = teachActive();
+  const aiming = lock && TEACH[teachStep].id === 'pick';
+  const choices = buildChoices().slice();
+  if (lock) {
+    const rank = { plantation: 0, drying_barn: 1, warehouse: 2 };
+    choices.sort((a, b) => (rank[a.id] ?? 9) - (rank[b.id] ?? 9));
+  }
+  strip.innerHTML = choices.map((building) => {
     const on = placingId === building.id ? ' is-on' : '';
-    const mark = rec === building.id ? ' is-rec' : '';
-    return `<button type="button" class="go-build-ico${on}${mark}" data-place="${building.id}" aria-label="${building.shortName}">${icon ? `<img alt="" src="${icon}">` : ''}</button>`;
+    const mark = !lock && rec === building.id ? ' is-rec' : '';
+    const aim = aiming && building.id === TEACH_LAB ? ' is-aim' : '';
+    return buildCard(building, { cls: `${on}${mark}${aim}`, off: lock && building.id !== TEACH_LAB });
   }).join('');
+  const aimBtn = strip.querySelector('.is-aim');
+  if (aimBtn && window.innerWidth >= 820) {
+    strip.scrollLeft = Math.max(0, aimBtn.offsetLeft - (strip.clientWidth - aimBtn.offsetWidth) / 2);
+  }
 }
 
-function beginPlace(buildingId) {
+function closeLotPicker() {
+  pickerSlot = null;
+  const picker = $('lot-picker');
+  if (!picker) return;
+  picker.hidden = true;
+  picker.innerHTML = '';
+}
+
+function openLotPicker(slotId) {
+  const def = slotDefOf(slotId);
+  if (!def) return;
+  pickerSlot = slotId;
+  closeSheets();
+  const strip = $('build-strip');
+  if (strip) strip.hidden = true;
+  const picker = $('lot-picker');
+  if (!picker) return;
+  const lock = teachActive();
+  let choices = buildChoices().filter((building) => !def.allowedCategories || def.allowedCategories.includes(building.category));
+  if (lock) {
+    const lab = BUILDINGS[TEACH_LAB];
+    choices = lab ? [lab] : [];
+  }
+  picker.innerHTML = choices.map((building) => {
+    const isLab = building.id === TEACH_LAB;
+    const allow = lock ? isLab && labFits(slotId) : true;
+    const aim = lock && isLab && allow ? ' is-aim' : '';
+    return buildCard(building, { attr: 'pick', slotId, cls: aim, off: !allow });
+  }).join('');
+  picker.hidden = false;
+}
+
+function onEmptyLot(slotId) {
+  bumpTeach();
+  if (!canBuildOn(slotId)) {
+    selectSlot(slotId, true);
+    return;
+  }
+  openLotPicker(slotId);
+  if (!teachActive()) {
+    renderHud();
+    return;
+  }
+  const step = TEACH[teachStep];
+  if (step.id === 'confirm') return;
+  teachNudge = false;
+  if (labFits(slotId)) teachStep = 1;
+  else if (step.id === 'build' || step.id === 'pick') teachStep = 2;
+  renderHud();
+}
+
+function onLotTapped(slotId) {
+  bumpTeach();
+  closeLotPicker();
+  if (!teachActive() || placingId !== TEACH_LAB) return;
+  const step = TEACH[teachStep];
+  if (step.id !== 'lot' && step.id !== 'confirm') return;
+  if (slotId === TEACH_LOT && labFits(slotId)) {
+    teachStep = 3;
+    teachNudge = false;
+    const strip = $('build-strip');
+    if (strip) strip.hidden = true;
+    renderHud();
+  }
+}
+
+function beginPlace(buildingId, lockSlot) {
   placingId = buildingId;
   setGhost(null);
   closeSheets();
+  const picker = $('lot-picker');
+  if (picker) {
+    picker.hidden = true;
+    picker.innerHTML = '';
+  }
+  pickerSlot = null;
+  if (phaserGame) {
+    phaserGame.registry.set('placing', { buildingId });
+    phaserGame.registry.set('snapLock', lockSlot || null);
+  }
   const strip = $('build-strip');
-  if (strip) strip.hidden = false;
-  if (phaserGame) phaserGame.registry.set('placing', { buildingId });
-  renderBuildStrip();
+  if (strip) strip.hidden = !!lockSlot;
+  if (!lockSlot && strip) {
+    strip.hidden = false;
+    renderBuildStrip();
+  }
 }
 
 function stopPlace() {
@@ -1049,21 +1404,32 @@ function stopPlace() {
   if (phaserGame) {
     phaserGame.registry.set('placing', null);
     phaserGame.registry.set('placeSnap', null);
+    phaserGame.registry.set('snapLock', null);
   }
   const hud = $('place-hud');
-  if (hud) hud.hidden = true;
+  if (hud) {
+    hud.hidden = true;
+    hud.classList.remove('is-thumb');
+  }
   renderBuildStrip();
 }
 
 function confirmPlace() {
   const snap = phaserGame && phaserGame.registry.get('placeSnap');
   if (!snap || !snap.ok) return;
+  if (teachActive()) {
+    const step = TEACH[teachStep];
+    if (!step || step.id !== 'confirm') return;
+    if (snap.id !== TEACH_LOT || snap.buildingId !== TEACH_LAB) return;
+  }
   const result = sim.buildOnSlot(snap.id, snap.buildingId);
   if (!result.ok) return;
   stopPlace();
+  closeLotPicker();
   const strip = $('build-strip');
   if (strip) strip.hidden = true;
   if (mapScene) mapScene.focusOnSlot(snap.id, true);
+  renderHud();
 }
 
 function setGhost(next) {
@@ -1324,6 +1690,12 @@ function begin(mode) {
     sim.state.started = true;
     sim.save();
   }
+  if (mode === 'campaign') {
+    teachTouch = teachNow();
+    teachPulse = teachTouch;
+    teachNudge = false;
+    refreshTeach();
+  }
   $('title-modal').hidden = true;
   if (mode === 'campaign' && !sim.state.tutorialDone) {
     sim.state.selectedSlotId = 'slot_rp_town1';
@@ -1411,8 +1783,23 @@ function wireEvents() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       sim.resetNewGame();
+      teachStep = 0;
+      teachDone = false;
+      teachNudge = false;
+      teachTouch = teachNow();
+      teachPulse = teachTouch;
+      guideStep = 0;
+      guideHoldUntil = 0;
+      guideFlash = null;
+      seenBuild.clear();
+      const toast = $('build-toast');
+      if (toast) toast.hidden = true;
+      closeLotPicker();
+      stopPlace();
+      const strip = $('build-strip');
+      if (strip) strip.hidden = true;
       $('title-modal').hidden = true;
-      if (mapScene) mapScene.focusOnSlot('slot_rp_wh1', false);
+      if (mapScene) mapScene.frameValley(true);
       renderHud();
       renderDrawerContent();
     });
@@ -1482,12 +1869,22 @@ function wireEvents() {
     if (!btn || btn.disabled) return;
     onDeal(btn.dataset.deal, btn);
   });
+  document.addEventListener('pointerdown', () => bumpTeach(), true);
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     const strip = $('build-strip');
-    if (placingId || (strip && !strip.hidden)) {
+    const picker = $('lot-picker');
+    if (placingId || (strip && !strip.hidden) || (picker && !picker.hidden)) {
       stopPlace();
+      closeLotPicker();
       if (strip) strip.hidden = true;
+      if (teachActive() && (TEACH[teachStep].id === 'lot' || TEACH[teachStep].id === 'confirm')) {
+        teachStep = 1;
+        teachNudge = false;
+        strip.hidden = false;
+        renderBuildStrip();
+        renderHud();
+      }
       return;
     }
     closeSheets();
@@ -1522,12 +1919,31 @@ function wireEvents() {
     buildBtn.addEventListener('click', () => {
       const strip = $('build-strip');
       if (!strip) return;
+      if (teachActive()) {
+        closeLotPicker();
+        const step = TEACH[teachStep];
+        if (step.id === 'lot' || step.id === 'confirm') return;
+        if (step.id === 'build') {
+          teachStep = 1;
+          teachNudge = false;
+        }
+        closeSheets();
+        drawerOpen = false;
+        syncDrawerVisibility();
+        stopPlace();
+        strip.hidden = false;
+        renderBuildStrip();
+        renderHud();
+        return;
+      }
       if (!strip.hidden) {
         strip.hidden = true;
         stopPlace();
+        closeLotPicker();
         return;
       }
       closeSheets();
+      closeLotPicker();
       drawerOpen = false;
       syncDrawerVisibility();
       strip.hidden = false;
@@ -1538,8 +1954,32 @@ function wireEvents() {
   if (buildStrip) {
     buildStrip.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-place]');
-      if (!btn) return;
-      beginPlace(btn.dataset.place);
+      if (!btn || btn.disabled) return;
+      const id = btn.dataset.place;
+      if (teachActive() && id !== TEACH_LAB) return;
+      beginPlace(id);
+      if (teachActive() && TEACH[teachStep].id === 'pick' && id === TEACH_LAB) {
+        teachStep = 2;
+        teachNudge = false;
+        buildStrip.hidden = true;
+        renderHud();
+      }
+    });
+  }
+  const lotPicker = $('lot-picker');
+  if (lotPicker) {
+    lotPicker.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-pick]');
+      if (!btn || btn.disabled) return;
+      const buildingId = btn.dataset.pick;
+      const slotId = pickerSlot;
+      const jump = teachActive() && buildingId === TEACH_LAB && slotId === TEACH_LOT && labFits(slotId);
+      beginPlace(buildingId, slotId);
+      if (jump) {
+        teachStep = 3;
+        teachNudge = false;
+      }
+      renderHud();
     });
   }
   const placeOk = $('place-ok');
@@ -1548,7 +1988,16 @@ function wireEvents() {
   if (placeNo) {
     placeNo.addEventListener('click', () => {
       stopPlace();
+      closeLotPicker();
       const strip = $('build-strip');
+      if (teachActive() && (TEACH[teachStep].id === 'lot' || TEACH[teachStep].id === 'confirm')) {
+        teachStep = 1;
+        teachNudge = false;
+        if (strip) strip.hidden = false;
+        renderBuildStrip();
+        renderHud();
+        return;
+      }
       if (strip) strip.hidden = false;
       renderBuildStrip();
     });
@@ -1649,6 +2098,9 @@ function bootPhaser() {
     selectRegion(regionId);
   });
   phaserGame.registry.set('onLotSelected', (lotId) => openLot(lotId));
+  phaserGame.registry.set('onEmptyLot', (slotId) => onEmptyLot(slotId));
+  phaserGame.registry.set('onLotTapped', (slotId) => onLotTapped(slotId));
+  phaserGame.registry.set('onBuildingReady', (buildingId) => onBuildingReady(buildingId));
   phaserGame.registry.set('onZoneSelected', (zoneId) => openZone(zoneId));
   phaserGame.registry.set('onMapRevealed', () => showReveal());
   phaserGame.registry.set('onLotReady', (lotId) => onLotReady(lotId));

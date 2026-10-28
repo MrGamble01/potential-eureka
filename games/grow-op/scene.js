@@ -130,9 +130,23 @@ export class MapScene extends window.Phaser.Scene {
       hit.setInteractive({ useHandCursor: true });
       hit.on('pointerup', (pointer) => {
         if (this.dragMoved || this.pointingAtUi(pointer)) return;
-        if (this.registry.get('placing')) {
-          this.hover = { x: def.x, y: def.y };
+        const state = this.sim.state.slots[def.id];
+        const placing = this.registry.get('placing');
+        if (placing) {
+          if (state && !state.buildingId && !state.rivalControlled) {
+            this.hover = { x: def.x, y: def.y };
+            this.registry.set('snapLock', def.id);
+            const tapped = this.registry.get('onLotTapped');
+            if (tapped) tapped(def.id);
+          }
           return;
+        }
+        if (state && !state.buildingId && !state.rivalControlled) {
+          const open = this.registry.get('onEmptyLot');
+          if (open) {
+            open(def.id);
+            return;
+          }
         }
         this.sim.state.selectedSlotId = def.id;
         this.sim.state.selectedRegionId = def.regionId;
@@ -489,8 +503,8 @@ export class MapScene extends window.Phaser.Scene {
       if (node.raid.visible) node.raid.setAlpha(0.45 + Math.sin(this.phase * 6) * 0.35);
       const built = !!state.buildingId && !state.rivalControlled;
       const marked = !guided && (id === recommend || id === this.recommendId());
-      node.pulse.setVisible(!guided && !built && !state.rivalControlled && marked);
-      if (guiding) node.root.setAlpha(id === guideId ? 1 : 0.4);
+      node.pulse.setVisible(!guiding && !built && !state.rivalControlled && marked);
+      if (guiding && guideId) node.root.setAlpha(id === guideId ? 1 : 0.4);
       else if (node.root.alpha !== 1) node.root.setAlpha(1);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const ctx = this.siteCtx(state, lot, id);
@@ -507,8 +521,9 @@ export class MapScene extends window.Phaser.Scene {
           this.paintSite(node.art, state);
         }
       }
-      const buildingNow = phase === 'building' || phase === 'demolishing' || (state.constructLeft || 0) > 0;
-      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y });
+      const constructing = phase === 'building' || (state.constructLeft || 0) > 0;
+      const buildingNow = constructing || phase === 'demolishing';
+      this.noteBuild(node, buildingNow && !!state.buildingId, state.constructLeft || 0, { x: node.def.x, y: node.def.y }, state.buildingId, constructing);
       this.syncStock(node, state);
       this.syncChain(node, state);
       const working = (state.progress || 0) > 0.04 || Object.values(state.outputBuffer || {}).some((qty) => qty > 0);
@@ -520,7 +535,7 @@ export class MapScene extends window.Phaser.Scene {
         if (state.buildingId === 'drying_barn' || state.buildingId === 'chem_lab' || state.buildingId === 'packaging_mill' || state.buildingId === 'coffee_estate') {
           if (Math.random() < 0.08) this.puff(node.def.x + 30, node.def.y - 70);
         }
-      } else if (!built && !state.rivalControlled && !this.registry.get('placing') && (guided ? id === guideId : marked)) {
+      } else if (!built && !state.rivalControlled && !this.registry.get('placing') && this.lotOpen(node.def)) {
         this.placeBadge(node, node.def.x, node.def.y, null, 'is-plus', 'Build');
       } else {
         node.pin.hidden = true;
@@ -821,16 +836,79 @@ export class MapScene extends window.Phaser.Scene {
     this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
   }
 
+  lotOpen(def) {
+    if (!def || !this.sim) return false;
+    const reg = this.sim.state.regions[def.regionId];
+    if (!reg || !reg.unlocked) return false;
+    const lot = this.sim.state.lots && this.sim.state.lots[def.id];
+    if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) return false;
+    if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') return false;
+    return true;
+  }
+
   ensureGuideEl(className, html) {
-    let el = this.pinHost.querySelector('.' + className);
+    let el = document.querySelector('.' + className);
     if (!el) {
       el = document.createElement('div');
       el.className = className;
       el.hidden = true;
       el.innerHTML = html;
-      this.pinHost.appendChild(el);
+      (className === 'go-guide' ? document.body : this.pinHost).appendChild(el);
     }
     return el;
+  }
+
+  guideTarget(guide) {
+    if (!guide || !guide.live) return null;
+    if (guide.aim === 'build') return document.getElementById('dock-build-btn');
+    if (guide.aim === 'menu') {
+      const picker = document.getElementById('lot-picker');
+      if (picker && !picker.hidden) {
+        const picked = picker.querySelector('[data-pick="drying_barn"]');
+        if (picked) return picked;
+      }
+      const strip = document.getElementById('build-strip');
+      if (strip && !strip.hidden) return strip.querySelector('[data-place="drying_barn"]');
+    }
+    if (guide.aim === 'place-ok') {
+      const hud = document.getElementById('place-hud');
+      const ok = document.getElementById('place-ok');
+      if (hud && ok && !hud.hidden) return ok;
+    }
+    return null;
+  }
+
+  frameGuide(node) {
+    this.userPanned = true;
+    this.haltCamera();
+    const cam = this.cameras.main;
+    const b = this.unlockedRect();
+    cam.setBounds(b.x, b.y, b.w, b.h);
+    const zoom = this.scale.width < 700 ? 1.2 : this.scale.width < 1100 ? 1.28 : 1.45;
+    cam.setZoom(zoom);
+    const dw = cam.displayWidth;
+    const dh = cam.displayHeight;
+    const minCX = b.x + dw / 2;
+    const maxCX = b.x + b.w - dw / 2;
+    const minCY = b.y + dh / 2;
+    const maxCY = b.y + b.h - dh / 2;
+    const cx = minCX <= maxCX ? Math.min(maxCX, Math.max(minCX, node.def.x)) : b.x + b.w / 2;
+    const cy = minCY <= maxCY ? Math.min(maxCY, Math.max(minCY, node.def.y + 16)) : b.y + b.h / 2;
+    cam.centerOn(cx, cy);
+    this.clampScroll();
+  }
+
+  pointGuide(arrow, dom) {
+    const rect = dom.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) {
+      arrow.hidden = true;
+      return;
+    }
+    const bob = Math.sin(this.phase * 5.2) * 12;
+    const x = rect.left + rect.width / 2;
+    const y = Math.max(8, rect.top - 70 + bob);
+    arrow.hidden = false;
+    arrow.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   }
 
   syncGuide() {
@@ -852,66 +930,66 @@ export class MapScene extends window.Phaser.Scene {
       }
     } else done.hidden = true;
     const slotId = guide && guide.slotId;
-    if (slotId) {
+    const aim = guide && guide.aim;
+    const live = !!(guide && guide.live);
+    if (live || slotId) {
       for (const other of Object.values(this.slots)) {
         other.pulse.setVisible(false);
-        if (guide.live) other.select.setVisible(false);
+        if (live) other.select.setVisible(false);
       }
-      if (guide.live) {
+      if (live) {
         for (const other of Object.values(this.lots)) other.select.setVisible(false);
       }
     }
     const node = slotId ? this.slots[slotId] : null;
+    const dom = this.guideTarget(guide);
     this.guideRing.clear();
     this.guideShade.clear();
-    if (!node) {
-      arrow.hidden = true;
-      return;
-    }
-    if (guide.live) {
+    if (live) {
       this.guideShade.fillStyle(0x0c1410, 0.34);
       this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
     }
-    if (this.guideFocus !== slotId) {
+    const frameIt = !!(node && (live || !aim));
+    if (frameIt && this.guideFocus !== slotId) {
       this.guideFocus = slotId;
-      this.userPanned = true;
-      this.haltCamera();
-      const cam = this.cameras.main;
-      const b = this.unlockedRect();
-      cam.setBounds(b.x, b.y, b.w, b.h);
-      const zoom = this.scale.width < 700 ? 1.2 : this.scale.width < 1100 ? 1.28 : 1.45;
-      cam.setZoom(zoom);
-      const dw = cam.displayWidth;
-      const dh = cam.displayHeight;
-      const minCX = b.x + dw / 2;
-      const maxCX = b.x + b.w - dw / 2;
-      const minCY = b.y + dh / 2;
-      const maxCY = b.y + b.h - dh / 2;
-      const cx = minCX <= maxCX ? Math.min(maxCX, Math.max(minCX, node.def.x)) : b.x + b.w / 2;
-      const cy = minCY <= maxCY ? Math.min(maxCY, Math.max(minCY, node.def.y + 16)) : b.y + b.h / 2;
-      cam.centerOn(cx, cy);
-      this.clampScroll();
+      this.frameGuide(node);
+    } else if (!node) this.guideFocus = null;
+    const drawRing = !!(node && (live || !aim) && (!dom || aim === 'world' || aim === 'place-ok' || !aim));
+    if (drawRing) {
+      const pulse = 1 + Math.sin(this.phase * 4.2) * 0.07;
+      const radius = 86 * pulse;
+      this.guideRing.lineStyle(12, 0x39e58a, 0.28);
+      this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius + 14);
+      this.guideRing.lineStyle(7, 0x39e58a, 1);
+      this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius);
     }
-    const pulse = 1 + Math.sin(this.phase * 4.2) * 0.07;
-    const radius = 86 * pulse;
-    this.guideRing.lineStyle(12, 0x39e58a, 0.28);
-    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius + 14);
-    this.guideRing.lineStyle(7, 0x39e58a, 1);
-    this.guideRing.strokeCircle(node.def.x, node.def.y + 8, radius);
+    if (dom) {
+      this.pointGuide(arrow, dom);
+      return;
+    }
+    if (!node || aim === 'build' || aim === 'menu') {
+      arrow.hidden = true;
+      return;
+    }
     const spot = this.worldToScreen(node.def.x, node.def.y - 150);
     const bob = Math.sin(this.phase * 5.2) * 16;
     arrow.hidden = false;
     arrow.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y + bob)}px)`;
   }
 
-  noteBuild(node, active, left, point) {
+  noteBuild(node, active, left, point, buildingId, constructing) {
     if (node.wasBuilding && !active) {
       const juice = this.registry.get('juice');
       if (juice && juice.demolishDust) juice.demolishDust(point);
       if (juice && juice.burst) juice.burst({ x: point.x, y: point.y - 24 }, 0x8ec5ff);
       node.pop = 0.42;
+      if (node.wasConstruct && buildingId) {
+        const ready = this.registry.get('onBuildingReady');
+        if (ready) ready(buildingId);
+      }
     }
-    node.wasBuilding = active;
+    node.wasBuilding = !!active;
+    node.wasConstruct = !!(active && constructing);
     if (node.pop > 0) {
       node.pop = Math.max(0, node.pop - (this.frameDt || 0.016));
       const u = 1 - node.pop / 0.42;
@@ -964,9 +1042,12 @@ export class MapScene extends window.Phaser.Scene {
       this.registry.set('placeSnap', null);
       return;
     }
-    let pick = null;
-    let best = 260;
-    if (this.hover) {
+    const guide = this.registry.get('guide');
+    const teachLot = !!(guide && guide.live && guide.id === 'lot');
+    const snapLock = this.registry.get('snapLock');
+    let pick = snapLock ? sites.find((site) => site.id === snapLock) || null : null;
+    if (!pick && this.hover && !teachLot) {
+      let best = 260;
       for (const site of sites) {
         const d = Math.hypot(this.hover.x - site.x, this.hover.y - site.y);
         if (d < best) {
@@ -976,6 +1057,12 @@ export class MapScene extends window.Phaser.Scene {
       }
     }
     if (!pick) {
+      if (teachLot) {
+        this.placeRoot.setVisible(false);
+        if (hud) hud.hidden = true;
+        this.registry.set('placeSnap', null);
+        return;
+      }
       const legal = sites.filter((site) => site.ok);
       const pool = legal.length ? legal : sites;
       const south = pool.find((site) => site.id === 'slot_rp_south');
@@ -1007,11 +1094,15 @@ export class MapScene extends window.Phaser.Scene {
     if (this.placeRoot.bringToTop) this.placeRoot.bringToTop(this.placeRing);
     this.registry.set('placeSnap', { id: pick.id, x: pick.x, y: pick.y, ok: pick.ok, buildingId: building.id });
     if (hud && okBtn) {
-      const spot = this.worldToScreen(pick.x + 96, pick.y - 28);
-      const x = Math.max(8, Math.min(this.scale.width - 92, spot.x));
-      const y = Math.max(58, Math.min(this.scale.height - 108, spot.y));
+      const thumb = this.scale.width < 800;
       hud.hidden = false;
-      hud.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      hud.classList.toggle('is-thumb', thumb);
+      if (!thumb) {
+        const spot = this.worldToScreen(pick.x + 110, pick.y - 36);
+        const x = Math.max(8, Math.min(this.scale.width - 150, spot.x));
+        const y = Math.max(64, Math.min(this.scale.height - 140, spot.y));
+        hud.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      }
       okBtn.disabled = !pick.ok;
       okBtn.classList.toggle('is-bad', !pick.ok);
     }
@@ -1694,8 +1785,9 @@ export class MapScene extends window.Phaser.Scene {
         if (tick) tick();
       }
       node.shownLeft = shown;
-      const buildingNow = live.phase === 'building' || live.phase === 'demolishing';
-      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos);
+      const constructing = live.phase === 'building';
+      const buildingNow = constructing || live.phase === 'demolishing';
+      this.noteBuild(node, buildingNow, live.phase === 'demolishing' ? (live.demolishLeft || 0) : (live.constructLeft || 0), node.pos, live.buildingId, constructing);
       node.phase = live.phase;
       const ghost = this.registry.get('ghost');
       const showGhost = ghost && ghost.lotId === node.id && ghost.buildingId && live.phase !== 'building' && live.phase !== 'demolishing';
