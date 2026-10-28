@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14171d">
+  <title>Homeless Village</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#128293;&lt;/text&gt;&lt;/svg&gt;">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/game.css?v=20261026b">
+</head>
+<body>
+  <div id="app">
+    <div id="game"></div>
+
+    <section id="hv-title" class="sheet" aria-label="Title">
+      <div class="card">
+        <p class="kicker">Under the overpass</p>
+        <h1>Homeless Village</h1>
+        <p class="lede">A camp, a barrel fire, and the people who keep both going. Stay warm. Feed who you can. Hold the block long enough that a door becomes possible.</p>
+        <div class="row">
+          <button type="button" id="hv-play" disabled>Start a fire</button>
+          <button type="button" id="hv-continue" hidden>Continue</button>
+        </div>
+        <div class="row quiet-row">
+          <button type="button" id="hv-how" class="ghost" disabled>How this camp works</button>
+          <button type="button" id="hv-sound" class="ghost" disabled>Sound on</button>
+          <a class="textlink" href="/homeless-village.html">Earlier version</a>
+        </div>
+      </div>
+    </section>
+
+    <div id="hv-hud" hidden>
+      <header class="top">
+        <div class="top-line">
+          <p id="hv-when">Morning</p>
+          <div class="top-actions">
+            <button type="button" id="hv-help" class="icon" aria-label="How this camp works">?</button>
+            <button type="button" id="hv-mute" class="icon" aria-label="Mute sound">♪</button>
+          </div>
+        </div>
+        <div class="meters" aria-label="Needs">
+          <div class="meter warmth"><span>Warmth</span><i><b id="hv-warmth-bar"></b></i><em id="hv-warmth">0</em></div>
+          <div class="meter food"><span>Food</span><i><b id="hv-food-bar"></b></i><em id="hv-food">0</em></div>
+          <div class="meter health"><span>Health</span><i><b id="hv-health-bar"></b></i><em id="hv-health">0</em></div>
+          <div class="meter hope"><span>Hope</span><i><b id="hv-hope-bar"></b></i><em id="hv-hope">0</em></div>
+        </div>
+        <button type="button" id="hv-goal" aria-expanded="false" aria-controls="hv-log"></button>
+        <div id="hv-log" hidden></div>
+        <p id="hv-craft-chip" hidden></p>
+      </header>
+
+      <div id="hv-toasts" aria-live="polite"></div>
+
+      <div id="hv-sweep" hidden>
+        <p id="hv-sweep-text">A sweep is coming.</p>
+        <button type="button" id="hv-pack">Pack the camp</button>
+      </div>
+
+      <section id="hv-context" hidden aria-label="Here">
+        <div class="context-card">
+          <div class="context-head">
+            <h2 id="hv-context-title">Here</h2>
+            <button type="button" id="hv-context-close" class="icon" aria-label="Close">×</button>
+          </div>
+          <p id="hv-context-body"></p>
+          <div id="hv-context-actions"></div>
+        </div>
+      </section>
+
+      <section id="hv-drawer" aria-label="Camp drawer">
+        <button type="button" id="hv-handle" aria-expanded="false">Camp</button>
+        <div class="drawer-body">
+          <div class="tabs" role="tablist">
+            <button type="button" id="hv-tab-craft" role="tab" aria-selected="true">Craft</button>
+            <button type="button" id="hv-tab-camp" role="tab" aria-selected="false">Camp</button>
+            <button type="button" id="hv-tab-people" role="tab" aria-selected="false">People</button>
+          </div>
+          <div id="hv-panel-craft" class="panel" role="tabpanel"></div>
+          <div id="hv-panel-camp" class="panel" hidden>
+            <p id="hv-stock"></p>
+            <p id="hv-rep"></p>
+            <div id="hv-camp-log"></div>
+            <div class="row">
+              <button type="button" id="hv-save">Save now</button>
+              <button type="button" id="hv-new" class="ghost">New camp</button>
+            </div>
+            <p id="hv-save-note"></p>
+          </div>
+          <div id="hv-panel-people" class="panel" hidden></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="hv-intro" class="modal" hidden>
+      <div class="card">
+        <p class="kicker" id="hv-intro-kicker">1 of 3</p>
+        <h2 id="hv-intro-title"></h2>
+        <p id="hv-intro-body"></p>
+        <div class="row">
+          <button type="button" id="hv-intro-next">Next</button>
+          <button type="button" id="hv-intro-skip" class="ghost">Skip</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hv-bridge" class="modal" hidden>
+      <div class="card tall">
+        <p class="kicker">The Bridge</p>
+        <h2>What this place still remembers</h2>
+        <div id="hv-bridge-body"></div>
+        <button type="button" id="hv-bridge-close">Close the wall</button>
+      </div>
+    </div>
+
+    <div id="hv-storm" class="modal" hidden>
+      <div class="card">
+        <p class="kicker">Storm night</p>
+        <h2 id="hv-storm-title">Hold the line</h2>
+        <p id="hv-storm-body"></p>
+        <div class="row">
+          <button type="button" id="hv-storm-hold">Hold</button>
+          <button type="button" id="hv-storm-close" class="ghost">Step back</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hv-over" class="modal" hidden>
+      <div class="card">
+        <p class="kicker">The barrel is dark</p>
+        <h2>The camp didn’t make it</h2>
+        <p>Health gave out. The people, the fire, and the day all needed more than what was left.</p>
+        <button type="button" id="hv-over-again">Start again</button>
+      </div>
+    </div>
+
+    <div id="hv-keys" class="modal" hidden>
+      <div class="card">
+        <p class="kicker">Case worker</p>
+        <h2>Keys in hand</h2>
+        <p id="hv-keys-body">Dena came through. There is a room, and a key that fits it. The camp can keep the fire.</p>
+        <button type="button" id="hv-keys-stay">Keep the fire</button>
+      </div>
+    </div>
+  </div>
+  <script src="/vendor/phaser-3.80.1.min.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
