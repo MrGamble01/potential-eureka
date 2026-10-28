@@ -356,6 +356,147 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
 </style>
 <link rel="stylesheet" href="/css/hud-b.css?v=20261018topbar">
 <link rel="stylesheet" href="/css/tokens.css?v=20261025theme">
+<style id="isle-flagship">
+/* Voxel Isle chrome. Loaded after the shared sheets so the cool accent wins. */
+html.hud-b[data-game="voxel"]{
+  --gold:#7ec8ff;
+  --hud-gold:#7ec8ff;
+}
+html.hud-b[data-game="voxel"] #coinChip{color:#7ec8ff}
+html.hud-b[data-game="voxel"] #banner h2{color:#7ec8ff}
+html.hud-b[data-game="voxel"] .ach.done{border-color:rgba(126,200,255,.5)}
+html.hud-b[data-game="voxel"] .ach.done b,
+html.hud-b[data-game="voxel"] .alm-stat .v,
+html.hud-b[data-game="voxel"] .p-item .pr,
+html.hud-b[data-game="voxel"] #dareChip,
+html.hud-b[data-game="voxel"] #qDare{color:#9fd4ff}
+html.hud-b[data-game="voxel"] .ach-prog-bar{background:#7ec8ff}
+html.hud-b[data-game="voxel"] #darePanel .dare-bar i{background:linear-gradient(90deg,#4f8eb8,#7ec8ff)}
+html.hud-b[data-game="voxel"] #darePanel .board .who b{color:#7ec8ff}
+@keyframes juiceGold{0%{opacity:.75;background:radial-gradient(circle at 50% 40%,rgba(126,200,255,.45),transparent 55%)}100%{opacity:0}}
+html.hud-b[data-game="voxel"] .career-toast{
+  bottom:var(--vox-career-bottom, var(--hud-career-bottom, 120px)) !important;
+  width:min(320px, calc(100vw - 28px));
+  border-color:rgba(126,200,255,.55) !important;
+  background:rgba(8,14,22,.94) !important}
+html.hud-b[data-game="voxel"] .career-toast strong{color:#7ec8ff !important}
+.resume-kicker{display:inline-block;background:#7ec8ff;color:#071018;border-radius:999px;
+  padding:1px 7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+
+#back{gap:8px}
+.tool-group{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;padding:3px;border-radius:14px;
+  background:rgba(8,14,22,.42);border:1px solid rgba(255,255,255,.06)}
+html.hud-b[data-game="voxel"] #back button:has(.lbl){
+  flex-direction:column;gap:1px;min-width:54px;padding:5px 8px 4px;line-height:1;height:auto}
+html.hud-b[data-game="voxel"] #back .lbl{
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c5e4ff}
+html.hud-b[data-game="voxel"] #back .ico{font-size:16px;line-height:1}
+
+html.hud-b[data-game="voxel"] #quests{
+  border-radius:16px;border:1px solid rgba(126,200,255,.55);
+  background:rgba(8,14,22,.9);padding:12px 14px 10px;
+  box-shadow:0 12px 28px rgba(0,0,0,.42)}
+html.hud-b[data-game="voxel"] #quests .q-title{color:#7ec8ff;font-size:11px}
+html.hud-b[data-game="voxel"] #quests .q-text{font-size:15px;font-weight:650;color:#f4f8fc;line-height:1.35}
+#qNext{font-size:11px;color:#9fd4ff;margin-top:6px;line-height:1.35}
+#qNext:empty{display:none}
+html.hud-b[data-game="voxel"] #qDare,
+html.hud-b[data-game="voxel"] #qKiln,
+html.hud-b[data-game="voxel"] #qGull{
+  font-size:11px;opacity:.88;border-top:1px solid rgba(255,255,255,.08);
+  margin-top:6px;padding-top:5px}
+
+html.hud-b[data-game="voxel"] #hotbar{
+  gap:6px;padding:4px 8px;border-radius:18px;
+  background:rgba(8,14,22,.92);border:1px solid rgba(126,200,255,.38);
+  box-shadow:0 12px 28px rgba(0,0,0,.45)}
+html.hud-b[data-game="voxel"] #hotbar .slot.sel{
+  border-color:#7ec8ff;background:rgba(18,36,52,.96);
+  box-shadow:0 0 0 1px #7ec8ff,0 8px 16px rgba(126,200,255,.22)}
+
+#mateBubble{
+  left:112px;top:auto;bottom:96px;transform:none;
+  max-width:min(220px,42vw);border-color:rgba(126,200,255,.45);
+  background:rgba(8,14,22,.94)}
+#mateBubble b{color:#7ec8ff}
+#toasts{top:var(--vox-toast-top, 16%);bottom:auto;max-width:min(340px,52vw);width:max-content}
+.toast{white-space:normal;text-align:center;max-width:min(340px,52vw)}
+
+@media (min-width:1025px){
+  #topbar{max-width:min(48vw,560px)}
+  #back{max-width:min(46vw,560px)}
+}
+@media (min-width:641px) and (max-width:1024px) and (min-height:801px){
+  #quests{
+    top:var(--vox-quests-tablet, 168px);bottom:auto;right:auto;left:10px;
+    width:min(250px,42vw)}
+}
+@media (min-width:641px) and (max-width:1024px){
+  #back{top:var(--vox-back-top, 64px)}
+  #goodsHud{top:var(--vox-goods-top, 112px)}
+  #toasts{top:var(--vox-toast-top, 240px);left:auto;right:10px;transform:none;align-items:flex-end;max-width:min(240px,42vw)}
+  html.hud-b[data-game="voxel"] .career-toast{
+    left:auto !important;right:10px !important;transform:none !important;
+    width:min(260px,44vw) !important}
+  #mateBubble{left:12px;bottom:132px;max-width:160px}
+}
+@media (max-width:640px){
+  #quests{display:none!important}
+  html.hud-b[data-game="voxel"] #back button,
+  html.hud-b[data-game="voxel"] #back a{min-height:44px}
+  #mateBubble{left:8px;bottom:calc(300px + env(safe-area-inset-bottom));max-width:min(220px,68vw);padding:6px 10px;font-size:13px}
+  #toasts{top:var(--vox-toast-top, 300px);max-width:min(240px,62vw)}
+  html.hud-b[data-game="voxel"] #hotbar{padding:3px 5px}
+}
+@media (max-height:480px){
+  #quests{display:none!important}
+  #mateBubble{left:112px;bottom:72px}
+  html.hud-b[data-game="voxel"] #hotbar{padding:2px 6px}
+}
+
+.isle-kicker{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#7ec8ff}
+.isle-mark{width:54px;height:42px;margin:0 0 10px;position:relative}
+.isle-mark:before,.isle-mark:after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:16px;background:#7fd370;border-radius:2px;box-shadow:0 0 0 2px #12141c}
+.isle-mark:after{left:16px;right:16px;bottom:16px;height:16px;background:#7ec8ff}
+html.hud-b[data-game="voxel"] #helpOv .card{
+  background:radial-gradient(120% 80% at 100% 0%,rgba(126,200,255,.18),transparent 46%),#12141c;
+  border:1px solid rgba(126,200,255,.32)}
+html.hud-b[data-game="voxel"] #helpOv h2{
+  font-family:'Outfit',var(--font-display),sans-serif;font-weight:800;font-size:40px;
+  letter-spacing:-0.04em;color:#f4f8fc;margin:0 0 8px;line-height:1}
+html.hud-b[data-game="voxel"] #helpOv #helpClose,
+html.hud-b[data-game="voxel"] #pauseOv #pauseClose{
+  background:#7ec8ff;color:#071018}
+html.hud-b[data-game="voxel"] #helpOv .help-ghost{
+  background:transparent;color:#9fb0bf;border:1px solid rgba(255,255,255,.16)}
+#pauseOv{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(2,2,3,.8)}
+#pauseOv.open{display:flex}
+#pauseOv .card{background:#12141c;border:1px solid rgba(126,200,255,.32);border-radius:20px;
+  padding:22px 24px;width:min(440px,92vw);max-height:86vh;overflow:auto;
+  background:radial-gradient(120% 70% at 0% 0%,rgba(126,200,255,.16),transparent 42%),#12141c}
+#pauseOv h2{font-family:'Outfit',var(--font-display),sans-serif;font-weight:800;font-size:32px;letter-spacing:-0.04em;color:#f4f8fc;margin:0 0 8px}
+#pauseStat,#pauseSaveNote{font-size:14px;color:#9fb0bf;line-height:1.45}
+.pause-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pause-actions button{min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+  background:#1a222c;color:#e8eef4;font-weight:700;cursor:pointer}
+#coach{display:none;position:fixed;z-index:14;left:8px;bottom:calc(188px + env(safe-area-inset-bottom));
+  width:min(220px,58vw);padding:8px 10px;border-radius:14px;pointer-events:none;
+  background:rgba(8,14,22,.92);border:1px solid rgba(126,200,255,.4);box-shadow:0 8px 20px rgba(0,0,0,.4)}
+#coach .coach-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7ec8ff}
+#coachText{font-size:13px;line-height:1.35;color:#f4f8fc;margin-top:2px}
+#coachNext{font-size:11px;color:#9fd4ff;margin-top:4px}
+#coachNext:empty{display:none}
+#coach[hidden]{display:none!important}
+@media (max-width:640px),(max-height:480px){
+  #coach:not([hidden]){display:block}
+}
+body:has(#helpOv.open) #coach,body:has(#pauseOv.open) #coach{display:none!important}
+#saveFlag{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:18;pointer-events:none;background:rgba(8,14,22,.92);color:#d7ecff;
+  border:1px solid rgba(126,200,255,.45);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+#saveFlag[hidden]{display:none!important}
+body.photo #pauseOv,body.photo #coach,body.photo #saveFlag{display:none!important}
+</style>
 </head>
 <body>
 <div id="vignette"></div>
@@ -368,29 +509,37 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
   <div class="chip" id="dareChip" hidden title="Today's harbor dare. Same challenge for every garden, swapped by a note — no server.">📮 <span id="dareTxt">Dare</span></div>
   <div class="chip" id="kilnChip" hidden title="The fen kiln. Seal every cracked course with brick, then fire it once each day.">🔥 <span id="kilnTxt">Kiln</span></div>
   <div class="chip" id="gullChip" hidden title="The harbor gull. A local guide for solo play. It never leaves this garden.">🐦 <span id="gullTxt">Gull</span></div>
-  <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
+  <div class="chip" id="resumeChip" hidden><span class="resume-kicker">Continue</span> ↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
     <button type="button" id="resumeNewIsle" hidden>New isle</button>
   </div>
 </div>
 <div id="goodsHud"></div>
 <div id="back">
-  <button id="fpBtn" title="First person (F)">👁️</button>
-  <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
-  <button id="animalBtn" title="Livestock">🐮</button>
-  <button id="townBtn" title="Town — land &amp; buildings">🏘️</button>
-  <button id="almanacBtn" title="Town Almanac">📊</button>
-  <button id="achBtn" title="Achievements">🏆</button>
-  <button id="musicBtn" title="Music on/off">🎵</button>
-  <button id="muteBtn" title="Mute (M)">🔊</button>
-  <button id="momentsBtn" type="button" title="Photo mode (P)">📷</button>
+  <div class="tool-group" data-group="view">
+    <button id="fpBtn" type="button" title="Look around in first person (F)" aria-label="Look"><span class="ico">👁️</span><span class="lbl">Look</span></button>
+    <button id="momentsBtn" type="button" title="Photo mode (P)" aria-label="Photo"><span class="ico">📷</span></button>
+  </div>
+  <div class="tool-group" data-group="isle">
+    <button id="farmerBtn" type="button" title="Hire villagers" aria-label="Hire villagers"><span class="ico">🧑‍🌾</span></button>
+    <button id="animalBtn" type="button" title="Livestock" aria-label="Livestock"><span class="ico">🐮</span><span class="lbl">Livestock</span></button>
+    <button id="townBtn" type="button" title="Town — land and buildings" aria-label="Town"><span class="ico">🏘️</span><span class="lbl">Town</span></button>
+    <button id="almanacBtn" type="button" title="Town Almanac" aria-label="Almanac"><span class="ico">📊</span><span class="lbl">Almanac</span></button>
+    <button id="achBtn" type="button" title="Achievements" aria-label="Achievements"><span class="ico">🏆</span></button>
+  </div>
+  <div class="tool-group" data-group="system">
+    <button id="musicBtn" type="button" title="Music on/off" aria-label="Music"><span class="ico">🎵</span></button>
+    <button id="muteBtn" type="button" title="Mute (M)" aria-label="Mute"><span class="ico">🔊</span></button>
+    <button id="helpBtn" type="button" title="Help (H)" aria-label="Help">?</button>
+    <button id="menuBtn" type="button" title="Menu" aria-label="Menu"><span class="ico">☰</span><span class="lbl">Menu</span></button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
   <div id="vox-audio"></div>
-  <button id="helpBtn" title="Help (H)">?</button>
-  <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 </div>
 <div class="hud chip" id="quests">
-  <div class="q-title">✦ GARDEN GOAL</div>
+  <div class="q-title">Garden goal</div>
   <div class="q-text" id="qText"></div>
   <div class="q-prog" id="qProg"></div>
+  <div id="qNext"></div>
   <div id="qKiln"></div>
   <div id="qDare"></div>
   <div id="qGull"></div>
@@ -449,8 +598,33 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
   </div>
   <div id="almBody"></div>
 </div></div>
+<div id="coach" hidden>
+  <div class="coach-kicker">First morning</div>
+  <div id="coachText"></div>
+  <div id="coachNext"></div>
+</div>
+<div id="saveFlag" hidden>Saved</div>
+<div id="pauseOv"><div class="card">
+  <p class="isle-kicker">Paused</p>
+  <h2>Voxel Isle</h2>
+  <p id="pauseStat"></p>
+  <div class="help-cta-row">
+    <button type="button" id="pauseClose">Back to the garden</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
+  <div class="pause-actions">
+    <button type="button" id="pauseMute">Sound on</button>
+    <button type="button" id="pauseMusic">Music on</button>
+    <button type="button" id="pausePhoto">Photo</button>
+    <button type="button" id="pauseHelp">How to play</button>
+    <button type="button" id="pauseNew">New isle</button>
+  </div>
+  <p id="pauseSaveNote"></p>
+</div></div>
 <div id="helpOv"><div class="card">
-  <h2>🏝️ Voxel Isle</h2>
+  <p class="isle-kicker">A sky garden</p>
+  <div class="isle-mark" aria-hidden="true"></div>
+  <h2>Voxel Isle</h2>
   <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
   <div class="help-cta-row">
     <button id="helpClose">Let's grow</button>
@@ -458,8 +632,8 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
     <button type="button" class="help-ghost" id="helpNewIsle" hidden>New isle</button>
   </div>
   <ul>
-    <li><b>Drag</b> to look. <b>Scroll</b> or pinch to zoom.</li>
-    <li><b>Till</b>, plant, and water. Tap a ripe plant to harvest.</li>
+    <li><b>Drag</b> to look. <b>Scroll</b> or pinch to zoom. <b>Q</b> and <b>E</b> turn.</li>
+    <li><b>Till</b>, plant, and water. Tap a ripe plant to harvest. Keys <b>1–5</b> pick a tool.</li>
     <li><b>Deckhand</b> is with you from the first morning. Follow, Gather, Build, and Wait.</li>
   </ul>
 </div></div>
@@ -4470,7 +4644,7 @@ function refreshPlantMesh(p){
 }
 
 /* ============================== scene ============================== */
-let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
+let scene,camera,renderer,sunLight,fillLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
 let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
 // VOX-11: the Weather Vane calls the shower before it lands
@@ -4483,20 +4657,23 @@ function initScene(){
   scene.fog=new THREE.Fog(0x8ec9ea,70,180);
   camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,400);
   renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(innerWidth,innerHeight);
+  fitRenderer();
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   chunkMat=new THREE.MeshLambertMaterial({vertexColors:true});
-  hemiLight=new THREE.HemisphereLight(0xbfe3ff,0x6b5a42,0.75);scene.add(hemiLight);
-  ambLight=new THREE.AmbientLight(0x404860,0.4);scene.add(ambLight);
-  sunLight=new THREE.DirectionalLight(0xfff2d0,1.05);
+  hemiLight=new THREE.HemisphereLight(0xc8e8ff,0x6b5340,0.82);scene.add(hemiLight);
+  ambLight=new THREE.AmbientLight(0x4a5870,0.42);scene.add(ambLight);
+  sunLight=new THREE.DirectionalLight(0xfff2d0,1.12);
   sunLight.castShadow=true;
-  sunLight.shadow.mapSize.set(2048,2048);
+  const shadowTex=Math.min(innerWidth,innerHeight)<800?1024:1536;
+  sunLight.shadow.mapSize.set(shadowTex,shadowTex);
   const sc=sunLight.shadow.camera;
   sc.left=-48;sc.right=48;sc.top=48;sc.bottom=-48;sc.near=10;sc.far=240;
   scene.add(sunLight);scene.add(sunLight.target);
+  fillLight=new THREE.DirectionalLight(0x9ecbff,0.28);
+  fillLight.position.set(-48,28,-24);
+  scene.add(fillLight);
   // sun & moon billboards
   sunMesh=new THREE.Mesh(new THREE.SphereGeometry(4,12,12),new THREE.MeshBasicMaterial({color:0xffe9a8,fog:false}));
   moonMesh=new THREE.Mesh(new THREE.SphereGeometry(3,12,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,fog:false}));
@@ -4643,7 +4820,9 @@ function updatePops(dt){
   for(let i=pops.length-1;i>=0;i--){
     const p=pops[i];p.t+=dt*2.6;
     if(p.t>=1){p.mesh.scale.setScalar(1);pops.splice(i,1);continue;}
-    p.mesh.scale.setScalar(lerp(p.from,1,easeOutBack(p.t)));
+    const s=lerp(p.from,1,easeOutBack(p.t));
+    const squash=1+Math.sin(p.t*Math.PI)*0.12;
+    p.mesh.scale.set(s/squash,s*squash,s/squash);
   }
 }
 
@@ -4850,8 +5029,8 @@ function updateDay(dt){
   // dawn mist — fog draws in tight at sunrise then burns off (thicker in spring/autumn)
   const sk=seasonOf(state.day).key;
   const mist=gaussish(frac,0.075,0.05)*(sk==='autumn'||sk==='spring'?1:sk==='winter'?0.85:0.65);
-  scene.fog.near=70-mist*46;
-  scene.fog.far=180-mist*84;
+  scene.fog.near=78-mist*40;
+  scene.fog.far=210-mist*70;
   if(mist>0.02)scene.fog.color.lerp(_mist,mist*0.5);
   // sun path
   const sa=Math.PI*frac/NIGHT_AT;              // 0..pi across daytime
@@ -4870,8 +5049,12 @@ function updateDay(dt){
     sunLight.intensity=0.18;
     sunLight.color.setHex(0x9db8ff);
   }
-  hemiLight.intensity=0.25+daylight*0.55;
-  ambLight.intensity=0.32+daylight*0.18;
+  hemiLight.intensity=0.28+daylight*0.58;
+  ambLight.intensity=0.34+daylight*0.16;
+  if(fillLight){
+    fillLight.intensity=(0.16+daylight*0.2)*(1-rainAmt*0.35);
+    fillLight.color.setHex(night>0.6?0x6a7cff:0x9ecbff);
+  }
   starMat.opacity=night*0.9;
   ffMat.opacity=night*0.95;
   el.dayIco.textContent=frac<NIGHT_AT?'☀️':'🌙';
@@ -4936,7 +5119,8 @@ function updatePlants(dt,dn){
     if(ns!==p.stage){
       p.stage=ns;refreshPlantMesh(p);popMesh(p.mesh,0.5);
       if(ns===2){
-        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,10,{up:1.6,g:2});
+        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,8,{up:1.8,g:2});
+        burst(p.x+0.5,p.y+0.45,p.z+0.5,0x7ec8ff,4,{up:1.1,g:2.4,spread:1.2});
         SFX.play('grow');
         // ~8% of crops ripen GOLDEN — worth double when harvested
         if(Math.random()<0.08){p.golden=true;
@@ -5555,6 +5739,10 @@ function refreshQuestHud(){
   refreshKilnHud();
   refreshDareHud();
   if(typeof refreshStormHud==='function')refreshStormHud();
+  const nxt=UNLOCKS[(state.level|0)+1];
+  const qn=$('qNext');
+  if(qn)qn.textContent=nxt?('Next · LV '+((state.level|0)+1)+' · '+nxt):'';
+  refreshCoach(nxt);
 }
 
 /* ============================== actions ============================== */
@@ -5626,7 +5814,8 @@ function doAction(hit){
       if(!spendCoins(def.cost))return;
       addPlant(x,y+1,z,state.seedSel);
       state.planted++;SFX.play('plant');feel('plant');
-      burst(x+0.5,y+1.2,z+0.5,0x7fd370,6,{up:1.4,g:4});
+      burst(x+0.5,y+1.2,z+0.5,0x7fd370,7,{up:1.6,g:4});
+      burst(x+0.5,y+1.05,z+0.5,0x7ec8ff,4,{up:0.9,g:3,spread:0.7});
       if(def.night&&!isNight())toast('🌙 Moonpetals only grow at night…');
       questCheck();
     } else {toast('Plant in tilled soil — use the ⚒️ hoe first');SFX.play('error');}
@@ -5709,7 +5898,8 @@ function actOnPlant(p){
     SFX.play('harvest');
     feel('harvest');
     setTimeout(()=>SFX.play('coin'),140);
-    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
+    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,10,{up:2.4,g:6});
+    burst(p.x+0.5,p.y+0.4,p.z+0.5,0x7ec8ff,5,{up:1.3,g:3,spread:1.35});
     if(def.multi){
       p.harvested++;p.prog=def.grow-def.regrow;p.stage=1;
       refreshPlantMesh(p);popMesh(p.mesh,0.6);
@@ -6024,7 +6214,8 @@ function overlayOpen(){
   const ach=$('achOv')&&$('achOv').classList.contains('open');
   const alm=$('almanacOv')&&$('almanacOv').classList.contains('open');
   const shore=$('chain-modal')&&$('chain-modal').classList.contains('open');
-  return !!(help||ach||alm||shore);
+  const pause=$('pauseOv')&&$('pauseOv').classList.contains('open');
+  return !!(help||ach||alm||shore||pause);
 }
 function raycastAt(clientX,clientY){
   ptr.x=(clientX/innerWidth)*2-1;ptr.y=-(clientY/innerHeight)*2+1;
@@ -6118,10 +6309,14 @@ function bindInput(){
     if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
     else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
-    else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
-    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
+    else if(e.key==='h'||e.key==='H'||e.key==='?'){if(islePaused)setPaused(false);el.helpOv.classList.toggle('open');}
+    else if(e.key==='Escape'){
+      const was=overlayOpen()||document.body.classList.contains('photo')||islePaused;
+      el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
       const shore=document.getElementById('chain-modal');if(shore)shore.classList.remove('open');
-      document.body.classList.remove('photo');closePanels();}
+      document.body.classList.remove('photo');closePanels();setPaused(false);
+      if(!was)openPause();
+    }
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
@@ -6140,8 +6335,7 @@ function bindInput(){
   });
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    fitRenderer();
     fitCamera();
     if(typeof placePhoneBack==='function')placePhoneBack();
   });
@@ -6279,17 +6473,22 @@ function initHud(){
   const buildCancelBtn=$('buildCancel');
   if(buildCancelBtn)buildCancelBtn.addEventListener('click',()=>cancelBuildAnchor());
   refreshSeasonHud();
-  $('musicBtn').addEventListener('click',()=>{
-    state.musicOff=!state.musicOff;
-    try{
-      if(window.EurekaPersist){
-        EurekaPersist.settings.update({musicOn:!state.musicOff,muted:!!state.muted,touched:true});
-      }
-    }catch(e){}
-    $('musicBtn').style.opacity=state.musicOff?0.4:1;
-    SFX.play('click');
-  });
+  $('musicBtn').addEventListener('click',()=>{toggleMusic();SFX.play('click');});
   $('musicBtn').style.opacity=state.musicOff?0.4:1;
+  const menuBtn=$('menuBtn');
+  if(menuBtn)menuBtn.addEventListener('click',()=>{SFX.play('click');openPause();});
+  const pauseClose=$('pauseClose');
+  if(pauseClose)pauseClose.addEventListener('click',()=>{setPaused(false);SFX.play('click');});
+  const pauseMute=$('pauseMute');
+  if(pauseMute)pauseMute.addEventListener('click',()=>{toggleMute();paintPause();SFX.play('click');});
+  const pauseMusic=$('pauseMusic');
+  if(pauseMusic)pauseMusic.addEventListener('click',()=>{toggleMusic();paintPause();SFX.play('click');});
+  const pausePhoto=$('pausePhoto');
+  if(pausePhoto)pausePhoto.addEventListener('click',()=>{setPaused(false);const m=$('momentsBtn');if(m)m.click();});
+  const pauseHelp=$('pauseHelp');
+  if(pauseHelp)pauseHelp.addEventListener('click',()=>{setPaused(false);el.helpOv.classList.add('open');SFX.play('click');});
+  const pauseNew=$('pauseNew');
+  if(pauseNew)pauseNew.addEventListener('click',dropKeptIsle);
   buildSeedPanel();buildBlockPanel();
   refreshXpHud();refreshQuestHud();refreshGoodsHud();
   el.coins.textContent=state.coins;el.day.textContent=state.day;
@@ -6301,16 +6500,83 @@ function applySharedAudio(){
   const heard=EurekaPersist.audio.apply(state.muted,state.musicOff);
   state.muted=heard.muted;state.musicOff=heard.musicOff;
 }
+let islePaused=false;
+let saveArmed=false;
+const COACH_STEPS=[
+  'Tap grass with the hoe to till a plot.',
+  'Choose Plant, then tap the soil. A sunflower costs 5 coins.',
+  'Water the soil. Wet earth grows twice as fast.',
+  'When the flower ripens, tap it to harvest.',
+];
+function refreshCoach(nxt){
+  const box=$('coach');if(!box)return;
+  const step=COACH_STEPS[state.questIdx|0];
+  if(!step){box.hidden=true;return;}
+  box.hidden=false;
+  const t=$('coachText');if(t)t.textContent=step;
+  const n=$('coachNext');if(n)n.textContent=nxt?('Next · LV '+((state.level|0)+1)+' · '+nxt):'';
+}
+function setPaused(on){
+  islePaused=!!on;
+  const ov=$('pauseOv');
+  if(ov)ov.classList.toggle('open',islePaused);
+  if(islePaused){closePanels();paintPause();}
+}
+function openPause(){
+  if(fp.on)toggleFP(false);
+  setPaused(true);
+}
+function paintPause(){
+  const next=UNLOCKS[(state.level|0)+1];
+  const p=$('pauseStat');
+  if(p)p.textContent='Day '+(state.day||1)+' · LV '+(state.level||1)+' · '+(state.coins|0)+' coins'+(next?(' · '+next):'');
+  const note=$('pauseSaveNote');
+  if(note)note.textContent='The garden saves itself. Continue is the chip along the top when you come back.';
+  const mb=$('pauseMute');if(mb)mb.textContent=state.muted?'Sound off':'Sound on';
+  const mu=$('pauseMusic');if(mu)mu.textContent=state.musicOff?'Music off':'Music on';
+}
+function toggleMusic(){
+  state.musicOff=!state.musicOff;
+  try{
+    if(window.EurekaPersist){
+      EurekaPersist.settings.update({musicOn:!state.musicOff,muted:!!state.muted,touched:true});
+    }
+  }catch(e){}
+  const b=$('musicBtn');if(b)b.style.opacity=state.musicOff?0.4:1;
+}
+function flashSaved(){
+  if(!saveArmed)return;
+  const f=$('saveFlag');if(!f)return;
+  f.hidden=false;
+  clearTimeout(flashSaved._t);
+  flashSaved._t=setTimeout(()=>{f.hidden=true;},1400);
+}
+function fitRenderer(){
+  if(!renderer)return;
+  const cap=Math.min(innerWidth,innerHeight)<800?1.25:1.75;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,cap));
+  renderer.setSize(innerWidth,innerHeight);
+}
+function paintMute(){
+  const b=$('muteBtn');if(!b)return;
+  const glyph=state.muted?'🔇':'🔊';
+  const ico=b.querySelector('.ico');
+  if(ico)ico.textContent=glyph;else b.textContent=glyph;
+}
 function toggleMute(){
   state.muted=!state.muted;
   try{if(window.EurekaPersist)EurekaPersist.settings.update({muted:!!state.muted,touched:true});}catch(e){}
-  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  paintMute();
 }
 function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
 function selectTool(t,fromClick){
   const wasSel=state.tool===t;
   state.tool=t;
-  document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.tool===t));
+  document.querySelectorAll('#hotbar .slot').forEach(s=>{
+    const on=s.dataset.tool===t;
+    s.classList.toggle('sel',on);
+    s.setAttribute('aria-pressed',on?'true':'false');
+  });
   if(fromClick)SFX.play('click');
   if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
   else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
@@ -6419,6 +6685,7 @@ function save(){
       workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+    flashSaved();
     if(window.EurekaPersist){
       EurekaPersist.progress.note('voxel',{day:state.day|0,level:state.level|0,coins:state.coins|0});
     }
@@ -6439,31 +6706,48 @@ function placeQuestCard(){
   } else if(document.documentElement.style.getPropertyValue('--vox-quests-top')){
     document.documentElement.style.removeProperty('--vox-quests-top');
   }
+  if(innerWidth>640&&innerWidth<=1024&&innerHeight>800){
+    const goods=document.getElementById('goodsHud');
+    const shown=goods&&getComputedStyle(goods).display!=='none';
+    const gb=shown?goods.getBoundingClientRect():null;
+    const floor=Math.max(back.getBoundingClientRect().bottom, gb&&gb.height?gb.bottom:0);
+    const next=Math.round(floor+12)+'px';
+    if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')!==next)
+      document.documentElement.style.setProperty('--vox-quests-tablet', next);
+  } else if(document.documentElement.style.getPropertyValue('--vox-quests-tablet')){
+    document.documentElement.style.removeProperty('--vox-quests-tablet');
+  }
 }
 function placePhoneBack(){
   const chip=document.getElementById('resumeChip');
   const back=document.getElementById('back');
   const topbar=document.getElementById('topbar');
   if(!back)return;
-  if(innerWidth<=640){
+  const root=document.documentElement.style;
+  if(innerWidth<=1024){
     const bar=topbar?topbar.getBoundingClientRect():null;
     const chipBox=chip&&!chip.hidden?chip.getBoundingClientRect():null;
     const floor=Math.max(bar&&bar.height?bar.bottom:0, chipBox?chipBox.bottom:0);
     if(floor>0){
       const next=Math.round(floor+8)+'px';
-      if(document.documentElement.style.getPropertyValue('--vox-back-top')!==next)
-        document.documentElement.style.setProperty('--vox-back-top', next);
+      if(root.getPropertyValue('--vox-back-top')!==next)root.setProperty('--vox-back-top', next);
     }
-    // Keep banked goods below both New isle and the relocated nav rail.
-    const goods=Math.ceil(Math.max(floor, back.getBoundingClientRect().bottom)+8)+'px';
-    if(document.documentElement.style.getPropertyValue('--vox-goods-top')!==goods)
-      document.documentElement.style.setProperty('--vox-goods-top', goods);
+    // Goods and phone toasts sit under the nav rail, which wraps once the
+    // chips take more than one line.
+    const under=Math.ceil(Math.max(floor, back.getBoundingClientRect().bottom)+8)+'px';
+    if(root.getPropertyValue('--vox-goods-top')!==under)root.setProperty('--vox-goods-top', under);
   } else {
-    if(document.documentElement.style.getPropertyValue('--vox-back-top'))
-      document.documentElement.style.removeProperty('--vox-back-top');
-    if(document.documentElement.style.getPropertyValue('--vox-goods-top'))
-      document.documentElement.style.removeProperty('--vox-goods-top');
+    ['--vox-back-top','--vox-goods-top'].forEach(name=>{
+      if(root.getPropertyValue(name))root.removeProperty(name);
+    });
   }
+  const audio=document.getElementById('vox-audio');
+  const audioBox=audio?audio.getBoundingClientRect():null;
+  const anchor=Math.max(back.getBoundingClientRect().bottom, audioBox&&audioBox.height?audioBox.bottom:0);
+  const career=Math.max(96, Math.round(innerHeight-anchor-86))+'px';
+  if(root.getPropertyValue('--vox-career-bottom')!==career)root.setProperty('--vox-career-bottom', career);
+  const toast=Math.ceil(anchor+92)+'px';
+  if(root.getPropertyValue('--vox-toast-top')!==toast)root.setProperty('--vox-toast-top', toast);
   placeQuestCard();
 }
 function paintResume(loaded,rejected){
@@ -7644,12 +7928,8 @@ function projectMateBubble(){
   const box=$('mateBubble'), m=isleMate;
   if(!box||!m)return;
   if(m.bubbleT<=0){box.hidden=true;return;}
-  const y=(m.dispY==null?m.mesh.position.y:m.dispY)+2.05;
-  _v3.set(m.x,y,m.z).project(camera);
-  if(_v3.z<-1||_v3.z>1){box.hidden=true;return;}
-  const sx=(_v3.x*0.5+0.5)*innerWidth, sy=(-_v3.y*0.5+0.5)*innerHeight;
   box.hidden=false;
-  box.style.transform='translate('+Math.round(sx)+'px,'+Math.round(sy)+'px) translate(-50%,-118%)';
+  box.style.transform='none';
 }
 function spawnMate(){
   if(isleMate||typeof scene==='undefined')return;
@@ -7743,7 +8023,7 @@ function boot(){
   // first paint until the parser has built them
   addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
   bindInput();
-  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  paintMute();
   if(window.EurekaPersist){
     const host=document.getElementById('vox-audio');
     if(host)EurekaPersist.mount(host,{
@@ -7753,7 +8033,7 @@ function boot(){
       onChange(s){
         state.muted=!!s.muted;
         state.musicOff=!!s.muted||!s.musicOn;
-        $('muteBtn').textContent=state.muted?'🔇':'🔊';
+        paintMute();
         $('musicBtn').style.opacity=state.musicOff?0.4:1;
         save();
       },
@@ -7777,6 +8057,11 @@ function boot(){
     if(momentHold){
       const cdt=dt>0?dt:0.016;
       if(fp.on)updateFP(cdt); else updateCamera(cdt);
+      renderer.render(scene,camera);
+      if(window.EurekaMoments)EurekaMoments.afterFrame();
+      return;
+    }
+    if(islePaused){
       renderer.render(scene,camera);
       if(window.EurekaMoments)EurekaMoments.afterFrame();
       return;
@@ -7874,6 +8159,7 @@ function boot(){
     });
   } catch (e) {}
   requestAnimationFrame(frame);
+  setTimeout(()=>{saveArmed=true;},2500);
 }
 boot();
 // VOX-50: the Shore -- the memory chain, in order, with live state.
