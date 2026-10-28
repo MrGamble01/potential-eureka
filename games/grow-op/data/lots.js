@@ -368,7 +368,7 @@ const EXTRA_LOTS = [
     owner: 'market',
     propertyType: 'gas_station',
     baseBuy: 280,
-    baseLot: 520,
+    baseLot: 170,
     demolishCost: 100,
     demolishSeconds: 8,
     bonus: null
@@ -381,8 +381,8 @@ const EXTRA_LOTS = [
     size: 'medium',
     owner: 'market',
     propertyType: 'warehouse_old',
-    baseBuy: 640,
-    baseLot: 980,
+    baseBuy: 1500,
+    baseLot: 1500,
     demolishCost: 160,
     demolishSeconds: 10,
     bonus: { storage: 10 }

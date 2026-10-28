@@ -78,11 +78,13 @@ function tutorialCopy() {
 }
 
 const CHAIN_GUIDE = [
-  { id: 'grow', slot: 'slot_rp_farm1', line: 'Tap the farm: it grows leaf', test: (evt) => evt.type === 'produced' && evt.slotId === 'slot_rp_farm1' },
-  { id: 'process', slot: 'slot_rp_barn1', line: 'Watch the lab: it turns leaf into product', test: (evt) => evt.type === 'processed' && evt.slotId === 'slot_rp_barn1' },
-  { id: 'store', slot: 'slot_rp_wh1', line: 'Store it in the warehouse', test: (evt) => evt.type === 'truck_delivered' && evt.truck && evt.truck.toSlotId === 'slot_rp_wh1' },
-  { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
+  { id: 'grow', slot: 'slot_rp_farm1', line: 'Tap the farm: it grows leaf', hint: 'Upgrade the farm to grow faster', test: (evt) => evt.type === 'produced' && evt.slotId === 'slot_rp_farm1' },
+  { id: 'process', slot: 'slot_rp_barn1', line: 'Watch the lab: it turns leaf into product', hint: 'Upgrade the lab if it is waiting on leaf', test: (evt) => evt.type === 'processed' && evt.slotId === 'slot_rp_barn1' },
+  { id: 'store', slot: 'slot_rp_wh1', line: 'Store it in the warehouse', hint: 'The pips on the shed are your trucks', test: (evt) => evt.type === 'truck_delivered' && evt.truck && evt.truck.toSlotId === 'slot_rp_wh1' },
+  { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', hint: 'Street pays dirty. Cafe pays clean', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
 ];
+const CHAIN_NEED = { grow: 4, process: 4, store: 5, sell: 3 };
+const POST_SALES = 2;
 
 const TEACH_LAB = 'drying_barn';
 const TEACH_LOT = 'slot_rp_south';
@@ -94,17 +96,18 @@ const TEACH = [
 ];
 
 const NEXT_ZONE = 'jungle_alta';
-const NEXT_CASH = 2000;
+const NEXT_CASH = 6800;
 const POST = [
-  { id: 'sales', line: 'Sell 3 more times', hint: 'Keep selling at the pier', slot: 'slot_rp_pier', reward: 150 },
-  { id: 'cash', line: 'Reach $2,000', hint: 'The pier pays', slot: 'slot_rp_pier', reward: 200 },
+  { id: 'sales', line: 'Sell 2 more times', hint: 'Keep selling at the pier', slot: 'slot_rp_pier', reward: 150 },
+  { id: 'cash', line: `Reach $${NEXT_CASH.toLocaleString('en-US')}`, hint: 'Upgrade the pier to sell faster', slot: 'slot_rp_pier', reward: 200 },
   { id: 'zone', line: 'Unlock the next valley: $1,500', hint: 'Tap the lock', zone: NEXT_ZONE },
-  { id: 'coffee', line: 'Build a coffee farm', hint: 'It grows coffee', lot: 'lot_ja_clearing', building: 'coffee_estate', reward: 100 },
+  { id: 'crop', line: 'Choose a crop', hint: 'Leaf pays dirty. Coffee pays clean', lot: 'lot_ja_clearing', buildings: ['coffee_estate', 'plantation'], reward: 100 },
   { id: 'depot', line: 'Build a depot', hint: 'It adds trucks', lot: 'lot_ja_wh', building: 'transport_depot', reward: 100 },
-  { id: 'taxi', line: 'Build a taxi front', hint: 'It cleans cash', lot: 'lot_ja_gas', building: 'taxi_co', reward: 150 }
+  { id: 'taxi', line: 'Open a taxi front', hint: 'Convert the station, or build a taxi', lot: 'lot_ja_gas', building: 'taxi_co', reward: 150 }
 ];
 
 let guideStep = 0;
+let guideHits = 0;
 let guideFlash = null;
 let guideHoldUntil = 0;
 let lastSale = null;
@@ -244,9 +247,9 @@ function currentGuide(view) {
   }
   if (postLive()) {
     const step = POST[postStep];
-    const left = Math.max(1, 3 - postSales);
+    const left = Math.max(1, POST_SALES - postSales);
     const line = step.id === 'sales'
-      ? (postSales ? `Sell ${left} more ${left === 1 ? 'time' : 'times'}` : 'Sell 3 more times')
+      ? (postSales ? `Sell ${left} more ${left === 1 ? 'time' : 'times'}` : `Sell ${POST_SALES} more times`)
       : step.line;
     return {
       id: step.id,
@@ -330,6 +333,8 @@ function noteGuide(evt) {
   if (!guideLive()) return;
   const step = CHAIN_GUIDE[guideStep];
   if (!step.test(evt)) return;
+  guideHits += 1;
+  if (guideHits < (CHAIN_NEED[step.id] || 1)) return;
   const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
   guideFlash = { slot: step.slot, until: now + 1500 };
   if (phaserGame) phaserGame.registry.set('guideFlash', guideFlash);
@@ -338,6 +343,7 @@ function noteGuide(evt) {
     return;
   }
   guideStep += 1;
+  guideHits = 0;
   if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell' && lastSale && mapScene && mapScene.fx) {
     mapScene.fx({ type: 'exported', slotId: lastSale.slotId, earnedDirty: lastSale.earnedDirty || 0, earnedClean: lastSale.earnedClean || 0 });
   }
@@ -371,15 +377,17 @@ function notePost(evt) {
   if (!step) return;
   if (step.id === 'sales' && evt.type === 'exported' && (evt.earnedDirty || evt.earnedClean)) {
     postSales += 1;
-    if (postSales >= 3) advancePost();
+    if (postSales >= POST_SALES) advancePost();
     else renderHud();
     return;
   }
-  if ((evt.type === 'built' || evt.type === 'build_started') && step.building && evt.buildingId === step.building) {
+  const wanted = step.buildings || (step.building ? [step.building] : null);
+  if ((evt.type === 'built' || evt.type === 'build_started') && wanted && wanted.includes(evt.buildingId)) {
     advancePost();
     return;
   }
   if (evt.type === 'zone_unlocked' && step.id === 'zone' && evt.zoneId === step.zone) advancePost();
+  if (step.id === 'taxi' && evt.type === 'converted' && evt.lotId === step.lot && evt.role === 'launder') advancePost();
 }
 
 function idleGuide(hint) {
@@ -409,10 +417,15 @@ function guideTick() {
     guideHoldUntil = 0;
     if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') {
       guideStep += 1;
+      guideHits = 0;
       teachTouch = now;
       teachNudge = false;
     }
     renderHud();
+  }
+  if (guideLive() && !teachActive()) {
+    idleGuide(CHAIN_GUIDE[guideStep].hint);
+    return;
   }
   if (postLive()) {
     const step = POST[postStep];
@@ -782,7 +795,9 @@ function renderDrawerContent() {
     if (slotState.buildingId) {
       const bDef = BUILDINGS[slotState.buildingId];
       $('drawer-title').textContent = `${bDef.name} (Tier ${slotState.level})`;
-      const nextUpgradeCost = bDef.upgradeCostClean[slotState.level - 1];
+      const upgrade = sim.upgradeQuote(slotDef.id);
+      const upgradeCost = upgrade ? (upgrade.dirty || upgrade.clean) : 0;
+      const upgradePurse = upgrade && upgrade.dirty ? 'Dirty' : 'Clean';
 
       const inList = Object.entries(slotState.inputBuffer)
         .filter(([, q]) => q > 0)
@@ -815,13 +830,13 @@ function renderDrawerContent() {
           </div>
           <div class="go-btn-row">
             ${
-              slotState.level < 3
+              upgrade
                 ? `<button type="button" class="go-action-btn" data-action="upgrade-slot" data-slot="${slotDef.id}" ${
-                    st.cleanCash < nextUpgradeCost ? 'disabled' : ''
+                    st.dirtyCash < (upgrade.dirty || 0) || st.cleanCash < (upgrade.clean || 0) ? 'disabled' : ''
                   }>
-                    ${ICONS.upgrade} Upgrade Tier ${slotState.level + 1} ($${nextUpgradeCost} Clean)
+                    ${ICONS.upgrade} Upgrade Tier ${slotState.level + 1} ($${upgradeCost} ${upgradePurse})
                   </button>`
-                : `<button type="button" class="go-action-btn" disabled>Max Tier Reached (Lv 3)</button>`
+                : `<button type="button" class="go-action-btn" disabled>Max Tier Reached</button>`
             }
             <button type="button" class="go-action-btn go-action-btn--danger" data-action="demolish-slot" data-slot="${slotDef.id}" title="Deconstruct Facility">
               ${ICONS.demolish}
@@ -1227,8 +1242,8 @@ function goodSwatch(goodId) {
 }
 
 const BUILD_TALK = {
-  plantation: ['Farm', 'Grows leaf', 'Farm is growing leaf'],
-  coffee_estate: ['Coffee farm', 'Grows coffee', 'Coffee farm is growing coffee'],
+  plantation: ['Farm', 'Grows leaf. Pays dirty', 'Farm is growing leaf'],
+  coffee_estate: ['Coffee farm', 'Grows coffee. Pays clean', 'Coffee farm is growing coffee'],
   highland_farm: ['Highland farm', 'Grows leaf', 'Highland farm is growing leaf'],
   drying_barn: ['Lab', 'Turns leaf into product', 'Lab is making product'],
   packaging_mill: ['Packer', 'Hides product in coffee', 'Packer is hiding product'],
@@ -1343,14 +1358,16 @@ function opsPanel(lot) {
   } else if (building) {
     const ins = Object.entries(building.inputs || {});
     const outs = Object.entries(building.outputs || {});
+    const level = slot ? slot.level || 1 : 1;
+    const pace = 1 + (level - 1) * 0.4;
     const rate = [];
     ins.forEach(([id, qty]) => rate.push(`${goodSwatch(id)}<b>${qty}</b>`));
     if (ins.length && outs.length) rate.push('<span class="go-ops-arrow" aria-hidden="true"></span>');
     outs.forEach(([id, qty]) => rate.push(`${goodSwatch(id)}<b>${qty}</b>`));
-    if (!ins.length && !outs.length && building.role === 'launderer') rate.push(`<b>$${building.launderPerCycle}</b>`);
-    else if (!ins.length && !outs.length && building.trucksProvided) rate.push(`<b>+${building.trucksProvided}</b>`);
-    else if (!ins.length && !outs.length && building.exportCapPerCycle) rate.push(`<b>${building.exportCapPerCycle}</b>`);
-    if (building.cycleSeconds) rate.push(`<em>${building.cycleSeconds}s</em>`);
+    if (!ins.length && !outs.length && building.role === 'launderer') rate.push(`<b>$${Math.round(building.launderPerCycle * pace)}</b>`);
+    else if (!ins.length && !outs.length && building.trucksProvided) rate.push(`<b>+${building.trucksProvided + level - 1}</b>`);
+    else if (!ins.length && !outs.length && building.exportCapPerCycle) rate.push(`<b>${building.exportCapPerCycle * level}</b>`);
+    if (building.cycleSeconds) rate.push(`<em>${Math.max(1, Math.round(building.cycleSeconds / pace))}s</em>`);
     bits.push(`<div class="go-ops-rate">${rate.join('')}</div>`);
     const stock = [];
     if (slot) {
@@ -1358,12 +1375,16 @@ function opsPanel(lot) {
       for (const [id, qty] of Object.entries(slot.inputBuffer || {})) if (qty > 0) stock.push(`${goodSwatch(id)}<b>${qty}</b>`);
     }
     bits.push(`<div class="go-ops-stock">${stock.join('')}</div>`);
-    if (slot && building.upgradeCostClean) {
-      const maxed = slot.level >= 3;
-      const cost = building.upgradeCostClean[slot.level - 1];
-      if (!maxed && cost) {
-        const afford = sim.state.cleanCash >= cost;
-        bits.push(`<button type="button" class="go-ops-up" data-deal="upgrade" ${afford ? '' : 'disabled'} aria-label="Upgrade"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>${fmtCash(cost)}${purse('clean')}</small></button>`);
+    if (slot && building.role === 'smuggling') {
+      const buyer = slot.buyer === 'cafe' ? 'cafe' : 'street';
+      bits.push(`<div class="go-buyer"><button type="button" data-deal="buyer" data-buyer="street" class="${buyer === 'street' ? 'is-on' : ''}" aria-label="Street, more dirty cash">${purse('dirty')}${purse('dirty')}</button><button type="button" data-deal="buyer" data-buyer="cafe" class="${buyer === 'cafe' ? 'is-on' : ''}" aria-label="Cafe, more clean cash">${purse('dirty')}${purse('clean')}</button></div>`);
+    }
+    if (slot) {
+      const quote = sim.upgradeQuote(slotId);
+      if (quote) {
+        const afford = sim.state.dirtyCash >= (quote.dirty || 0) && sim.state.cleanCash >= (quote.clean || 0);
+        const price = quote.dirty ? `${fmtCash(quote.dirty)}${purse('dirty')}` : `${fmtCash(quote.clean)}${purse('clean')}`;
+        bits.push(`<button type="button" class="go-ops-up" data-deal="upgrade" ${afford ? '' : 'disabled'} aria-label="Upgrade, faster cycle"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>${price}</small></button>`);
       }
     }
   }
@@ -1393,17 +1414,18 @@ function renderBuildStrip() {
   const lock = teachActive();
   const aiming = lock && TEACH[teachStep].id === 'pick';
   const goal = postLive() ? POST[postStep] : null;
+  const aimed = goal ? (goal.buildings || (goal.building ? [goal.building] : [])) : [];
   const choices = buildChoices().slice();
   if (lock) {
     const rank = { plantation: 0, drying_barn: 1, warehouse: 2 };
     choices.sort((a, b) => (rank[a.id] ?? 9) - (rank[b.id] ?? 9));
-  } else if (goal && goal.building) {
-    choices.sort((a, b) => (a.id === goal.building ? -1 : b.id === goal.building ? 1 : 0));
+  } else if (aimed.length) {
+    choices.sort((a, b) => (aimed.includes(a.id) ? -1 : aimed.includes(b.id) ? 1 : 0));
   }
   strip.innerHTML = choices.map((building) => {
     const on = placingId === building.id ? ' is-on' : '';
     const mark = !lock && rec === building.id ? ' is-rec' : '';
-    const aim = (aiming && building.id === TEACH_LAB) || (goal && goal.building === building.id) ? ' is-aim' : '';
+    const aim = (aiming && building.id === TEACH_LAB) || aimed.includes(building.id) ? ' is-aim' : '';
     return buildCard(building, { cls: `${on}${mark}${aim}`, off: lock && building.id !== TEACH_LAB });
   }).join('');
   const aimBtn = strip.querySelector('.is-aim');
@@ -1569,6 +1591,8 @@ function effectOf(building) {
   if (building.trucksProvided) return `+${building.trucksProvided} trucks`;
   if (building.role === 'warehouse') return `Stores ${building.storageCap}`;
   if (building.heatRate < 0) return 'Cools heat';
+  if (building.id === 'coffee_estate') return 'Pays clean';
+  if (building.id === 'plantation') return 'Pays dirty';
   if (building.role === 'producer') return 'Grows crop';
   if (building.role === 'processor') return 'Processes';
   if (building.role === 'smuggling') return 'Exports';
@@ -1686,7 +1710,10 @@ function rebuildColumn(lot, def, enabled, pay) {
 }
 
 function plotColumn(lot) {
-  const ids = listedBuilds(lot);
+  const goal = postLive() ? POST[postStep] : null;
+  const aimed = goal && goal.lot === lot.id ? (goal.buildings || (goal.building ? [goal.building] : [])) : [];
+  let ids = listedBuilds(lot);
+  if (aimed.length) ids = ids.slice().sort((a, b) => (aimed.includes(a) ? -1 : aimed.includes(b) ? 1 : 0));
   const buttons = ids.map((id) => {
     const quote = buildQuote(lot, id);
     if (!quote) return '';
@@ -1700,7 +1727,7 @@ function plotColumn(lot) {
       cost: `${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s`,
       effect: effectOf(BUILDINGS[id]),
       enabled: true,
-      rec: id === ids[0]
+      rec: aimed.length ? aimed.includes(id) : id === ids[0]
     });
   }).join('');
   const picked = ghost && ghost.path === 'build' && ghost.lotId === lot.id;
@@ -1799,7 +1826,12 @@ function onDeal(action, el) {
   } else if (action === 'upgrade') {
     const lot = sim.gameplayView().lots.find((item) => item.id === openLotId);
     const result = sim.upgradeSlot(lot && lot.slotId ? lot.slotId : openLotId);
-    if (!result.ok) sheetNote = '';
+    if (!result.ok) sheetNote = result.reason || '';
+  } else if (action === 'buyer') {
+    const lot = sim.gameplayView().lots.find((item) => item.id === openLotId);
+    const slotId = lot && lot.slotId ? lot.slotId : openLotId;
+    const slot = sim.state.slots[slotId];
+    if (slot && (el.dataset.buyer === 'street' || el.dataset.buyer === 'cafe')) slot.buyer = el.dataset.buyer;
   } else if (action === 'build-plot') {
     const result = sim.buildOnPlot(openLotId, el.dataset.building);
     if (!result.ok) sheetNote = result.reason || 'Cannot build.';
@@ -1928,8 +1960,13 @@ function wireEvents() {
       teachTouch = teachNow();
       teachPulse = teachTouch;
       guideStep = 0;
+      guideHits = 0;
       guideHoldUntil = 0;
       guideFlash = null;
+      postStep = 0;
+      postSales = 0;
+      postDone = false;
+      postShown = 0;
       seenBuild.clear();
       const toast = $('build-toast');
       if (toast) toast.hidden = true;

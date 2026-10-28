@@ -353,6 +353,7 @@ export class CartelSimulation {
     const slots = Object.values(this.state.slots);
     const hasDepot = slots.some((s) => s.buildingId === 'transport_depot' && !s.raidLocked);
     let speed = hasDepot ? 210 : 165;
+    if (coreMode()) speed = hasDepot ? 155 : 115;
     if (this.state.research.radios) speed *= 1.3;
     if (this.state.weather === 'rain') speed *= 0.82;
     return speed;
@@ -436,22 +437,40 @@ export class CartelSimulation {
     return { ok: true };
   }
 
+  upgradeQuote(slotId) {
+    const slot = this.state.slots[slotId];
+    if (!slot || !slot.buildingId || slot.level >= 3) return null;
+    const bDef = BUILDINGS[slot.buildingId];
+    if (!bDef) return null;
+    if (coreMode()) {
+      if (slot.level >= 2) return null;
+      return { dirty: Math.max(120, Math.round((bDef.buildCostDirty || 200) * 0.35)), clean: 0 };
+    }
+    const clean = (bDef.upgradeCostClean && bDef.upgradeCostClean[slot.level - 1]) || 0;
+    if (!clean) return null;
+    return { dirty: 0, clean };
+  }
+
   upgradeSlot(slotId) {
     const slot = this.state.slots[slotId];
     if (!slot || !slot.buildingId) return { ok: false, reason: 'No facility on this lot.' };
-    if (slot.level >= 3) return { ok: false, reason: 'Facility is already at maximum tier (Lv 3).' };
+    const quote = this.upgradeQuote(slotId);
+    if (!quote) return { ok: false, reason: slot.level >= 2 && coreMode() ? 'That upgrade is already in.' : 'Facility is already at maximum tier (Lv 3).' };
     const bDef = BUILDINGS[slot.buildingId];
-    const costClean = bDef.upgradeCostClean[slot.level - 1] || 600;
-    if (this.state.cleanCash < costClean) {
-      return { ok: false, reason: `Requires $${costClean} Clean Cash (launder more via Fronts).` };
+    if (quote.dirty && this.state.dirtyCash < quote.dirty) {
+      return { ok: false, reason: `Requires $${quote.dirty} Dirty Cash.` };
     }
-    this.state.cleanCash -= costClean;
+    if (quote.clean && this.state.cleanCash < quote.clean) {
+      return { ok: false, reason: `Requires $${quote.clean} Clean Cash (launder more via Fronts).` };
+    }
+    this.state.dirtyCash -= quote.dirty || 0;
+    this.state.cleanCash -= quote.clean || 0;
     slot.level += 1;
     this.log(`Upgraded ${bDef.name} to Tier ${slot.level} (+40% throughput).`, 'ok');
     this.onEvent({ type: 'upgraded', slotId, level: slot.level });
     this.checkMissionsAndActs();
     this.save();
-    return { ok: true };
+    return { ok: true, quote };
   }
 
   demolishSlot(slotId) {
@@ -801,8 +820,15 @@ export class CartelSimulation {
               const seal = this.state.research.seal ? 1.2 : 1;
               const pilots = this.state.research.pilots && slot.buildingId === 'aerodrome' ? 1.15 : 1;
               const mood = this.state.priceMood || 1;
-              earnedDirty += Math.round(take * gDef.unitValueDirty * bDef.priceMultiplier * strainPriceMult * seal * pilots * mood);
-              earnedClean += Math.round(take * gDef.unitValueClean * bDef.priceMultiplier * mood);
+              let dirtyBit = Math.round(take * gDef.unitValueDirty * bDef.priceMultiplier * strainPriceMult * seal * pilots * mood);
+              let cleanBit = Math.round(take * gDef.unitValueClean * bDef.priceMultiplier * mood);
+              if (slot.buyer === 'cafe') {
+                const moved = Math.round(dirtyBit * 0.5);
+                dirtyBit -= moved;
+                cleanBit = Math.round((cleanBit + moved * 0.6) * 1.45);
+              }
+              earnedDirty += dirtyBit;
+              earnedClean += cleanBit;
               const manifest = this.state.research.manifests ? 0.7 : 1;
               if (riskLive(this.state)) reg.heat = Math.min(100, reg.heat + take * gDef.heatPerUnit * bDef.heatPerExport * mods.heatMult * manifest);
             }

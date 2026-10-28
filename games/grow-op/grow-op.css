@@ -1672,17 +1672,32 @@ html, body {
   pointer-events: none;
   z-index: 25;
 }
-.go-stack[hidden], .go-cargo[hidden], #place-hud[hidden], .go-build-strip[hidden], .go-lot-picker[hidden], #obj-hint[hidden] { display: none !important; }
+.go-stack[hidden], .go-cargo[hidden], .go-fleet[hidden], #place-hud[hidden], .go-build-strip[hidden], .go-lot-picker[hidden], #obj-hint[hidden] { display: none !important; }
 .go-cargo {
   position: absolute;
   left: 0;
   top: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background-size: cover;
   pointer-events: none;
   z-index: 26;
+}
+.go-cargo::after {
+  content: attr(data-qty);
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  border-radius: 7px;
+  background: #12151c;
+  color: #f4f7fb;
+  font: 700 9px Outfit, sans-serif;
+  line-height: 14px;
+  text-align: center;
 }
 .go-stack i {
   display: inline-flex;
@@ -1858,7 +1873,7 @@ html, body {
   padding: 8px 10px;
 }
 .go-sheet-card.is-ops h2 { font-size: 16px; }
-.go-ops { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.go-ops { display: flex; align-items: center; gap: 8px; min-height: 40px; flex-wrap: wrap; }
 .go-ops img { width: 36px; height: 36px; border-radius: 8px; }
 .go-ops-rate, .go-ops-stock { display: flex; align-items: center; gap: 3px; }
 .go-good { width: 18px; height: 18px; border-radius: 5px; display: inline-block; }
@@ -1885,6 +1900,43 @@ html, body {
 }
 .go-ops-up small { display: inline-flex; align-items: center; gap: 2px; font: 700 11px Outfit, sans-serif; }
 .go-ops-up:disabled { opacity: 0.45; }
+.go-buyer { display: inline-flex; gap: 4px; }
+.go-buyer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 48px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 184, 255, 0.35);
+  background: #12151c;
+  color: #9fb0c4;
+}
+.go-buyer button.is-on { border-color: #3ddc97; color: #3ddc97; }
+.go-buyer .go-purse { width: 14px; height: 14px; }
+.go-fleet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px 4px;
+  border-radius: 8px;
+  background: rgba(18, 22, 30, 0.9);
+  border: 1px solid rgba(126, 184, 255, 0.3);
+  pointer-events: none;
+  z-index: 26;
+}
+.go-fleet i {
+  width: 11px;
+  height: 7px;
+  border-radius: 2px 3px 2px 2px;
+  background: rgba(244, 247, 251, 0.28);
+  box-shadow: 0 2px 0 #1c140e;
+}
+.go-fleet i.is-out { background: #e7c07a; }
 .go-mini-ring {
   width: 28px;
   height: 28px;
@@ -1903,16 +1955,17 @@ html, body {
 .go-flow, .go-block {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  height: 18px;
-  padding: 1px 4px;
-  border-radius: 8px;
-  background: rgba(18, 22, 30, 0.9);
+  gap: 3px;
+  height: 24px;
+  padding: 2px 5px;
+  border-radius: 9px;
+  background: rgba(18, 22, 30, 0.92);
   border: 1px solid rgba(126, 184, 255, 0.3);
 }
+.go-block { border-color: rgba(255, 210, 154, 0.75); }
 .go-flow b, .go-block b {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   display: block;
 }
@@ -1927,6 +1980,27 @@ html, body {
   font: 700 10px Outfit, sans-serif;
   font-style: normal;
   color: #ffd7a8;
+}
+.go-block i.go-gap {
+  width: 14px;
+  height: 14px;
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid #ffd29a;
+  border-radius: 50%;
+}
+.go-block i.go-gap.is-full {
+  border-radius: 2px;
+  background: #ffd29a;
+  box-shadow: 0 -4px 0 -1px #ffd29a;
+}
+.go-block i.go-gap.is-jam {
+  width: 14px;
+  height: 8px;
+  border: none;
+  border-radius: 2px 4px 2px 2px;
+  background: #ffd29a;
+  box-shadow: inset 5px 0 0 #8ec5ff, 0 3px 0 -1px #1c140e;
 }
 .go-bill { background: #3ddc97 !important; box-shadow: inset 0 0 0 1.5px #146b45 !important; }
 .go-guide {
