@@ -1590,9 +1590,20 @@ function previewRow(nowKind, nextKind, nowName, nextName) {
   return `<div class="go-preview"><span>${thumb(nowKind)}<small>Now</small><b>${nowName}</b></span><span>${thumb(nextKind)}<small>After</small><b>${nextName}</b></span></div><button type="button" class="go-cta-btn" data-deal="confirm">Confirm</button>`;
 }
 
+function purseCash(pay) {
+  return pay === 'clean' ? sim.state.cleanCash : sim.state.dirtyCash;
+}
+
+function affordNote(amount, pay, okNote) {
+  const gap = Math.max(0, Math.ceil((amount || 0) - purseCash(pay)));
+  return { gap, note: gap ? `Need ${fmtCash(gap)}` : okNote };
+}
+
 function convertColumn(lot, pay, enabled) {
   const roles = Object.entries(lot.fits || {}).filter(([, fit]) => fit && fit.allowed);
   const rec = roles.find(([, fit]) => fit.fit === 'boost') || roles[0];
+  const afford = affordNote(lot.buyPrice || 0, pay, 'Cheaper, faster');
+  const can = enabled && !afford.gap;
   const buttons = roles.map(([role, fit]) => tileButton({
     lotId: lot.id,
     path: 'convert',
@@ -1602,7 +1613,7 @@ function convertColumn(lot, pay, enabled) {
     name: ROLE_NAME[role] || role,
     cost: `${fmtCash(lot.buyPrice)}${purse(pay)}`,
     effect: fit.fit === 'boost' ? 'Strong fit' : fit.fit === 'limit' ? 'Tight fit' : 'Fits',
-    enabled,
+    enabled: can,
     rec: rec && rec[0] === role
   })).join('');
   const picked = ghost && ghost.path === 'convert' && ghost.lotId === lot.id;
@@ -1618,11 +1629,11 @@ function convertColumn(lot, pay, enabled) {
       name: ROLE_NAME[best[0]] || best[0],
       cost: `${fmtCash(lot.buyPrice)}${purse(pay)}`,
       effect: 'Cheaper, faster',
-      enabled,
+      enabled: can,
       rec: true
     })
     : buttons;
-  return `<section class="go-path" data-path="convert"><h3>Buy &amp; convert</h3><p class="go-path-note">Cheaper, faster</p><div class="go-tile-row">${one}</div>${picked ? previewRow(lot.propertyType || 'lot', lot.propertyType || 'lot', lot.propertyLabel || lot.label, after) : ''}</section>`;
+  return `<section class="go-path${afford.gap ? ' is-short' : ''}" data-path="convert"><h3>Buy &amp; convert</h3><p class="go-path-note">${afford.note}</p><div class="go-tile-row">${one}</div>${picked ? previewRow(lot.propertyType || 'lot', lot.propertyType || 'lot', lot.propertyLabel || lot.label, after) : ''}</section>`;
 }
 
 function offerBuilding(zone, buildingId) {
@@ -1646,6 +1657,8 @@ function listedBuilds(lot) {
 
 function rebuildColumn(lot, def, enabled, pay) {
   const seconds = def ? def.demolishSeconds : 0;
+  const afford = affordNote((lot.lotPrice || 0) + (lot.demolishCost || 0), pay, '');
+  const can = enabled && !afford.gap;
   const ids = listedBuilds(lot);
   const rec = ids.includes('taxi_co') ? 'taxi_co' : ids[0];
   const buttons = ids.map((id) => {
@@ -1661,14 +1674,15 @@ function rebuildColumn(lot, def, enabled, pay) {
       name: quote.name,
       cost: `${costBits(quote.dirty, quote.clean)} · ${quote.seconds}s`,
       effect: effectOf(building),
-      enabled,
+      enabled: can,
       rec: id === rec
     });
   }).join('');
   const picked = ghost && ghost.path === 'rebuild' && ghost.lotId === lot.id && ghost.buildingId;
   const nextName = picked && BUILDINGS[ghost.buildingId] ? BUILDINGS[ghost.buildingId].shortName : '';
   const note = lot.actions.includes('buildNew') ? 'Lot is clear.' : `Demolish ${seconds}s, then build.`;
-  return `<section class="go-path" data-path="rebuild"><h3>Tear down &amp; build new</h3><p class="go-path-note">${note} ${fmtCash(lot.lotPrice)}${purse(pay)}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
+  const line = afford.gap ? `${note} Need ${fmtCash(afford.gap)}` : `${note} ${fmtCash(lot.lotPrice)}${purse(pay)}`;
+  return `<section class="go-path${afford.gap ? ' is-short' : ''}" data-path="rebuild"><h3>Tear down &amp; build new</h3><p class="go-path-note">${line}</p><div class="go-tile-row">${buttons}</div>${picked ? previewRow(lot.propertyType || 'lot', ghost.buildingId, lot.propertyLabel || 'Now', nextName) : ''}</section>`;
 }
 
 function plotColumn(lot) {

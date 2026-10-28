@@ -447,30 +447,7 @@ export class MapScene extends window.Phaser.Scene {
 
   syncTip() {
     const tip = this.ensureTip();
-    if (!this.hover) {
-      tip.hidden = true;
-      return;
-    }
-    let best = null;
-    let bestD = 80;
-    const nodes = [...Object.values(this.slots), ...Object.values(this.lots)];
-    for (const node of nodes) {
-      const x = node.def ? node.def.x : node.pos.x;
-      const y = node.def ? node.def.y : node.pos.y;
-      const d = Math.hypot(this.hover.x - x, this.hover.y - y);
-      if (d < bestD && node.pin && !node.pin.hidden && node.pin.title) {
-        best = { x, y, title: node.pin.title };
-        bestD = d;
-      }
-    }
-    if (!best) {
-      tip.hidden = true;
-      return;
-    }
-    const spot = this.worldToScreen(best.x, best.y - 96);
-    tip.hidden = false;
-    tip.textContent = best.title;
-    tip.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
+    tip.hidden = true;
   }
 
   worldToScreen(x, y) {
@@ -958,7 +935,7 @@ export class MapScene extends window.Phaser.Scene {
     const dom = this.guideTarget(guide);
     this.guideRing.clear();
     this.guideShade.clear();
-    if (live) {
+    if (live && !(guide && guide.aim === 'zone')) {
       this.guideShade.fillStyle(0x0c1410, 0.34);
       this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
     }
@@ -1691,17 +1668,49 @@ export class MapScene extends window.Phaser.Scene {
     g.strokePath();
   }
 
+  dashPoly(g, poly, dash, gap, width, color, alpha) {
+    if (!poly || poly.length < 2) return;
+    g.lineStyle(width, color, alpha);
+    const pts = poly.concat([poly[0]]);
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const x0 = pts[i][0];
+      const y0 = pts[i][1];
+      const x1 = pts[i + 1][0];
+      const y1 = pts[i + 1][1];
+      const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+      let dist = 0;
+      let draw = true;
+      while (dist < len) {
+        const step = Math.min(draw ? dash : gap, len - dist);
+        const a = dist / len;
+        const b = (dist + step) / len;
+        if (draw) {
+          g.beginPath();
+          g.moveTo(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a);
+          g.lineTo(x0 + (x1 - x0) * b, y0 + (y1 - y0) * b);
+          g.strokePath();
+        }
+        dist += step;
+        draw = !draw;
+      }
+    }
+  }
+
   veilZone(g, poly, alpha) {
     if (!poly || poly.length < 3 || alpha < 0.02) return;
-    g.fillStyle(0x102018, 0.5 * alpha);
+    const haze = Math.max(0.08, Math.min(0.2, 0.16 * alpha));
+    g.fillStyle(0xb7c2ae, haze);
     this.fillPoly(g, poly);
+    g.lineStyle(14, 0xe7fff3, 0.22 * alpha);
+    this.strokePoly(g, poly);
+    this.dashPoly(g, poly, 34, 18, 4, 0xf4fff6, Math.min(1, alpha));
   }
 
   syncFog(view) {
     const g = this.zoneFog;
     if (!g) return;
     g.clear();
-    const chart = this.chartAlpha;
+    const core = !view || view.coreMode !== false;
     for (const zone of view.zones) {
       const box = ZONE_LAYOUT[zone.id];
       if (!box || !box.poly) continue;
@@ -1709,16 +1718,16 @@ export class MapScene extends window.Phaser.Scene {
       const prev = this.fogAlpha[zone.id] == null ? target : this.fogAlpha[zone.id];
       const next = prev + (target - prev) * 0.08;
       this.fogAlpha[zone.id] = Math.abs(next - target) < 0.02 ? target : next;
-      const edge = softEdge(box.poly);
-      if (!zone.unlocked && !zone.starter && chart > 0.02) this.veilZone(g, edge, chart * 0.55);
-      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, edge, this.fogAlpha[zone.id] * 0.7);
+      if (this.fogAlpha[zone.id] > 0.02) this.veilZone(g, softEdge(box.poly), this.fogAlpha[zone.id]);
     }
-    for (const reg of REGIONS) {
-      if (!reg.unlockCostClean) continue;
-      const state = this.sim.state.regions[reg.id];
-      if (!state || state.unlocked) continue;
-      const poly = DISTRICT_EDGE[reg.id];
-      if (poly) this.veilZone(g, softEdge(poly), 0.7);
+    if (!core) {
+      for (const reg of REGIONS) {
+        if (!reg.unlockCostClean) continue;
+        const state = this.sim.state.regions[reg.id];
+        if (!state || state.unlocked) continue;
+        const poly = DISTRICT_EDGE[reg.id];
+        if (poly) this.veilZone(g, softEdge(poly), 0.7);
+      }
     }
     if (this.registry.get('showControl')) {
       for (const zone of view.zones) {
@@ -1834,7 +1843,7 @@ export class MapScene extends window.Phaser.Scene {
       else if (lot.propertyType) icon = iconKeyForProperty(lot.propertyType);
       const showIcon = !locked && close && (status === 'is-build' || status === 'is-plus' || !!icon);
       if (!showIcon) node.pin.hidden = true;
-      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, lot.propertyLabel || lot.label || '');
+      else this.placeBadge(node, node.pos.x, node.pos.y, icon, status, '');
     }
   }
 
@@ -1877,7 +1886,9 @@ export class MapScene extends window.Phaser.Scene {
         priceEl.textContent = price ? `$${Number(price).toLocaleString()}` : '';
       }
       mark.lock.dataset.zone = zone.id;
-      mark.lock.hidden = zone.unlocked || !onScreen;
+      const core = !view || view.coreMode !== false;
+      const badge = !zone.unlocked && onScreen && (!core || zone.id === 'jungle_alta');
+      mark.lock.hidden = !badge;
       if (!mark.lock.hidden) {
         const shift = price ? 36 : 12;
         mark.lock.style.transform = `translate(${Math.round(spot.x - shift)}px, ${Math.round(spot.y - 14)}px)`;
