@@ -170,13 +170,17 @@ export class MapScene extends window.Phaser.Scene {
       const block = document.createElement('div');
       block.className = 'go-block';
       block.hidden = true;
+      const fleet = document.createElement('div');
+      fleet.className = 'go-fleet';
+      fleet.hidden = true;
       this.pinHost.appendChild(pin);
       this.pinHost.appendChild(stack);
       this.pinHost.appendChild(flow);
       this.pinHost.appendChild(block);
+      this.pinHost.appendChild(fleet);
       root.add([pulse, select, raid, hit, art, ring]);
       root.setDepth(4);
-      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, flow, block, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
+      this.slots[def.id] = { def, root, hit, select, raid, art, ring, pulse, pin, stack, flow, block, fleet, key: '', buildMax: 0, wasBuilding: false, pop: 0 };
     }
   }
 
@@ -486,8 +490,7 @@ export class MapScene extends window.Phaser.Scene {
       const built = !!state.buildingId && !state.rivalControlled;
       const marked = !guided && (id === recommend || id === this.recommendId());
       node.pulse.setVisible(!guiding && !built && !state.rivalControlled && marked);
-      if (guiding && guideId) node.root.setAlpha(id === guideId ? 1 : 0.4);
-      else if (node.root.alpha !== 1) node.root.setAlpha(1);
+      if (node.root.alpha !== 1) node.root.setAlpha(1);
       if (node.pulse.visible) node.pulse.setAlpha(0.25 + Math.sin(this.phase * 3) * 0.35);
       const ctx = this.siteCtx(state, lot, id);
       if (typeof Art.textureKey === 'function' && typeof Art.drawKeyed === 'function') {
@@ -575,7 +578,8 @@ export class MapScene extends window.Phaser.Scene {
       span.hidden = true;
       span.textContent = '';
     }
-    el.title = tip || '';
+    el.title = '';
+    void tip;
     const bar = el.querySelector('.go-pin-bar');
     if (bar) {
       bar.hidden = status !== 'is-work' && status !== 'is-idle';
@@ -777,19 +781,32 @@ export class MapScene extends window.Phaser.Scene {
     return '';
   }
 
+  fleetJammed() {
+    const max = this.sim.getMaxTrucks();
+    if (!max || this.sim.state.activeTrucks.length < max) return false;
+    return Object.values(this.sim.state.slots).some((slot) => this.pileCount(slot.outputBuffer) >= 2);
+  }
+
   blockMark(state, def) {
     if (!state || !def || (state.constructLeft || 0) > 0) return null;
     const cap = storageCap(def, state.level || 1, capExtra(this.sim.state, def));
     const out = this.pileCount(state.outputBuffer);
     const inn = this.pileCount(state.inputBuffer);
-    if (def.role === 'producer' && cap && out >= cap) return { word: 'Full', good: Object.keys(def.outputs || {})[0] };
-    if (def.role === 'processor') {
-      if (cap && out >= cap) return { word: 'Full', good: Object.keys(def.outputs || {})[0] };
-      const missing = Object.keys(def.inputs || {}).find((id) => (state.inputBuffer[id] || 0) < def.inputs[id]);
-      if (missing && (state.progress || 0) < 0.05) return { word: 'Need', good: missing };
+    const jammed = this.fleetJammed();
+    if (def.role === 'producer') {
+      if (jammed && out >= 2) return { kind: 'jam', good: Object.keys(def.outputs || {})[0] };
+      if (cap && out >= cap) return { kind: 'full', good: Object.keys(def.outputs || {})[0] };
     }
-    if (def.role === 'warehouse' && cap && out + inn >= cap) return { word: 'Full', good: null };
-    if (def.role === 'smuggling' && inn < 1 && (state.progress || 0) < 0.05) return { word: 'Need', good: 'cured_pack' };
+    if (def.role === 'processor') {
+      if (cap && out >= cap) return { kind: 'full', good: Object.keys(def.outputs || {})[0] };
+      const missing = Object.keys(def.inputs || {}).find((id) => (state.inputBuffer[id] || 0) < def.inputs[id]);
+      if (missing && (state.progress || 0) < 0.05) return { kind: 'need', good: missing };
+    }
+    if (def.role === 'warehouse') {
+      if (jammed && out >= 2) return { kind: 'jam', good: null };
+      if (cap && out + inn >= cap) return { kind: 'full', good: null };
+    }
+    if (def.role === 'smuggling' && inn < 1 && (state.progress || 0) < 0.05) return { kind: 'need', good: 'cured_pack' };
     return null;
   }
 
@@ -808,14 +825,42 @@ export class MapScene extends window.Phaser.Scene {
     const blocked = def ? this.blockMark(state, def) : null;
     if (!blocked) {
       node.block.hidden = true;
+      node.block.classList.remove('is-need');
+    } else if (blocked.kind === 'need') {
+      node.block.classList.add('is-need');
+      const html = `<span class="go-miss">${blocked.good ? this.goodSwatch(blocked.good) : ''}</span><i class="go-bang">!</i>`;
+      if (node.block.dataset.block !== html) {
+        node.block.dataset.block = html;
+        node.block.innerHTML = html;
+      }
+      this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
+    } else {
+      node.block.classList.remove('is-need');
+      const glyph = blocked.kind === 'full' ? ' is-full' : blocked.kind === 'jam' ? ' is-jam' : '';
+      const html = `${blocked.good ? this.goodSwatch(blocked.good) : ''}<i class="go-gap${glyph}"></i>`;
+      if (node.block.dataset.block !== html) {
+        node.block.dataset.block = html;
+        node.block.innerHTML = html;
+      }
+      this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
+    }
+    this.syncFleet(node, state, def);
+  }
+
+  syncFleet(node, state, def) {
+    if (!node.fleet) return;
+    if (!def || def.role !== 'warehouse' || !state || (state.constructLeft || 0) > 0) {
+      node.fleet.hidden = true;
       return;
     }
-    const html = `${blocked.good ? this.goodSwatch(blocked.good) : ''}<em>${blocked.word}</em>`;
-    if (node.block.dataset.block !== html) {
-      node.block.dataset.block = html;
-      node.block.innerHTML = html;
+    const max = this.sim.getMaxTrucks();
+    const used = Math.min(max, this.sim.state.activeTrucks.length);
+    const html = Array.from({ length: max }, (_, i) => `<i class="${i < used ? 'is-out' : ''}"></i>`).join('');
+    if (node.fleet.dataset.fleet !== html) {
+      node.fleet.dataset.fleet = html;
+      node.fleet.innerHTML = html;
     }
-    this.placeStack(node.block, node.def.x - 78, node.def.y - 8);
+    this.placeStack(node.fleet, node.def.x, node.def.y - 54);
   }
 
   lotOpen(def) {
@@ -934,11 +979,7 @@ export class MapScene extends window.Phaser.Scene {
     }
     const dom = this.guideTarget(guide);
     this.guideRing.clear();
-    this.guideShade.clear();
-    if (live && !(guide && guide.aim === 'zone')) {
-      this.guideShade.fillStyle(0x0c1410, 0.34);
-      this.guideShade.fillRect(0, 0, WORLD_W, WORLD_H);
-    }
+    if (this.guideShade) this.guideShade.clear();
     const frameIt = !!(node && (live || !aim));
     const focusKey = slotId || (guide && (guide.lotId || guide.zoneId)) || null;
     if (frameIt && this.guideFocus !== focusKey) {
@@ -1245,11 +1286,13 @@ export class MapScene extends window.Phaser.Scene {
     const ink = good && good.badgeInk ? good.badgeInk : '#9ce6a8';
     const bg = good && good.badgeBg ? good.badgeBg : '#274d2e';
     const url = this.goodURL(good);
+    const qty = Math.max(1, Math.round(truck.qty || 1));
+    el.dataset.qty = String(qty);
     el.style.backgroundColor = ink;
     el.style.backgroundImage = url ? `url(${url})` : '';
     el.style.boxShadow = `0 1px 2px rgba(0,0,0,0.45), inset 0 0 0 2px ${bg}`;
     el.title = good ? good.shortName : '';
-    el.style.transform = `translate(${Math.round(spot.x - 13)}px, ${Math.round(spot.y - 30)}px)`;
+    el.style.transform = `translate(${Math.round(spot.x - 16)}px, ${Math.round(spot.y - 38)}px)`;
   }
 
   goodURL(good) {
@@ -1875,7 +1918,8 @@ export class MapScene extends window.Phaser.Scene {
         mark.lock = lock;
       }
       const affordable = !zone.blockers || zone.blockers.length === 0;
-      const show = open && zoomedOut && (zone.unlocked || affordable);
+      const core = !view || view.coreMode !== false;
+      const show = !core && open && zoomedOut && (zone.unlocked || affordable);
       mark.el.hidden = !show;
       const spot = this.worldToScreen(mark.x, mark.y);
       const onScreen = spot.x > 24 && spot.y > 48 && spot.x < this.scale.width - 24 && spot.y < this.scale.height - 64;
@@ -1886,7 +1930,6 @@ export class MapScene extends window.Phaser.Scene {
         priceEl.textContent = price ? `$${Number(price).toLocaleString()}` : '';
       }
       mark.lock.dataset.zone = zone.id;
-      const core = !view || view.coreMode !== false;
       const badge = !zone.unlocked && onScreen && (!core || zone.id === 'jungle_alta');
       mark.lock.hidden = !badge;
       if (!mark.lock.hidden) {
