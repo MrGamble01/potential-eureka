@@ -334,6 +334,13 @@
 }
 
 .hub-text-link {
+  /* 44px border box. Negative margin keeps the sentence from growing. */
+  display: inline-block;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 12px 4px;
+  margin: -12px -4px;
+  vertical-align: baseline;
   color: var(--primary-light);
   font-weight: 700;
   text-decoration: underline;
