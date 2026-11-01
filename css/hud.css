@@ -1130,10 +1130,12 @@ html.hud .career-toast {
   html.hud .tip-ok,
   html.hud .ipo-confirm,
   html.hud .ipo-cancel,
+  html.hud .elev-close,
   html.hud #sprint-btn,
   html.hud #tp-toggle,
   html.hud #elevator-btn {
     min-height: var(--hud-tap);
+    min-width: var(--hud-tap);
   }
   /* Keep the metric card and the goal card the size the floor
      already reserved. A wider chip would cover the office. */

@@ -485,7 +485,9 @@
     .floor-card .check { color: #3FB950; font-size: 18px; font-weight: 900; }
     .elev-msg { text-align: center; color: #3FB950; font-weight: 600; font-size: 12px; min-height: 16px; margin: 8px 0 0; }
     .elev-close {
-      display: block; margin: 12px auto 0;
+      display: flex; align-items: center; justify-content: center;
+      box-sizing: border-box; width: fit-content; margin: 12px auto 0;
+      min-width: 44px; min-height: 44px;
       padding: 7px 20px; font-weight: 600; font-family: inherit;
       background: rgba(255,255,255,0.07); color: #7D8590;
       border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; cursor: pointer; transition: all 0.15s;
@@ -730,6 +732,7 @@
       margin-bottom: 18px; text-align: left;
     }
     .tip-ok {
+      box-sizing: border-box; min-width: 44px; min-height: 44px;
       background: linear-gradient(135deg, rgba(108,99,255,0.32), rgba(63,185,80,0.28));
       border: 1px solid rgba(108,99,255,0.55); color: #E6EDF3;
       border-radius: 8px; padding: 10px 24px; font-weight: 800; font-size: 14px;
@@ -1301,6 +1304,7 @@
     }
     .ipo-confirm:hover { background: linear-gradient(135deg, rgba(63,185,80,0.45), rgba(108,99,255,0.45)); }
     .ipo-cancel {
+      box-sizing: border-box; min-width: 44px; min-height: 44px;
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
       color: #7D8590; border-radius: 8px; padding: 10px 24px;
       font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.15s;
