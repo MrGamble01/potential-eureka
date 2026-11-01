@@ -612,8 +612,10 @@ html, body {
 }
 
 .go-drawer-close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid var(--go-border);
   background: var(--go-card);
@@ -1394,7 +1396,7 @@ html, body {
 #obj-prog-text { flex: none; font-family: var(--go-mono); font-size: 12px; color: var(--go-muted); }
 #obj-more { margin-top: 8px; }
 .go-obj-beat, .go-obj-meta { margin: 4px 0 0; color: var(--go-muted); font-size: 12px; line-height: 1.35; }
-#obj-next { margin-top: 8px; min-height: 36px; border-radius: 10px; border: 1px solid var(--go-clean-border); background: var(--go-clean-bg); color: var(--go-clean); font-weight: 700; }
+#obj-next { margin-top: 8px; min-height: 44px; border-radius: 10px; border: 1px solid var(--go-clean-border); background: var(--go-clean-bg); color: var(--go-clean); font-weight: 700; }
 .go-event {
   left: 50%;
   right: auto;
@@ -1463,7 +1465,7 @@ html, body {
 .go-topbar { height: auto; padding: 10px 12px; }
 .go-brand-group, .go-raid-banner, .go-feed-ticker, .go-control-toggle, .go-tutorial, .go-reveal { display: none !important; }
 .go-subhud {
-  top: 52px;
+  top: 60px;
   left: 12px;
   right: auto;
   width: min(440px, calc(100vw - 24px));
@@ -1481,7 +1483,10 @@ html, body {
   pointer-events: auto;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  box-sizing: border-box;
+  min-height: 44px;
   width: min(440px, calc(100vw - 24px));
   padding: 6px 10px;
   border-radius: 10px;
@@ -1515,7 +1520,8 @@ html, body {
   flex-direction: row !important;
   align-items: center !important;
   width: max-content !important;
-  max-height: 36px !important;
+  min-height: 44px !important;
+  max-height: 48px !important;
   flex: none !important;
 }
 #cash-chip svg { width: 12px !important; height: 12px !important; }
@@ -1542,7 +1548,7 @@ body.go-core .go-pin span {
 @media (max-width: 700px) {
   .go-meters { top: 8px; }
   .go-subhud {
-    top: 52px;
+    top: 58px;
     left: 10px;
     right: 10px;
     width: auto;
@@ -1566,10 +1572,18 @@ body.go-core .go-pin span {
 .go-top-actions { pointer-events: none; position: fixed; top: 10px; right: 12px; z-index: 32; }
 .go-top-actions .go-icon-btn, #menu-panel, #menu-panel button, #mix-panel { pointer-events: auto; }
 .go-icon-btn span { display: none; }
-#btn-pause, #btn-menu { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
+#btn-pause, #btn-menu {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
 #menu-panel {
   position: absolute;
-  top: 42px;
+  top: 48px;
   right: 0;
   width: 220px;
   padding: 8px;
@@ -1583,7 +1597,7 @@ body.go-core .go-pin span {
 #menu-panel[hidden] { display: none !important; }
 #menu-panel .go-icon-btn, .go-menu-tab, #btn-log {
   width: 100%;
-  min-height: 32px;
+  min-height: 44px;
   text-align: left;
 }
 .go-mix-panel { position: static !important; width: 100% !important; margin: 0 !important; right: auto !important; top: auto !important; }
@@ -1923,7 +1937,7 @@ body.go-core .go-pin span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 32px;
+  min-height: 44px;
   padding: 0 8px;
   border-radius: 8px;
   border: 1px solid rgba(126, 184, 255, 0.45);
@@ -1936,7 +1950,7 @@ body.go-core .go-pin span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 32px;
+  min-height: 44px;
   padding: 0 8px;
   border-radius: 8px;
   border: 1px solid #ff8a3d;
@@ -1953,7 +1967,7 @@ body.go-core .go-pin span {
   justify-content: center;
   gap: 1px;
   min-width: 78px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 4px 8px 5px;
   border-radius: 8px;
   border: 1px solid rgba(126, 184, 255, 0.35);
