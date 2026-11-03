@@ -15,12 +15,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free. Voxel Isle, Ashmarch, Age of War, Startup Tycoon, Grow Op, Hearthvale, Gutterlight, Crate Escape and Tetris. Nine games, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
+  <meta name="description" content="Browser games you can play free. Age of War, Startup Tycoon, Grow Op, Hearthvale, Voxel Isle and Ashmarch. Six games, with a daily sprint and rival leaderboards. No install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
-  <meta property="og:description" content="Browser games you can play free. Voxel Isle, Ashmarch, Age of War, Startup Tycoon, Grow Op, Hearthvale, Gutterlight, Crate Escape and Tetris. Nine games, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
+  <meta property="og:description" content="Browser games you can play free. Age of War, Startup Tycoon, Grow Op, Hearthvale, Voxel Isle and Ashmarch. Six games, with a daily sprint and rival leaderboards. No install, no sign-up, works offline.">
   <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
   <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/">
   <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/">
@@ -125,19 +125,14 @@
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
              aria-label="Filter games" autocomplete="off">
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
-      <nav class="arcade-scan" aria-label="Show games">
-        <button type="button" class="arcade-scan-link arcade-scan-link--all" data-jump="all">All</button>
-        <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">Long</button>
-        <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">Quick</button>
-      </nav>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="primer-hint" role="region" aria-label="New here" hidden>
-      <span class="primer-hint-text">&#10024; <b>New here?</b> Five long games, four quick classics, and a scoreboard that stays in this browser.</span>
+      <span class="primer-hint-text">&#10024; <b>New here?</b> Six games, and a scoreboard that stays in this browser.</span>
       <button class="primer-hint-open" id="primer-hint-open">How it works &rarr;</button>
       <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
     </div>
-    <div id="daily-banner" class="hub-challenge" role="region" aria-label="Today's challenge">
+    <div id="daily-banner" class="hub-challenge" role="region" aria-label="Today's challenge" hidden>
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
       <span class="daily-sub">Same seed for everyone — set today's mark:</span>
       <span id="daily-games"></span>
@@ -148,14 +143,6 @@
     </div>
 
     <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
-      <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Long games</h2>
-          <span class="arcade-section-count">5</span>
-          <span class="arcade-section-chip">Hours</span>
-        </div>
-        <p class="arcade-section-lede">Save and come back.</p>
-      </div>
       <div class="arcade-grid arcade-grid--long">
       <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#3ddcff">
         <div class="arcade-card-screen">
@@ -230,21 +217,6 @@
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
-      </div>
-    </div>
-
-    <section id="flag-daily" class="flag-daily" aria-label="Flagship daily challenge" hidden></section>
-
-    <div class="arcade-section arcade-section--quick" id="arcade-quick" data-section="quick">
-      <div class="arcade-section-head">
-        <div class="arcade-section-label">
-          <h2 class="arcade-section-title">Quick games</h2>
-          <span class="arcade-section-count">4</span>
-          <span class="arcade-section-chip">Few minutes</span>
-        </div>
-        <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
-      </div>
-      <div class="arcade-grid arcade-grid--quick">
       <a class="arcade-card" href="games/ashmarch/" style="--accent:#8b83ff">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/hub/ashmarch.webp?v=20261103art" alt="Ashmarch cover" width="640" height="400" loading="lazy">
@@ -258,50 +230,11 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="#gutterlight" data-view="gutterlight" style="--accent:#3fb950">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/hub/gutterlight.webp?v=20261103art" alt="Gutterlight cover" width="640" height="400" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="gutterlight"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">GUTTERLIGHT</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Putting</span><span>Nine holes</span></div>
-          <div class="arcade-card-desc">Nine holes. Drag the putt. Mind the water.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#crateescape" data-view="crateescape" style="--accent:#58A6FF">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/hub/crateescape.webp?v=20261103art" alt="Crate Escape cover" width="640" height="560" loading="lazy">
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="crateescape"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span></div>
-          <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
-
-      <a class="arcade-card" href="#tetris" data-view="tetris" style="--accent:#F778BA">
-        <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/hub/tetris.webp?v=20261103art" alt="Tetris cover" width="641" height="482" loading="lazy" data-crop="right">
-          <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
-          <div class="arcade-card-shine"></div>
-          <div class="arcade-card-hi" data-hi="tetris"></div>
-        </div>
-        <div class="arcade-card-body">
-          <div class="arcade-card-title">TETRIS</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Puzzle</span></div>
-          <div class="arcade-card-desc">Stack blocks. Clear lines. Don't top out.</div>
-          <div class="arcade-card-play">&#9654; PLAY</div>
-        </div>
-      </a>
       </div>
     </div>
+
+    <section id="flag-daily" class="flag-daily" aria-label="Flagship daily challenge" hidden></section>
+
   </section>
 
   <!-- ===================== DASHBOARD ===================== -->
@@ -1185,7 +1118,7 @@
 
   <footer class="hub-footer">
     <p class="hub-kicker">Eureka Games</p>
-    <p class="hub-footer-tag">Nine browser games. Scores, saves and trophies stay in this browser.</p>
+    <p class="hub-footer-tag">Six browser games. Scores, saves and trophies stay in this browser.</p>
     <nav class="hub-footer-nav" aria-label="Footer">
       <a href="#arcade" data-view="arcade">Games</a>
       <a href="#halloffame" data-view="halloffame">Hall of Fame</a>
@@ -1228,14 +1161,11 @@
       <p class="hub-kicker">Start here</p>
       <h3 class="hub-sheet-title">&#10024; How this place works</h3>
       <p class="hub-sheet-lede">
-        Nine games. No account, no download, nothing to install. Everything below lives in this browser.
+        Six games. No account, no download, nothing to install. Everything below lives in this browser.
       </p>
       <div class="hub-sheet-body">
-        <div class="hub-point"><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
-          The <b>flagships</b> (<a class="hub-text-link" href="ageofwar/">Age of War</a>, Startup Tycoon, <a class="hub-text-link" href="games/grow-op/">Grow Op</a>, Hearthvale, Voxel Isle, Ashmarch) are their own
-          pages. Each opens with a short how to play, and a <b>?</b> button reopens it.</div>
-        <div class="hub-point"><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
-          everybody who plays it. It is the one honest way to compare a score with someone else.</div>
+        <div class="hub-point"><strong>&#127918; Six games.</strong> <a class="hub-text-link" href="ageofwar/">Age of War</a>, Startup Tycoon, <a class="hub-text-link" href="games/grow-op/">Grow Op</a>, Hearthvale, Voxel Isle and <a class="hub-text-link" href="games/ashmarch/">Ashmarch</a> each open on their own page, with a short how to play. A <b>?</b> button reopens it.</div>
+        <div class="hub-point"><strong>&#128197; Flagship Daily.</strong> One short sprint a day, on Startup Tycoon or Hearthvale. Same board, same goal, same clock, so a score can be compared.</div>
         <div class="hub-point"><strong>&#127942; <a class="hub-text-link" href="#halloffame" data-view="halloffame">The Hall of Fame</a></strong> keeps your best in every game, and hands out
           <b>trophies</b> for milestones. Each trophy mints <b>&#129689; coins</b>, which buy accent palettes in the shop.</div>
         <div class="hub-point"><strong>&#128101; Rivals, without a server.</strong> Share a code from the Hall of Fame and a friend's bests
@@ -1376,16 +1306,8 @@
         `</a>`;
       };
       const all = HubRoutes.showcaseGames();
-      const longGames = all.filter(g => g.lane === 'long');
-      const quickGames = all.filter(g => g.lane !== 'long');
-      const longGrid = document.querySelector('.arcade-grid--long');
-      const quickGrid = document.querySelector('.arcade-grid--quick');
-      if (longGrid) longGrid.innerHTML = longGames.map(cardHtml).join('\n');
-      if (quickGrid) quickGrid.innerHTML = quickGames.map(cardHtml).join('\n');
-      const longCount = document.querySelector('#arcade-long .arcade-section-count');
-      const quickCount = document.querySelector('#arcade-quick .arcade-section-count');
-      if (longCount) longCount.textContent = String(longGames.length);
-      if (quickCount) quickCount.textContent = String(quickGames.length);
+      const grid = document.querySelector('.arcade-grid--long');
+      if (grid) grid.innerHTML = all.map(cardHtml).join('\n');
     }
     const navButtons = document.querySelectorAll('[data-view]');
     let applyingHash = false;
@@ -1719,21 +1641,7 @@
       };
       // Leftover after the homepage Long/Quick split: the board was still
       // a flat pre-#988 list, and it skipped the sixth flagship.
-      const lanes = [
-        { key: 'long', title: 'Long games', chip: 'Hours' },
-        { key: 'quick', title: 'Quick games', chip: 'Minutes' },
-      ];
-      board.innerHTML = lanes.map(lane => {
-        const items = HOF_GAMES.map((g, i) => ({ g, i })).filter(x => (x.g.lane || 'quick') === lane.key);
-        return '<div class="hof-lane hof-lane--' + lane.key + '">' +
-          '<div class="hof-lane-head">' +
-            '<h3 class="hof-lane-title">' + lane.title + '</h3>' +
-            '<span class="hof-lane-count">' + items.length + '</span>' +
-            '<span class="hof-lane-chip">' + lane.chip + '</span>' +
-          '</div>' +
-          items.map(({ g, i }, n) => rowHtml(g, i, n)).join('') +
-        '</div>';
-      }).join('');
+      board.innerHTML = HOF_GAMES.map((g, i) => rowHtml(g, i, i)).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', (e) => {
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -2237,7 +2145,9 @@
     if (primerBtn) primerBtn.addEventListener('click', openPrimer);
     const challengeJump = document.getElementById('challenge-jump-btn');
     if (challengeJump) challengeJump.addEventListener('click', () => {
-      const banner = document.getElementById('daily-banner');
+      const daily = document.getElementById('daily-banner');
+      const flag = document.getElementById('flag-daily');
+      const banner = daily && !daily.hidden ? daily : flag;
       if (!banner) return;
       clearLeave();
       if (searchEl && searchEl.value) {
