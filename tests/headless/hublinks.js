@@ -45,7 +45,7 @@ function fileExists(href) {
       view: document.getElementById('view-' + (el.getAttribute('href') || '').replace(/^#/, '')) ? true : false,
     }));
   });
-  ok(cards.length === 9, `catalogue exposes 9 launch links, hero included (${cards.length})`);
+  ok(cards.length === 10, `catalogue exposes 10 launch links, hero included (${cards.length})`);
   ok(cards.every(c => c.tag === 'A' && c.href), 'every catalogue card is an anchor with an href');
   const hashCards = cards.filter(c => c.href.startsWith('#'));
   const pageCards = cards.filter(c => !c.href.startsWith('#'));
@@ -58,8 +58,10 @@ function fileExists(href) {
   ok(pageCards.some(c => c.href === 'ageofwar/' && /AGE OF WAR/.test(c.title)),
     'Age of War still links into ageofwar/');
   ok(pageCards.some(c => c.href === 'games/ashmarch/'), 'Ashmarch stays a catalogue launch link');
+  ok(pageCards.some(c => c.href === 'games/grow-op/' && /GROW OP/.test(c.title)),
+    'Grow Op opens the valley game');
   ok(!pageCards.some(c => c.href === 'games/ledger/' || c.href === 'drug-lab.html' || c.href === 'agentic-os.html' || c.href === 'homeless-village.html'),
-    'Ledger, Grow Op, Homeless Village, and Studio are not catalogue launch links');
+    'Ledger, the old Grow Op page, Homeless Village, and Studio are not catalogue launch links');
 
   const daily = await page.evaluate(() =>
     [...document.querySelectorAll('.daily-chip')].map(el => ({
@@ -106,7 +108,7 @@ function fileExists(href) {
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
 
   await page.goto(BASE + '/index.html#grow-op', { waitUntil: 'load' });
-  await page.waitForURL(/drug-lab\.html/, { timeout: 15000 });
+  await page.waitForURL(/games\/grow-op/, { timeout: 15000 });
   ok(/Grow Op/.test(await page.title()), `#grow-op lands in Grow Op (${page.url()})`);
 
   const ty = await ctx.newPage();
@@ -124,11 +126,11 @@ function fileExists(href) {
     nick: HubRoutes.viewFor('game2048'),
     stay: location.pathname.endsWith('404.html'),
   }));
-  ok(doors.stay && doors.grow === 'drug-lab.html' && doors.snake && doors.snake.name === 'snake' && doors.nick && doors.nick.name === '2048',
+  ok(doors.stay && doors.grow === 'games/grow-op/' && doors.snake && doors.snake.name === 'snake' && doors.nick && doors.nick.name === '2048',
     '404 keeps its own URL and the route map resolves nicknames');
-  const expected = ['/ageofwar/', '/tycoon/play.html', '/hearthvale.html', '/voxel-garden.html', '/games/ashmarch/', '/#gutterlight', '/#crateescape', '/#tetris'];
+  const expected = ['/ageofwar/', '/tycoon/play.html', '/games/grow-op/', '/hearthvale.html', '/voxel-garden.html', '/games/ashmarch/', '/#gutterlight', '/#crateescape', '/#tetris'];
   ok(expected.every(h => doors.links.includes(h)) && expected.filter(h => !h.includes('#')).every(fileExists),
-    '404 lists a working door for each of the eight showcase games');
+    '404 lists a working door for each of the nine showcase games');
   await missing.close();
 
   await browser.close();
