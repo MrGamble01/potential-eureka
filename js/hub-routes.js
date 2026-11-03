@@ -10,9 +10,6 @@ const HubRoutes = (() => {
     'hearthvale',
     'voxel',
     'ashmarch',
-    'gutterlight',
-    'crateescape',
-    'tetris',
   ];
 
   // Standalone pages. Keys are hashes and URL slugs, lowercase.

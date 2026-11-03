@@ -15,8 +15,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     desc: document.querySelector('meta[name="description"]').content,
     og: document.querySelector('meta[property="og:description"]').content,
   }));
-  ok(/Nine games/.test(meta.desc) && /Grow Op/.test(meta.desc) && !/Thirty-four/.test(meta.desc), 'meta description says nine games and names Grow Op');
-  ok(/Nine games/.test(meta.og) && /Grow Op/.test(meta.og) && !/20 more/.test(meta.og), 'og:description counts nine games and names Grow Op');
+  ok(/Six games/.test(meta.desc) && /Grow Op/.test(meta.desc) && !/Thirty-four/.test(meta.desc), 'meta description says six games and names Grow Op');
+  ok(/Six games/.test(meta.og) && /Grow Op/.test(meta.og) && !/20 more/.test(meta.og), 'og:description counts six games and names Grow Op');
   // maze-best rides the share code
   const code = await p.evaluate(() => { Rivals.setMyName('T'); return Rivals.shareUrl(); });
   const decoded = await p.evaluate(c => Rivals.decode(decodeURIComponent(c.replace(/^.*#hof=/, ''))), code);

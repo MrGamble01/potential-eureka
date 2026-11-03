@@ -117,13 +117,16 @@ const Daily = (() => {
   // ── Hub banner ──
   function refreshBanner() {
     const list = document.getElementById('daily-games');
+    const banner = document.getElementById('daily-banner');
     if (!list) return;
-    list.innerHTML = GAMES.filter(isListed).map(g => {
+    const shown = GAMES.filter(isListed);
+    list.innerHTML = shown.map(g => {
       const best = Utils.highScore.load(bestKey(g.id));
       return `<a class="daily-chip" href="#${g.hash}" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
         (best > 0 ? `<span class="daily-best">★ ${best}</span>` : '') +
         `</a>`;
     }).join('');
+    if (banner) banner.hidden = shown.length === 0;
     const dateEl = document.getElementById('daily-date');
     if (dateEl) dateEl.textContent = Utils.todayKey();
   }

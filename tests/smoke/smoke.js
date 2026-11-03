@@ -200,10 +200,14 @@ const TARGETS = [
       await page.waitForSelector('#view-arcade.active .arcade-card', { timeout: 15000 });
       const cards = await page.locator('#view-arcade .arcade-card').count();
       const flagship = await page.locator('a.arcade-flagship').count();
-      if (cards !== 9) throw new Error(`hub rendered ${cards} cards`);
+      if (cards !== 6) throw new Error(`hub rendered ${cards} cards`);
       if (flagship < 1) throw new Error('hub did not render the flagship link');
       const grow = await page.locator('#view-arcade a.arcade-card[href="games/grow-op/"]').count();
       if (grow !== 1) throw new Error('hub did not link Grow Op');
+      const ash = await page.locator('#view-arcade a.arcade-card[href="games/ashmarch/"]').count();
+      if (ash !== 1) throw new Error('hub did not keep Ashmarch');
+      const dropped = await page.locator('#view-arcade a[href="#gutterlight"], #view-arcade a[href="#crateescape"], #view-arcade a[href="#tetris"]').count();
+      if (dropped) throw new Error('hub still links a removed quick game');
       const banned = await page.locator('#view-arcade a[href="drug-lab.html"], #view-arcade a[href="agentic-os.html"]').count();
       if (banned) throw new Error('hub still links the old Grow Op page or Studio');
     },
@@ -258,7 +262,7 @@ const TARGETS = [
     check: async (page) => {
       await page.waitForSelector('#view-halloffame.active #hof-board .hof-row', { timeout: 15000 });
       const rows = await page.locator('#hof-board .hof-row').count();
-      if (rows !== 9) throw new Error(`Hall of Fame rendered ${rows} rows, expected 9`);
+      if (rows !== 6) throw new Error(`Hall of Fame rendered ${rows} rows, expected 6`);
     },
   },
   {
