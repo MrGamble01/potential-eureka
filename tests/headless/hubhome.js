@@ -106,7 +106,7 @@ async function openMenu(p) {
     const studio = document.querySelector('[data-section="studio"]');
     const jumps = [...document.querySelectorAll('[data-jump]')].map(b => b.dataset.jump);
     return {
-      longTitle: !!(long && /Long games/.test(long.textContent) && /4/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
+      longTitle: !!(long && /Long games/.test(long.textContent) && /5/.test((long.querySelector('.arcade-section-count') || {}).textContent || '')),
       quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /4/.test((quick.querySelector('.arcade-section-count') || {}).textContent || '')),
       studio: !!studio,
       jumps: ['long', 'quick'].every(k => jumps.includes(k)) && !jumps.includes('studio'),
@@ -114,7 +114,7 @@ async function openMenu(p) {
       quickCards: quick ? quick.querySelectorAll('.arcade-card').length : 0,
     };
   });
-  ok(scan.longTitle && scan.longCards === 4, 'Long games is labeled, counted, and holds the four flagships');
+  ok(scan.longTitle && scan.longCards === 5, 'Long games is labeled, counted, and holds the five flagships');
   ok(scan.quickTitle && scan.quickCards === 4, 'Quick games is labeled, counted, and holds the four classics');
   ok(!scan.studio && scan.jumps, 'the Studio section is gone and the scan hops are Long and Quick');
 
@@ -136,7 +136,7 @@ async function openMenu(p) {
     scanHidden: getComputedStyle(document.querySelector('.arcade-scan')).display === 'none',
     dailyHidden: getComputedStyle(document.getElementById('daily-banner')).display === 'none',
   }));
-  ok(filtered.count === '4 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
+  ok(filtered.count === '5 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
   ok(filtered.dailyHidden, 'a hit filter tucks the daily banner so the matches come up');
 
@@ -340,8 +340,8 @@ async function openMenu(p) {
       overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   });
-  ok(desktopLong.cols === 4 && desktopLong.rows === 1 && desktopLong.last === 4 && !desktopLong.overflow,
-    `1280 Long games scan as one row of four (${desktopLong.cols})`);
+  ok(desktopLong.cols === 4 && desktopLong.rows === 2 && desktopLong.last === 1 && !desktopLong.overflow,
+    `1280 Long games scan as a row of four plus Grow Op (${desktopLong.cols}x${desktopLong.rows})`);
 
   const desktopQuick = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-section="quick"] .arcade-card')];
@@ -418,8 +418,8 @@ async function openMenu(p) {
     n: document.querySelectorAll('.arcade-grid--long .arcade-card').length,
     studio: !!document.querySelector('[data-section="studio"]'),
   }));
-  ok(longCount.n === 4 && !longCount.studio,
-    '900×700 still lists the four long games and no Studio card');
+  ok(longCount.n === 5 && !longCount.studio,
+    '900×700 still lists the five long games and no Studio card');
 
   const chrome = await tp.evaluate(() => {
     const a = document.querySelector('.arcade-grid--long .arcade-card');
@@ -598,7 +598,7 @@ async function openMenu(p) {
       here: !!(long && long.classList.contains('is-landed')),
     };
   });
-  ok(fromAow.q === 'hours' && fromAow.count === '4 games' && fromAow.onScreen && fromAow.here,
+  ok(fromAow.q === 'hours' && fromAow.count === '5 games' && fromAow.onScreen && fromAow.here,
     'Age of War GAMES back restores the hours filter and Long scan');
   await aow.close();
 
@@ -702,7 +702,7 @@ async function openMenu(p) {
       rows: rows.length,
       names,
       vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
-      longTitle: !!(long && /Long games/.test(long.textContent) && /4/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
+      longTitle: !!(long && /Long games/.test(long.textContent) && /5/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
       quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /4/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
       quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
@@ -711,11 +711,11 @@ async function openMenu(p) {
       quickFirst: quick && ((quick.querySelector('.hof-row .hof-name') || {}).textContent || ''),
     };
   });
-  ok(hofBoard.rows === 8 && hofBoard.longRows === 4 && hofBoard.quickRows === 4 && hofBoard.longTitle && hofBoard.quickTitle,
-    `HoF board is 4 Long + 4 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
+  ok(hofBoard.rows === 9 && hofBoard.longRows === 5 && hofBoard.quickRows === 4 && hofBoard.longTitle && hofBoard.quickTitle,
+    `HoF board is 5 Long + 4 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
   ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
     `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
-  ok(hofBoard.longRanks.join() === '01,02,03,04'
+  ok(hofBoard.longRanks.join() === '01,02,03,04,05'
     && hofBoard.quickRanks.join() === '01,02,03,04'
     && /Ashmarch/.test(hofBoard.quickFirst),
     `HoF ranks restart per lane (Quick ${hofBoard.quickRanks.join('–')}, first ${hofBoard.quickFirst})`);

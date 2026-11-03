@@ -50,7 +50,7 @@ function names(page) {
         cards: document.querySelectorAll('#view-arcade .arcade-card').length,
       };
     });
-    ok(found.cards === 8, 'catalogue lists the eight showcase games (' + found.cards + ')');
+    ok(found.cards === 9, 'catalogue lists the nine showcase games (' + found.cards + ')');
     ok(found.onScreen, 'search sits on the first screen');
     ok(found.gutter, 'search finds Gutterlight');
     ok(found.ash, 'search finds Ashmarch');

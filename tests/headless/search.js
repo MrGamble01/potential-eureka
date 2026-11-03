@@ -15,7 +15,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     [...document.querySelectorAll('.arcade-grid .arcade-card')].filter(c => c.style.display !== 'none').length);
 
   const total = await visible();
-  ok(total === 8, `all 8 showcase cards visible initially (${total})`);
+  ok(total === 9, `all 9 showcase cards visible initially (${total})`);
 
   await page.fill('#card-search', 'tetris');
   const byTetris = await visible();

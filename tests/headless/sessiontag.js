@@ -26,7 +26,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
-const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
+const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'GROW OP', 'HEARTHVALE', 'VOXEL ISLE'];
 
 (async () => {
   const launch = {
@@ -55,7 +55,7 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
   }));
 
   const games = cards.filter(c => c.title !== 'EUREKA STUDIO');
-  ok(games.length === 8, `the grid holds the 8 showcase games (${games.length} games)`);
+  ok(games.length === 9, `the grid holds the 9 showcase games (${games.length} games)`);
   ok(games.every(c => c.sessionCount === 1),
     'every game card carries exactly one session tag');
   ok(games.every(c => c.leads === true),
@@ -63,8 +63,8 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
 
   const hours = games.filter(c => /Hours/.test(c.sessionText || ''));
   const mins = games.filter(c => /Few minutes/.test(c.sessionText || ''));
-  ok(hours.length === 4 && FLAGSHIPS.every(f => hours.some(h => h.title === f)),
-    `the four long showcase games are marked Hours (${hours.map(h => h.title).join(', ')})`);
+  ok(hours.length === 5 && FLAGSHIPS.every(f => hours.some(h => h.title === f)),
+    `the five long showcase games are marked Hours (${hours.map(h => h.title).join(', ')})`);
   ok(mins.length === 4,
     `every other showcase game is marked Few minutes (${mins.length})`);
 
@@ -72,7 +72,7 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
   await page.fill('#card-search', 'hours');
   await page.waitForTimeout(400);
   const hoursHits = await page.evaluate(() => document.getElementById('card-search-count').textContent);
-  ok(hoursHits === '4 games', `searching "hours" narrows to the long games (${hoursHits})`);
+  ok(hoursHits === '5 games', `searching "hours" narrows to the long games (${hoursHits})`);
 
   await page.fill('#card-search', 'few minutes');
   await page.waitForTimeout(400);
@@ -94,7 +94,7 @@ const FLAGSHIPS = ['AGE OF WAR', 'STARTUP TYCOON', 'HEARTHVALE', 'VOXEL ISLE'];
     overflow: document.documentElement.scrollWidth > window.innerWidth,
     tagged: [...document.querySelectorAll('.arcade-grid .tag-session')].length,
   }));
-  ok(!narrow.overflow && narrow.tagged === 8,
+  ok(!narrow.overflow && narrow.tagged === 9,
     `the tags survive a 400px phone without overflowing the page (${narrow.tagged} tagged)`);
 
   await browser.close();
