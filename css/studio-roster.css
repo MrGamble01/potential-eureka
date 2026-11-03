@@ -1,0 +1,194 @@
+/* Studio direction: Roster.
+   A dark index. The wordmark is a lockup, and each game is a row with its cover. */
+
+.ambient-blob,
+#particle-canvas,
+#matrix-canvas { display: none !important; }
+
+body:has(#view-arcade.active) {
+  background: #101114;
+  color: #eeeae3;
+}
+
+body:has(#view-arcade.active) .career-chip,
+#view-arcade .arcade-flagship,
+#view-arcade .arcade-hero-sub,
+#view-arcade .card-search-wrap,
+#view-arcade .arcade-section-lede,
+#view-arcade .arcade-section-count,
+#view-arcade .arcade-section-chip,
+#view-arcade .arcade-card-tags,
+#view-arcade .arcade-card-desc,
+#view-arcade .arcade-card-play,
+#view-arcade .arcade-card-shine,
+#view-arcade .arcade-card-hi { display: none !important; }
+
+body:has(#view-arcade.active) .hub-chrome,
+body:has(#view-arcade.active) .site-nav,
+body:has(#view-arcade.active) .arcade-shell {
+  background: #101114 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body:has(#view-arcade.active) .nav-icon-cluster { display: none !important; }
+
+body:has(#view-arcade.active) .logo-btn {
+  font-family: Outfit, Inter, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  font-size: 14px;
+  color: #f4f1ea;
+  min-height: 44px;
+}
+
+body:has(#view-arcade.active) .studio-menu,
+body:has(#view-arcade.active) .sec-link,
+body:has(#view-arcade.active) .nav-sfx-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  color: #eeeae3;
+  background: transparent;
+  border-radius: 0;
+}
+
+#view-arcade.view.active {
+  background: #101114;
+  padding-bottom: 40px;
+}
+
+#view-arcade .arcade-hero {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 4px;
+}
+
+#view-arcade .arcade-hero-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #8d887f;
+}
+
+#view-arcade .arcade-hero-title::before,
+#view-arcade .arcade-hero-title::after { content: none !important; display: none !important; }
+
+#view-arcade .arcade-hero-title {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  font-family: Outfit, Inter, sans-serif;
+  font-weight: 800;
+  font-size: clamp(48px, 12vw, 72px);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: #f7f4ee;
+  text-shadow: none;
+  animation: none !important;
+}
+
+#view-arcade .arcade-section {
+  max-width: 720px;
+  margin: 22px auto 0;
+  padding: 0 12px;
+}
+
+#view-arcade .arcade-section-title {
+  margin: 18px 8px 8px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8d887f;
+}
+
+#view-arcade .arcade-grid,
+#view-arcade .arcade-grid--long,
+#view-arcade .arcade-grid--quick {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0;
+  max-width: none;
+  grid-template-columns: 1fr !important;
+}
+
+#view-arcade .arcade-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  aspect-ratio: auto;
+  height: auto;
+  min-height: 76px;
+  padding: 8px;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+#view-arcade .arcade-card-screen {
+  position: relative;
+  inset: auto;
+  width: 112px;
+  height: 72px;
+  min-width: 112px;
+  aspect-ratio: auto;
+  flex: none;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+#view-arcade .arcade-card-poster { width: 100%; height: 100%; object-fit: cover; }
+
+#view-arcade .arcade-card-body {
+  position: static;
+  height: auto;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+}
+
+#view-arcade .arcade-card-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f7f4ee;
+  text-shadow: none;
+}
+
+#view-arcade #daily-banner,
+#view-arcade #primer-hint {
+  max-width: 720px;
+  margin: 16px auto;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #b7b2a8;
+}
+
+body:has(#view-arcade.active) .hub-footer {
+  background: #101114;
+  border: 0;
+}
+
+body:has(#view-arcade.active) .hub-footer a,
+body:has(#view-arcade.active) .hub-footer button {
+  min-height: 44px;
+  min-width: 44px;
+}
