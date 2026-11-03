@@ -1,6 +1,6 @@
 /* Arcade look on the game list.
    Glowing title, glass cards, and a real screenshot on every game.
-   Phone is two columns. Desktop is four across the page. */
+   Phone is two columns. Desktop long games sit three then two. */
 
 #view-arcade .arcade-hero-kicker,
 #view-arcade .arcade-flagship,
@@ -208,10 +208,20 @@ body:has(#view-arcade.active) .sec-link {
 @media (min-width: 1100px) {
   #view-arcade .arcade-hero { padding-top: 28px; }
   #view-arcade .arcade-grid,
-  #view-arcade .arcade-grid--long,
   #view-arcade .arcade-grid--quick {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 16px;
+  }
+  /* Five long games: three across, then two centered. */
+  #view-arcade .arcade-grid--long {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+  #view-arcade .arcade-grid--long .arcade-card {
+    width: calc((100% - 32px) / 3);
+    flex: 0 0 calc((100% - 32px) / 3);
   }
   #view-arcade .arcade-card-title { font-size: 14px; }
 }
