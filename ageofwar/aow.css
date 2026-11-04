@@ -1949,6 +1949,17 @@
   }
 }
 
+/* 1280×800: the 140px cap hid the training row under the tabs.
+   Let the queue and the recruits lay out at their own height. */
+@media (min-width: 1100px) and (max-height: 940px) {
+  #aow-units-tab {
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .aow-train-row { margin-top: 10px; }
+}
+
 /* Landscape phones are wider than 721px, so they get this column, but
    a 390px height cannot also hold a 260px field. Shrink the HUD and
    the cards until Clubman fits; the shell still scrolls if it does not. */
@@ -2053,4 +2064,160 @@
   .aow-action {
     min-height: 44px;
   }
+}
+
+/* Orders on the left, pause and the record on the right.
+   One row. Later eras scroll the order group instead of wrapping
+   a second pile over the battlefield. */
+@media (min-width: 721px) {
+  .aow-actionbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 8px;
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: none;
+  }
+  .aow-action-group {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+  }
+  .aow-action-group--orders {
+    flex: 1 1 auto;
+    overflow-x: auto;
+  }
+  .aow-action-group--meta {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+  .aow-action {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+  .aow-action-lbl {
+    max-width: 12ch;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .aow-action-lbl small { display: none; }
+}
+
+/* Tall phone: a landscape strip framed on the ground (the drawing
+   crops the empty sky). Orders and recruits sit under it, not on it. */
+@media (max-width: 720px) and (min-height: 640px) {
+  html, body { height: 100%; }
+  body {
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .ea-topbar { flex: 0 0 auto; padding: 4px 8px 2px; }
+  #view-ageofwar {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .aow-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 6px;
+    padding: 2px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+  }
+  .aow-topbar {
+    flex: 0 0 auto;
+    order: 1;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .aow-brand-mark, .aow-brand-name { display: none; }
+  .aow-battle-strip { display: none; }
+  .aow-sky { display: none; }
+  .aow-stage {
+    order: 2;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    height: auto;
+    display: block;
+    background: transparent;
+    overflow: hidden;
+  }
+  .aow-stage > .aow-canvas {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    max-width: 100%;
+    aspect-ratio: 1280 / 560;
+    margin: 0;
+    display: block;
+  }
+  .aow-tabs { order: 3; flex: 0 0 auto; }
+  #aow-units-tab,
+  #aow-turrets-tab { order: 4; flex: 0 0 auto; min-height: 0; }
+  .aow-train-row { margin-top: 0; padding: 2px 4px; }
+  .aow-train-slot { height: 28px; }
+  .aow-train-status { display: none; }
+  .aow-spawn-list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    margin-top: 4px;
+    grid-template-columns: none;
+  }
+  .aow-spawn-btn {
+    flex: 1 0 56px;
+    width: auto;
+    min-width: 56px;
+    max-width: 76px;
+    min-height: 64px;
+    padding: 4px 2px 6px;
+  }
+  .aow-spawn-sprite { width: 36px; height: 36px; }
+  .aow-actionbar {
+    order: 5;
+    position: static;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    max-height: none;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+    grid-template-columns: none;
+  }
+  .aow-action-group {
+    display: flex;
+    flex: 1 1 0;
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .aow-action-group--meta { margin-left: 0; flex: 1 1 0; }
+  .aow-action {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 2px;
+  }
+  .aow-action-lbl { font-size: 9px; max-width: none; letter-spacing: 0; }
+  .aow-hint { display: none; }
 }

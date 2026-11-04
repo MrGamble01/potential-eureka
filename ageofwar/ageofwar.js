@@ -1065,12 +1065,24 @@ const AgeOfWarGame = (() => {
     const key = 'juice' + kind.charAt(0).toUpperCase() + kind.slice(1);
     canvas.dataset[key] = String(juice[kind]);
   }
+  // Phone portrait frames the ground. The lane stays full width so both
+  // castles remain, and the vertical scale is 2× so the soldiers are
+  // readable. Desktop keeps the whole 1280×560 picture.
+  const PHONE_VIEW_TOP = 280;
+  function phoneView() {
+    if (typeof matchMedia !== 'function') return null;
+    if (!matchMedia('(max-width: 720px) and (min-height: 640px)').matches) return null;
+    return { top: PHONE_VIEW_TOP, height: HEIGHT - PHONE_VIEW_TOP };
+  }
   function screenPoint(x, y) {
     if (!canvas || !canvas.getBoundingClientRect) return { x: x, y: y };
     const r = canvas.getBoundingClientRect();
+    const view = phoneView();
+    const top = view ? view.top : 0;
+    const worldH = view ? view.height : HEIGHT;
     return {
       x: r.left + (x / WIDTH) * r.width,
-      y: r.top + (y / HEIGHT) * r.height,
+      y: r.top + ((y - top) / worldH) * r.height,
     };
   }
   function feelAt(x, y, opts) {
@@ -3957,9 +3969,12 @@ const AgeOfWarGame = (() => {
       // is the DPR-scaled backing store) — game entities live in logical
       // coordinates, so dividing by the backing store here would silently
       // scale every click by devicePixelRatio.
+      const view = phoneView();
+      const top = view ? view.top : 0;
+      const worldH = view ? view.height : HEIGHT;
       return {
         x: (e.clientX - rect.left) * (WIDTH  / rect.width),
-        y: (e.clientY - rect.top)  * (HEIGHT / rect.height),
+        y: top + (e.clientY - rect.top) * (worldH / rect.height),
       };
     }
     canvas.addEventListener('pointerdown', e => {
@@ -5154,8 +5169,12 @@ const AgeOfWarGame = (() => {
     const ty = oy + momentCam.y + HEIGHT * (1 - z) / 2;
     // Reapply dpr on every setTransform — the shake offset is in logical
     // units, but setTransform's translate is in device pixels, so it must
-    // be scaled by dpr too.
-    ctx.setTransform(dpr * z, 0, 0, dpr * z, tx * dpr, ty * dpr);
+    // be scaled by dpr too. A phone frame uses twice that vertical scale
+    // and starts at the ground, so the same lane reads larger.
+    const view = phoneView();
+    const yScale = view ? dpr * (HEIGHT / view.height) : dpr;
+    const yOrigin = view ? view.top : 0;
+    ctx.setTransform(dpr * z, 0, 0, yScale * z, tx * dpr, (ty - yOrigin) * yScale);
     // ---- Atmosphere ----
     // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.
     const [skyTop, skyHorizon] = OG_SKY[playerEra] || ['#120818', '#3a2410'];

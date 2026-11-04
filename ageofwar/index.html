@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261018aowfield">
+  <link rel="stylesheet" href="/ageofwar/aow.css?v=20261103aowfield">
   <link rel="stylesheet" href="/css/feel.css?v=20261017moments4">
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <link rel="stylesheet" href="/css/tokens.css?v=20261025theme">
@@ -160,6 +160,7 @@
       </div>
 
       <div class="aow-actionbar">
+        <div class="aow-action-group aow-action-group--orders" aria-label="Orders">
         <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
         <button id="aow-special-btn" class="aow-action aow-action-special" title="Boulder (Space) — drops on the enemy line. A short cooldown, then it reads READY."><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
         <button id="aow-hero-btn" class="aow-action aow-action-hero"><span class="aow-action-ico">🦸</span><span class="aow-action-lbl">Hero</span><span class="aow-action-cd" id="aow-hero-cd"></span></button>
@@ -196,9 +197,13 @@
         <button id="aow-guide-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Walk — three walks of the fresco and the oldest sergeant in the muster takes every new recruit down it on their first morning: the first muster, the bench, the fire, the cadence, the cornerstone seam, panel by panel. Do it once a session, and the recruit fights like they were there for all of it."><span class="aow-action-ico">🧭</span><span class="aow-action-lbl">Walk</span><span class="aow-action-cd" id="aow-guide-cd"></span></button>
         <button id="aow-mark-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Panel — three walks and the recruit who was taken down the fresco on their first morning asks for the brush: the panel after the cornerstone seam, their own first muster, in their own hand. Do it once a session; the whole line falls out to watch."><span class="aow-action-ico">✍️</span><span class="aow-action-lbl">Panel</span><span class="aow-action-cd" id="aow-mark-cd"></span></button>
         <button id="aow-lroom-btn" class="aow-action aow-action-special" style="display:none" title="The Long Room — the fresco has run out of wall. 900 gold, once ever, takes the armoury wall out and runs the whole line through it; then sit in it once a session."><span class="aow-action-ico">🏛️</span><span class="aow-action-lbl">Long Room</span><span class="aow-action-cd" id="aow-lroom-cd"></span></button>
-        <button id="aow-chain-btn" class="aow-action aow-action-ach" title="The Line — everything this army remembers, in the order it happened, and what the next one is waiting on."><span class="aow-action-ico">🧱</span><span class="aow-action-lbl">The Line</span></button><button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
+        </div>
+        <div class="aow-action-group aow-action-group--meta" aria-label="Battle">
+        <button id="aow-chain-btn" class="aow-action aow-action-ach" title="The Line — everything this army remembers, in the order it happened, and what the next one is waiting on."><span class="aow-action-ico">🧱</span><span class="aow-action-lbl">The Line</span></button>
+        <button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
         <button id="aow-pause-btn" class="aow-action"><span class="aow-action-ico">⏸️</span><span class="aow-action-lbl">Pause</span></button>
         <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
+        </div>
       </div>
 
       <div class="aow-tabs">
