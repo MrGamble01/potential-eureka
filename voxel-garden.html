@@ -271,7 +271,7 @@
     #banner h2{font-size:26px}
     #banner p{font-size:13px}
     #fpTool{font-size:110px;left:82%}
-    #vox-tray{bottom:78px;max-height:calc(100vh - 106px)}
+    #vox-tray{bottom:calc(124px + env(safe-area-inset-bottom));max-height:calc(100vh - 220px)}
     #camPad{display:grid;bottom:calc(130px + env(safe-area-inset-bottom))}
     #hotbar{bottom:calc(62px + env(safe-area-inset-bottom))}
     #buildBar{left:calc(50% + 40px);max-width:min(230px,68vw)}
@@ -331,6 +331,9 @@
   pointer-events:none;
 }
 #vox-tray > *{ pointer-events:auto;flex:0 0 auto; }
+@media (max-width:640px){
+  #vox-tray{bottom:calc(124px + env(safe-area-inset-bottom));max-height:calc(100vh - 220px)}
+}
 </style>
 <style>
 /* The deckhand. Orders live in a thumb-sized dock that stays off the
@@ -362,8 +365,12 @@
 body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
 @media (max-width:640px){
   #mateDock{
-    left:auto;right:8px;top:auto;bottom:calc(200px + env(safe-area-inset-bottom));
-    transform:none;width:88px;
+    left:auto;right:8px;top:auto;bottom:calc(210px + env(safe-area-inset-bottom));
+    transform:none;width:auto;flex-direction:row-reverse;align-items:center;
+  }
+  #mateDock button[data-order]{display:none}
+  #mateDock.open button[data-order]{
+    display:inline-flex;min-width:44px;min-height:44px;padding:6px 8px;font-size:12px;
   }
 }
 @media (max-height:480px){
@@ -372,7 +379,7 @@ body.photo #mateBubble,body.panel-open #mateDock{display:none!important}
     display:grid;grid-template-columns:1fr 1fr;width:156px;
   }
   #mateName{display:none}
-  #mateDock button[data-order]{min-width:0;min-height:40px;padding:4px 6px;font-size:12px}
+  #mateDock button[data-order]{display:inline-flex;min-width:0;min-height:40px;padding:4px 6px;font-size:12px}
 }
 </style>
 <link rel="stylesheet" href="/css/hud-b.css?v=20261018topbar">
@@ -7263,6 +7270,10 @@ function mateOnName(){
   clearTimeout(mateNameTimer);
   mateNameTimer=setTimeout(()=>{
     if(mateNameTaps>=2)mateToggleBooth();
+    else if(narrowIsle()){
+      const dock=$('mateDock');
+      if(dock)dock.classList.toggle('open');
+    }
     else if(isleMate)toast('🧭 '+isleMate.name+' — follow, gather, build here, or wait.');
     mateNameTaps=0;
   },320);
