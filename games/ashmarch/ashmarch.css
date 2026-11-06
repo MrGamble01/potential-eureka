@@ -404,20 +404,43 @@ input:focus, textarea:focus, button:focus-visible {
 
 @media (max-width: 980px) {
   .home, .play { grid-template-columns: 1fr; }
-  .stage { border-right: 0; }
+  .stage { border-right: 0; min-width: 0; }
   .app { height: auto; min-height: 100dvh; }
-  .play { display: flex; flex-direction: column; }
-  .transcript { max-height: none; }
-  .composer { position: sticky; bottom: 0; }
+  /* The road fills the screen. Home still grows with the book. */
+  .app:has(.play) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .play {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+  }
+  .app:has(.play) .stage { overflow: visible; flex: none; }
+  .transcript { max-height: none; overflow: visible; min-width: 0; }
   .book-picker { grid-template-columns: 1fr; }
   .home { padding: 16px; gap: 16px; }
   .manifesto h1 { font-size: clamp(2.6rem, 14vw, 4rem); }
   .scene { order: 1; }
-  .party-strip { order: 2; }
-  .composer { order: 3; position: static; }
+  .party-strip { order: 2; min-width: 0; max-width: 100%; }
   .ticker, .resume-banner { order: 4; }
   .transcript { order: 5; }
-  .scene img { height: 220px; min-height: 200px; }
+  /* Choices stay under the passage, pinned while the road scrolls. */
+  .composer {
+    order: 6;
+    position: sticky;
+    bottom: 0;
+    max-height: min(46dvh, 340px);
+    overflow: auto;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .scene img { height: 180px; min-height: 140px; }
+  .turn { scroll-margin-top: 8px; scroll-margin-bottom: 12px; }
+  .narration:focus { outline: 2px solid var(--gold); outline-offset: 4px; }
   .narration p { font-size: 1.12rem; line-height: 1.6; }
   .dice-overlay { padding: 16px; }
   .die { width: 88px; height: 88px; }
@@ -428,8 +451,26 @@ input:focus, textarea:focus, button:focus-visible {
   * { scroll-behavior: auto !important; }
   .die.spinning, .die.settled { animation: none; }
 }
+@media (max-width: 980px) and (max-height: 520px) {
+  .scene img { height: 96px; min-height: 72px; }
+  .party-strip li { min-height: 48px; min-width: 140px; }
+  .party-strip .portrait { width: 40px; height: 40px; }
+  .composer { max-height: 42dvh; }
+  .topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
+  .brand { font-size: 1.05rem; }
+  .narration p { font-size: 1.02rem; line-height: 1.45; }
+}
 @media (max-width: 740px) {
-  .topbar { align-items: stretch; flex-direction: column; padding-left: 16px; padding-right: 16px; }
+  .topbar { align-items: center; flex-direction: row; flex-wrap: wrap; padding-left: 12px; padding-right: 12px; }
   .party-intro li, .party-cards li { grid-template-columns: 56px 1fr; }
-  .composer-row .choice { min-height: 48px; }
+  .composer-row .choice { min-height: 48px; flex: 1 1 140px; }
+  .composer-row .fine { flex: 1 1 100%; }
+}
+@media (min-width: 981px) {
+  .composer { max-height: min(42vh, 380px); overflow: auto; }
+}
+@media (min-width: 981px) and (max-height: 1040px) {
+  .scene img { height: min(26vh, 260px); min-height: 140px; }
+  .party-strip li { min-height: 56px; }
+  .composer { max-height: min(34vh, 280px); }
 }

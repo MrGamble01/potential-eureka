@@ -3961,7 +3961,7 @@ function play(state) {
         ${latest ? `<p class="ticker">Remembered \u2014 ${escapeHtml(latest.text)}</p>` : ""}
         ${state.resumed ? `<p class="resume-banner">The Chronicle kept this road. ${campaign.memories.length} ${campaign.memories.length === 1 ? "memory is" : "memories are"} still warm.</p>` : ""}
         ${state.saveNote ? `<p class="resume-banner" role="status">${escapeHtml(state.saveNote)}</p>` : ""}
-        <div class="transcript" id="ash-transcript" aria-live="polite">
+        <div class="transcript" id="ash-transcript">
           ${turns.map((turn) => turnHtml(turn)).join("")}
           ${state.busy ? `<p class="waiting">The Chronicle is writing, and the party is already interrupting.</p>` : ""}
         </div>
@@ -4060,8 +4060,19 @@ function bind(root2, state, engine2, refresh, paint) {
         state.bookId = id;
         captureDraft(root2, state);
         paint();
+        root2.querySelector(`[data-book="${id}"]`)?.focus();
       }
     });
+  });
+  root2.querySelector(".book-picker")?.addEventListener("keydown", (event) => {
+    if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+    const buttons = [...root2.querySelectorAll("[data-book]")];
+    if (!buttons.length) return;
+    event.preventDefault();
+    const current = buttons.findIndex((entry) => entry === document.activeElement || entry.getAttribute("aria-checked") === "true");
+    const dir = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+    const next = buttons[(Math.max(0, current) + dir + buttons.length) % buttons.length];
+    next?.click();
   });
   root2.querySelector("#ash-begin")?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -4071,6 +4082,7 @@ function bind(root2, state, engine2, refresh, paint) {
       state.resumed = false;
       state.diceTurn = null;
       state.saveNote = null;
+      state.focusTurn = true;
       refresh();
     });
   });
@@ -4083,6 +4095,7 @@ function bind(root2, state, engine2, refresh, paint) {
         state.resumed = true;
         state.diceTurn = null;
         state.saveNote = null;
+        state.focusTurn = true;
       });
     });
   });
@@ -4118,6 +4131,7 @@ function bind(root2, state, engine2, refresh, paint) {
   });
   root2.querySelector("#ash-save")?.addEventListener("click", () => {
     if (!state.active) return;
+    state.restoreFocus = "#ash-save";
     void run(state, paint, async () => {
       const next = engine2.save(state.active.id);
       state.saveNote = `Saved. Continue will bring back ${next.playerName} at ${next.placeTitle}.`;
@@ -4132,8 +4146,28 @@ function bind(root2, state, engine2, refresh, paint) {
     paint();
   });
   const transcript = root2.querySelector("#ash-transcript");
-  if (transcript) transcript.scrollTop = transcript.scrollHeight;
-  if (state.active) window.scrollTo(0, 0);
+  const narrow = window.matchMedia("(max-width: 980px)").matches;
+  if (transcript && !narrow) transcript.scrollTop = transcript.scrollHeight;
+  if (state.active && !narrow) window.scrollTo(0, 0);
+  if (state.active && narrow) {
+    const scene = root2.querySelector(".scene");
+    const latest = transcript?.querySelector(".turn:last-child");
+    if (state.diceTurn !== null && scene) scene.scrollIntoView({ block: "start" });
+    else if (latest) latest.scrollIntoView({ block: "start" });
+  }
+  if (!state.busy && state.focusTurn) {
+    const target = root2.querySelector("#ash-transcript .turn:last-child .narration")
+      || root2.querySelector("#ash-transcript .waiting");
+    if (target) {
+      target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+    }
+    state.focusTurn = false;
+  }
+  if (!state.busy && state.restoreFocus) {
+    root2.querySelector(state.restoreFocus)?.focus();
+    state.restoreFocus = null;
+  }
   const dice = root2.querySelector("[data-dice]");
   if (dice && state.diceTurn !== null) {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -4153,6 +4187,7 @@ async function act(state, engine2, refresh, paint, text) {
     state.resumed = false;
     state.saveNote = null;
     state.diceTurn = state.active.state.lastRoll ? state.active.state.turn : null;
+    state.focusTurn = true;
     refresh();
   });
 }
