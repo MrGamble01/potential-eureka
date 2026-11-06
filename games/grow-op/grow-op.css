@@ -1821,44 +1821,47 @@ body.go-core .go-pin span {
   border: 1px solid rgba(57, 229, 138, 0.55);
   pointer-events: auto;
 }
-.go-build-strip { align-items: stretch; padding: 10px; }
+.go-build-strip { align-items: stretch; padding: 12px; gap: 12px; }
 .go-build-card {
   flex: 0 0 auto;
-  width: 156px;
-  min-height: 148px;
-  padding: 8px;
+  width: 176px;
+  min-height: 168px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
-  border-radius: 12px;
+  gap: 8px;
+  border-radius: 14px;
   border: 1px solid rgba(126, 184, 255, 0.28);
   background: #12151c;
   color: #f4f7fb;
   text-align: left;
   pointer-events: auto;
 }
-.go-build-card img { width: 40px; height: 40px; border-radius: 8px; display: block; }
-.go-build-card b { font: 700 15px Outfit, sans-serif; }
+.go-build-card img { width: 44px; height: 44px; border-radius: 8px; display: block; }
+.go-build-card b { font: 700 17px Outfit, sans-serif; line-height: 1.15; }
 .go-build-card em {
-  font: 600 13px Outfit, sans-serif;
+  font: 600 14px Outfit, sans-serif;
   font-style: normal;
   color: #e7eef8;
-  line-height: 1.25;
-  min-height: 2.5em;
+  line-height: 1.35;
+  min-height: 2.7em;
 }
 @media (max-width: 820px) {
-  .go-build-card { width: 112px; min-height: 158px; }
-  .go-build-strip, .go-lot-picker { gap: 6px; }
+  .go-build-strip { gap: 8px; padding: 8px; bottom: 72px; }
+  .go-build-card { width: 148px; min-height: 156px; padding: 10px; gap: 6px; }
+  .go-build-card b { font-size: 15px; }
+  .go-build-card em { font-size: 13px; }
+  .go-lot-picker { gap: 8px; }
 }
 .go-build-card small {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font: 700 12px Outfit, sans-serif;
+  gap: 6px;
+  font: 700 13px Outfit, sans-serif;
   color: #f4f7fb;
 }
-.go-build-flow { display: flex; align-items: center; gap: 3px; min-height: 18px; }
+.go-build-flow { display: flex; align-items: center; gap: 6px; min-height: 22px; }
 .go-build-card:disabled { opacity: 0.55; }
 .go-build-card.is-on { border-color: #58a6ff; }
 .go-sheet-card.is-ops .go-sheet-kicker {
@@ -2165,4 +2168,8 @@ body.go-core .go-pin span {
   color: #9ce6a8;
   padding-left: 6px;
   border-left: 1px solid rgba(157, 230, 168, 0.35);
+}
+.go-earn.is-idle {
+  color: #b7c0cc;
+  border-left-color: rgba(183, 192, 204, 0.4);
 }
