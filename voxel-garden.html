@@ -334,6 +334,11 @@
 @media (max-width:640px){
   #vox-tray{bottom:calc(124px + env(safe-area-inset-bottom));max-height:calc(100vh - 220px)}
 }
+/* The shore chip and the policy chip were 32px. A phone taps them.
+   The tray is pinned above the hotbar, so the extra height grows up. */
+@media (max-width:700px), (max-height:520px){
+  #vox-tray > *{ min-height:44px; box-sizing:border-box; }
+}
 </style>
 <style>
 /* The deckhand. Orders live in a thumb-sized dock that stays off the
