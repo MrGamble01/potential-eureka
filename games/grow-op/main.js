@@ -552,7 +552,12 @@ function renderHud() {
   $('dirty-cash-val').textContent = fmtCash(st.dirtyCash);
   $('clean-cash-val').textContent = fmtCash(st.cleanCash);
   const rate = $('earn-rate');
-  if (rate) rate.textContent = `+${fmtCash(earnPerMinute(st))}/m`;
+  if (rate) {
+    const perMin = earnPerMinute(st);
+    rate.textContent = perMin > 0 ? `+${fmtCash(perMin)}/m` : 'No income';
+    rate.classList.toggle('is-idle', perMin <= 0);
+    rate.title = perMin > 0 ? 'Cash coming in each minute' : 'Nothing is earning yet';
+  }
 
   const actDef = camp.actInfo || ACTS[st.act] || ACTS[1];
   $('act-kicker').textContent = actDef.badge;
