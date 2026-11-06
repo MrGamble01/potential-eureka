@@ -22,14 +22,15 @@
   <main>
     <section class="meters" aria-label="Book">
       <div class="cash">Cash <strong id="cash">$100</strong></div>
-      <div class="heat" title="City attention. A full bar brings the authorities.">
+      <div class="heat" id="heat" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Heat. A full bar brings the authorities.">
         <span>Heat</span>
         <div class="heat-track" aria-hidden="true"><div id="heat-fill"></div></div>
         <strong id="heat-num">0</strong>
       </div>
     </section>
     <p class="lede">Crates move yard, dock, then corner. Staff both legs or the chain sits. Heat brings the authorities. When the chair falls, an heir takes the book and the city keeps moving.</p>
-    <p id="now" class="now" role="status"></p>
+    <p id="now" class="now"></p>
+    <p id="now-live" class="sr-only" role="status"></p>
     <section class="chain" aria-label="Route">
       <article class="node"><h2>Yard</h2><strong id="yard">0</strong><span>crates</span></article>
       <article class="leg">

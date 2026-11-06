@@ -217,20 +217,36 @@ function tick() {
 }
 
 let crewSig = '';
+let lastSpoken = '';
 
 function paint(forceCrew) {
   $('boss').textContent = state.heirN > 0 ? state.boss + ', heir' : state.boss;
   $('cash').textContent = '$' + state.cash;
   $('heat-num').textContent = String(state.heat);
   $('heat-fill').style.width = state.heat + '%';
-  $('heat-num').parentElement.classList.toggle('hot', state.heat >= 80);
-  $('now').textContent = nowLine();
+  $('heat').setAttribute('aria-valuenow', String(state.heat));
+  $('heat').classList.toggle('hot', state.heat >= 80);
+  const line = nowLine();
+  $('now').textContent = line;
+  const spoken = line.replace(/Heat \d+\.$/, '').trim();
+  if (spoken !== lastSpoken) {
+    lastSpoken = spoken;
+    $('now-live').textContent = spoken;
+  }
   $('yard').textContent = String(state.stock.yard);
   $('dock').textContent = String(state.stock.dock);
   $('corner').textContent = String(state.stock.corner);
-  $('pause').textContent = state.paused ? 'Resume' : 'Pause';
-  $('laylow').textContent = state.lay > 0 ? 'Laying low' : 'Lay low';
-  $('restart').textContent = state.armUntil > Date.now() ? 'Restart? Click again' : 'Restart';
+  const pause = $('pause');
+  pause.textContent = state.paused ? 'Resume' : 'Pause';
+  pause.setAttribute('aria-pressed', state.paused ? 'true' : 'false');
+  const lay = $('laylow');
+  lay.textContent = state.lay > 0 ? 'Laying low' : 'Lay low';
+  lay.disabled = state.lay > 0;
+  lay.setAttribute('aria-pressed', state.lay > 0 ? 'true' : 'false');
+  const armed = state.armUntil > Date.now();
+  const restart = $('restart');
+  restart.textContent = armed ? 'Restart?' : 'Restart';
+  restart.setAttribute('aria-label', armed ? 'Restart? Tap again to confirm' : 'Restart');
   const sig = state.crew.map((c) => c.id + (c.alive ? '1' : '0')).join(',') + '|' + state.legs.haul + '|' + state.legs.drop;
   if (forceCrew || sig !== crewSig) {
     crewSig = sig;
