@@ -310,6 +310,13 @@
         bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
       }
     }
+    /* A landscape phone is wider than 480, so the card stays on the
+       bottom edge. The elevator already owns the left 52px there. */
+    @media (max-width: 900px) and (min-width: 481px) {
+      #next-action-card {
+        left: calc(78px + env(safe-area-inset-left, 0px));
+      }
+    }
     .panel-title {
       font-weight: 700; font-size: 9px; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
