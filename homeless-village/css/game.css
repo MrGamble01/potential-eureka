@@ -263,10 +263,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
    and #craft-panel had grown down over #workers-panel far enough to bury five
    craft buttons. Nothing scrolled, because nothing was ever bounded.
 
-   Desktop only — the <=700px block below already solves this its own way
-   (horizontal strip for actions, bottom sheet for crafting), so these rules
-   are scoped above that breakpoint and cannot reach it. */
-@media (min-width:701px){
+   Desktop only — a narrow phone, and a landscape phone that is wide but
+   short, use the block below (horizontal strip for actions, bottom sheet
+   for crafting). These bounds need a tall window, so they stay off that. */
+@media (min-width:701px) and (min-height:521px){
   /* Pinned between the top HUD and the community panel instead of centred,
      so it can never grow down into it. */
   #craft-panel{
@@ -284,7 +284,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   }
 }
 
-@media (max-width:700px){
+@media (max-width:700px), (max-height:520px){
   /* The wrapped bar is about 132px. 56px parked Craft on the stat row. */
   #craft-toggle{display:block;top:140px;right:8px;bottom:auto;min-height:44px;padding:10px 14px}
 
@@ -445,9 +445,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 #intro-go:hover{background:rgba(160,110,50,.45)}
 @media (max-width:700px){ #help-btn{font-size:10px;padding:3px 7px} #intro-body{font-size:11.5px} }
 
-/* Thumb pad — phone only. Four big holds, same directions as WASD.
-   The clinic dock is the same: hidden until a narrow screen, and hidden
-   again when it has no buttons. */
+/* Thumb pad — phone only, including a short landscape phone. Four big
+   holds, same directions as WASD. The clinic dock is the same: hidden
+   until that layout, and hidden again when it has no buttons. */
 #clinic-dock{display:none}
 #walk-pad{display:none}
 #walk-pad button{
@@ -459,7 +459,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   box-shadow:0 2px 8px rgba(0,0,0,.45);
 }
 #walk-pad button.held{background:rgba(200,140,40,.72);color:#fff}
-@media (max-width:700px){
+@media (max-width:700px), (max-height:520px){
   #walk-pad{
     display:grid;
     position:absolute;left:8px;bottom:168px;
@@ -481,6 +481,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   #clinic-dock:empty{display:none}
   #clinic-dock .action-btn{flex:1 1 0;min-width:0;min-height:44px;text-align:center;margin:0;overflow:hidden}
   #bottom-bar{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+}
+/* A landscape phone is short. The portrait pad starts high enough to sit
+   on the resource row. Drop it under that row, and keep the log beside it. */
+@media (max-height:520px){
+  #walk-pad{top:112px;bottom:auto;width:126px;height:126px}
+  #clinic-dock{bottom:112px}
+  #log-feed{left:146px;right:96px;top:112px;bottom:auto;max-height:48px}
 }
 
 #hud.flash-heal{animation:heal-flash .65s ease}
@@ -545,7 +552,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   color:#e8f4ff;border-radius:4px;cursor:pointer;
 }
 #storm-hold:hover{background:rgba(60,110,170,.75)}
-@media (max-width:700px){
+@media (max-width:700px), (max-height:520px){
   #storm-call{top:104px;max-width:calc(100vw - 16px)}
   #storm-banner{top:156px}
 }
