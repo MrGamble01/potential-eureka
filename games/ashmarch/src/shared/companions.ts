@@ -24,24 +24,21 @@ export const ASHMARCH_PARTY: CompanionProfile[] = [
     id: "mara",
     name: "Mara Voss",
     title: "Road warden, retired badly",
-    blurb:
-      "Terse, protective, and finished with cleverness that gets people erased. She lost a gate once. She will not lose a person the same way.",
+    blurb: "She lost a gate once. She will not lose a person the same way.",
     quote: "Bridges that charge names don't give receipts.",
   },
   {
     id: "ivo",
     name: "Ivo Quill",
     title: "Expelled archivist",
-    blurb:
-      "Eloquent, hungry, and convinced a copied page is a rescued life. He will argue with weather if it has a footnote.",
+    blurb: "A copied page is a rescued life. He will argue the footnote.",
     quote: "The bridge is one sentence. Sentences are my trade.",
   },
   {
     id: "sable",
     name: "Sable",
     title: "Lantern-spirit",
-    blurb:
-      "Bound to a cracked brass lamp. Speaks warmly, a little sideways, and remembers roads the map refuses to admit.",
+    blurb: "Bound to a cracked lamp, and warmer than the road expects.",
     quote: "If the lamp goes dark I become weather. I would rather not.",
   },
 ];

@@ -58,10 +58,21 @@ function bridge(): string {
     "#d9c7a4",
     "#14181f",
     `
+    <circle cx="220" cy="86" r="18" fill="#f4efe2" opacity="0.55"/>
     <circle cx="980" cy="110" r="42" fill="#f4efe2"/>
+    <g fill="#efe6d4" opacity="0.75">
+      <circle cx="80" cy="60" r="1.6"/><circle cx="160" cy="140" r="1.3"/><circle cx="340" cy="70" r="1.5"/>
+      <circle cx="520" cy="48" r="1.4"/><circle cx="700" cy="90" r="1.6"/><circle cx="860" cy="50" r="1.3"/>
+      <circle cx="1100" cy="160" r="1.5"/>
+    </g>
+    <path d="M0 400 C180 360 320 390 520 370 C760 346 980 390 1200 360 V470 H0Z" fill="#10151d"/>
     <rect x="0" y="430" width="1200" height="90" fill="#07080c"/>
     <path d="M80 470 Q600 250 1120 470" fill="none" stroke="#efe6d4" stroke-width="28"/>
     <path d="M80 470 Q600 330 1120 470" fill="none" stroke="#1c2430" stroke-width="8"/>
+    <g fill="#cfc6b4">
+      <rect x="250" y="392" width="8" height="28"/><rect x="430" y="318" width="8" height="28"/>
+      <rect x="760" y="318" width="8" height="28"/><rect x="940" y="392" width="8" height="28"/>
+    </g>
     <g fill="#efe6d4">
       <rect x="560" y="250" width="46" height="18"/>
       <rect x="572" y="232" width="34" height="18"/>
