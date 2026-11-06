@@ -511,9 +511,9 @@
     /* Office windows share the living-world sky. The chip names
        the hour and the weather. It does not price a deal. */
     #tyc-sky {
-      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+      position: fixed; top: auto; bottom: 16px; left: 50%; transform: translateX(-50%);
       z-index: 24; pointer-events: none; user-select: none;
-      max-width: min(420px, calc(100vw - 280px));
+      max-width: min(280px, calc(100vw - 360px));
       padding: 5px 12px; border-radius: 999px;
       background: rgba(8,10,18,0.84); color: #d7e6f8;
       border: 1px solid rgba(126,182,255,0.45);
@@ -911,14 +911,6 @@
       transition: width 0.35s ease-out;
       box-shadow: 0 0 10px rgba(245,158,11,0.35);
     }
-    .goal-track--rival { height: 5px; margin-top: 3px; opacity: 0.9; }
-    .goal-fill--rival {
-      background: linear-gradient(90deg, #F85149, #ff8a82);
-      box-shadow: 0 0 8px rgba(248,81,73,0.3);
-      transition: width 0.35s ease-out;
-    }
-    #goal-rival-label { font-size: 9px; color: #7D8590; margin-top: 2px; letter-spacing: 0.5px; }
-    #goal-rival-label strong { color: #ff8a82; }
     #goal-hall-label { display: none; font-size: 9px; color: #c4b5fd; margin-top: 2px; letter-spacing: 0.4px; }
     #goal-hall-label strong { color: #ddd6fe; }
     #goal-hall-label.lead { color: #86efac; animation: hallPop .45s ease; }
@@ -939,27 +931,25 @@
       cursor: pointer;
     }
     #annex-btn.on { display: flex; align-items: center; justify-content: center; }
-    #clash-btn {
+    /* The season goal starts as a chip so it does not cover the office.
+       A tap opens the bar. */
+    #goal-hud.goal-compact {
+      min-width: 0;
+      width: auto;
+      max-width: 240px;
+      min-height: 44px;
+      padding: 8px 12px;
       pointer-events: auto;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 100%;
-      margin-top: 6px;
-      min-height: 48px;
-      border-radius: 8px;
-      border: 1px solid rgba(248,81,73,0.55);
-      background: rgba(248,81,73,0.14);
-      color: #fecaca;
-      font-family: inherit;
-      font-weight: 800;
-      font-size: 13px;
-      cursor: pointer;
-      touch-action: manipulation;
     }
-    #clash-btn:focus-visible { outline: 2px solid #fecaca; outline-offset: 2px; }
-    #clash-chip { display: none; font-size: 9px; color: #fecaca; margin-top: 2px; letter-spacing: 0.3px; }
-    #clash-chip.on { display: block; }
+    #goal-hud.goal-compact > :not(.goal-header) { display: none !important; }
+    #goal-hud.goal-compact .goal-header {
+      margin-bottom: 0; width: auto; flex-wrap: nowrap; gap: 10px; white-space: nowrap;
+    }
+    #goal-hud.goal-compact .goal-meta > :not(#goal-pct) { display: none !important; }
+    #goal-hud .goal-header { pointer-events: auto; cursor: pointer; }
     #annex-chip { display: none; font-size: 9px; color: #86efac; margin-top: 2px; letter-spacing: 0.3px; }
     #annex-chip.on { display: block; }
     #annex-modal {
@@ -1587,8 +1577,12 @@
       #activity-feed { display: none; }
 
       #tyc-sky {
-        top: auto; bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-        max-width: calc(100vw - 24px);
+        top: auto;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        box-sizing: border-box;
+        max-width: min(200px, calc(100vw - 170px));
       }
       #status-bar {
         /* GAMES ends near 90px and the menu takes the next 44. The
@@ -1781,15 +1775,11 @@
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
-<div id="goal-hud" aria-label="Season goal progress">
+<div id="goal-hud" class="goal-compact" aria-label="Season goal progress">
   <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="song-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="capsule-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mural-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="docent-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mark-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="archive-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
-  <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
-  <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
   <div id="goal-hall-label" title="The office across the hall — a ghost of your best season, saved in this browser. No server.">🚪 Hall</div>
   <button type="button" id="annex-btn">🏢 The Annex</button>
-  <button type="button" id="clash-btn">⚔ Hostile takeover</button>
-  <div id="clash-chip">⚔ Charter · deals +5%</div>
   <div id="annex-chip" title="Mira, Sol, and Penn kept the annex. Deals +6% this season.">🏢 Annex · +6%</div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
@@ -2153,7 +2143,6 @@
 <script src="/js/progression.js"></script>
 <script src="/js/feel.js"></script>
 <script src="/js/flag-daily.js"></script>
-<script src="/js/climax.js"></script>
 <script src="/js/living-world.js"></script>
 <script src="/js/moments.js"></script>
 <script type="importmap">
@@ -2243,7 +2232,6 @@ function careerEmit(event, value) {
     EurekaProgress.emit(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon', event, value);
   } catch (e) { /* a trophy cannot stop the office */ }
 }
-let clashCharter = false;
 
 // Beagle Sim's yard, pack audio, and beagle meshes live in beagle-pack.js.
 // Startup Tycoon never imports it. If the file fails to load, the reskin
@@ -2928,11 +2916,18 @@ function applyCameraTransform() {
 applyCameraTransform();
 fitCamera();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+function narrowOffice() {
+  return !!(window.matchMedia && matchMedia('(max-width: 720px)').matches);
+}
+const _narrowOffice = narrowOffice();
+const renderer = new THREE.WebGLRenderer({
+  antialias: !_narrowOffice,
+  powerPreference: 'high-performance',
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, _narrowOffice ? 1 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = _narrowOffice ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // ── Walk-the-office camera (3rd- & 1st-person) ───────────────
@@ -3006,7 +3001,7 @@ scene.add(new THREE.AmbientLight(0xfff2dc, 0.85));
 const sun = new THREE.DirectionalLight(0xffffff, 1.15);
 sun.position.set(15, 30, 10);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(_narrowOffice ? 1024 : 2048, _narrowOffice ? 1024 : 2048);
 const sc = sun.shadow.camera;
 sc.left = -40; sc.right = 40; sc.top = 40; sc.bottom = -40;
 sc.near = 0.1; sc.far = 100;
@@ -6987,7 +6982,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult() * clashDealMult()
+    featurePrice * dealValueMult * eventDealMult * corpDealMult * scaleDealMult() * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult() * annexDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -7100,6 +7095,12 @@ document.getElementById('win-continue-btn').addEventListener('click',
 winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
 
 const goalHudEl = document.getElementById('goal-hud');
+if (goalHudEl) {
+  goalHudEl.addEventListener('click', (e) => {
+    if (e.target.closest('button, [id$="-chip"]')) return;
+    goalHudEl.classList.toggle('goal-compact');
+  });
+}
 const goalSparkEl = document.getElementById('goal-spark');
 const goalSparkCtx = goalSparkEl.getContext('2d');
 // Rolling ARR samples for the sparkline (push one per metrics update).
@@ -8431,8 +8432,6 @@ function initRival(fresh) {
     rivalRev = 0;
     rivalDone = false;
   }
-  const nameEl = document.getElementById('goal-rival-name');
-  if (nameEl) nameEl.textContent = rivalName;
 }
 function updateRival(dt) {
   if (rivalDone || seasonGoalHit) return;
@@ -8442,11 +8441,6 @@ function updateRival(dt) {
   const gap = (mine - rivalRev) / Math.max(1, target);   // + = we lead
   const band = 1 + Math.max(-0.35, Math.min(0.35, gap * 1.2));
   rivalRev += (target / (22 * 60)) * band * dt;
-  const fill = document.getElementById('goal-rival-fill');
-  const pctEl = document.getElementById('goal-rival-pct');
-  const pct = Math.min(100, rivalRev / target * 100);
-  if (fill) fill.style.width = pct.toFixed(1) + '%';
-  if (pctEl) pctEl.textContent = Math.floor(pct) + '%';
   if (rivalRev >= target) {
     rivalDone = true;
     changeMorale(-10, `${rivalName} IPO'd first — the office is gutted`);
@@ -11094,19 +11088,6 @@ let annexMorale = 90;
 let annexFocus = 'findings';
 let annexNoteT = 0;
 function annexDealMult() { return annexLive ? 1.06 : 1; }
-function clashDealMult() { return clashCharter ? 1.05 : 1; }
-function refreshClashChip() {
-  const chip = document.getElementById('clash-chip');
-  const btn = document.getElementById('clash-btn');
-  const beagle = VARIANT.id === 'beagle';
-  if (btn && !btn.dataset.named) {
-    btn.dataset.named = '1';
-    btn.textContent = beagle ? '🐾 Yard raid' : '⚔ Hostile takeover';
-  }
-  if (!chip) return;
-  chip.textContent = beagle ? '🐾 Charter · digs +5%' : '⚔ Charter · deals +5%';
-  chip.classList.toggle('on', !!clashCharter);
-}
 function annexLead() { return ANNEX_CREW.find(c => c.focus === annexFocus) || ANNEX_CREW[0]; }
 function refreshAnnexOffer() {
   const btn = document.getElementById('annex-btn');
@@ -11428,32 +11409,6 @@ document.getElementById('partner-no').onclick = () => choosePartner('no');
 document.getElementById('annex-btn').onclick = () => openAnnex();
 document.getElementById('annex-follow').onclick = () => followAnnex();
 document.getElementById('annex-close').onclick = () => closeAnnex();
-function openClash() {
-  if (!window.EurekaClimax || document.getElementById('climax-root')) return;
-  const beagle = VARIANT.id === 'beagle';
-  const view = window.EurekaClimax.mount(document, {
-    spec: beagle ? 'beagle' : 'tycoon',
-    onWin: () => {
-      const first = !clashCharter;
-      clashCharter = true;
-      const purse = first ? 2500 : 800;
-      addCash(purse, 'event');
-      const msg = beagle
-        ? `🐾 The yard holds. +$${fmtCash(purse)} and digs pay 5% more.`
-        : `⚔ Takeover broken. +$${fmtCash(purse)} and deals pay 5% more.`;
-      showToast(msg, 'good', 'critical');
-      addFeedEntry(msg);
-      careerEmit('boss', 1);
-      refreshClashChip();
-      saveGame();
-      return msg;
-    },
-  });
-  view.open();
-}
-const clashBtn = document.getElementById('clash-btn');
-if (clashBtn) clashBtn.onclick = () => openClash();
-refreshClashChip();
 
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -12989,6 +12944,7 @@ addEventListener('resize', () => {
   fitCamera();
   pcam.aspect = innerWidth / innerHeight;
   pcam.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, narrowOffice() ? 1 : 2));
   renderer.setSize(innerWidth, innerHeight);
 });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
@@ -13704,10 +13660,6 @@ function tycoonScore() {
       if (host) a.attachReadout(host);
     }
     a.start('calm');
-    if (document.getElementById('climax-root')) {
-      a.setMood('tense');
-      return;
-    }
     const morale = teamMorale();
     const crew = ideaWorkers.length;
     const broke = state.cash < 40 && crew > 1;
@@ -14338,12 +14290,12 @@ const SAVE_SCHEMA = [
     },
   },
   {
+    // Older offices saved a takeover charter on this key. The fight is
+    // gone, so a leftover field must not change deals or throw on load.
+    // The next save simply leaves it out.
     key: 'clash',
-    write: p => { if (clashCharter) p.clash = { charter: true }; },
-    read: p => {
-      clashCharter = !!(p.clash && p.clash.charter);
-      refreshClashChip();
-    },
+    write: () => {},
+    read: () => {},
   },
   {
     key: 'upgrades',
