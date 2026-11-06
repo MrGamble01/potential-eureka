@@ -472,8 +472,16 @@ html.hud-b[data-game="voxel"] #hotbar .slot.sel{
   #quests{display:none!important}
   html.hud-b[data-game="voxel"] #back button,
   html.hud-b[data-game="voxel"] #back a{min-height:44px}
-  #mateBubble{left:8px;bottom:calc(300px + env(safe-area-inset-bottom));max-width:min(220px,68vw);padding:6px 10px;font-size:13px}
-  #toasts{top:var(--vox-toast-top, 300px);max-width:min(240px,62vw)}
+  /* The sound bar owns the bottom edge. Speech sits above the
+     deckhand's name, and the first-morning coach sits under the tools. */
+  #mateBubble{left:auto;right:8px;bottom:calc(268px + env(safe-area-inset-bottom));
+    max-width:min(180px,48vw);padding:6px 10px;font-size:13px}
+  #toasts{top:var(--vox-toast-top, 220px);left:auto;right:8px;transform:none;
+    align-items:flex-end;max-width:min(220px,56vw)}
+  html.hud-b[data-game="voxel"] .career-toast{
+    left:auto !important;right:8px !important;transform:none !important;
+    width:min(188px,46vw) !important;bottom:auto !important;
+    top:var(--vox-toast-top, 220px) !important}
   html.hud-b[data-game="voxel"] #hotbar{padding:3px 5px}
 }
 @media (max-height:480px){
@@ -517,8 +525,16 @@ html.hud-b[data-game="voxel"] #helpOv .help-ghost{
 #coach[hidden]{display:none!important}
 @media (max-width:640px),(max-height:480px){
   #coach:not([hidden]){display:block}
+  /* top and bottom together stretch the card down over the camera pad.
+     Pin it under the tool rail and let the height come from the copy. */
+  #coach{top:var(--vox-coach-top, 220px);bottom:auto;left:8px;width:min(168px,44vw)}
 }
 body:has(#helpOv.open) #coach,body:has(#pauseOv.open) #coach{display:none!important}
+body:has(#coach:not([hidden])) #mateBubble{display:none!important}
+body:has(#helpOv.open) #vox-tray,
+body:has(#helpOv.open) #mateBubble,
+body:has(#helpOv.open) #toasts,
+body:has(#pauseOv.open) #vox-tray{display:none!important}
 #saveFlag{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);
   z-index:18;pointer-events:none;background:rgba(8,14,22,.92);color:#d7ecff;
   border:1px solid rgba(126,200,255,.45);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
@@ -6792,11 +6808,18 @@ function placePhoneBack(){
   }
   const audio=document.getElementById('vox-audio');
   const audioBox=audio?audio.getBoundingClientRect():null;
-  const anchor=Math.max(back.getBoundingClientRect().bottom, audioBox&&audioBox.height?audioBox.bottom:0);
+  const rail=back.getBoundingClientRect().bottom;
+  // On a phone the sound bar is pinned to the bottom edge. Notices stay
+  // under the tool rail, or that bar becomes the anchor and they land
+  // on the hotbar.
+  const phone=innerWidth<=640;
+  const anchor=(!phone&&audioBox&&audioBox.height)?Math.max(rail, audioBox.bottom):rail;
   const career=Math.max(96, Math.round(innerHeight-anchor-86))+'px';
   if(root.getPropertyValue('--vox-career-bottom')!==career)root.setProperty('--vox-career-bottom', career);
-  const toast=Math.ceil(anchor+92)+'px';
+  const toast=Math.ceil(anchor+(phone?8:92))+'px';
   if(root.getPropertyValue('--vox-toast-top')!==toast)root.setProperty('--vox-toast-top', toast);
+  const coach=Math.ceil(anchor+8)+'px';
+  if(root.getPropertyValue('--vox-coach-top')!==coach)root.setProperty('--vox-coach-top', coach);
   placeQuestCard();
 }
 function paintResume(loaded,rejected){
