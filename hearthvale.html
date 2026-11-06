@@ -665,12 +665,28 @@
   @media (max-width: 640px) {
     html.hud-b[data-game="hearthvale"] #buildbar { gap: 2px; }
   }
+  /* Achievement toasts were landing on the build tabs. Sit them above the bar. */
+  html.hud-b[data-game="hearthvale"] { --hud-career-bottom: 168px; }
+  @media (max-width: 640px) {
+    html.hud-b[data-game="hearthvale"] { --hud-career-bottom: 200px; }
+  }
+  /* A short landscape phone parked the town goal on the build tabs and
+     shrank those tabs to clear it. Lift the goal so the tabs can be tapped. */
+  @media (max-width: 640px) {
+    html.hud-b[data-game="hearthvale"] .spark-toast { top: 188px; }
+  }
+  @media (max-width: 1024px) and (max-height: 520px) {
+    #goals { top: 92px; bottom: auto; left: 8px; right: auto; width: min(220px, 46vw); }
+    html.hud-b[data-game="hearthvale"] #buildtabs .btab {
+      min-height: 40px; min-width: 44px; padding: 6px 12px; font-size: 13px;
+    }
+  }
 </style>
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 
-  <button id="menu-btn" title="Menu">&#9881;</button>
+  <button id="menu-btn" type="button" title="Menu" aria-label="Menu" aria-expanded="false" aria-controls="menu">&#9881;</button>
   <button id="touch-pause" type="button" aria-label="Pause">&#10074;&#10074;</button>
   <div id="zoom-ctl">
     <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
@@ -739,10 +755,10 @@
     <div id="dayrail">
       <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
       <div id="speedctl">
-        <button data-sp="0" title="Pause (Space)">&#9208;</button>
-        <button data-sp="1" title="Normal speed">1&times;</button>
-        <button data-sp="2" title="Double speed">2&times;</button>
-        <button data-sp="3" title="Triple speed">3&times;</button>
+        <button data-sp="0" type="button" title="Pause (Space)" aria-label="Pause">&#9208;</button>
+        <button data-sp="1" type="button" title="Normal speed" aria-label="Normal speed">1&times;</button>
+        <button data-sp="2" type="button" title="Double speed" aria-label="Double speed">2&times;</button>
+        <button data-sp="3" type="button" title="Triple speed" aria-label="Triple speed">3&times;</button>
       </div>
     </div>
     </div>
@@ -767,15 +783,15 @@
     <div class="row" id="p-actions"></div>
   </div>
 
-  <canvas id="minimap" width="56" height="42" title="Click to jump there"></canvas>
+  <canvas id="minimap" width="56" height="42" title="Click to jump there" aria-label="Town map. Tap to look there."></canvas>
 
   <div id="toasts"></div>
   <div id="juice" hidden></div>
   <div id="juice-motes"></div>
 
-  <div id="trader">
+  <div id="trader" role="dialog" aria-modal="true" aria-labelledby="trader-heading">
     <div class="trader-card">
-      <h2><span>&#128658;</span><span>Traveling Merchant</span></h2>
+      <h2 id="trader-heading"><span>&#128658;</span><span>Traveling Merchant</span></h2>
       <div class="flavor" id="trader-flavor">"Fine wares from far-off roads! What'll it be?"</div>
       <div id="trade-rows"></div>
       <div class="sheet-ctas">
@@ -785,7 +801,7 @@
     </div>
   </div>
 
-  <div id="event">
+  <div id="event" role="dialog" aria-modal="true" aria-labelledby="ev-title">
     <div class="trader-card">
       <h2><span id="ev-emoji">&#127881;</span><span id="ev-title">Something happens</span></h2>
       <div class="flavor" id="ev-text">&mdash;</div>
@@ -796,9 +812,9 @@
     </div>
   </div>
 
-  <div id="achv">
+  <div id="achv" role="dialog" aria-modal="true" aria-labelledby="achv-heading">
     <div class="trader-card">
-      <h2><span>&#127942;</span><span>Achievements</span></h2>
+      <h2 id="achv-heading"><span>&#127942;</span><span>Achievements</span></h2>
       <div class="flavor" id="achv-count">&mdash;</div>
       <div id="achv-list"></div>
       <div class="sheet-ctas">
@@ -807,9 +823,9 @@
       </div>
     </div>
   </div>
-  <div id="decrees">
+  <div id="decrees" role="dialog" aria-modal="true" aria-labelledby="decree-heading">
     <div class="trader-card">
-      <h2><span>&#128220;</span><span>Town Decrees</span></h2>
+      <h2 id="decree-heading"><span>&#128220;</span><span>Town Decrees</span></h2>
       <div class="flavor" id="decree-sub">&mdash;</div>
       <div id="decree-list"></div>
       <div class="sheet-ctas">
@@ -818,7 +834,7 @@
       </div>
     </div>
   </div>
-  <div id="chronicle">
+  <div id="chronicle" role="dialog" aria-modal="true" aria-labelledby="chron-title">
     <div class="trader-card">
       <h2><span>&#128220;</span><span id="chron-title">Town Chronicle</span></h2>
       <div class="flavor" id="chron-sub">&mdash;</div>
@@ -830,10 +846,10 @@
     </div>
   </div>
 
-  <div id="stillroom">
+  <div id="stillroom" role="dialog" aria-modal="true" aria-labelledby="still-heading">
     <div class="trader-card">
       <div class="still-body">
-        <h2><span>&#127861;</span><span>The Stillroom</span></h2>
+        <h2 id="still-heading"><span>&#127861;</span><span>The Stillroom</span></h2>
         <div class="flavor" id="still-flavor">&mdash;</div>
         <div id="still-path"></div>
         <div id="still-stores"></div>
@@ -863,10 +879,10 @@
     </div>
   </div>
 
-  <div id="hollow">
+  <div id="hollow" role="dialog" aria-modal="true" aria-labelledby="hollow-heading">
     <div class="trader-card">
       <div class="hollow-body">
-        <h2><span>&#128293;</span><span>The Lantern Hollow</span></h2>
+        <h2 id="hollow-heading"><span>&#128293;</span><span>The Lantern Hollow</span></h2>
         <div class="flavor" id="hollow-flavor">&mdash;</div>
         <div id="hollow-seal" data-open="0"></div>
         <button type="button" id="hollow-open">Part the briar</button>
@@ -885,10 +901,10 @@
     </div>
   </div>
 
-  <div id="welcome">
+  <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-heading">
     <div class="trader-card">
       <div class="welcome-body">
-      <h2><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
+      <h2 id="welcome-heading"><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
       <div class="flavor">Build a cozy riverside town and watch it come to life.</div>
       <div style="font-size:16px; line-height:1.45; margin-bottom:4px;">
         &bull; Pick a building and click the ground. A villager comes to build it.<br>
@@ -902,8 +918,8 @@
         <button type="button" class="diffbtn" data-diff="hard">&#9968;&#65039; Frontier</button>
       </div>
       <div id="diffdesc" style="font-size:11.5px; color:var(--ink-dim); min-height:15px; margin:5px 1px 0;">The intended balance &mdash; a fair start.</div>
-      <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
-      <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
+      <label for="townname-input" style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
+      <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off" aria-label="Town name"
         style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
       </div>
       <div class="sheet-ctas">
@@ -7918,7 +7934,14 @@
     if (e.key === 'Escape') {
       const talkEl = document.getElementById('vale-talk');
       const talkWas = !!(talkEl && !talkEl.hidden);
-      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show') || talkWas;
+      const menuEl = document.getElementById('menu');
+      const menuWas = !!(menuEl && menuEl.classList.contains('show'));
+      if (menuWas) {
+        menuEl.classList.remove('show');
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+      }
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show, #stillroom.show, #hollow.show') || talkWas || menuWas;
       if (talkWas) closeFolkTalk();
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
@@ -8451,7 +8474,9 @@
     const menuBtn = document.getElementById('menu-btn'), menu = document.getElementById('menu');
     const soundBtn = document.getElementById('m-sound');
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
-    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); const md = document.getElementById('m-decrees'); if (md) md.textContent = 'Town Decrees' + (decreesAvailable() > 0 ? ' ⭐' + decreesAvailable() : ''); };
+    const syncMenu = () => { menuBtn.setAttribute('aria-expanded', menu.classList.contains('show') ? 'true' : 'false'); };
+    menuBtn.onclick = () => { menu.classList.toggle('show'); syncMenu(); syncSound(); const md = document.getElementById('m-decrees'); if (md) md.textContent = 'Town Decrees' + (decreesAvailable() > 0 ? ' ⭐' + decreesAvailable() : ''); };
+    menu.addEventListener('click', syncMenu);
     soundBtn.onclick = () => {
       state.muted = !state.muted;
       try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.settings.update({ muted: state.muted, touched: true }); } catch (e) {}
