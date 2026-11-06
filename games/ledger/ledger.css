@@ -26,7 +26,14 @@ button, select { font: inherit; }
   border-bottom: 1px solid var(--line);
   background: #1b1612;
 }
-.back { color: var(--gold); text-decoration: none; }
+.back {
+  color: var(--gold);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+}
 .mark { font-weight: 700; letter-spacing: 0.04em; }
 .mark small { display: block; font-weight: 400; color: var(--muted); letter-spacing: 0; }
 .tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -40,7 +47,27 @@ button, select { font: inherit; }
   cursor: pointer;
 }
 .tools button:hover, select:hover { border-color: var(--gold); }
-main { padding: 16px; max-width: 880px; margin: 0 auto; }
+button:focus-visible, select:focus-visible, .back:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+button:disabled { opacity: 0.55; cursor: default; }
+main {
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: 880px;
+  margin: 0 auto;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
 .meters { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
 .cash strong { color: var(--ok); font-size: 1.4rem; }
 .heat { display: flex; align-items: center; gap: 8px; min-width: 220px; }
@@ -81,6 +108,10 @@ main { padding: 16px; max-width: 880px; margin: 0 auto; }
 #crew, #log { margin: 0 0 12px; padding-left: 18px; }
 #crew li.dead { color: var(--muted); text-decoration: line-through; }
 #log { max-height: 220px; overflow: auto; }
+@media (max-width: 700px) {
+  .chain { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); align-items: stretch; }
+  .chain .node:last-child { grid-column: 1 / -1; }
+}
 @media (min-width: 800px) {
   .chain { grid-template-columns: 1fr 1.2fr 1fr 1.2fr 1fr; align-items: stretch; }
 }
