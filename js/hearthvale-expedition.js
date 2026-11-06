@@ -636,7 +636,7 @@
   }
 
   const CSS = [
-    '#hvx-root{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;background:#10160f;color:#eef3ea;',
+    '#hvx-root{position:fixed;inset:0;z-index:100002;display:flex;flex-direction:column;overflow:hidden;background:#10160f;color:#eef3ea;',
     'font-family:Segoe UI,system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}',
     '#hvx-root[hidden]{display:none}',
     '#hvx-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;padding:10px 12px 4px}',
@@ -649,13 +649,13 @@
     '#hvx-best{margin:0 12px 6px;display:inline-block;color:#a9b6a6}',
     '#hvx-meter{height:6px;margin:0 12px 6px;background:#1b241c;border-radius:4px;overflow:hidden}',
     '#hvx-meter-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#3f7a3c,#f2c14e);}',
-    '#hvx-canvas-wrap{flex:1 1 auto;min-height:160px;position:relative}',
+    '#hvx-canvas-wrap{flex:1 1 0;min-height:0;position:relative}',
     '#hvx-canvas{width:100%;height:100%;display:block;touch-action:none;cursor:pointer}',
     '#hvx-foot{flex:0 0 auto;max-height:48vh;overflow-y:auto;padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,rgba(16,22,15,0),#10160f 18px)}',
     '#hvx-log{min-height:2.4em;font-size:13.5px;line-height:1.35;color:#d5e0d2}',
     '#hvx-explore{display:flex;gap:12px;align-items:center;flex-wrap:wrap}',
     '#hvx-hint{font-size:12px;color:#a9b6a6;max-width:280px}',
-    '.hvx-pad{display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:44px 44px 44px;gap:4px}',
+    '#hvx-pad{display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:44px 44px 44px;gap:4px}',
     '#hvx-north{grid-column:2;grid-row:1}#hvx-west{grid-column:1;grid-row:2}#hvx-east{grid-column:3;grid-row:2}#hvx-south{grid-column:2;grid-row:3}',
     '.hvx-btn{min-height:44px;min-width:44px;padding:8px 12px;border-radius:10px;border:1px solid #6b4e30;border-top-color:#85643f;',
     'background:linear-gradient(180deg,#5a4531,#3a2b1c);color:#eef3ea;font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;touch-action:manipulation}',
@@ -667,6 +667,12 @@
     '#hvx-seedform{display:flex;flex-wrap:wrap;gap:6px}',
     '#hvx-input{flex:1 1 140px;min-height:44px;font-size:16px;border-radius:10px;border:1px solid #6b4e30;background:#1b241c;color:#eef3ea;padding:8px 10px;font-family:inherit}',
     '@media (max-width:720px){#hvx-title{font-size:17px}#hvx-seed{font-size:18px}}',
+    '@media (max-height:700px){#hvx-foot{max-height:none}#hvx-hint{display:none}}',
+    '@media (max-height:520px){#hvx-head{padding:4px 8px 0}#hvx-title{font-size:16px}#hvx-seed{font-size:16px}',
+    '#hvx-stats{padding:2px 8px;gap:4px}#hvx-best{display:none}#hvx-meter{margin:0 8px 2px}',
+    '#hvx-log{flex:1 1 100%;min-height:0;max-height:2.4em}#hvx-hint{display:none}',
+    '#hvx-foot{flex-direction:row;flex-wrap:wrap;align-items:center;padding:4px 8px 6px;gap:6px;max-height:none}',
+    '#hvx-explore{flex:0 0 auto}#hvx-seedform{flex:1 1 240px;align-items:center}}',
   ].join('');
 
   const view = {
@@ -743,6 +749,8 @@
     log.setAttribute('aria-live', 'polite');
     const explore = el('div', 'hvx-explore');
     const pad = el('div', 'hvx-pad');
+    pad.setAttribute('role', 'group');
+    pad.setAttribute('aria-label', 'Move');
     pad.appendChild(button('hvx-north', '↑'));
     pad.appendChild(button('hvx-west', '←'));
     pad.appendChild(button('hvx-east', '→'));
@@ -1275,6 +1283,8 @@
     if (view.raf) cancelAnimationFrame(view.raf);
     view.raf = 0;
     if (view.root) view.root.hidden = true;
+    const back = typeof document !== 'undefined' ? document.getElementById('menu-btn') : null;
+    if (back && notify) back.focus();
     const hook = view.hook;
     view.hook = null;
     run = null;
@@ -1290,6 +1300,8 @@
     if (!view.root) mount();
     view.root.hidden = false;
     view.hook = typeof o.onClose === 'function' ? o.onClose : null;
+    const mover = document.getElementById('hvx-north');
+    if (mover) mover.focus();
     begin(o.seed || '');
     startLoop();
   }
