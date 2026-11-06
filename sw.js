@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261103-arcade-roster';
+const SW_VERSION = 'eureka-20261106-studioh2';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -69,6 +69,14 @@ const SHELL = [
   '/games/ledger/index.html',
   '/games/ledger/ledger.css',
   '/games/ledger/ledger.js',
+  '/assets/covers/h2-voxel.jpg',
+  '/assets/covers/h2-ashmarch.jpg',
+  '/assets/covers/h2-ageofwar.jpg',
+  '/assets/covers/h2-tycoon.jpg',
+  '/assets/covers/h2-hearthvale.jpg',
+  '/assets/covers/h2-gutterlight.jpg',
+  '/assets/covers/h2-crateescape.jpg',
+  '/assets/covers/h2-tetris.jpg',
   '/assets/covers/ashmarch.svg',
   '/assets/covers/ledger.svg',
   '/assets/covers/inkflip.svg',
