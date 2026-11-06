@@ -541,6 +541,20 @@
       }
       #buildtabs { max-width: calc(100vw - 16px); overflow-x: auto; }
       .btab { white-space: nowrap; padding: 6px 10px; font-size: 12px; }
+      /* Homes is five buildings plus Road and Remove. At 60px those
+         last two sit past the right edge. Shrink the row so the whole
+         bar, tools included, stays on screen. Longer tabs still scroll. */
+      #buildbar {
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        padding: 6px;
+        max-width: calc(100vw - 12px);
+      }
+      #buildbar .btn, #buildbar .btn.tool { width: 44px; height: 52px; }
+      #buildbar .btn .emoji { font-size: 18px; }
+      #buildbar .btn .lbl { font-size: 8px; letter-spacing: 0; line-height: 1.05; text-align: center; }
+      #buildbar .bardiv { margin: 2px 1px; }
+      #buildtabs { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+      #toasts { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
       #panel {
         top: auto; bottom: 150px; right: 8px; left: 8px; width: auto;
         max-height: 46vh; overflow-y: auto;
@@ -644,6 +658,14 @@
 .chain-locked{opacity:.45}
 </style>
 <link rel="stylesheet" href="css/hud-b.css?v=20261018topbar">
+<style>
+  /* The shared HUD skin sets an 8px gap on this bar, which pushes
+     Road and Remove past the right edge of a phone. This wins that
+     rule so the homes row fits. */
+  @media (max-width: 640px) {
+    html.hud-b[data-game="hearthvale"] #buildbar { gap: 2px; }
+  }
+</style>
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
