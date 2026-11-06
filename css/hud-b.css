@@ -136,8 +136,10 @@ html.hud-b :is(button, a, .btab, .diff-opt, .act-btn):focus-visible {
   outline-offset: 2px;
 }
 
-/* Short tablet: a 44px tab would meet the town goal. Keep the tucked size. */
-@media (max-width: 1024px) and (max-height: 760px) {
+/* Short tablet: a 44px tab would meet the town goal, which still sits
+   on the bottom rail. A phone moves that goal to the top, so the
+   tabs keep a full tap there. */
+@media (min-width: 641px) and (max-width: 1024px) and (max-height: 760px) {
   html.hud-b[data-game="hearthvale"] #buildtabs .btab {
     min-height: 0;
     min-width: 0;
