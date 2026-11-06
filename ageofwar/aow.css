@@ -2166,7 +2166,10 @@
   #aow-units-tab,
   #aow-turrets-tab { order: 4; flex: 0 0 auto; min-height: 0; }
   .aow-train-row { margin-top: 0; padding: 2px 4px; }
-  .aow-train-slot { height: 28px; }
+  /* A queued unit is cancelled by tapping its slot. 28px sat in a
+     few hundred pixels of empty ground; give the slot a real tap. */
+  .aow-train-slot { height: 44px; }
+  .aow-train-sprite { width: 30px; height: 30px; }
   .aow-train-status { display: none; }
   .aow-spawn-list {
     display: flex;
