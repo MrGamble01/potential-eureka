@@ -1,0 +1,177 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: #f4f2ec;
+  color: #161616;
+  font-family: "Instrument Sans", "Segoe UI", sans-serif;
+  font-weight: 500;
+  line-height: 1.4;
+}
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 64px;
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid #e6e1d8;
+}
+.brand {
+  font-family: "Archivo Black", Impact, sans-serif;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+  margin-right: auto;
+}
+.links { display: none; gap: 22px; }
+.links a { text-decoration: none; font-weight: 600; font-size: 15px; }
+.menu-btn {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.menu-btn[aria-expanded="true"] .when-closed,
+.menu-btn[aria-expanded="false"] .when-open { display: none; }
+.studio-menu {
+  background: #fff;
+  border-bottom: 1px solid #e6e1d8;
+  padding: 6px 20px 14px;
+}
+.studio-menu[hidden] { display: none; }
+.lv, .studio-menu .item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  text-decoration: none;
+  padding: 12px 0;
+  border-bottom: 1px solid #efeae2;
+  font-weight: 600;
+}
+.lv strong { font-family: "Archivo Black", Impact, sans-serif; font-size: 18px; }
+.page { max-width: 1120px; margin: 0 auto; padding: 0 20px 48px; }
+.statement {
+  margin: 0;
+  padding: 28px 0 8px;
+  max-width: 16em;
+  font-family: "Archivo Black", Impact, sans-serif;
+  font-size: clamp(28px, 7vw, 44px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+.feature {
+  display: grid;
+  gap: 16px;
+  padding: 18px 0 8px;
+}
+.feature-art {
+  background: #e23b2f;
+  border-radius: 18px;
+  height: 220px;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+}
+.feature-art img {
+  width: auto;
+  height: 92%;
+  max-width: 70%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+.kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.feature h1 {
+  margin: 0;
+  font-family: "Archivo Black", Impact, sans-serif;
+  font-size: clamp(36px, 9vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+.tag { margin: 10px 0 16px; max-width: 28em; font-size: 17px; }
+.play {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 18px;
+  background: #161616;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.games { padding-top: 28px; }
+.games h2 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 12px;
+}
+.card { text-decoration: none; }
+.swatch {
+  height: 148px;
+  border-radius: 16px;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+}
+.swatch img {
+  width: auto;
+  height: 90%;
+  max-width: 86%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+.card h3 {
+  margin: 8px 0 2px;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.card p { margin: 0; font-size: 13px; color: #5e584f; line-height: 1.35; }
+.foot {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+  border-top: 1px solid #e6e1d8;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.foot nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.foot a { text-decoration: none; font-weight: 600; }
+.foot p { margin: 0; color: #5e584f; }
+:focus-visible { outline: 2px solid #161616; outline-offset: 3px; }
+@media (min-width: 768px) {
+  .nav { padding: 0 32px; }
+  .links { display: flex; }
+  .page, .foot { padding-left: 32px; padding-right: 32px; }
+  .feature { grid-template-columns: 1.05fr 0.95fr; align-items: center; gap: 36px; padding-top: 28px; }
+  .feature-art { height: 360px; }
+  .grid { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
+  .swatch { height: 220px; }
+}
+@media (min-width: 1100px) {
+  .grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .swatch { height: 200px; }
+}
+@media (hover: hover) {
+  .card { transition: transform 0.16s ease; }
+  .card:hover { transform: translateY(-4px); }
+}

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Minefield cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="100" r="30" fill="#3ddcff"/>
+  <circle cx="360" cy="92" r="22" fill="#10131a"/>
+  <rect x="70" y="164" width="340" height="408" rx="22" fill="#1a1f2b" stroke="#3ddcff" stroke-width="3"/>
+  <g>
+    <rect x="94" y="188" width="92" height="108" rx="10" fill="#f6f3ea"/>
+    <rect x="194" y="188" width="92" height="108" rx="10" fill="#c4beb2"/>
+    <rect x="294" y="188" width="92" height="108" rx="10" fill="#3ddcff"/>
+    <rect x="94" y="308" width="92" height="108" rx="10" fill="#8b83ff"/>
+    <rect x="194" y="308" width="92" height="108" rx="10" fill="#f6f3ea"/>
+    <rect x="294" y="308" width="92" height="108" rx="10" fill="#1a1f2b" stroke="#c4beb2"/>
+    <rect x="94" y="428" width="92" height="108" rx="10" fill="#1a1f2b" stroke="#c4beb2"/>
+    <rect x="194" y="428" width="92" height="108" rx="10" fill="#3ddcff"/>
+    <rect x="294" y="428" width="92" height="108" rx="10" fill="#f6f3ea"/>
+  </g>
+  <g font-family="Outfit, Inter, sans-serif" font-weight="700" text-anchor="middle" font-size="40">
+    <text x="140" y="256" fill="#10131a">1</text>
+    <text x="240" y="256" fill="#10131a">2</text>
+    <text x="340" y="376" fill="#f6f3ea">3</text>
+  </g>
+  <path d="M324 214h10v36" stroke="#10131a" stroke-width="4"/>
+  <path d="M329 214l22 12-22 12z" fill="#10131a"/>
+  <circle cx="240" cy="482" r="14" fill="#10131a"/>
+  <path d="M240 456v52M214 482h52M222 464l36 36M258 464l-36 36" stroke="#10131a" stroke-width="4"/>
+</svg>
