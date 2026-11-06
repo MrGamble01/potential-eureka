@@ -260,7 +260,7 @@ const TARGETS = [
     check: async (page) => {
       await page.waitForSelector('#view-halloffame.active #hof-board .hof-row', { timeout: 15000 });
       const rows = await page.locator('#hof-board .hof-row').count();
-      if (rows !== 6) throw new Error(`Hall of Fame rendered ${rows} rows, expected 6`);
+      if (rows !== 8) throw new Error(`Hall of Fame rendered ${rows} rows, expected 8`);
     },
   },
   {
