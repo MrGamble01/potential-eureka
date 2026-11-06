@@ -455,11 +455,16 @@
 }
 .aow-coach-x {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 44px;
   border: 1px solid rgba(252, 211, 77, 0.45);
   background: rgba(252, 211, 77, 0.12);
   color: #fcd34d;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 800;
@@ -488,7 +493,6 @@
   }
   .aow-coach-kicker { display: none; }
   .aow-coach p { font-size: 12px; line-height: 1.25; }
-  .aow-coach-x { padding: 4px 8px; }
 }
 .aow-cta-row {
   display: flex;
