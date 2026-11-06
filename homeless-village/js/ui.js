@@ -291,7 +291,7 @@ function refreshClinicActions(){
     var job=activeJobs.dress;
     var cd=G.cooldowns.dress && Date.now()<G.cooldowns.dress;
     var label=document.getElementById('dress-label');
-    var narrow=window.matchMedia('(max-width:700px)').matches;
+    var narrow=campPhoneLayout();
     var text=narrow ? '🩹 Dress'+(stock?' '+stock:'') : '🩹 Dress wound'+(stock?' · '+stock+'🩹':'');
     if(label && label.textContent!==text) label.textContent=text;
     dress.disabled=!!job||stock<1||!!cd;
@@ -304,7 +304,7 @@ function refreshClinicActions(){
     var rjob=activeJobs.juneround;
     var done=juneRoundDone();
     var rlabel=document.getElementById('juneround-label');
-    var rtext=(window.matchMedia('(max-width:700px)').matches?'🩺 Round':'🩺 June\'s round')+(done?' ✓':'');
+    var rtext=(campPhoneLayout()?'🩺 Round':'🩺 June\'s round')+(done?' ✓':'');
     if(rlabel && rlabel.textContent!==rtext) rlabel.textContent=rtext;
     round.disabled=!!rjob||done||stock<1;
     round.style.opacity=round.disabled?'.5':'';
@@ -315,7 +315,7 @@ function refreshClinicActions(){
   if(spare){
     var sjob=activeJobs.spare;
     var slabel=document.getElementById('spare-label');
-    var stext=window.matchMedia('(max-width:700px)').matches
+    var stext=campPhoneLayout()
       ? '🏥 Spare'+(stock?' '+stock:'')
       : '🏥 Spare a roll'+(stock?' · '+stock+'🩹':'');
     if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
@@ -336,7 +336,7 @@ function refreshClinicActions(){
     var done=salvageDone();
     var sjob=activeJobs.salvage;
     var slabel=document.getElementById('salvage-label');
-    var stext=(window.matchMedia('(max-width:700px)').matches?'🪵 Lot':'🪵 Salvage the lot')+(done?' ✓':'');
+    var stext=(campPhoneLayout()?'🪵 Lot':'🪵 Salvage the lot')+(done?' ✓':'');
     if(slabel && slabel.textContent!==stext) slabel.textContent=stext;
     salvage.disabled=!!sjob||done;
     salvage.style.opacity=salvage.disabled?'.5':'';
@@ -344,11 +344,14 @@ function refreshClinicActions(){
     salvage.setAttribute('data-tip', (done?'The dry piles are already in. Tomorrow. ':'')+salvageAction().tooltip);
   }
 }
+function campPhoneLayout(){
+  return window.matchMedia('(max-width:700px), (max-height:520px)').matches;
+}
 function placeClinicDock(){
   var dock=document.getElementById('clinic-dock');
   var list=document.getElementById('action-list');
   if(!dock || !list) return;
-  var mobile=window.matchMedia('(max-width:700px)').matches;
+  var mobile=campPhoneLayout();
   ['dress','juneround','spare','ledger','salvage'].forEach(function(id){
     var btn=document.getElementById('action-'+id);
     if(!btn) return;

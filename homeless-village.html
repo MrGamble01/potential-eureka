@@ -203,13 +203,13 @@ function hvFatal(msg){
 // Runs once at load AND on every viewport change (rotation, devtools resize,
 // browser window drag across the breakpoint) — previously this only ever
 // checked matchMedia() once at boot, so rotating a phone or resizing a
-// window across 700px left the layout stuck in whichever mode it booted in.
+// window across the phone layout left it stuck in whichever mode it booted in.
 (function () {
   var hud = document.getElementById('hud');
   var craftPanel = document.getElementById('craft-panel');
   var workersPanel = document.getElementById('workers-panel');
   var toggle = document.getElementById('craft-toggle');
-  var mq = window.matchMedia('(max-width:700px)');
+  var mq = window.matchMedia('(max-width:700px), (max-height:520px)');
 
   function applyLayout(isMobile) {
     if (isMobile) {
