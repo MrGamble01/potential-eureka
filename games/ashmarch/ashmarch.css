@@ -113,13 +113,13 @@ img { max-width: 100%; display: block; }
 .manifesto h1 {
   font-family: var(--serif);
   font-weight: 620;
-  font-size: clamp(4rem, 8vw, 7rem);
-  line-height: 0.86;
-  margin: 8px 0 12px;
+  font-size: clamp(3.1rem, 6vw, 5rem);
+  line-height: 0.9;
+  margin: 6px 0 8px;
   letter-spacing: -0.04em;
 }
-.deck { font-family: var(--serif); font-size: 1.35rem; line-height: 1.45; max-width: 38rem; }
-.party-intro { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 18px; }
+.deck { font-family: var(--serif); font-size: 1.15rem; line-height: 1.4; max-width: 36rem; }
+.party-intro { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 10px; }
 .party-intro li, .party-cards li, .expeditions li {
   display: grid;
   grid-template-columns: 72px 1fr;
@@ -129,7 +129,7 @@ img { max-width: 100%; display: block; }
 .portrait { width: 72px; height: 72px; border-radius: 6px; }
 .party-intro h2, .ledger h2, .rail h2, .party-cards h3 { font-family: var(--serif); font-weight: 620; margin: 0 0 4px; }
 .party-intro p, .ledger p { line-height: 1.45; }
-blockquote { margin: 8px 0 0; color: var(--gold); font-family: var(--serif); }
+blockquote { margin: 4px 0 0; color: var(--gold); font-family: var(--serif); font-size: 0.98rem; }
 .ledger {
   background: rgba(27, 23, 19, 0.88);
   border: 1px solid var(--line);

@@ -39,21 +39,21 @@ var ASHMARCH_PARTY = [
     id: "mara",
     name: "Mara Voss",
     title: "Road warden, retired badly",
-    blurb: "Terse, protective, and finished with cleverness that gets people erased. She lost a gate once. She will not lose a person the same way.",
+    blurb: "She lost a gate once. She will not lose a person the same way.",
     quote: "Bridges that charge names don't give receipts."
   },
   {
     id: "ivo",
     name: "Ivo Quill",
     title: "Expelled archivist",
-    blurb: "Eloquent, hungry, and convinced a copied page is a rescued life. He will argue with weather if it has a footnote.",
+    blurb: "A copied page is a rescued life. He will argue the footnote.",
     quote: "The bridge is one sentence. Sentences are my trade."
   },
   {
     id: "sable",
     name: "Sable",
     title: "Lantern-spirit",
-    blurb: "Bound to a cracked brass lamp. Speaks warmly, a little sideways, and remembers roads the map refuses to admit.",
+    blurb: "Bound to a cracked lamp, and warmer than the road expects.",
     quote: "If the lamp goes dark I become weather. I would rather not."
   }
 ];
@@ -409,10 +409,21 @@ function bridge() {
     "#d9c7a4",
     "#14181f",
     `
+    <circle cx="220" cy="86" r="18" fill="#f4efe2" opacity="0.55"/>
     <circle cx="980" cy="110" r="42" fill="#f4efe2"/>
+    <g fill="#efe6d4" opacity="0.75">
+      <circle cx="80" cy="60" r="1.6"/><circle cx="160" cy="140" r="1.3"/><circle cx="340" cy="70" r="1.5"/>
+      <circle cx="520" cy="48" r="1.4"/><circle cx="700" cy="90" r="1.6"/><circle cx="860" cy="50" r="1.3"/>
+      <circle cx="1100" cy="160" r="1.5"/>
+    </g>
+    <path d="M0 400 C180 360 320 390 520 370 C760 346 980 390 1200 360 V470 H0Z" fill="#10151d"/>
     <rect x="0" y="430" width="1200" height="90" fill="#07080c"/>
     <path d="M80 470 Q600 250 1120 470" fill="none" stroke="#efe6d4" stroke-width="28"/>
     <path d="M80 470 Q600 330 1120 470" fill="none" stroke="#1c2430" stroke-width="8"/>
+    <g fill="#cfc6b4">
+      <rect x="250" y="392" width="8" height="28"/><rect x="430" y="318" width="8" height="28"/>
+      <rect x="760" y="318" width="8" height="28"/><rect x="940" y="392" width="8" height="28"/>
+    </g>
     <g fill="#efe6d4">
       <rect x="560" y="250" width="46" height="18"/>
       <rect x="572" y="232" width="34" height="18"/>
@@ -3788,9 +3799,9 @@ function createImageProvider(config2) {
 function portrait(id, name) {
   const label = escapeAttr(name);
   const plate = {
-    mara: `<rect width="80" height="80" fill="#10131a"/><path d="M12 78c2-22 14-34 28-34s26 12 28 34" fill="#8b4518"/><path d="M18 78c2-16 12-26 22-26s20 10 22 26" fill="#e3b341"/><ellipse cx="40" cy="38" rx="15" ry="17" fill="#f0d2b4"/><path d="M24 36c1-18 10-26 16-26s15 8 16 26c-3-10-8-14-16-14s-13 4-16 14z" fill="#2a160f"/><path d="M24 40c2 14 4 20 2 26M56 40c-2 14-4 20-2 26" fill="#2a160f"/><path d="M31 34q4-3 7 1M42 35q4-3 7 1" fill="none" stroke="#2a160f" stroke-width="1.4"/><ellipse cx="34" cy="40" rx="2" ry="2.4" fill="#1a140f"/><ellipse cx="47" cy="40" rx="2" ry="2.4" fill="#1a140f"/><path d="M35 49q5 3 10 0" fill="none" stroke="#8a4030" stroke-width="1.3"/><circle cx="54" cy="62" r="5" fill="#e3b341"/><path d="M54 58v8M50 62h8" stroke="#10131a" stroke-width="1.2"/>`,
-    ivo: `<rect width="80" height="80" fill="#10131a"/><path d="M14 78c3-20 12-30 26-30s23 10 26 30" fill="#f6f3ea"/><path d="M22 78c2-12 8-18 18-18s16 6 18 18" fill="#c4beb2"/><ellipse cx="40" cy="40" rx="14" ry="16" fill="#f3d7b8"/><path d="M26 36c2-16 8-22 14-22s12 6 14 22c-4-8-8-10-14-10s-10 2-14 10z" fill="#5c3b22"/><circle cx="33" cy="40" r="6" fill="none" stroke="#e3b341" stroke-width="1.6"/><circle cx="47" cy="40" r="6" fill="none" stroke="#e3b341" stroke-width="1.6"/><path d="M39 40h2" stroke="#e3b341" stroke-width="1.6"/><ellipse cx="33" cy="40" rx="1.6" ry="2" fill="#1a140f"/><ellipse cx="47" cy="40" rx="1.6" ry="2" fill="#1a140f"/><path d="M36 50q4 2 8 0" fill="none" stroke="#8a4030" stroke-width="1.2"/><path d="M54 28c6 2 8 10 4 14" fill="none" stroke="#e3b341" stroke-width="2"/><path d="M58 42l4 8" stroke="#8b83ff" stroke-width="2"/>`,
-    sable: `<rect width="80" height="80" fill="#10131a"/><path d="M36 8h8v10h-8z" fill="#c4beb2"/><path d="M24 18h32l-4 12H28z" fill="#e3b341"/><path d="M26 30h28l-4 36H30z" fill="#1a1f2b" stroke="#e3b341" stroke-width="2"/><ellipse cx="40" cy="48" rx="8" ry="12" fill="#f6f3ea"/><ellipse cx="37" cy="46" rx="1.5" ry="2" fill="#10131a"/><ellipse cx="44" cy="46" rx="1.5" ry="2" fill="#10131a"/><path d="M36 54q4 3 8 0" fill="none" stroke="#8a4030" stroke-width="1.2"/><path d="M30 36l8 28M50 34l-6 30" fill="none" stroke="#e3b341" stroke-width="1.4"/><circle cx="40" cy="24" r="3" fill="#8b83ff"/>`,
+    mara: `<rect width="80" height="80" fill="#24160f"/><path d="M6 80c8-24 18-34 34-34s26 10 34 34" fill="#c45c26"/><path d="M24 80c3-12 8-18 16-18s13 6 16 18" fill="#8b3a18"/><rect x="34" y="50" width="12" height="8" fill="#e7c2a4"/><ellipse cx="40" cy="36" rx="14" ry="16" fill="#f0d2b4"/><path d="M26 34c1-16 8-24 14-24s13 8 14 22c-4-8-8-11-14-11s-10 3-14 13z" fill="#1a0e0a"/><path d="M27 33c5-7 21-8 26 1-7-4-19-4-26-1z" fill="#1a0e0a"/><path d="M30 33l7-1M43 32l7 1" fill="none" stroke="#1a0e0a" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="34" cy="38" rx="2" ry="2.3" fill="#1a140f"/><ellipse cx="47" cy="38" rx="2" ry="2.3" fill="#1a140f"/><circle cx="34.7" cy="37.3" r="0.6" fill="#fff6e8"/><circle cx="47.7" cy="37.3" r="0.6" fill="#fff6e8"/><path d="M35 48q5 3 10 0" fill="none" stroke="#8a4030" stroke-width="1.3" stroke-linecap="round"/><circle cx="58" cy="66" r="6" fill="#e3b341"/><path d="M58 62v8M54 66h8" stroke="#24160f" stroke-width="1.3"/>`,
+    ivo: `<rect width="80" height="80" fill="#2a261f"/><path d="M8 80c6-22 16-32 32-32s26 10 32 32" fill="#f4efe4"/><path d="M22 80c3-12 9-18 18-18s15 6 18 18" fill="#d9d0c2"/><rect x="35" y="50" width="10" height="8" fill="#f3d7b8"/><ellipse cx="40" cy="37" rx="13" ry="15" fill="#f6e0c4"/><path d="M27 34c2-16 8-22 13-22s11 6 13 20c-4-7-8-9-13-9s-9 2-13 11z" fill="#5c3b22"/><ellipse cx="33.5" cy="39" rx="1.7" ry="2.1" fill="#1a140f"/><ellipse cx="46.5" cy="39" rx="1.7" ry="2.1" fill="#1a140f"/><circle cx="40" cy="39" r="7.2" fill="none" stroke="#e3b341" stroke-width="1.5"/><circle cx="33.5" cy="39" r="4.2" fill="none" stroke="#e3b341" stroke-width="1.4"/><circle cx="46.5" cy="39" r="4.2" fill="none" stroke="#e3b341" stroke-width="1.4"/><path d="M37.6 39h4.8" stroke="#e3b341" stroke-width="1.4"/><path d="M36 48q4 2.4 8 0" fill="none" stroke="#8a4030" stroke-width="1.2" stroke-linecap="round"/><path d="M58 22c8 1 10 8 6 12" fill="none" stroke="#e3b341" stroke-width="1.8" stroke-linecap="round"/><path d="M64 34l3 16" stroke="#8b83ff" stroke-width="1.8" stroke-linecap="round"/>`,
+    sable: `<rect width="80" height="80" fill="#141816"/><circle cx="40" cy="36" r="24" fill="#e4b15c" opacity="0.28"/><path d="M8 80c6-20 16-30 32-30s26 10 32 30" fill="#1c3330"/><path d="M28 62h24l-3 10H31z" fill="#c9a15a"/><rect x="36" y="50" width="8" height="8" fill="#f3c99a"/><ellipse cx="40" cy="36" rx="13" ry="15" fill="#f6d2a8"/><path d="M27 34c2-14 8-20 13-20s11 6 13 18c-4-6-8-8-13-8s-9 2-13 10z" fill="#2a2118"/><path d="M28 32c4-6 20-7 24 1-6-3-18-3-24-1z" fill="#2a2118"/><ellipse cx="34" cy="38" rx="2.1" ry="2.4" fill="#fff4d2"/><ellipse cx="47" cy="38" rx="2.1" ry="2.4" fill="#fff4d2"/><circle cx="34" cy="38" r="1" fill="#c45c26"/><circle cx="47" cy="38" r="1" fill="#c45c26"/><path d="M35 48q5 3 10 0" fill="none" stroke="#8a4030" stroke-width="1.3" stroke-linecap="round"/><g transform="translate(54 54)"><rect x="4" y="0" width="6" height="5" rx="1" fill="#8a6a32"/><path d="M2 5h10l-1 12H3z" fill="#c9a15a"/><ellipse cx="7" cy="12" rx="2.2" ry="3" fill="#fff4d2"/></g>`,
     bram: `<rect width="80" height="80" fill="#10131a"/><path d="M12 78c2-20 14-28 28-28s26 8 28 28" fill="#1f6f78"/><path d="M18 78c2-12 10-18 22-18s20 6 22 18" fill="#0e2c34"/><ellipse cx="40" cy="42" rx="14" ry="15" fill="#e7c2a4"/><path d="M22 40c4-8 32-8 36 2v8H22z" fill="#123840"/><path d="M24 28h32v10H24z" fill="#123840"/><path d="M20 28h40v4H20z" fill="#e3b341"/><path d="M30 48c2 6 6 8 10 8s8-2 10-8" fill="#5c3b22"/><ellipse cx="34" cy="42" rx="1.8" ry="2.2" fill="#1a140f"/><ellipse cx="46" cy="42" rx="1.8" ry="2.2" fill="#1a140f"/><path d="M18 62c8 4 12 2 16-2" fill="none" stroke="#e3b341" stroke-width="2"/>`,
     ness: `<rect width="80" height="80" fill="#10131a"/><path d="M14 78c2-20 12-30 26-30s24 10 26 30" fill="#e07a45"/><ellipse cx="40" cy="40" rx="14" ry="16" fill="#f0d2b4"/><path d="M26 36c2-18 8-24 14-24 8 0 12 6 14 16-6-6-10-8-14-8s-10 4-14 16z" fill="#3a2418"/><path d="M48 18c6-2 10 2 10 8-6 0-10-2-10-8z" fill="#3a2418"/><ellipse cx="34" cy="40" rx="1.8" ry="2.2" fill="#1a140f"/><ellipse cx="46" cy="40" rx="1.8" ry="2.2" fill="#1a140f"/><path d="M31 34q4-2 7 1M43 35q4-2 7 1" fill="none" stroke="#2a160f" stroke-width="1.2"/><path d="M35 50q5 3 10 0" fill="none" stroke="#8a4030" stroke-width="1.2"/><path d="M54 52l12 10-8 2z" fill="#9fd7ff" stroke="#e3b341" stroke-width="1.2"/>`,
     pell: `<rect width="80" height="80" fill="#10131a"/><path d="M8 64c10-8 18-8 28 0s18 8 28 0 16-8 20 0v16H8z" fill="#1f6f78"/><path d="M22 58c6-28 30-28 36 0 2 16-4 22-18 22S20 74 22 58z" fill="#e3b341"/><path d="M28 46h24" stroke="#10131a" stroke-width="3"/><path d="M30 34c4 8 16 8 20 0" fill="none" stroke="#10131a" stroke-width="2"/><ellipse cx="34" cy="50" rx="1.8" ry="2.2" fill="#10131a"/><ellipse cx="46" cy="50" rx="1.8" ry="2.2" fill="#10131a"/><path d="M36 58q4 3 8 0" fill="none" stroke="#10131a" stroke-width="1.4"/><path d="M36 22h8l2 10h-12z" fill="#f6f3ea"/><rect x="38" y="10" width="4" height="14" fill="#8b83ff"/><path d="M26 40l6 18" stroke="#f6f3ea" stroke-width="1.4"/>`
