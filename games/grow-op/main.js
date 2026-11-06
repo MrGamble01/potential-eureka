@@ -86,7 +86,6 @@ const CHAIN_GUIDE = [
   { id: 'sell', slot: 'slot_rp_pier', line: 'Sell at the pier for cash', hint: 'Street pays dirty. Cafe pays clean', test: (evt) => evt.type === 'exported' && evt.slotId === 'slot_rp_pier' && (evt.earnedDirty || evt.earnedClean) }
 ];
 const CHAIN_NEED = { grow: 1, process: 1, store: 1, sell: 1 };
-const POST_SALES = 3;
 
 const TEACH_LAB = 'drying_barn';
 const TEACH_LOT = 'slot_rp_south';
@@ -98,18 +97,18 @@ const TEACH = [
 ];
 
 const NEXT_ZONE = 'jungle_alta';
-const NEXT_CASH = 3000;
 const POST = [
-  { id: 'sales', line: 'Sell 2 more times', hint: 'Keep selling at the pier', slot: 'slot_rp_pier', reward: 150 },
-  { id: 'cash', line: `Reach $${NEXT_CASH.toLocaleString('en-US')}`, hint: 'Upgrade the pier to sell faster', slot: 'slot_rp_pier', reward: 200 },
+  { id: 'buyer', line: 'Pick Street or Cafe', hint: 'Street pays dirty. Cafe pays clean', slot: 'slot_rp_pier' },
   { id: 'zone', line: 'Unlock the next valley: $1,500', hint: 'Tap the lock', zone: NEXT_ZONE },
   { id: 'crop', line: 'Choose a crop', hint: 'Leaf pays dirty. Coffee pays clean', lot: 'lot_ja_clearing', buildings: ['coffee_estate', 'plantation'], reward: 100 },
   { id: 'depot', line: 'Build a depot', hint: 'It adds trucks', lot: 'lot_ja_wh', building: 'transport_depot', reward: 100 },
-  { id: 'taxi', line: 'Open a taxi front', hint: 'Convert the station, or build a taxi', lot: 'lot_ja_gas', building: 'taxi_co', reward: 150 }
+  { id: 'taxi', line: 'Open a taxi front', hint: 'Convert the station, or build a taxi', lot: 'lot_ja_gas', building: 'taxi_co', reward: 150 },
+  { id: 'plaza', line: 'Choose the plaza', hint: 'A farm grows leaf. A taxi cleans cash', slot: 'slot_rp_town1', buildings: ['plantation', 'taxi_co'], reward: 150 }
 ];
 
 let guideStep = 0;
 let guideHits = 0;
+let guideSince = 0;
 let guideFlash = null;
 let guideHoldUntil = 0;
 let lastSale = null;
@@ -120,7 +119,6 @@ let teachNudge = false;
 let teachPulse = 0;
 let pickerSlot = null;
 let postStep = 0;
-let postSales = 0;
 let postDone = false;
 let postShown = 0;
 const earnSamples = [];
@@ -235,10 +233,6 @@ function currentGuide(view) {
       total: TEACH.length
     };
   }
-  const south = sim.state.slots[TEACH_LOT];
-  if (teachDone && guideStep < CHAIN_GUIDE.length && south && south.buildingId === TEACH_LAB && (south.constructLeft || 0) > 0) {
-    return { id: 'rising', slotId: TEACH_LOT, button: null, line: 'The lab is going up', live: false, index: TEACH.length, total: TEACH.length };
-  }
   if (guideHoldUntil && guideStep < CHAIN_GUIDE.length) {
     const step = CHAIN_GUIDE[guideStep];
     return { id: step.id, slotId: step.slot, button: null, line: step.line, live: true, index: guideStep, total: CHAIN_GUIDE.length };
@@ -249,10 +243,7 @@ function currentGuide(view) {
   }
   if (postLive()) {
     const step = POST[postStep];
-    const left = Math.max(1, POST_SALES - postSales);
-    const line = step.id === 'sales'
-      ? (postSales ? `Sell ${left} more ${left === 1 ? 'time' : 'times'}` : `Sell ${POST_SALES} more times`)
-      : step.line;
+    const line = step.line;
     return {
       id: step.id,
       aim: step.zone ? 'zone' : null,
@@ -335,6 +326,8 @@ function noteGuide(evt) {
   if (!guideLive()) return;
   const step = CHAIN_GUIDE[guideStep];
   if (!step.test(evt)) return;
+  const elapsed = sim.state.elapsedSeconds || 0;
+  if (step.id !== 'grow' && elapsed - guideSince < 12) return;
   guideHits += 1;
   if (guideHits < (CHAIN_NEED[step.id] || 1)) return;
   const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -346,6 +339,7 @@ function noteGuide(evt) {
   }
   guideStep += 1;
   guideHits = 0;
+  guideSince = sim.state.elapsedSeconds || 0;
   if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell' && lastSale && mapScene && mapScene.fx) {
     mapScene.fx({ type: 'exported', slotId: lastSale.slotId, earnedDirty: lastSale.earnedDirty || 0, earnedClean: lastSale.earnedClean || 0 });
   }
@@ -377,14 +371,10 @@ function advancePost() {
 function notePost(evt) {
   const step = POST[postStep];
   if (!step) return;
-  if (step.id === 'sales' && evt.type === 'exported' && (evt.earnedDirty || evt.earnedClean)) {
-    postSales += 1;
-    if (postSales >= POST_SALES) advancePost();
-    else renderHud();
-    return;
-  }
   const wanted = step.buildings || (step.building ? [step.building] : null);
   if ((evt.type === 'built' || evt.type === 'build_started') && wanted && wanted.includes(evt.buildingId)) {
+    if (step.lot && evt.lotId !== step.lot) return;
+    if (!step.lot && step.slot && evt.slotId !== step.slot) return;
     advancePost();
     return;
   }
@@ -420,6 +410,7 @@ function guideTick() {
     if (guideLive() && CHAIN_GUIDE[guideStep].id === 'sell') {
       guideStep += 1;
       guideHits = 0;
+      guideSince = sim.state.elapsedSeconds || 0;
       teachTouch = now;
       teachNudge = false;
     }
@@ -432,7 +423,8 @@ function guideTick() {
   if (postLive()) {
     const step = POST[postStep];
     if (!postShown) postShown = now;
-    if (step.id === 'cash' && sim.state.dirtyCash >= NEXT_CASH && now - postShown > 900) advancePost();
+    const pier = sim.state.slots.slot_rp_pier;
+    if (step.id === 'buyer' && pier && (pier.buyer === 'street' || pier.buyer === 'cafe')) advancePost();
     else if (step.id === 'zone' && sim.state.zones[NEXT_ZONE] && sim.state.zones[NEXT_ZONE].unlocked) advancePost();
     else idleGuide(step.hint);
     return;
@@ -1354,41 +1346,14 @@ function onBuildingReady(buildingId) {
   showBuildToast(buildingTalk(building).done);
 }
 
-function farmHome() {
-  const building = BUILDINGS.plantation;
-  for (const def of BUILD_SLOTS) {
-    const slot = sim.state.slots[def.id];
-    const reg = sim.state.regions[def.regionId];
-    if (!slot || !reg || !reg.unlocked || slot.buildingId || slot.rivalControlled) continue;
-    if (def.allowedCategories && !def.allowedCategories.includes(building.category)) continue;
-    const lot = sim.state.lots && sim.state.lots[def.id];
-    if (lot && (lot.phase === 'building' || lot.phase === 'demolishing')) continue;
-    if (lot && lot.kind === 'standing' && lot.phase !== 'cleared') continue;
-    return def.id;
-  }
-  return null;
-}
-
 function starveFix(lot) {
   const slotId = lot.slotId || lot.id;
   const slot = sim.state.slots[slotId];
   const building = slot && slot.buildingId ? BUILDINGS[slot.buildingId] : null;
   if (!slot || !building || building.role !== 'processor' || (slot.constructLeft || 0) > 0) return null;
   const missing = Object.keys(building.inputs || {}).find((id) => (slot.inputBuffer[id] || 0) < building.inputs[id] && (slot.progress || 0) < 0.05);
-  if (missing === 'raw_herb') {
-    const home = farmHome();
-    if (home) {
-      const gate = sim.state.lots && sim.state.lots[home];
-      const scale = gate && gate.kind === 'open' ? 0.85 : 1;
-      return {
-        line: 'Needs leaf. Build another farm',
-        deal: 'fix-farm',
-        slot: home,
-        cost: Math.round((BUILDINGS.plantation.buildCostDirty || 0) * scale),
-        clean: Math.round((BUILDINGS.plantation.buildCostClean || 0) * scale)
-      };
-    }
-    if (sim.upgradeQuote('slot_rp_farm1')) return { line: 'Needs leaf. Upgrade the farm', deal: 'fix-upgrade', slot: 'slot_rp_farm1' };
+  if (missing === 'raw_herb' && sim.upgradeQuote('slot_rp_farm1')) {
+    return { line: 'Needs leaf. Upgrade the farm', deal: 'fix-upgrade', slot: 'slot_rp_farm1' };
   }
   return null;
 }
@@ -1436,7 +1401,7 @@ function opsPanel(lot) {
       bits.push(`<button type="button" class="go-ops-fix" data-deal="fix-upgrade" data-slot="${fix.slot}" ${afford ? '' : 'disabled'} aria-label="Upgrade the farm"><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M10 15V5M6 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>+40% ${price}</small></button>`);
     }
     if (slot && building.role === 'smuggling') {
-      const buyer = slot.buyer === 'cafe' ? 'cafe' : 'street';
+      const buyer = slot.buyer === 'cafe' ? 'cafe' : slot.buyer === 'street' ? 'street' : '';
       bits.push(`<div class="go-buyer"><button type="button" data-deal="buyer" data-buyer="street" class="${buyer === 'street' ? 'is-on' : ''}" aria-label="Street, more dirty cash"><b>Street</b> <small>$ more dirty</small></button><button type="button" data-deal="buyer" data-buyer="cafe" class="${buyer === 'cafe' ? 'is-on' : ''}" aria-label="Cafe, more clean cash"><b>Cafe</b> <small>$ more clean</small></button></div>`);
     }
     if (slot) {
@@ -1513,15 +1478,19 @@ function openLotPicker(slotId) {
   const picker = $('lot-picker');
   if (!picker) return;
   const lock = teachActive();
+  const goal = postLive() ? POST[postStep] : null;
+  const aimed = goal && goal.slot === slotId ? (goal.buildings || []) : [];
   let choices = buildChoices().filter((building) => !def.allowedCategories || def.allowedCategories.includes(building.category));
   if (lock) {
     const lab = BUILDINGS[TEACH_LAB];
     choices = lab ? [lab] : [];
+  } else if (aimed.length) {
+    choices = choices.slice().sort((a, b) => (aimed.includes(a.id) ? -1 : aimed.includes(b.id) ? 1 : 0));
   }
   picker.innerHTML = choices.map((building) => {
     const isLab = building.id === TEACH_LAB;
     const allow = lock ? isLab && labFits(slotId) : true;
-    const aim = lock && isLab && allow ? ' is-aim' : '';
+    const aim = (lock && isLab && allow) || aimed.includes(building.id) ? ' is-aim' : '';
     return buildCard(building, { attr: 'pick', slotId, cls: aim, off: !allow });
   }).join('');
   picker.hidden = false;
@@ -2028,10 +1997,10 @@ function wireEvents() {
       teachPulse = teachTouch;
       guideStep = 0;
       guideHits = 0;
+      guideSince = 0;
       guideHoldUntil = 0;
       guideFlash = null;
       postStep = 0;
-      postSales = 0;
       postDone = false;
       postShown = 0;
       seenBuild.clear();
