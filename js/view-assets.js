@@ -78,11 +78,21 @@
     return { css, js };
   }
 
-  async function ensure(name) {
-    const need = pack(name);
-    for (let i = 0; i < need.css.length; i++) await load(need.css[i], 'css');
-    for (let i = 0; i < need.js.length; i++) await load(need.js[i], 'js');
+  // Stylesheet and script requests start together. Scripts stay in
+  // listed order so a later file can call the globals of an earlier one
+  // once ensure() resolves. init() does not run until both are done.
+  function schedule(need, loadFn) {
+    const css = Promise.all((need.css || []).map((url) => loadFn(url, 'css')));
+    let chain = Promise.resolve();
+    (need.js || []).forEach((url) => {
+      chain = chain.then(() => loadFn(url, 'js'));
+    });
+    return Promise.all([css, chain]).then(() => {});
   }
 
-  window.EurekaViews = { ensure };
+  function ensure(name) {
+    return schedule(pack(name), load);
+  }
+
+  window.EurekaViews = { ensure, pack, schedule };
 })();
