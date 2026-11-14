@@ -1,0 +1,20 @@
+# Node tests for pure game and hub rules. The browser battery stays in
+# tests/headless and tests/smoke so this job does not download Chromium.
+name: Node tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run node tests
+        run: node --test tests/*.test.cjs
