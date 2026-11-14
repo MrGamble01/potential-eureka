@@ -3,7 +3,38 @@
    ============================================ */
 
 const Bookmarks = (() => {
-  const escHtml = Utils.escHtml;
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function safeUrl(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return null;
+    const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : 'https://' + raw;
+    let url;
+    try { url = new URL(withScheme); } catch (e) { return null; }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.href;
+  }
+
+  function tileHtml(b) {
+    const url = safeUrl(b.url);
+    const id = Number(b.id);
+    if (!url || !Number.isFinite(id)) return '';
+    const name = String(b.name || '');
+    const initial = (name.charAt(0) || '?').toUpperCase();
+    const hue = name.split('').reduce((h, c) => h + c.charCodeAt(0), 0) % 360;
+    return `<a href="${esc(url)}" target="_blank" rel="noopener" class="bookmark-tile" title="${esc(url)}">
+        <div class="bookmark-icon" style="color: hsl(${hue}, 80%, 60%)">${esc(initial)}</div>
+        <div class="bookmark-name">${esc(name)}</div>
+        <button class="bookmark-del" type="button" aria-label="${esc('Remove ' + name)}" onclick="event.preventDefault();event.stopPropagation();Productivity.deleteBookmark(${id})">×</button>
+      </a>`;
+  }
 
   let bookmarks = Utils.store.get('eureka-bookmarks') || [];
 
@@ -17,9 +48,9 @@ const Bookmarks = (() => {
       return;
     }
     const name = document.getElementById('bm-name').value.trim();
-    const url = document.getElementById('bm-url').value.trim();
+    const url = safeUrl(document.getElementById('bm-url').value);
     if (!name || !url) return;
-    bookmarks.push({ id: Date.now(), name, url: url.startsWith('http') ? url : 'https://' + url });
+    bookmarks.push({ id: Date.now(), name, url });
     document.getElementById('bm-name').value = '';
     document.getElementById('bm-url').value = '';
     form.style.display = 'none';
@@ -37,15 +68,7 @@ const Bookmarks = (() => {
     const grid = document.getElementById('bookmarks-grid');
     if (!grid) return;
 
-    grid.innerHTML = bookmarks.map(b => {
-      const initial = b.name.charAt(0).toUpperCase();
-      const hue = b.name.split('').reduce((h, c) => h + c.charCodeAt(0), 0) % 360;
-      return `<a href="${escHtml(b.url)}" target="_blank" rel="noopener" class="bookmark-tile" title="${escHtml(b.url)}">
-        <div class="bookmark-icon" style="color: hsl(${hue}, 80%, 60%)">${initial}</div>
-        <div class="bookmark-name">${escHtml(b.name)}</div>
-        <button class="bookmark-del" onclick="event.preventDefault();event.stopPropagation();Productivity.deleteBookmark(${b.id})">×</button>
-      </a>`;
-    }).join('');
+    grid.innerHTML = bookmarks.map(tileHtml).join('');
 
     grid.innerHTML += `<button class="bookmark-tile bookmark-add" onclick="Productivity.addBookmark()">
       <div class="bookmark-icon">+</div>
@@ -65,5 +88,5 @@ const Bookmarks = (() => {
     initBookmarkEvents();
   }
 
-  return { init, add, delete: deleteFn };
+  return { init, add, delete: deleteFn, tileHtml, safeUrl };
 })();
