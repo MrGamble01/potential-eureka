@@ -325,7 +325,7 @@
       <div class="widget widget-wide">
         <div class="widget-title">
           <span class="dot"></span> Calendar Events
-          <button class="widget-settings-btn" onclick="CalendarWidget.openSettings()" title="Connect Google Calendar">&#9881;</button>
+          <button type="button" class="widget-settings-btn" onclick="CalendarWidget.openSettings()" title="Connect Google Calendar" aria-label="Connect Google Calendar">&#9881;</button>
         </div>
         <div id="calendar-events"></div>
       </div>
@@ -369,11 +369,11 @@
         <div class="widget-title">
           <span class="dot"></span> Tasks
           <span class="gt-status" id="gt-sync-status"></span>
-          <button class="widget-settings-btn" onclick="Productivity.openGTSettings()" title="Sync with Google Tasks">&#9881;</button>
+          <button type="button" class="widget-settings-btn" onclick="Productivity.openGTSettings()" title="Sync with Google Tasks" aria-label="Sync with Google Tasks">&#9881;</button>
         </div>
         <div class="todo-input-row">
-          <select id="todo-list-picker" class="todo-list-picker" style="display:none"></select>
-          <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter...">
+          <select id="todo-list-picker" class="todo-list-picker" style="display:none" aria-label="Task list"></select>
+          <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter..." aria-label="New task">
         </div>
         <div id="todo-list" class="todo-list"></div>
         <div class="todo-footer">
@@ -391,8 +391,8 @@
       <div class="widget widget-wide">
         <div class="widget-title"><span class="dot"></span> Bookmarks</div>
         <div id="bookmark-form" class="bookmark-form" style="display:none">
-          <input type="text" id="bm-name" class="cal-input" placeholder="Name">
-          <input type="text" id="bm-url" class="cal-input" placeholder="URL">
+          <input type="text" id="bm-name" class="cal-input" placeholder="Name" aria-label="Bookmark name">
+          <input type="text" id="bm-url" class="cal-input" placeholder="URL" aria-label="Bookmark URL">
           <button class="primary" onclick="Productivity.addBookmark()">Add</button>
         </div>
         <div id="bookmarks-grid" class="bookmarks-grid"></div>
@@ -468,11 +468,11 @@
         <div class="widget">
           <div class="widget-title"><span class="dot"></span> How are you feeling?</div>
           <div class="mood-picker" id="mood-picker">
-            <button onclick="Personal.logMood(5)" title="Great">😄</button>
-            <button onclick="Personal.logMood(4)" title="Good">🙂</button>
-            <button onclick="Personal.logMood(3)" title="Okay">😐</button>
-            <button onclick="Personal.logMood(2)" title="Low">😕</button>
-            <button onclick="Personal.logMood(1)" title="Rough">😢</button>
+            <button type="button" onclick="Personal.logMood(5)" title="Great" aria-label="Great">😄</button>
+            <button type="button" onclick="Personal.logMood(4)" title="Good" aria-label="Good">🙂</button>
+            <button type="button" onclick="Personal.logMood(3)" title="Okay" aria-label="Okay">😐</button>
+            <button type="button" onclick="Personal.logMood(2)" title="Low" aria-label="Low">😕</button>
+            <button type="button" onclick="Personal.logMood(1)" title="Rough" aria-label="Rough">😢</button>
           </div>
           <div class="mood-today" id="mood-today" style="display:none"></div>
           <div id="mood-history-section" style="display:none">
@@ -717,7 +717,7 @@
       <div class="game-controls">
         <button class="primary" onclick="MazeGame.newGame()">New Game</button>
         <span style="opacity:.6;font-size:13px">Watch AI:</span>
-        <select id="maze-algo">
+        <select id="maze-algo" aria-label="Pathfinding algorithm">
           <option value="bfs">BFS (Breadth-First)</option>
           <option value="dfs">DFS (Depth-First)</option>
           <option value="astar">A* Search</option>
@@ -995,7 +995,7 @@
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>💣 <strong id="mines-count">0</strong></span>
-        <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
+        <span><button type="button" id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" aria-label="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
         <span>⏱ <strong id="mines-time">0</strong>s</span>
         <span>Best: <strong id="mines-best">—</strong></span>
         <span id="mines-status" style="color:#F7C948"></span>
@@ -1217,14 +1217,14 @@
     </div>
   </div>
 
-  <div id="gt-modal" class="modal-overlay">
+  <div id="gt-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="gt-modal-title">
     <div class="modal-content">
-      <h3>Google Tasks</h3>
+      <h3 id="gt-modal-title">Google Tasks</h3>
       <p>Two-way sync with multiple Google Tasks lists. Your Work and Personal
          lists will show up as color-coded tags on each task.
          Requires a Google Cloud project with Tasks API + OAuth 2.0 credentials.</p>
-      <label>OAuth Client ID</label>
-      <input type="text" id="gt-client-id" class="cal-input" placeholder="123456789.apps.googleusercontent.com">
+      <label for="gt-client-id">OAuth Client ID</label>
+      <input type="text" id="gt-client-id" class="cal-input" placeholder="123456789.apps.googleusercontent.com" aria-label="OAuth client ID">
       <div id="gt-list-checks" class="gt-list-checks" style="display:none"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button onclick="Productivity.gtConnect()">Connect</button>
@@ -1237,14 +1237,14 @@
   </div>
 
   <!-- CALENDAR SETTINGS MODAL -->
-  <div id="calendar-modal" class="modal-overlay">
+  <div id="calendar-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title">
     <div class="modal-content">
-      <h3>Connect Your Calendars</h3>
+      <h3 id="calendar-modal-title">Connect Your Calendars</h3>
       <p>Add your Google Calendar API key and calendar IDs to see real events.
          Get an API key from the Google Cloud Console with Calendar API enabled.
          Your calendar ID is usually your email address.</p>
-      <label>Google API Key</label>
-      <input type="text" id="cal-api-key" class="cal-input" placeholder="AIzaSy...">
+      <label for="cal-api-key">Google API Key</label>
+      <input type="text" id="cal-api-key" class="cal-input" placeholder="AIzaSy..." aria-label="Google API key">
       <label>Calendars</label>
       <div id="cal-list"></div>
       <button class="modal-add-btn" onclick="CalendarWidget.addCalendarRow('', '')">+ Add Calendar</button>
