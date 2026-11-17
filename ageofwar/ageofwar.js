@@ -113,45 +113,20 @@ const AgeOfWarGame = (() => {
     ridgebow: { era: -1, role: 'companion', name: 'Ridge Archer', icon: '🏹', sprite: '🏹', cost: 0, hp: 96,  dmg: 26, range: 180, atkSpd: 1.1, speed: 44, color: '#c4a574', xp: 0, gold: 0, silhouette: 'humanoid' },
   };
 
+  // Boss keys are copied from a real unit, so they share its era.
+  // Leaving them in this list made the next heavy pick a boss, and the
+  // boss key then grew a boss_ prefix on every spawn. Companions march
+  // with the Ridge, not the recruit row. The filter lives in rules.js.
   function unitsForEra(era) {
-    // Exclude boss_* entries: they're spread-copied from a base unit's def
-    // (see enemyTick's boss spawner) so they inherit that unit's `.era`
-    // and would otherwise show up as "just another era-N unit" here. That
-    // was a latent bug pre-dating this fix: unitsForEra() feeds both the
-    // enemy AI's random/heavy-unit spawn choice AND the player's spawn
-    // panel, so once a boss entry existed it could get selected as the
-    // "heaviest" unit for its era (choices[choices.length-1] in
-    // enemyTick) on the NEXT lookup -- corrupting future heavy-unit
-    // picks and, worse, making the bounded boss key ('boss_' + baseKey)
-    // recurse into 'boss_boss_...' every time a new boss spawned,
-    // defeating the whole point of keying bosses by era. Filtering boss_*
-    // out here keeps choices/the spawn panel to the real catalog only.
-    return Object.entries(UNITS)
-      .filter(([k, u]) => u.era === era && !k.startsWith('boss_') && u.role !== 'companion')
-      .map(([k]) => k);
+    return AowRules.unitsForEra(UNITS, era);
   }
 
-  // Bosses stay on the anchored heavy. New skirmishers and shields
-  // sit in the same era without becoming the wave leader.
   function heavyKey(choices) {
-    if (!choices || !choices.length) return null;
-    for (let i = choices.length - 1; i >= 0; i--) {
-      if (UNITS[choices[i]] && UNITS[choices[i]].anchor) return choices[i];
-    }
-    return choices[choices.length - 1];
+    return AowRules.heavyKey(UNITS, choices);
   }
 
-  // Counter tags. Existing triangle pairs stay at 1 so the old duel
-  // matrix is unchanged. The new lines are the ones with a winner.
   function counterFactor(atkLine, defLine) {
-    if (atkLine === 'skirmish' && defLine === 'shield') return 1.5;
-    if (atkLine === 'skirmish' && defLine === 'heavy') return 1.35;
-    if (atkLine === 'ranged' && defLine === 'shield') return 0.6;
-    if (atkLine === 'ranged' && defLine === 'skirmish') return 1.4;
-    if (atkLine === 'heavy' && defLine === 'shield') return 1.2;
-    if (atkLine === 'shield' && defLine === 'skirmish') return 0.75;
-    if (atkLine === 'shield' && defLine === 'ranged') return 1.25;
-    return 1;
+    return AowRules.counterFactor(atkLine, defLine);
   }
 
   // ---- Turret catalog (one per era — upgrade to next era's tier) ----
@@ -301,7 +276,7 @@ const AgeOfWarGame = (() => {
   // design — it's the fairness clock). Resets with the run.
   const ARMOR_MAX = 3, ARMOR_COSTS = [150, 350, 700];
   let armorTier = 0;
-  function armorMult() { return 1 - 0.1 * armorTier; }
+  function armorMult() { return AowRules.armorMult(armorTier); }
   let units = [];
   let projectiles = [];
   let nextSpawnId = 1;
@@ -327,11 +302,10 @@ const AgeOfWarGame = (() => {
   let trainingQueue = [];                    // [{ key, total, remaining }]
   const TRAINING_MAX = 5;
   function trainingTimeFor(def) {
-    // Cost / 500 (s) but always between 0.6s and 7s so cheap units cycle
-    // fast while expensive units feel weighty without locking up the lane.
-    const t = Math.max(0.6, Math.min(7, def.cost / 500));
-    const drummed = runPerks.drums ? t * 0.85 : t;   // AOW-11: March Drums
-    return drummed * (typeof drillTimeMult === 'function' ? drillTimeMult() : 1);   // AOW-28: the drillmaster keeps the beat
+    // Cost / 500 (s), clamped, then March Drums. The drillmaster is a
+    // later perk, so its multiplier stays beside the perk table.
+    const drummed = AowRules.trainingSeconds(def.cost, !!(runPerks && runPerks.drums));
+    return drummed * (typeof drillTimeMult === 'function' ? drillTimeMult() : 1);
   }
   let spawnCooldowns = {};                   // kept for legacy refs (always empty now)
   let enemySpawnT = 1.6;
@@ -561,20 +535,16 @@ const AgeOfWarGame = (() => {
   const RIDGE_WARDEN = 108;
   const RIDGE_COMPANY = 200;
   function orderGoldMult() {
-    return fieldOrder === 'levy' ? 1.18 : fieldOrder === 'shield' ? 0.92 : 1;
+    return AowRules.orderGoldMult(fieldOrder);
   }
   function recruitCost(def) {
-    if (!def) return 0;
-    return fieldOrder === 'levy' ? Math.round(def.cost * 1.1) : def.cost;
+    return AowRules.recruitCost(def, fieldOrder);
   }
   function orderMitigate(u, dmg) {
-    if (fieldOrder !== 'shield' || !u || u.side !== 'player' || u.role) return dmg;
-    return Math.max(1, Math.round(dmg * 0.88));
+    return AowRules.orderMitigate(fieldOrder, u, dmg);
   }
   function nextAgeXp() {
-    const base = ERAS[playerEra].upXP;
-    if (fieldOrder === 'sapper' && playerEra === 1) return Math.round(base * 1.15);
-    return base;
+    return AowRules.nextAgeXp(ERAS[playerEra].upXP, fieldOrder, playerEra);
   }
   function orderChip() {
     let el = document.getElementById('aow-order-chip');
