@@ -1663,13 +1663,10 @@
       if (!listEl || typeof Rivals === 'undefined') return;
       const rivals = Object.entries(Rivals.list());
       listEl.innerHTML = rivals.length
-        ? rivals.map(([name, r]) =>
-            '<span class="hof-rival-chip">⚔ ' + name +
-            ' <span class="hof-rival-n">(' + Object.keys(r.s).length + ' games)</span>' +
-            '<button class="hof-rival-x" data-rname="' + name.replace(/"/g, '') + '" title="Remove ' + name + '">✕</button></span>').join('')
+        ? rivals.map(([name, r]) => Rivals.chipHtml(name, Object.keys(r.s).length)).join('')
         : '<span class="hof-rival-none">No rivals yet — trade codes with a friend and race the board.</span>';
       listEl.querySelectorAll('.hof-rival-x').forEach(btn => {
-        btn.addEventListener('click', () => { Rivals.remove(btn.dataset.rname); renderHallOfFame(); });
+        btn.addEventListener('click', () => { Rivals.remove(decodeURIComponent(btn.dataset.rname)); renderHallOfFame(); });
       });
     }
 

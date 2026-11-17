@@ -161,6 +161,24 @@ const Rivals = (() => {
     return GAMES[key].dir === 'min' ? b.value < mine : b.value > mine;
   }
 
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function chipHtml(name, count) {
+    const label = String(name == null ? '' : name);
+    const games = Math.max(0, Number(count) || 0);
+    return '<span class="hof-rival-chip">⚔ ' + esc(label) +
+      ' <span class="hof-rival-n">(' + games + ' games)</span>' +
+      '<button type="button" class="hof-rival-x" data-rname="' + esc(encodeURIComponent(label)) +
+      '" aria-label="' + esc('Remove ' + label) + '" title="' + esc('Remove ' + label) + '">✕</button></span>';
+  }
+
   function fmt(key, v) { return GAMES[key] ? GAMES[key].fmt(v) : String(v); }
 
   // '#hof=<code>' in the URL — import, clean the hash, report what happened.
@@ -179,6 +197,6 @@ const Rivals = (() => {
     return location.origin + location.pathname.replace(/index\.html$/, '') + '#hof=' + encode();
   }
 
-  return { GAMES, encode, decode, add, remove, list, bestFor, rivalLeads, fmt,
+  return { GAMES, encode, decode, add, remove, list, bestFor, rivalLeads, fmt, chipHtml,
            myName, setMyName, tryImportFromHash, shareUrl };
 })();
