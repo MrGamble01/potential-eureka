@@ -27,7 +27,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-20261106-studioh2';
+const SW_VERSION = 'eureka-20261114-islemath';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -121,6 +121,7 @@ const SHELL = [
   '/js/focus-hold.js',
   '/js/gutterlight.js',
   '/js/inkflip.js',
+  '/js/isle-math.js',
   '/js/hub-routes.js',
   '/js/patch-notes.js',
   '/js/view-assets.js',
