@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img">
+  <title>Homeless Village cover</title>
+  <rect width="480" height="640" fill="#10131a"/>
+  <circle cx="372" cy="128" r="34" fill="#3ddcff"/>
+  <circle cx="358" cy="118" r="26" fill="#10131a"/>
+  <path d="M40 268h400" stroke="#c4beb2" stroke-width="12"/>
+  <path d="M64 268v140M416 268v140" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M64 268c72 78 140 78 176 0" fill="none" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M240 268c72 78 140 78 176 0" fill="none" stroke="#c4beb2" stroke-width="10"/>
+  <path d="M0 478h480v162H0z" fill="#1a1f2b"/>
+  <path d="M0 478h480" stroke="#3ddcff" stroke-width="3"/>
+  <path d="M186 478l74-96 74 96z" fill="#3ddcff"/>
+  <path d="M208 478l52-68 52 68z" fill="#10131a"/>
+  <circle cx="260" cy="436" r="12" fill="#3ddcff"/>
+  <path d="M64 478l52-52h86l38 52z" fill="#f6f3ea"/>
+  <path d="M88 478l34-32h52l30 32z" fill="#8b83ff"/>
+  <rect x="348" y="412" width="68" height="66" fill="#c4beb2"/>
+  <path d="M338 412h88l-10-22H348z" fill="#3ddcff"/>
+</svg>
