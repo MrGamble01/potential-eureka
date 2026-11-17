@@ -261,5 +261,5 @@ const MemoryMatrixGame = (() => {
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, hitPad: padAt };
 })();

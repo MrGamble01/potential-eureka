@@ -319,5 +319,8 @@ const InkflipGame = (() => {
     draw();
   }
 
-  return { init, start, resume, destroy, togglePause, restart };
+  return {
+    init, start, resume, destroy, togglePause, restart,
+    rules: { empty: emptyBoard, captured, me: ME, them: THEM, size: N },
+  };
 })();
