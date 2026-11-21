@@ -110,6 +110,17 @@ const AsteroidsGame = (() => {
     keys.left = keys.right = keys.thrust = false;
   }
 
+  // One tap on iPhone fires pointerdown and then touchstart. Pause has no
+  // cooldown, so both events turned it on and straight back off. The second
+  // event of that pair is ignored; a later tap still counts.
+  const PRESS_PAIR_MS = 40;
+  function takePress(kind, now, state) {
+    if (kind !== 'pointerdown' && kind !== 'touchstart') return false;
+    if (state && state.at != null && kind !== state.kind && now >= state.at && now - state.at < PRESS_PAIR_MS) return false;
+    if (state) { state.kind = kind; state.at = now; }
+    return true;
+  }
+
   function bindTouchButtons() {
     const map = { 'ast-left': 'left', 'ast-right': 'right', 'ast-thrust': 'thrust' };
     Object.keys(map).forEach(id => {
@@ -124,21 +135,36 @@ const AsteroidsGame = (() => {
     const fireBtn = document.getElementById('ast-fire');
     if (fireBtn && !fireBtn.dataset.bound) {
       fireBtn.dataset.bound = '1';
-      const f = e => { if (!running || gameOver) start(); else if (!paused) fire(); e.preventDefault(); };
+      const press = {};
+      const f = e => {
+        if (!takePress(e.type, performance.now(), press)) { e.preventDefault(); return; }
+        if (!running || gameOver) start(); else if (!paused) fire();
+        e.preventDefault();
+      };
       fireBtn.addEventListener('touchstart', f, { passive: false });
       fireBtn.addEventListener('pointerdown', f);
     }
     const hyperBtn = document.getElementById('ast-hyper');
     if (hyperBtn && !hyperBtn.dataset.bound) {
       hyperBtn.dataset.bound = '1';
-      const h = e => { if (!paused) hyperspace(); e.preventDefault(); };
+      const press = {};
+      const h = e => {
+        if (!takePress(e.type, performance.now(), press)) { e.preventDefault(); return; }
+        if (!paused) hyperspace();
+        e.preventDefault();
+      };
       hyperBtn.addEventListener('touchstart', h, { passive: false });
       hyperBtn.addEventListener('pointerdown', h);
     }
     const pauseBtn = document.getElementById('ast-pause');
     if (pauseBtn && !pauseBtn.dataset.bound) {
       pauseBtn.dataset.bound = '1';
-      const p = e => { togglePause(); e.preventDefault(); };
+      const press = {};
+      const p = e => {
+        if (!takePress(e.type, performance.now(), press)) { e.preventDefault(); return; }
+        togglePause();
+        e.preventDefault();
+      };
       pauseBtn.addEventListener('touchstart', p, { passive: false });
       pauseBtn.addEventListener('pointerdown', p);
     }
@@ -553,5 +579,5 @@ const AsteroidsGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause, rules: { wrapPoint, capVelocity, width: WIDTH, height: HEIGHT, maxSpeed: MAX_SPEED } };
+  return { init, start, destroy, togglePause, rules: { wrapPoint, capVelocity, takePress, pressPairMs: PRESS_PAIR_MS, width: WIDTH, height: HEIGHT, maxSpeed: MAX_SPEED } };
 })();
