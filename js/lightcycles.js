@@ -151,18 +151,18 @@ const LightCyclesGame = (() => {
   // ---- AI ----
   // Ray length in each candidate direction, then a bounded flood-fill to
   // tell an open corridor from a dead-end pocket when rays are close.
-  function rayLen(x, y, dir) {
+  function rayLength(cells, x, y, dir) {
     let d = 0;
     let cx = x + DIRS[dir].x, cy = y + DIRS[dir].y;
-    while (inBounds(cx, cy) && board[idx(cx, cy)] === 0 && d < 24) {
+    while (inBounds(cx, cy) && cells[idx(cx, cy)] === 0 && d < 24) {
       d++; cx += DIRS[dir].x; cy += DIRS[dir].y;
     }
     return d;
   }
 
-  function pocketSize(x, y, dir, cap) {
+  function openPocket(cells, x, y, dir, cap) {
     const sx = x + DIRS[dir].x, sy = y + DIRS[dir].y;
-    if (!inBounds(sx, sy) || board[idx(sx, sy)] !== 0) return 0;
+    if (!inBounds(sx, sy) || cells[idx(sx, sy)] !== 0) return 0;
     const seen = new Set([idx(sx, sy)]);
     const queue = [[sx, sy]];
     let count = 0;
@@ -172,11 +172,15 @@ const LightCyclesGame = (() => {
       for (const d of DIRS) {
         const nx = cx + d.x, ny = cy + d.y;
         const i = idx(nx, ny);
-        if (inBounds(nx, ny) && board[i] === 0 && !seen.has(i)) { seen.add(i); queue.push([nx, ny]); }
+        if (inBounds(nx, ny) && cells[i] === 0 && !seen.has(i)) { seen.add(i); queue.push([nx, ny]); }
       }
     }
     return count;
   }
+
+  function rayLen(x, y, dir) { return rayLength(board, x, y, dir); }
+
+  function pocketSize(x, y, dir, cap) { return openPocket(board, x, y, dir, cap); }
 
   function aiSteer(who) {
     const ai = riders[who];
@@ -446,5 +450,8 @@ const LightCyclesGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, toggleMode, toggleThird, togglePause, restart };
+  return {
+    init, start, destroy, toggleMode, toggleThird, togglePause, restart,
+    rules: { cols: COLS, rows: ROWS, rayLength, openPocket },
+  };
 })();
