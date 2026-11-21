@@ -232,8 +232,10 @@ const SnakeGame = (() => {
     powerUp = { ...pos, ...def, expireAt: Date.now() + 8000 };
   }
 
+  function levelFor(foods) { return Math.floor(foods / 3) + 1; }
+
   function getLevel() {
-    return Math.floor(foodCount / 3) + 1;
+    return levelFor(foodCount);
   }
 
   function toggleWallWrap() {
@@ -246,20 +248,36 @@ const SnakeGame = (() => {
     }
   }
 
+  function nextCell(x, y, dir, cols, rows, wrap) {
+    let nx = x + dir.x;
+    let ny = y + dir.y;
+    if (wrap) {
+      nx = (nx + cols) % cols;
+      ny = (ny + rows) % rows;
+      return { x: nx, y: ny, dead: false };
+    }
+    if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) return { x: nx, y: ny, dead: true };
+    return { x: nx, y: ny, dead: false };
+  }
+
+  // The tail cell is free unless this tick grows the snake. Entering that
+  // cell on a non-eating move is the tail vacating, not a crash. `tail` is
+  // the same object as the last body segment, so the check is by identity.
+  function hitsSelf(body, x, y, willEat) {
+    const tail = body[body.length - 1];
+    for (let i = 0; i < body.length; i++) {
+      const s = body[i];
+      if (s.x === x && s.y === y && (willEat || s !== tail)) return true;
+    }
+    return false;
+  }
+
   function tick() {
     if (window.EurekaFocus && window.EurekaFocus.held()) return;
     direction = { ...nextDirection };
-    let head = {
-      x: snake[0].x + direction.x,
-      y: snake[0].y + direction.y,
-    };
-
-    if (wallWrap) {
-      head.x = (head.x + COLS) % COLS;
-      head.y = (head.y + ROWS) % ROWS;
-    } else if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-      return endGame();
-    }
+    const stepped = nextCell(snake[0].x, snake[0].y, direction, COLS, ROWS, wallWrap);
+    if (stepped.dead) return endGame();
+    const head = { x: stepped.x, y: stepped.y };
 
     // Rocks are solid even with wrap on.
     if (walls.some(w => w.x === head.x && w.y === head.y)) return endGame();
@@ -272,9 +290,8 @@ const SnakeGame = (() => {
        head.x === bonusFood.x && head.y === bonusFood.y) ||
       (powerUp && Date.now() <= powerUp.expireAt &&
        head.x === powerUp.x && head.y === powerUp.y);
-    const tail = snake[snake.length - 1];
     const ghosting = Date.now() < ghostUntil;   // 👻: your own tail is vapor
-    if (!ghosting && snake.some(s => s.x === head.x && s.y === head.y && (willEat || s !== tail))) {
+    if (!ghosting && hitsSelf(snake, head.x, head.y, willEat)) {
       return endGame();
     }
 
@@ -558,5 +575,8 @@ const SnakeGame = (() => {
     }
   }
 
-  return { init, start, destroy, toggleWallWrap, cyclePace, togglePause };
+  return {
+    init, start, destroy, toggleWallWrap, cyclePace, togglePause,
+    rules: { cols: COLS, rows: ROWS, nextCell, hitsSelf, levelFor },
+  };
 })();
