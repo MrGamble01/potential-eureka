@@ -89,7 +89,9 @@ const Rivals = (() => {
   }
 
   function myName() { return (localStorage.getItem(NAME_KEY) || '').slice(0, MAX_NAME); }
-  function setMyName(n) { localStorage.setItem(NAME_KEY, String(n).slice(0, MAX_NAME)); }
+  function setMyName(n) {
+    try { localStorage.setItem(NAME_KEY, String(n).slice(0, MAX_NAME)); } catch { /* name stays as it was */ }
+  }
 
   function encode() {
     const payload = JSON.stringify({ v: 1, n: myName() || 'RIVAL', t: Date.now(), s: myScores() });
@@ -136,15 +138,18 @@ const Rivals = (() => {
     }
     return out;
   }
-  function saveList(l) { localStorage.setItem(STORE_KEY, JSON.stringify(l)); }
+  function saveList(l) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(l)); return true; }
+    catch { return false; }
+  }
 
   // Same name = same person: the newer code replaces the older one.
+  // true = stored, false = the hall is full, null = the write did not land.
   function add(rival) {
     const l = list();
     if (!(rival.name in l) && Object.keys(l).length >= MAX_RIVALS) return false;
     l[rival.name] = { t: rival.t, s: rival.s };
-    saveList(l);
-    return true;
+    return saveList(l) ? true : null;
   }
   function remove(name) { const l = list(); delete l[name]; saveList(l); }
 
@@ -199,7 +204,9 @@ const Rivals = (() => {
     if (!rival) return { ok: false };
     if (!Object.keys(rival.s).length) return { ok: false };
     const added = add(rival);
-    return added ? { ok: true, name: rival.name } : { ok: false, full: true };
+    if (added === true) return { ok: true, name: rival.name };
+    if (added === false) return { ok: false, full: true };
+    return { ok: false };
   }
 
   function shareUrl() {
