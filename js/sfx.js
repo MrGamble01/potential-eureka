@@ -28,6 +28,13 @@ const SFX = (() => {
     return scaleFor(muted);
   }
 
+  // iOS reports "interrupted" after a call, Siri, or the screen lock.
+  // Resuming only from "suspended" left every arcade mute-aware sound
+  // silent until the page was reloaded.
+  function needsResume(state) {
+    return state === 'suspended' || state === 'interrupted';
+  }
+
   // The AudioContext can only start after a user gesture; create/resume lazily.
   function ac() {
     if (!ctx) {
@@ -35,7 +42,7 @@ const SFX = (() => {
       if (!AC) return null;
       ctx = new AC();
     }
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (needsResume(ctx.state)) ctx.resume().catch(() => {});
     return ctx;
   }
 
@@ -104,5 +111,5 @@ const SFX = (() => {
   function toggle() { setMuted(!muted); return muted; }
   function isMuted() { return muted; }
 
-  return { play, note, setMuted, toggle, isMuted, scaleFor };
+  return { play, note, setMuted, toggle, isMuted, scaleFor, needsResume };
 })();
