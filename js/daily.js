@@ -93,15 +93,25 @@ const Daily = (() => {
   // dir 'min' = lower is better (Minefield clear times).
   function result(game, score, dir) {
     const key = bestKey(game);
-    const prev = Utils.highScore.load(key);
+    let prev = 0;
+    try { prev = Utils.highScore.load(key); } catch { prev = 0; }
     let best, improved;
     if (dir === 'min') {
-      improved = prev === 0 || score < prev;   // 0 = no time set yet
+      // 0 means no time set yet. A non-finite or negative time is not a
+      // clear: storing it wrote the text "NaN", and the next run then
+      // printed "today's best NaN" and could not replace it. The write
+      // itself throws when the disk is full, which used to abort the
+      // game-over overlay before it could be shown.
+      const finite = Number.isFinite(score) && score >= 0;
+      improved = finite && (prev === 0 || score < prev);
       best = improved ? score : prev;
-      if (improved) localStorage.setItem(key, String(score));
+      if (improved) {
+        try { localStorage.setItem(key, String(score)); } catch { /* keep the line; the overlay still shows */ }
+      }
     } else {
       improved = score > prev;
-      best = Utils.highScore.save(key, score, prev);
+      try { best = Utils.highScore.save(key, score, prev); }
+      catch { best = improved ? score : prev; }
     }
     refreshBanner();
     try {
@@ -109,6 +119,7 @@ const Daily = (() => {
         EurekaCosmetics.grantDaily('arcade', Utils.todayKey());
       }
     } catch (e) { /* sparks are a bonus, not the score */ }
+    if (dir === 'min' && !(Number.isFinite(score) && score >= 0)) return '📅 Daily: —';
     return improved
       ? `📅 Daily: ${score} — new best for today!`
       : `📅 Daily: ${score} · today's best ${best}`;
