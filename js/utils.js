@@ -23,10 +23,19 @@ const Utils = {
   // localStorage with JSON
   store: {
     get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
-    set(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
-    getRaw(key) { return localStorage.getItem(key) || ''; },
-    setRaw(key, val) { localStorage.setItem(key, val); },
-    remove(key) { localStorage.removeItem(key); },
+    // QuotaExceededError and a blocked private-mode store both throw.
+    // A todo or bookmark write sits on the click path; letting it throw
+    // killed the rest of that click. A failed write reports false.
+    set(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+      catch { return false; }
+    },
+    getRaw(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } },
+    setRaw(key, val) {
+      try { localStorage.setItem(key, val); return true; }
+      catch { return false; }
+    },
+    remove(key) { try { localStorage.removeItem(key); } catch { /* already gone, or storage is blocked */ } },
   },
 
   // Date helpers
@@ -108,15 +117,19 @@ const Utils = {
   highScore: {
     // Load the stored best for `key`; 0 on missing/garbage data.
     load(key) {
-      const v = parseInt(localStorage.getItem(key) || '0', 10);
+      let raw = null;
+      try { raw = localStorage.getItem(key); } catch { return 0; }
+      const v = parseInt(raw || '0', 10);
       return isNaN(v) ? 0 : v;
     },
     // If `score` beats `current`, persist and return the new best;
     // otherwise return `current` unchanged. Mirrors the repeated
     // `if (score > high) { high = score; localStorage.setItem(...) }`.
+    // The write is allowed to fail: the run already happened, so the
+    // in-memory best still updates and the tick that saved it keeps going.
     save(key, score, current) {
       if (score > current) {
-        localStorage.setItem(key, String(score));
+        try { localStorage.setItem(key, String(score)); } catch { /* full disk or private mode */ }
         return score;
       }
       return current;
