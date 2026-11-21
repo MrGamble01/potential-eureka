@@ -140,24 +140,35 @@ const CrateEscapeGame = (() => {
     return { p: [...player], c: crates.map(c => [...c]), m: moves, k: pushes };
   }
 
+  function tryPush(wallG, crateList, who, dir) {
+    const [dx, dy] = DIRS[dir];
+    const nx = who[0] + dx, ny = who[1] + dy;
+    if (ny < 0 || nx < 0 || ny >= wallG.length || nx >= wallG[0].length || wallG[ny][nx]) return null;
+    const hit = crateList.findIndex(c => c[0] === nx && c[1] === ny);
+    if (hit < 0) return { player: [nx, ny], crates: crateList, pushed: false };
+    const cx = nx + dx, cy = ny + dy;
+    if (cy < 0 || cx < 0 || cy >= wallG.length || cx >= wallG[0].length || wallG[cy][cx]) return null;
+    if (crateList.some(c => c[0] === cx && c[1] === cy)) return null;
+    const cratesNext = crateList.map(c => c.slice());
+    cratesNext[hit][0] = cx;
+    cratesNext[hit][1] = cy;
+    return { player: [nx, ny], crates: cratesNext, pushed: true };
+  }
+
+  function cratesHome(crateList, goalList) {
+    const goalSet = new Set(goalList.map(g => key(g[0], g[1])));
+    return crateList.every(c => goalSet.has(key(c[0], c[1])));
+  }
+
   function move(dir) {
     if (solvedNow) return;
-    const [dx, dy] = DIRS[dir];
-    const nx = player[0] + dx, ny = player[1] + dy;
-    if (wall[ny][nx]) { sfx('move'); return; }
-    const crate = crates.find(c => c[0] === nx && c[1] === ny);
-    if (crate) {
-      const cx = nx + dx, cy = ny + dy;
-      if (wall[cy][cx] || crates.some(c => c[0] === cx && c[1] === cy)) { sfx('move'); return; }
-      history.push(snapshot());
-      crate[0] = cx; crate[1] = cy;
-      pushes++;
-      sfx('lock');
-    } else {
-      history.push(snapshot());
-      sfx('move');
-    }
-    player = [nx, ny];
+    const step = tryPush(wall, crates, player, dir);
+    if (!step) { sfx('move'); return; }
+    history.push(snapshot());
+    crates = step.crates;
+    if (step.pushed) { pushes++; sfx('lock'); }
+    else sfx('move');
+    player = step.player;
     moves++;
     if (history.length > 400) history.shift();
     checkSolved();
@@ -177,8 +188,7 @@ const CrateEscapeGame = (() => {
   }
 
   function checkSolved() {
-    const goalSet = new Set(goals.map(g => key(...g)));
-    if (!crates.every(c => goalSet.has(key(...c)))) return;
+    if (!cratesHome(crates, goals)) return;
     solvedNow = true;
     sfx('clear');
     Effects.shakeCanvas(canvas, 5, 240);
@@ -326,5 +336,8 @@ const CrateEscapeGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, prevLevel, nextLevel, restart, undoBtn };
+  return {
+    init, start, destroy, prevLevel, nextLevel, restart, undoBtn,
+    rules: { flood, genLevel, tryPush, cratesHome },
+  };
 })();
