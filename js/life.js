@@ -177,8 +177,19 @@ const LifeGame = (() => {
     running ? pause() : play();
   }
 
+  // The speed menu is 16–200ms. A blank or broken value is NaN, and
+  // setInterval(step, NaN) is the same as 0: the sim spins every turn
+  // of the event loop until the tab is killed.
+  function paceMs(ms) {
+    const n = Number(ms);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(16, Math.min(1000, Math.round(n)));
+  }
+
   function setSpeed(ms) {
-    speed = ms;
+    const next = paceMs(ms);
+    if (next == null) return;
+    speed = next;
     if (running) {
       clearInterval(intervalId);
       intervalId = setInterval(step, speed);
@@ -373,6 +384,6 @@ const LifeGame = (() => {
 
   return {
     init, step, togglePlay, clear, randomize, loadPreset, setSpeed, destroy,
-    rules: { neighborsOf, willLive, nextAgeOf },
+    rules: { neighborsOf, willLive, nextAgeOf, paceMs },
   };
 })();
