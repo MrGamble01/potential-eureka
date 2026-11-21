@@ -422,5 +422,8 @@ const ConnectFourGame = (() => {
     confetti = []; flash = 0;
   }
 
-  return { init, newGame, setDifficulty, setMode, destroy };
+  return {
+    init, newGame, setDifficulty, setMode, destroy,
+    rules: { cols: COLS, rows: ROWS, player: PLAYER, ai: AI, dropRow, winnerFrom, anyWinner, isFull, bestMove },
+  };
 })();
