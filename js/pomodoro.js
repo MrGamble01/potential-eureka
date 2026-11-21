@@ -19,7 +19,18 @@ const Pomodoro = (() => {
   // time from Date.now() makes the clock honest no matter how the tab is
   // treated; the tick interval only controls how often the UI repaints.
   let pomoEndAt = null;
-  let pomoSessions = parseInt(Utils.store.getRaw('eureka-pomo-sessions') || '0');
+  // A stored count is a whole number of finished focus blocks. "12px",
+  // "nope", and a throw from a locked-down browser used to become NaN,
+  // and then every later phase and the session label stayed NaN.
+  function readSessions(raw) {
+    const text = String(raw == null ? '' : raw).trim();
+    if (!/^\d+$/.test(text)) return 0;
+    const n = Number(text);
+    return Number.isSafeInteger(n) ? n : 0;
+  }
+  let pomoSessions = 0;
+  try { pomoSessions = readSessions(Utils.store.getRaw('eureka-pomo-sessions')); }
+  catch { pomoSessions = 0; }
 
   function toggle() {
     if (pomoRunning) {
@@ -44,11 +55,12 @@ const Pomodoro = (() => {
   // Focus counts toward the long break. Every fourth finished focus
   // is a long break; a break always returns to focus.
   function nextMode(mode, sessions) {
+    const base = Number.isFinite(sessions) && sessions >= 0 ? sessions : 0;
     if (mode === 'focus') {
-      const count = sessions + 1;
+      const count = base + 1;
       return { mode: count % 4 === 0 ? 'long' : 'short', sessions: count };
     }
-    return { mode: 'focus', sessions: sessions };
+    return { mode: 'focus', sessions: base };
   }
 
   function remaining() {
@@ -151,5 +163,5 @@ const Pomodoro = (() => {
     pomoUpdateUI();
   }
 
-  return { init, toggle, skip, reset, rules: { secondsLeft, nextMode, modes: POMO_MODES } };
+  return { init, toggle, skip, reset, rules: { secondsLeft, nextMode, readSessions, modes: POMO_MODES } };
 })();
