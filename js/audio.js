@@ -132,6 +132,12 @@
     return Math.min(1, Math.max(0, x));
   }
 
+  // iOS reports "interrupted" after a call, Siri, or the screen lock.
+  // Resuming only from "suspended" left the music bed silent until reload.
+  function needsResume(state) {
+    return state === 'suspended' || state === 'interrupted';
+  }
+
   function create(win, opts) {
     win = win || {};
     opts = opts || {};
@@ -369,7 +375,7 @@
     function pump() {
       try {
         if (!ctx || !playing) return;
-        if (ctx.state === 'suspended') {
+        if (needsResume(ctx.state)) {
           try {
             const pending = ctx.resume();
             if (pending && pending.catch) pending.catch(function () {});
@@ -442,7 +448,7 @@
       }
       buildGraph();
       try {
-        if (ctx.state === 'suspended' && ctx.resume) {
+        if (needsResume(ctx.state) && ctx.resume) {
           const pending = ctx.resume();
           if (pending && pending.catch) pending.catch(function () {});
         }
@@ -529,7 +535,7 @@
       if (lv.sfx <= 0) return false;
       buildGraph();
       applyBus(lv);
-      if (ctx.state === 'suspended') {
+      if (needsResume(ctx.state)) {
         try {
           const pending = ctx.resume();
           if (pending && pending.catch) pending.catch(function () {});
@@ -611,5 +617,6 @@
     MOODS: MOOD_NAMES.slice(),
     SFX: SFX_NAMES.slice(),
     SCHEDULER_MS: SCHEDULER_MS,
+    needsResume: needsResume,
   };
 });
