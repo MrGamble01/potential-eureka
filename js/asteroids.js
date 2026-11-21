@@ -229,9 +229,28 @@ const AsteroidsGame = (() => {
     if (touchBtn) touchBtn.textContent = paused ? '▶' : '❚❚';
   }
 
+  // One wrap, not modulo: a point just past an edge comes back in
+  // from the other side, and a point already on the edge stays put.
+  function wrapPoint(x, y, width, height) {
+    let nx = x, ny = y;
+    if (nx < 0) nx += width; else if (nx > width) nx -= width;
+    if (ny < 0) ny += height; else if (ny > height) ny -= height;
+    return { x: nx, y: ny };
+  }
+
+  function capVelocity(vx, vy, max) {
+    const sp = Math.hypot(vx, vy);
+    if (sp > max) {
+      const scale = max / sp;
+      return { vx: vx * scale, vy: vy * scale };
+    }
+    return { vx: vx, vy: vy };
+  }
+
   function wrap(o) {
-    if (o.x < 0) o.x += WIDTH; else if (o.x > WIDTH) o.x -= WIDTH;
-    if (o.y < 0) o.y += HEIGHT; else if (o.y > HEIGHT) o.y -= HEIGHT;
+    const p = wrapPoint(o.x, o.y, WIDTH, HEIGHT);
+    o.x = p.x;
+    o.y = p.y;
   }
 
   function update(dt) {
@@ -253,8 +272,8 @@ const AsteroidsGame = (() => {
         life: 12, color: '#F0883E',
       });
     }
-    const sp = Math.hypot(ship.vx, ship.vy);
-    if (sp > MAX_SPEED) { ship.vx *= MAX_SPEED / sp; ship.vy *= MAX_SPEED / sp; }
+    const capped = capVelocity(ship.vx, ship.vy, MAX_SPEED);
+    ship.vx = capped.vx; ship.vy = capped.vy;
     ship.vx *= DRAG; ship.vy *= DRAG;
     ship.x += ship.vx * dt; ship.y += ship.vy * dt; wrap(ship);
 
@@ -534,5 +553,5 @@ const AsteroidsGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause };
+  return { init, start, destroy, togglePause, rules: { wrapPoint, capVelocity, width: WIDTH, height: HEIGHT, maxSpeed: MAX_SPEED } };
 })();
