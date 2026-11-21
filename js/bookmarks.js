@@ -36,7 +36,14 @@ const Bookmarks = (() => {
       </a>`;
   }
 
-  let bookmarks = Utils.store.get('eureka-bookmarks') || [];
+  // `|| []` keeps null and still accepts {} or a string. render then
+  // calls .map and the productivity view dies on a corrupt save.
+  function readBookmarks(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(b => b && typeof b === 'object' && !Array.isArray(b));
+  }
+
+  let bookmarks = readBookmarks(Utils.store.get('eureka-bookmarks'));
 
   function bookmarkSave() { Utils.store.set('eureka-bookmarks', bookmarks); }
 
@@ -88,5 +95,5 @@ const Bookmarks = (() => {
     initBookmarkEvents();
   }
 
-  return { init, add, delete: deleteFn, tileHtml, safeUrl };
+  return { init, add, delete: deleteFn, tileHtml, safeUrl, readBookmarks };
 })();
