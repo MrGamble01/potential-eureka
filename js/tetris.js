@@ -134,17 +134,32 @@ const TetrisGame = (() => {
     );
   }
 
-  function collides(shape, px, py) {
+  // Pure overlap test. The live board is the usual field; the search the
+  // tests run passes its own grid so a rotation can be checked without a canvas.
+  function blocked(field, cols, rows, shape, px, py) {
     for (let r = 0; r < shape.length; r++) {
       for (let c = 0; c < shape[r].length; c++) {
         if (!shape[r][c]) continue;
         const nx = px + c, ny = py + r;
-        if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+        if (nx < 0 || nx >= cols || ny >= rows) return true;
         if (ny < 0) continue;
-        if (board[ny][nx]) return true;
+        if (field[ny][nx]) return true;
       }
     }
     return false;
+  }
+
+  function collides(shape, px, py) {
+    return blocked(board, COLS, ROWS, shape, px, py);
+  }
+
+  // Line-clear payout. `comboN` is the combo AFTER this clear (1 = first
+  // clear). A back-to-back Tetris is 1.5×, then the combo adds on top.
+  function linePoints(cleared, lvl, comboN, backToBack) {
+    let pts = [0, 100, 300, 500, 800][Math.min(cleared, 4)] * lvl;
+    if (cleared === 4 && backToBack) pts = Math.round(pts * 1.5);
+    if (comboN > 1) pts += 50 * (comboN - 1) * lvl;
+    return pts;
   }
 
   function move(dx, dy) {
@@ -265,11 +280,11 @@ const TetrisGame = (() => {
     }
     clearingRows = null;
     combo++;
-    let pts = [0, 100, 300, 500, 800][Math.min(cleared, 4)] * level;
+    const pts = linePoints(cleared, level, combo, lastWasTetris);
     const tags = [];
-    if (cleared === 4 && lastWasTetris) { pts = Math.round(pts * 1.5); tags.push('B2B TETRIS ×1.5'); }
+    if (cleared === 4 && lastWasTetris) tags.push('B2B TETRIS ×1.5');
     lastWasTetris = cleared === 4;
-    if (combo > 1) { pts += 50 * (combo - 1) * level; tags.push('COMBO ×' + combo); }
+    if (combo > 1) tags.push('COMBO ×' + combo);
     score += pts;
     if (tags.length) bonusFlash = { text: tags.join(' · ') + '  +' + pts, until: performance.now() + 1600 };
     linesCleared += cleared;
@@ -637,5 +652,8 @@ const TetrisGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause };
+  return {
+    init, start, destroy, togglePause,
+    rules: { cols: COLS, rows: ROWS, pieces: PIECES, rotate: rotateMat, blocked, linePoints },
+  };
 })();
