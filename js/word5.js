@@ -142,9 +142,12 @@ const WordFiveGame = (() => {
     }
   }
 
-  function score(guess) {
+  // `target` is the answer under test. The live game omits it and
+  // scores against the word that was dealt.
+  function score(guess, target) {
+    const word = target == null ? answer : target;
     const res = Array(LEN).fill('absent');
-    const pool = answer.split('');
+    const pool = word.split('');
     for (let i = 0; i < LEN; i++) if (guess[i] === pool[i]) { res[i] = 'correct'; pool[i] = null; }
     for (let i = 0; i < LEN; i++) {
       if (res[i] === 'correct') continue;
@@ -225,5 +228,5 @@ const WordFiveGame = (() => {
   // read as the game quietly ignoring you rather than as a broken listener.
   function destroy() {}
 
-  return { init, newGame, share, destroy };
+  return { init, newGame, share, destroy, rules: { score, len: LEN } };
 })();
