@@ -166,6 +166,10 @@ const MinesweeperGame = (() => {
     return { r, c };
   }
 
+  function sameCell(a, b) {
+    return !!(a && b && a.r === b.r && a.c === b.c);
+  }
+
   function onMouse(e) {
     if (state === 'won' || state === 'lost') return;
     const at = cellAt(e.clientX, e.clientY);
@@ -196,7 +200,12 @@ const MinesweeperGame = (() => {
       else primary(startAt.r, startAt.c);
       e.preventDefault();
     }, { passive: false });
-    canvas.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
+    // A resting finger jitters a pixel or two. That is still the same cell —
+    // cancelling on any move meant the long-press flag almost never fired.
+    canvas.addEventListener('touchmove', e => {
+      const t = e.touches && e.touches[0];
+      if (!t || !sameCell(startAt, cellAt(t.clientX, t.clientY))) clearTimeout(pressTimer);
+    });
   }
 
   // Primary action: reveal, or chord on an already-revealed number.
@@ -463,6 +472,6 @@ const MinesweeperGame = (() => {
 
   return {
     init, newGame, setDifficulty, toggleFlagMode, destroy,
-    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe, readBest, beatsBest, clockGap },
+    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe, readBest, beatsBest, clockGap, sameCell },
   };
 })();
