@@ -95,7 +95,6 @@ const ConnectFourGame = (() => {
     for (let r = ROWS - 1; r >= 0; r--) if (b[r][col] === 0) return r;
     return -1;
   }
-  function cloneBoard(b) { return b.map(row => row.slice()); }
 
   function winnerFrom(b, r, c) {
     const who = b[r][c];
