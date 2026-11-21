@@ -519,5 +519,11 @@ const VectorDefenseGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause };
+  return {
+    init, start, destroy, togglePause,
+    rules: {
+      tierDmg, tierRange, upgradeCost, sellValue, enemyStats, pointAt,
+      pathLen, waves: WAVES, turrets: TURRETS,
+    },
+  };
 })();
