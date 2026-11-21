@@ -14,6 +14,7 @@ const StackerGame = (() => {
   const BLOCK_H = 26;             // one floor
   const BASE_W = 180;             // starting platform width
   const PERFECT_TOL = 5;          // px snap window
+  const MIN_WIDTH = 6;             // sliver towers end with dignity
   const CAMERA_ROWS = 12;         // floors visible before the view slides
 
   let canvas, ctx, loop;
@@ -75,6 +76,18 @@ const StackerGame = (() => {
 
   function speedFor(floor) { return Math.min(7.5, 2.2 + floor * 0.18); }
 
+  function landOn(block, top, tol) {
+    const left = Math.max(block.x, top.x);
+    const right = Math.min(block.x + block.w, top.x + top.w);
+    const width = right - left;
+    if (width <= 0) return { miss: true };
+    const offset = Math.abs(block.x - top.x);
+    if (offset <= tol) return { miss: false, perfect: true, x: top.x, w: top.w };
+    const cutW = block.w - width;
+    const cutX = block.x < top.x ? block.x : top.x + top.w;
+    return { miss: false, perfect: false, x: left, w: width, cutX, cutW };
+  }
+
   function spawnBlock() {
     const top = stack[stack.length - 1];
     const fromLeft = stack.length % 2 === 1;
@@ -98,17 +111,13 @@ const StackerGame = (() => {
   function drop() {
     if (!running || over || !current) return;
     const top = stack[stack.length - 1];
-    const left = Math.max(current.x, top.x);
-    const right = Math.min(current.x + current.w, top.x + top.w);
-    let width = right - left;
+    const landed = landOn(current, top, PERFECT_TOL);
+    if (landed.miss) { endGame(); return; }
 
-    if (width <= 0) { endGame(); return; }
-
-    let x = left;
-    const offset = Math.abs(current.x - top.x);
-    if (offset <= PERFECT_TOL) {
+    let x = landed.x;
+    let width = landed.w;
+    if (landed.perfect) {
       // PERFECT: snap flush, keep the full width, small reward pulse.
-      x = top.x; width = top.w;
       perfectStreak++;
       flashT = 0.35;
       if (typeof SFX !== 'undefined' && SFX.note) SFX.note(660 + Math.min(6, perfectStreak) * 80, 0.12);
@@ -116,9 +125,7 @@ const StackerGame = (() => {
     } else {
       perfectStreak = 0;
       // Slice: the overhang tumbles away as debris.
-      const cutW = current.w - width;
-      const cutX = current.x < top.x ? current.x : top.x + top.w;
-      debris(cutX, cutW, stack.length);
+      debris(landed.cutX, landed.cutW, stack.length);
       sfx('lock');
     }
 
@@ -130,7 +137,7 @@ const StackerGame = (() => {
     const towerTop = (stack.length + 1) * BLOCK_H;
     if (towerTop > CAMERA_ROWS * BLOCK_H) cameraY = towerTop - CAMERA_ROWS * BLOCK_H;
 
-    if (width < 6) { endGame(); return; }  // sliver towers end with dignity
+    if (width < MIN_WIDTH) { endGame(); return; }  // sliver towers end with dignity
     spawnBlock();
   }
 
@@ -297,5 +304,8 @@ const StackerGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause, restart };
+  return {
+    init, start, destroy, togglePause, restart,
+    rules: { width: WIDTH, perfectTol: PERFECT_TOL, speedFor, landOn, minWidth: MIN_WIDTH },
+  };
 })();
