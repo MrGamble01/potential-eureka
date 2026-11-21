@@ -354,7 +354,7 @@ const BreakoutGame = (() => {
     else if (kind === 'sticky') stickyLeft = 3;
     else if (kind === 'life') { lives++; updateInfo(); }
     else if (kind === 'multi') {
-      const src = balls.find(b => true) || balls[0];
+      const src = balls[0];
       if (src && launched) {
         for (let k = 0; k < 2; k++) {
           const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
