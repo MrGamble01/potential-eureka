@@ -109,22 +109,30 @@ const Game2048 = (() => {
     return { r, c };
   }
 
-  // Compress one line (array of 4 values) toward index 0; returns moves relative to line.
-  function compress(line) {
+  // Compress one line toward index 0. A tile merges at most once per slide,
+  // so 2+2+2+2 becomes 4+4 and never 8. `made2048` is a result, not a write
+  // to the live `won` flag — the caller decides when the game has been won.
+  function compressLine(line) {
     const nz = [];
     line.forEach((v, i) => { if (v) nz.push({ v, i }); });
-    const out = [0, 0, 0, 0], moves = []; let pos = 0, gained = 0;
+    const out = [0, 0, 0, 0], moves = [];
+    let pos = 0, gained = 0, made2048 = false;
     for (let k = 0; k < nz.length; k++) {
       if (k + 1 < nz.length && nz[k + 1].v === nz[k].v) {
-        const val = nz[k].v * 2; out[pos] = val; gained += val; if (val === 2048) won = true;
+        const val = nz[k].v * 2;
+        out[pos] = val;
+        gained += val;
+        if (val === 2048) made2048 = true;
         moves.push({ from: nz[k].i, to: pos, val: nz[k].v, merge: true });
         moves.push({ from: nz[k + 1].i, to: pos, val: nz[k].v, merge: true });
         k++; pos++;
       } else {
-        out[pos] = nz[k].v; moves.push({ from: nz[k].i, to: pos, val: nz[k].v, merge: false }); pos++;
+        out[pos] = nz[k].v;
+        moves.push({ from: nz[k].i, to: pos, val: nz[k].v, merge: false });
+        pos++;
       }
     }
-    return { out, moves, gained };
+    return { out, moves, gained, made2048 };
   }
 
   // Map a line index + row number into grid (r,c) for a given direction.
@@ -136,25 +144,26 @@ const Game2048 = (() => {
       case 'D': return [N - 1 - idx, lineNo];
     }
   }
-  function readLine(dir, lineNo) {
-    const line = [];
-    for (let i = 0; i < N; i++) { const [r, c] = coord(dir, lineNo, i); line.push(grid[r][c]); }
-    return line;
-  }
-
-  function move(dir) {
-    if (!running || over) return;
-    // Mid-slide inputs aren't dropped — remember the last one and replay it
-    // as soon as the animation clears.
-    if (anim) { queuedDir = dir; return; }
-    const wasWon = won;
-    const allMoves = []; const mergedTo = []; let gained = 0; let changed = false;
+  function applySlide(source, dir) {
+    const allMoves = [];
+    const mergedTo = [];
+    let gained = 0;
+    let changed = false;
+    let made2048 = false;
     const next = Array.from({ length: N }, () => Array(N).fill(0));
     for (let lineNo = 0; lineNo < N; lineNo++) {
-      const line = readLine(dir, lineNo);
-      const { out, moves, gained: g } = compress(line);
+      const line = [];
+      for (let i = 0; i < N; i++) {
+        const [r, c] = coord(dir, lineNo, i);
+        line.push(source[r][c]);
+      }
+      const { out, moves, gained: g, made2048: made } = compressLine(line);
       gained += g;
-      for (let i = 0; i < N; i++) { const [r, c] = coord(dir, lineNo, i); next[r][c] = out[i]; }
+      if (made) made2048 = true;
+      for (let i = 0; i < N; i++) {
+        const [r, c] = coord(dir, lineNo, i);
+        next[r][c] = out[i];
+      }
       moves.forEach(m => {
         const [fr, fc] = coord(dir, lineNo, m.from);
         const [tr, tc] = coord(dir, lineNo, m.to);
@@ -163,6 +172,18 @@ const Game2048 = (() => {
         if (m.merge && !mergedTo.some(t => t.r === tr && t.c === tc)) mergedTo.push({ r: tr, c: tc });
       });
     }
+    return { next, allMoves, mergedTo, gained, changed, made2048 };
+  }
+
+  function move(dir) {
+    if (!running || over) return;
+    // Mid-slide inputs aren't dropped — remember the last one and replay it
+    // as soon as the animation clears.
+    if (anim) { queuedDir = dir; return; }
+    const wasWon = won;
+    const slide = applySlide(grid, dir);
+    if (slide.made2048) won = true;
+    const { next, allMoves, mergedTo, gained, changed } = slide;
     if (!changed) return;
 
     // One-step undo: remember the board we're leaving. Daily runs never
@@ -371,5 +392,5 @@ const Game2048 = (() => {
     draw();
   }
 
-  return { init, start, destroy, undo };
+  return { init, start, destroy, undo, rules: { size: N, compressLine, applySlide } };
 })();
