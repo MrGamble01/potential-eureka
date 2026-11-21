@@ -247,28 +247,35 @@ const ConnectFourGame = (() => {
     }
   }
 
+  // Score one window of four cells without allocating the window.
+  function windowScore(w0, w1, w2, w3) {
+    let ai = 0, pl = 0, empty = 0;
+    if (w0 === AI) ai++; else if (w0 === PLAYER) pl++; else if (w0 === 0) empty++;
+    if (w1 === AI) ai++; else if (w1 === PLAYER) pl++; else if (w1 === 0) empty++;
+    if (w2 === AI) ai++; else if (w2 === PLAYER) pl++; else if (w2 === 0) empty++;
+    if (w3 === AI) ai++; else if (w3 === PLAYER) pl++; else if (w3 === 0) empty++;
+    if (ai > 0 && pl > 0) return 0;
+    let score = 0;
+    if (ai === 3 && empty === 1) score += 50;
+    else if (ai === 2 && empty === 2) score += 8;
+    if (pl === 3 && empty === 1) score -= 55;
+    else if (pl === 2 && empty === 2) score -= 6;
+    return score;
+  }
+
   // Window-based heuristic: score every 4-length window on the board.
+  // The search calls this at every node, so the windows are read in place
+  // instead of being copied into a fresh array first.
   function heuristic(b) {
     let score = 0;
-    // centre column preference
     for (let r = 0; r < ROWS; r++) if (b[r][3] === AI) score += 3;
-    const windows = [];
-    for (let r = 0; r < ROWS; r++)
+    for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (c + 3 < COLS) windows.push([b[r][c], b[r][c + 1], b[r][c + 2], b[r][c + 3]]);
-        if (r + 3 < ROWS) windows.push([b[r][c], b[r + 1][c], b[r + 2][c], b[r + 3][c]]);
-        if (r + 3 < ROWS && c + 3 < COLS) windows.push([b[r][c], b[r + 1][c + 1], b[r + 2][c + 2], b[r + 3][c + 3]]);
-        if (r + 3 < ROWS && c - 3 >= 0) windows.push([b[r][c], b[r + 1][c - 1], b[r + 2][c - 2], b[r + 3][c - 3]]);
+        if (c + 3 < COLS) score += windowScore(b[r][c], b[r][c + 1], b[r][c + 2], b[r][c + 3]);
+        if (r + 3 < ROWS) score += windowScore(b[r][c], b[r + 1][c], b[r + 2][c], b[r + 3][c]);
+        if (r + 3 < ROWS && c + 3 < COLS) score += windowScore(b[r][c], b[r + 1][c + 1], b[r + 2][c + 2], b[r + 3][c + 3]);
+        if (r + 3 < ROWS && c - 3 >= 0) score += windowScore(b[r][c], b[r + 1][c - 1], b[r + 2][c - 2], b[r + 3][c - 3]);
       }
-    for (const w of windows) {
-      const ai = w.filter(v => v === AI).length;
-      const pl = w.filter(v => v === PLAYER).length;
-      const empty = w.filter(v => v === 0).length;
-      if (ai > 0 && pl > 0) continue;         // blocked window, no value
-      if (ai === 3 && empty === 1) score += 50;
-      else if (ai === 2 && empty === 2) score += 8;
-      if (pl === 3 && empty === 1) score -= 55; // value blocking slightly higher
-      else if (pl === 2 && empty === 2) score -= 6;
     }
     return score;
   }
@@ -424,6 +431,6 @@ const ConnectFourGame = (() => {
 
   return {
     init, newGame, setDifficulty, setMode, destroy,
-    rules: { cols: COLS, rows: ROWS, player: PLAYER, ai: AI, dropRow, winnerFrom, anyWinner, isFull, bestMove },
+    rules: { cols: COLS, rows: ROWS, player: PLAYER, ai: AI, dropRow, winnerFrom, anyWinner, isFull, bestMove, heuristic },
   };
 })();
