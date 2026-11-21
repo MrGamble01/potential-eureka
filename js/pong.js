@@ -135,6 +135,34 @@ const PongGame = (() => {
     return { x: i === 0 ? PAD_X : WIDTH - PAD_X - PAD_W, y: p.y, w: PAD_W, h: p.h };
   }
 
+  // Ceiling and floor. A ball already inside the table is unchanged.
+  function wallBounce(y, vy, height, radius) {
+    if (y < radius) return { y: radius, vy: Math.abs(vy) };
+    if (y > height - radius) return { y: height - radius, vy: -Math.abs(vy) };
+    return { y: y, vy: vy };
+  }
+
+  // dir is +1 when the ball leaves toward the right (left paddle)
+  // and -1 when it leaves toward the left.
+  function paddleReply(rel, vx, vy, dir) {
+    const sp = Math.min(11, Math.hypot(vx, vy) * 1.045 + 0.12);
+    const ang = rel * 0.72;
+    return { vx: Math.cos(ang) * sp * dir, vy: Math.sin(ang) * sp };
+  }
+
+  // 1 scores for the right paddle, 0 for the left, -1 while the ball
+  // is still on the table.
+  function pointScorer(x, width, radius) {
+    if (x < -radius * 2) return 1;
+    if (x > width + radius * 2) return 0;
+    return -1;
+  }
+
+  // AI top speed per frame before dt. A lead slows the leader down.
+  function aiPace(lead) {
+    return 4.6 - Math.max(-1.2, Math.min(1.2, lead * 0.35));
+  }
+
   function tick(dt) {
     if (!running) return;
     if (paused) { draw(); return; }
@@ -177,8 +205,11 @@ const PongGame = (() => {
       b.x += b.vx * speed * dt;
       b.y += b.vy * speed * dt;
 
-      if (b.y < BALL_R) { b.y = BALL_R; b.vy = Math.abs(b.vy); blip(660); }
-      if (b.y > HEIGHT - BALL_R) { b.y = HEIGHT - BALL_R; b.vy = -Math.abs(b.vy); blip(660); }
+      const offWall = b.y < BALL_R || b.y > HEIGHT - BALL_R;
+      const wall = wallBounce(b.y, b.vy, HEIGHT, BALL_R);
+      b.y = wall.y;
+      b.vy = wall.vy;
+      if (offWall) blip(660);
 
       // Paddle collisions
       for (let i = 0; i < 2; i++) {
@@ -188,10 +219,9 @@ const PongGame = (() => {
         if (b.x + BALL_R > r.x && b.x - BALL_R < r.x + r.w &&
             b.y + BALL_R > r.y && b.y - BALL_R < r.y + r.h) {
           const rel = ((b.y - r.y) / r.h) * 2 - 1;    // -1 top … 1 bottom
-          const sp = Math.min(11, Math.hypot(b.vx, b.vy) * 1.045 + 0.12);
-          const ang = rel * 0.72;
-          b.vx = Math.cos(ang) * sp * (i === 0 ? 1 : -1);
-          b.vy = Math.sin(ang) * sp;
+          const reply = paddleReply(rel, b.vx, b.vy, i === 0 ? 1 : -1);
+          b.vx = reply.vx;
+          b.vy = reply.vy;
           b.x = i === 0 ? r.x + r.w + BALL_R : r.x - BALL_R;
           b.turbo = false;                              // turbo dies at the paddle
           b.lastHit = i;
@@ -213,8 +243,8 @@ const PongGame = (() => {
       // last one: with SPLIT in play, two balls can exit the same frame and
       // both scorers need their point, not just whichever happened to be
       // the one that emptied the array.
-      if (b.x < -BALL_R * 2 || b.x > WIDTH + BALL_R * 2) {
-        const scorer = b.x < 0 ? 1 : 0;
+      const scorer = pointScorer(b.x, WIDTH, BALL_R);
+      if (scorer >= 0) {
         balls.splice(bi, 1);
         if (!matchOver) {
           scores[scorer]++;
@@ -267,7 +297,7 @@ const PongGame = (() => {
       if (eta < bestEta) { bestEta = eta; target = b.y - p.h / 2; }
     }
     const lead = scores[1] - scores[0];
-    const top = (4.6 - Math.max(-1.2, Math.min(1.2, lead * 0.35))) * dt;
+    const top = aiPace(lead) * dt;
     const diff = target - p.y;
     p.y += Math.max(-top, Math.min(top, diff * 0.18));
   }
@@ -461,5 +491,8 @@ const PongGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, toggleMode, togglePause, restart };
+  return {
+    init, start, destroy, toggleMode, togglePause, restart,
+    rules: { wallBounce, paddleReply, pointScorer, aiPace, width: WIDTH, height: HEIGHT, ballR: BALL_R },
+  };
 })();
