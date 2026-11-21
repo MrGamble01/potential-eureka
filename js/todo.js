@@ -6,7 +6,18 @@ const TodoList = (() => {
   const escHtml = Utils.escHtml;
 
   // ========== TODO LIST ==========
-  let todos = Utils.store.get('eureka-todos') || [];
+  // A saved list that isn't an array ({} or a string) used to survive
+  // `|| []` and then throw on .push / .map the first time the view opened.
+  function readTodos(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(t => t && typeof t === 'object' && !Array.isArray(t));
+  }
+  function readLists(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(l => l && typeof l === 'object' && !Array.isArray(l) && l.id != null);
+  }
+
+  let todos = readTodos(Utils.store.get('eureka-todos'));
   let todoFilter = 'all';
 
   function todoSave() { Utils.store.set('eureka-todos', todos); }
@@ -183,7 +194,7 @@ const TodoList = (() => {
   const gt = {
     token: null,
     clientId: Utils.store.getRaw('eureka-gt-clientid'),
-    selectedLists: Utils.store.get('eureka-gt-lists') || [],
+    selectedLists: readLists(Utils.store.get('eureka-gt-lists')),
     connected: false,
     allLists: [],
   };
@@ -425,7 +436,7 @@ const TodoList = (() => {
   }
 
   return {
-    init, addTodo, setTodoFilter, clearCompleted, rules: { listColor, visibleTodos },
+    init, addTodo, setTodoFilter, clearCompleted, rules: { listColor, visibleTodos, readTodos, readLists },
     openGTSettings, closeGTSettings, gtConnect, gtSync, gtDisconnect,
   };
 })();
