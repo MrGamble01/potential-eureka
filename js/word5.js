@@ -52,11 +52,15 @@ const WordFiveGame = (() => {
     const b = document.getElementById('w5-share-btn');
     if (b) b.style.display = show ? '' : 'none';
   }
-  function shareText() {
+  function shareLines(rows, won, rowCount) {
     const EMOJI = { correct: '🟩', present: '🟨', absent: '⬛' };
-    const head = `Word Five ${state === 'won' ? guesses.length : 'X'}/${ROWS}`;
-    const rows = guesses.map(g => score(g).map(s => EMOJI[s]).join(''));
-    return head + '\n\n' + rows.join('\n');
+    const head = 'Word Five ' + (won ? rows.length : 'X') + '/' + rowCount;
+    const body = rows.map(marks => marks.map(s => EMOJI[s] || '⬛').join('')).join('\n');
+    return head + '\n\n' + body;
+  }
+
+  function shareText() {
+    return shareLines(guesses.map(g => score(g)), state === 'won', ROWS);
   }
   function share() {
     if (state === 'playing') return;
@@ -228,5 +232,5 @@ const WordFiveGame = (() => {
   // read as the game quietly ignoring you rather than as a broken listener.
   function destroy() {}
 
-  return { init, newGame, share, destroy, rules: { score, len: LEN } };
+  return { init, newGame, share, destroy, rules: { score, len: LEN, rows: ROWS, shareLines } };
 })();
