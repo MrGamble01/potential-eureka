@@ -95,15 +95,41 @@ const MinesweeperGame = (() => {
   }
 
   // ---- mine placement (first-click-safe) ----
-  function placeMines(safeR, safeC) {
-    // Exclude the first-clicked cell AND its neighbours, so the first reveal
-    // always opens a cascade rather than a lone number.
+  function safeZone(boardCols, boardRows, safeR, safeC) {
     const safe = new Set();
     for (let dr = -1; dr <= 1; dr++)
       for (let dc = -1; dc <= 1; dc++) {
         const nr = safeR + dr, nc = safeC + dc;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) safe.add(idx(nr, nc));
+        if (nr >= 0 && nr < boardRows && nc >= 0 && nc < boardCols) safe.add(nr * boardCols + nc);
       }
+    return safe;
+  }
+
+  function minesAround(boardCols, boardRows, isMine, r, c) {
+    let n = 0;
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < boardRows && nc >= 0 && nc < boardCols && isMine(nr, nc)) n++;
+      }
+    return n;
+  }
+
+  function chordOpens(count, flagged) {
+    return count > 0 && flagged === count;
+  }
+
+  function hiddenSafe(list) {
+    let hidden = 0;
+    for (const cell of list) if (!cell.mine && !cell.revealed) hidden++;
+    return hidden;
+  }
+
+  function placeMines(safeR, safeC) {
+    // Exclude the first-clicked cell AND its neighbours, so the first reveal
+    // always opens a cascade rather than a lone number.
+    const safe = safeZone(cols, rows, safeR, safeC);
     const pool = [];
     for (let i = 0; i < cols * rows; i++) if (!safe.has(i)) pool.push(i);
     // Fisher–Yates partial shuffle for the mine positions.
@@ -116,9 +142,7 @@ const MinesweeperGame = (() => {
     for (let r = 0; r < rows; r++)
       for (let c = 0; c < cols; c++) {
         if (cells[idx(r, c)].mine) continue;
-        let n = 0;
-        forNeighbors(r, c, (nr, nc) => { if (cells[idx(nr, nc)].mine) n++; });
-        cells[idx(r, c)].count = n;
+        cells[idx(r, c)].count = minesAround(cols, rows, (nr, nc) => cells[idx(nr, nc)].mine, r, c);
       }
     placed = true;
   }
@@ -204,10 +228,10 @@ const MinesweeperGame = (() => {
   // Chord: click a satisfied number to reveal its unflagged neighbours.
   function chord(r, c) {
     const cell = cells[idx(r, c)];
-    if (!cell.revealed || cell.count === 0) return;
+    if (!cell.revealed) return;
     let flagged = 0;
     forNeighbors(r, c, (nr, nc) => { if (cells[idx(nr, nc)].flagged) flagged++; });
-    if (flagged !== cell.count) return;
+    if (!chordOpens(cell.count, flagged)) return;
     forNeighbors(r, c, (nr, nc) => {
       const n = cells[idx(nr, nc)];
       if (!n.revealed && !n.flagged) reveal(nr, nc);
@@ -241,9 +265,7 @@ const MinesweeperGame = (() => {
   function checkWin() {
     if (state !== 'playing') return;
     // Win when every non-mine cell is revealed.
-    let hidden = 0;
-    for (const cell of cells) if (!cell.mine && !cell.revealed) hidden++;
-    if (hidden > 0) return;
+    if (hiddenSafe(cells) > 0) return;
     state = 'won';
     lastFace = '😎';
     sfx('bonus');
@@ -416,5 +438,8 @@ const MinesweeperGame = (() => {
     if (typeof Daily !== 'undefined') Daily.disarm('minesweeper');
   }
 
-  return { init, newGame, setDifficulty, toggleFlagMode, destroy };
+  return {
+    init, newGame, setDifficulty, toggleFlagMode, destroy,
+    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe },
+  };
 })();
