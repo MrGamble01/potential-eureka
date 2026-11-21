@@ -105,5 +105,5 @@ const PersonalAuth = (() => {
     initAuth();
   }
 
-  return { init, submitPin, lock };
+  return { init, submitPin, lock, rules: { hashPin } };
 })();
