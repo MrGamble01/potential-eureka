@@ -110,10 +110,26 @@ const MemoryMatrixGame = (() => {
 
   // Flash the sequence. Playback tightens as rounds climb so late rounds
   // test memory at speed, not patience.
+  function flashFor(roundN) {
+    return { on: Math.max(160, 420 - roundN * 18), gap: Math.max(70, 150 - roundN * 5) };
+  }
+
+  // hit advances one step, round clears the pattern, miss spends a heart,
+  // over ends the run.
+  function gradePress(pad, expected, step, length, hearts) {
+    if (pad === expected) {
+      const next = step + 1;
+      return next >= length ? { result: 'round' } : { result: 'hit', step: next };
+    }
+    if (hearts > 1) return { result: 'miss', lives: hearts - 1 };
+    return { result: 'over' };
+  }
+
   function playback() {
     phase = 'showing';
-    const on = Math.max(160, 420 - round * 18);
-    const gap = Math.max(70, 150 - round * 5);
+    const timing = flashFor(round);
+    const on = timing.on;
+    const gap = timing.gap;
     let t = 450;
     seq.forEach((pad, i) => {
       later(() => { litPad = pad; SFX.note(PADS[pad].freq, on / 1000 + 0.05); draw(); }, t);
@@ -130,16 +146,18 @@ const MemoryMatrixGame = (() => {
     draw();
     later(() => { litPad = -1; draw(); }, 170);
 
-    if (pad === seq[inputIdx]) {
+    const grade = gradePress(pad, seq[inputIdx], inputIdx, seq.length, lives);
+    if (grade.result === 'hit' || grade.result === 'round') {
       SFX.note(PADS[pad].freq, 0.18);
-      inputIdx++;
-      if (inputIdx >= seq.length) {
+      if (grade.result === 'round') {
         phase = 'showing';           // lock input during the inter-round beat
         later(() => nextRound(), 650);
+      } else {
+        inputIdx = grade.step;
       }
-    } else if (lives > 1) {
+    } else if (grade.result === 'miss') {
       // Miss with hearts to spare: burn one, replay the SAME pattern.
-      lives--;
+      lives = grade.lives;
       phase = 'showing';        // lock input during the red flash + replay
       sfx('die');
       Effects.shakeCanvas(canvas, 6, 220);
@@ -261,5 +279,5 @@ const MemoryMatrixGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, hitPad: padAt };
+  return { init, start, destroy, hitPad: padAt, rules: { flashFor, gradePress } };
 })();
