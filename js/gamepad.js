@@ -56,6 +56,26 @@ const GamepadInput = (() => {
     }
   }
 
+  function wantedKeys(buttons, axes) {
+    const want = [];
+    const pressed = buttons || [];
+    for (const idx of Object.keys(BUTTON_KEYS)) {
+      const key = BUTTON_KEYS[idx];
+      const b = pressed[idx];
+      if (b && (typeof b === 'object' ? b.pressed : b === 1)) want.push(key);
+    }
+    const ax = axes || [];
+    if (ax[0] <= -AXIS_THRESHOLD) want.push('ArrowLeft');
+    if (ax[0] >= AXIS_THRESHOLD) want.push('ArrowRight');
+    if (ax[1] <= -AXIS_THRESHOLD) want.push('ArrowUp');
+    if (ax[1] >= AXIS_THRESHOLD) want.push('ArrowDown');
+    return want;
+  }
+
+  function shouldRepeat(downAt, lastRepeat, now) {
+    return now - downAt >= REPEAT_DELAY && now - lastRepeat >= REPEAT_EVERY;
+  }
+
   function poll(now) {
     rafId = requestAnimationFrame(poll);
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -69,16 +89,7 @@ const GamepadInput = (() => {
     if (!sawPad) { sawPad = true; showPill(pad.id); }
 
     // What the pad wants down this frame.
-    const want = new Set();
-    for (const [idx, key] of Object.entries(BUTTON_KEYS)) {
-      const b = pad.buttons[idx];
-      if (b && (typeof b === 'object' ? b.pressed : b === 1)) want.add(key);
-    }
-    const ax = pad.axes || [];
-    if (ax[0] <= -AXIS_THRESHOLD) want.add('ArrowLeft');
-    if (ax[0] >=  AXIS_THRESHOLD) want.add('ArrowRight');
-    if (ax[1] <= -AXIS_THRESHOLD) want.add('ArrowUp');
-    if (ax[1] >=  AXIS_THRESHOLD) want.add('ArrowDown');
+    const want = new Set(wantedKeys(pad.buttons, pad.axes));
 
     for (const key of want) press(key, now);
     for (const key of [...held.keys()]) if (!want.has(key)) release(key);
@@ -86,7 +97,7 @@ const GamepadInput = (() => {
     // Keyboard-style auto-repeat for held directions.
     for (const [key, st] of held) {
       if (!REPEATABLE.has(key)) continue;
-      if (now - st.downAt >= REPEAT_DELAY && now - st.lastRepeat >= REPEAT_EVERY) {
+      if (shouldRepeat(st.downAt, st.lastRepeat, now)) {
         st.lastRepeat = now;
         fire(key, 'keydown', true);
       }
@@ -115,7 +126,7 @@ const GamepadInput = (() => {
     rafId = requestAnimationFrame(poll);
   }
 
-  return { init };
+  return { init, rules: { wantedKeys, shouldRepeat, repeatDelay: REPEAT_DELAY, repeatEvery: REPEAT_EVERY } };
 })();
 
 GamepadInput.init();
