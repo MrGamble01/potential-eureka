@@ -424,7 +424,10 @@ const ConnectFourGame = (() => {
   }
 
   function destroy() {
-    // Loop persists (init once) and no-ops while hidden; nothing to tear down.
+    // Loop persists (init once) and no-ops while hidden. The think
+    // delay does not: leaving mid-thought used to let it fire on the
+    // hidden board and play the AI's move while another view was up.
+    clearTimeout(thinkTimer); thinkTimer = null; aiThinking = false;
     confetti = []; flash = 0;
   }
 
