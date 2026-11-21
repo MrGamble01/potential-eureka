@@ -77,10 +77,15 @@ const Achievements = (() => {
   // A stored `null` parses cleanly and then Object.keys(null) throws in
   // renderInto — the hub's front page, from one bad localStorage write.
   // The try/catch caught the parse; nothing caught the shape.
+  // The case for this page load. A failed write must not forget an unlock
+  // that already toasted, or the next view change would toast it again.
+  let remembered = null;
   function unlocked() {
+    if (remembered) return remembered;
     let raw;
-    try { raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
-    return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+    try { raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { raw = null; }
+    remembered = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+    return remembered;
   }
 
   // Re-evaluate the table; toast anything newly true. Never re-locks:
@@ -99,7 +104,12 @@ const Achievements = (() => {
         toast(d);
       }
     }
-    if (changed) localStorage.setItem(STORE_KEY, JSON.stringify(have));
+    // The unlock already happened in memory and the toast is on screen.
+    // A full disk throws here, and check() runs on every view change, so
+    // the throw used to skip the rest of that navigation.
+    if (changed) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(have)); } catch { /* toast already showed */ }
+    }
     return changed;
   }
 
