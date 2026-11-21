@@ -47,18 +47,32 @@ const BreakoutGame = (() => {
     high = Utils.highScore.load('breakout-high');
     resetGame(false);
 
-    canvas.addEventListener('mousemove', e => { pointerX = relX(e.clientX); });
+    canvas.addEventListener('mousemove', e => { const x = relX(e.clientX); if (x != null) pointerX = x; });
     canvas.addEventListener('mousedown', () => { if (!paused) launch(); });
-    canvas.addEventListener('touchstart', e => { pointerX = relX(e.touches[0].clientX); if (!paused) launch(); e.preventDefault(); }, { passive: false });
-    canvas.addEventListener('touchmove', e => { pointerX = relX(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchstart', e => { const x = relX(e.touches[0].clientX); if (x != null) pointerX = x; if (!paused) launch(); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { const x = relX(e.touches[0].clientX); if (x != null) pointerX = x; e.preventDefault(); }, { passive: false });
     document.addEventListener('keydown', Utils.whenViewActive('view-breakout', onKey));
     updateInfo();
     draw();
   }
 
+  // A collapsed canvas (width 0 during a rotation) used to produce Infinity,
+  // and 0/0 produced NaN. Math.min/Math.max do not rescue NaN, so the paddle
+  // stayed off the board until the next good pointer event — and an arrow
+  // key, which reads paddleX, kept writing NaN back.
+  function pointerXFrom(clientX, rect) {
+    if (!rect || !(rect.width > 0) || !Number.isFinite(clientX)) return null;
+    const x = (clientX - rect.left) * (WIDTH / rect.width);
+    return Number.isFinite(x) ? x : null;
+  }
+
+  function settlePaddle(x, w) {
+    if (!Number.isFinite(x) || !Number.isFinite(w) || w < 0) return (WIDTH - PADDLE_W) / 2;
+    return Math.max(0, Math.min(WIDTH - w, x));
+  }
+
   function relX(clientX) {
-    const r = canvas.getBoundingClientRect();
-    return (clientX - r.left) * (WIDTH / r.width);
+    return pointerXFrom(clientX, canvas.getBoundingClientRect());
   }
 
   function onKey(e) {
@@ -203,11 +217,11 @@ const BreakoutGame = (() => {
     // reaches the same real-time speed regardless of frame rate.
     const targetW = now() < wideUntil ? PADDLE_W * 1.6 : PADDLE_W;
     paddleW += (targetW - paddleW) * Math.min(1, 0.2 * dt);
-    if (pointerX != null) {
+    if (Number.isFinite(pointerX)) {
       const want = pointerX - paddleW / 2;
       paddleX += (want - paddleX) * Math.min(1, 0.4 * dt);
     }
-    paddleX = Math.max(0, Math.min(WIDTH - paddleW, paddleX));
+    paddleX = settlePaddle(paddleX, paddleW);
 
     const slow = now() < slowUntil ? 0.62 : 1;
 
@@ -558,6 +572,6 @@ const BreakoutGame = (() => {
 
   return {
     init, start, destroy, togglePause,
-    rules: { serveSpeed, paddleAim, reflectBrick, ballR: BALL_R, brickW: BRICK_W, brickH: BRICK_H, speedMax: BALL_SPEED_MAX },
+    rules: { serveSpeed, paddleAim, reflectBrick, pointerXFrom, settlePaddle, ballR: BALL_R, brickW: BRICK_W, brickH: BRICK_H, speedMax: BALL_SPEED_MAX },
   };
 })();
