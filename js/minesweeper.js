@@ -295,6 +295,14 @@ const MinesweeperGame = (() => {
     return prev == null || secs < prev;
   }
 
+  // A hidden tab stops delivering frames. The next timestamp is the whole
+  // absence; billing it turned a phone-lock into a ruined best time.
+  // A slow frame, up to a second, still counts.
+  function clockGap(dt) {
+    if (!Number.isFinite(dt) || dt < 0 || dt > 1000) return 0;
+    return dt;
+  }
+
   function saveBest() {
     const key = 'mines-best-' + diff;
     const secs = Math.floor(elapsed / 1000);
@@ -330,7 +338,7 @@ const MinesweeperGame = (() => {
       const dt = now - last; last = now;
       rafId = requestAnimationFrame(frame);
       if (!viewActive()) return;
-      if (state === 'playing') elapsed += dt;
+      if (state === 'playing') elapsed += clockGap(dt);
       if (shake > 0) shake *= 0.86;
       if (flash > 0) flash -= 1;
       for (let i = confetti.length - 1; i >= 0; i--) {
@@ -455,6 +463,6 @@ const MinesweeperGame = (() => {
 
   return {
     init, newGame, setDifficulty, toggleFlagMode, destroy,
-    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe, readBest, beatsBest },
+    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe, readBest, beatsBest, clockGap },
   };
 })();
