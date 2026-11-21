@@ -17,11 +17,15 @@ const SFX = (() => {
     }
   } catch {}
 
+  function scaleFor(isMuted) {
+    return isMuted ? 0 : 1;
+  }
+
   function outputScale() {
     try {
       if (typeof EurekaPersist !== 'undefined') return EurekaPersist.audio.sfx(muted);
     } catch {}
-    return muted ? 0 : 1;
+    return scaleFor(muted);
   }
 
   // The AudioContext can only start after a user gesture; create/resume lazily.
@@ -100,5 +104,5 @@ const SFX = (() => {
   function toggle() { setMuted(!muted); return muted; }
   function isMuted() { return muted; }
 
-  return { play, note, setMuted, toggle, isMuted };
+  return { play, note, setMuted, toggle, isMuted, scaleFor };
 })();
