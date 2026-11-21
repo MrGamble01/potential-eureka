@@ -92,9 +92,12 @@ const VectorDefenseGame = (() => {
     canvas.addEventListener('click', e => {
       if (!running || over) { start(); return; }
       if (paused) return;
-      const r = canvas.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width * WIDTH;
-      const y = (e.clientY - r.top) / r.height * HEIGHT;
+      const p = boardPoint(canvas.getBoundingClientRect(), e.clientX, e.clientY);
+      // A 0×0 rect (mid-rotation) used to become Infinity, miss every pad,
+      // and fall through into launchWave().
+      if (!p) return;
+      const x = p.x;
+      const y = p.y;
       // Pad hit?
       for (const pad of PADS) {
         if (Math.hypot(x - pad.x, y - pad.y) < 22) { buyAt(pad); return; }
@@ -118,6 +121,15 @@ const VectorDefenseGame = (() => {
 
     loop = Utils.gameLoop(tick);
     draw();
+  }
+
+  function boardPoint(rect, clientX, clientY) {
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
+    const x = (clientX - rect.left) / rect.width * WIDTH;
+    const y = (clientY - rect.top) / rect.height * HEIGHT;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return { x, y };
   }
 
   function togglePause() {
@@ -522,7 +534,7 @@ const VectorDefenseGame = (() => {
   return {
     init, start, destroy, togglePause,
     rules: {
-      tierDmg, tierRange, upgradeCost, sellValue, enemyStats, pointAt,
+      tierDmg, tierRange, upgradeCost, sellValue, enemyStats, pointAt, boardPoint,
       pathLen, waves: WAVES, turrets: TURRETS,
     },
   };
