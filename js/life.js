@@ -115,12 +115,11 @@ const LifeGame = (() => {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const neighbors = countNeighbors(r, c);
-        const alive = grid[r][c] === 1
-          ? (neighbors === 2 || neighbors === 3)
-          : neighbors === 3;
+        const wasAlive = grid[r][c] === 1;
+        const alive = willLive(wasAlive, neighbors);
         nextGrid[r][c] = alive ? 1 : 0;
         // Survivors age up (capped); newborns start at 1; dead cells reset.
-        nextAge[r][c] = alive ? (grid[r][c] === 1 ? Math.min(age[r][c] + 1, 99) : 1) : 0;
+        nextAge[r][c] = nextAgeOf(alive, wasAlive, age[r][c]);
       }
     }
     [grid, nextGrid] = [nextGrid, grid];
@@ -132,20 +131,33 @@ const LifeGame = (() => {
     if (popHistory.length > 120) popHistory.shift();
   }
 
-  function countNeighbors(r, c) {
+  // Finite board. A wrap here turns the grid into a torus, and a Gosper-gun
+  // glider comes back around and tears the gun apart around generation 180.
+  function neighborsOf(cells, r, c) {
+    const rows = cells.length;
+    const cols = cells[0].length;
     let count = 0;
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue;
-        // Finite board. The `% ROWS` wrap looked like a bounds guard and
-        // made the 60×40 grid a torus, so Gosper-gun gliders came back
-        // around and tore the gun apart around generation 180.
         const nr = r + dr, nc = c + dc;
-        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
-        count += grid[nr][nc];
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+        count += cells[nr][nc];
       }
     }
     return count;
+  }
+
+  function willLive(alive, neighbors) {
+    return alive ? (neighbors === 2 || neighbors === 3) : neighbors === 3;
+  }
+
+  function nextAgeOf(alive, wasAlive, prev) {
+    return alive ? (wasAlive ? Math.min((prev || 0) + 1, 99) : 1) : 0;
+  }
+
+  function countNeighbors(r, c) {
+    return neighborsOf(grid, r, c);
   }
 
   function play() {
@@ -359,5 +371,8 @@ const LifeGame = (() => {
     pause();
   }
 
-  return { init, step, togglePlay, clear, randomize, loadPreset, setSpeed, destroy };
+  return {
+    init, step, togglePlay, clear, randomize, loadPreset, setSpeed, destroy,
+    rules: { neighborsOf, willLive, nextAgeOf },
+  };
 })();
