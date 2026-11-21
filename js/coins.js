@@ -20,15 +20,24 @@ const Coins = (() => {
     { id: 'gold',   name: 'Gold',    cost: 60, swatch: '#F7C948' },
   ];
 
+  function wholeCoins(v) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+    return Math.max(0, Math.trunc(v));
+  }
+
+  function paletteId(v) {
+    return PALETTES.some(p => p.id === v) ? v : 'indigo';
+  }
+
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (s && typeof s === 'object') {
-        s.paid = s.paid || {};
-        s.owned = s.owned || {};
+      if (s && typeof s === 'object' && !Array.isArray(s)) {
+        s.paid = s.paid && typeof s.paid === 'object' && !Array.isArray(s.paid) ? s.paid : {};
+        s.owned = s.owned && typeof s.owned === 'object' && !Array.isArray(s.owned) ? s.owned : {};
         s.owned.indigo = true;
-        s.equipped = s.equipped || 'indigo';
-        s.balance = Math.max(0, s.balance | 0);
+        s.equipped = paletteId(s.equipped);
+        s.balance = wholeCoins(s.balance);
         return s;
       }
     } catch {}
@@ -131,5 +140,5 @@ const Coins = (() => {
     credit();
   }
 
-  return { init, credit, renderInto, buy, equip, load };
+  return { init, credit, renderInto, buy, equip, load, rules: { wholeCoins, paletteId } };
 })();
