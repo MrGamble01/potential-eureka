@@ -116,23 +116,33 @@ const GutterlightGame = (() => {
     draw();
   }
 
+  // A rotation can report the canvas at 0×0 for a frame. Dividing by that
+  // width made the aim NaN, and the putt that followed never reached the cup.
+  function boardPoint(rect, clientX, clientY) {
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
+    const x = (clientX - rect.left) / rect.width * W;
+    const y = (clientY - rect.top) / rect.height * H;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return { x, y };
+  }
+
   function localPoint(e) {
-    const r = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - r.left) / r.width * W,
-      y: (e.clientY - r.top) / r.height * H,
-    };
+    return boardPoint(canvas.getBoundingClientRect(), e.clientX, e.clientY);
   }
 
   function onDown(e) {
     if (paused || over || moving) return;
-    drag = localPoint(e);
+    const p = localPoint(e);
+    if (!p) return;
+    drag = p;
     canvas.setPointerCapture?.(e.pointerId);
   }
 
   function onMove(e) {
     if (!drag || paused || moving) return;
     const p = localPoint(e);
+    if (!p) return;
     const dx = p.x - ball.x;
     const dy = p.y - ball.y;
     const len = Math.hypot(dx, dy);
@@ -351,5 +361,5 @@ const GutterlightGame = (() => {
     draw();
   }
 
-  return { init, start, resume, destroy, togglePause, restart, rules: { puttVelocity, bounceBall } };
+  return { init, start, resume, destroy, togglePause, restart, rules: { puttVelocity, bounceBall, boardPoint } };
 })();
