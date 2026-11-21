@@ -96,10 +96,9 @@ const CalendarWidget = (() => {
         const data = await res.json();
 
         (data.items || []).forEach(item => {
-          const start = item.start.dateTime ? new Date(item.start.dateTime)
-            : new Date(item.start.date + 'T00:00:00');
-          const end = item.end.dateTime ? new Date(item.end.dateTime)
-            : new Date(item.end.date + 'T23:59:59');
+          const span = googleSpan(item);
+          const start = span.start;
+          const end = span.end;
           allEvents.push({
             title: item.summary || '(No title)',
             start, end,
@@ -116,6 +115,17 @@ const CalendarWidget = (() => {
 
   // ---- RENDERING ----
   const formatTime = Utils.formatTime;
+
+  // Google's all-day end.date is the morning after the last day. Reading
+  // that date as 23:59 kept a finished one-day event "current" until the
+  // following evening.
+  function googleSpan(item) {
+    const start = item.start.dateTime ? new Date(item.start.dateTime)
+      : new Date(item.start.date + 'T00:00:00');
+    const end = item.end.dateTime ? new Date(item.end.dateTime)
+      : new Date(item.end.date + 'T00:00:00');
+    return { start, end };
+  }
 
   function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -285,5 +295,5 @@ const CalendarWidget = (() => {
     if (refreshId !== null) { clearInterval(refreshId); refreshId = null; }
   }
 
-  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings, rules: { sameDay, dayLabel, readConfig } };
+  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings, rules: { sameDay, dayLabel, readConfig, googleSpan } };
 })();
