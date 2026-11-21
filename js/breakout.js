@@ -121,9 +121,43 @@ const BreakoutGame = (() => {
   }
   let layoutName = '', layoutFlashUntil = 0;
 
+  function serveSpeed(lvl) {
+    return Math.min(BALL_SPEED_MAX, 4.4 + lvl * 0.35);
+  }
+
+  // hit is -1 at the left edge of the paddle and +1 at the right.
+  // Straight up is the middle. The ball keeps its current speed.
+  function paddleAim(hit, speed) {
+    const ang = -Math.PI / 2 + hit * (Math.PI / 3);
+    return { vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed };
+  }
+
+  // Reflect on the shallower overlap and push the ball back out, so a
+  // shallow hit does not stay inside the brick and score twice.
+  function reflectBrick(x, y, vx, vy, brickX, brickY, radius, bw, bh) {
+    if (!(x + radius > brickX && x - radius < brickX + bw &&
+          y + radius > brickY && y - radius < brickY + bh)) return null;
+    const overlapX = Math.min(x + radius - brickX, brickX + bw - (x - radius));
+    const overlapY = Math.min(y + radius - brickY, brickY + bh - (y - radius));
+    if (overlapX < overlapY) {
+      return {
+        x: x + ((x < brickX + bw / 2) ? -overlapX : overlapX),
+        y: y,
+        vx: -vx,
+        vy: vy,
+      };
+    }
+    return {
+      x: x,
+      y: y + ((y < brickY + bh / 2) ? -overlapY : overlapY),
+      vx: vx,
+      vy: -vy,
+    };
+  }
+
   function resetBall() {
     launched = false;
-    const speed = Math.min(BALL_SPEED_MAX, 4.4 + level * 0.35);
+    const speed = serveSpeed(level);
     balls = [{
       x: WIDTH / 2, y: PADDLE_Y - BALL_R - 1,
       vx: 0, vy: 0, speed, trail: [],
@@ -146,10 +180,10 @@ const BreakoutGame = (() => {
       for (const b of balls) {
         if (b.stuck == null) continue;
         const hit = (b.x - (paddleX + paddleW / 2)) / (paddleW / 2);
-        const ang = -Math.PI / 2 + hit * (Math.PI / 3);
         const sp = b.relSpeed || b.speed;
-        b.vx = Math.cos(ang) * sp;
-        b.vy = Math.sin(ang) * sp;
+        const aim = paddleAim(hit, sp);
+        b.vx = aim.vx;
+        b.vy = aim.vy;
         b.stuck = null;
         released = true;
       }
@@ -217,9 +251,9 @@ const BreakoutGame = (() => {
           sfx('lock');
           continue;
         }
-        const ang = -Math.PI / 2 + hit * (Math.PI / 3);
-        b.vx = Math.cos(ang) * sp;
-        b.vy = Math.sin(ang) * sp;
+        const aim = paddleAim(hit, sp);
+        b.vx = aim.vx;
+        b.vy = aim.vy;
         b.y = PADDLE_Y - BALL_R - 1;
         combo = 0;
         sfx('bounce');
@@ -228,20 +262,12 @@ const BreakoutGame = (() => {
       // Bricks
       for (let i = bricks.length - 1; i >= 0; i--) {
         const br = bricks[i];
-        if (b.x + BALL_R > br.x && b.x - BALL_R < br.x + BRICK_W &&
-            b.y + BALL_R > br.y && b.y - BALL_R < br.y + BRICK_H) {
-          // Reflect on the shallower penetration axis
-          const overlapX = Math.min(b.x + BALL_R - br.x, br.x + BRICK_W - (b.x - BALL_R));
-          const overlapY = Math.min(b.y + BALL_R - br.y, br.y + BRICK_H - (b.y - BALL_R));
-          // Reflect AND push the ball out of the brick, so shallow-angle hits
-          // don't stay overlapping and double-hit / tunnel next frame.
-          if (overlapX < overlapY) {
-            b.vx = -b.vx;
-            b.x += (b.x < br.x + BRICK_W / 2) ? -overlapX : overlapX;
-          } else {
-            b.vy = -b.vy;
-            b.y += (b.y < br.y + BRICK_H / 2) ? -overlapY : overlapY;
-          }
+        const bounced = reflectBrick(b.x, b.y, b.vx, b.vy, br.x, br.y, BALL_R, BRICK_W, BRICK_H);
+        if (bounced) {
+          b.x = bounced.x;
+          b.y = bounced.y;
+          b.vx = bounced.vx;
+          b.vy = bounced.vy;
           br.hp--;
           if (br.hp <= 0) {
             combo++;
@@ -530,5 +556,8 @@ const BreakoutGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause };
+  return {
+    init, start, destroy, togglePause,
+    rules: { serveSpeed, paddleAim, reflectBrick, ballR: BALL_R, brickW: BRICK_W, brickH: BRICK_H, speedMax: BALL_SPEED_MAX },
+  };
 })();
