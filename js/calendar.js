@@ -98,14 +98,25 @@ const CalendarWidget = (() => {
   // ---- RENDERING ----
   const formatTime = Utils.formatTime;
 
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function dayLabel(d, now) {
+    const today = now ? new Date(now) : new Date();
+    if (sameDay(d, today)) return 'today';
+    const tmr = new Date(today.getTime());
+    tmr.setDate(tmr.getDate() + 1);
+    if (sameDay(d, tmr)) return 'tomorrow';
+    return '';
+  }
+
   function isToday(d) {
-    return Utils.dateKey(d) === Utils.todayKey();
+    return dayLabel(d) === 'today';
   }
 
   function isTomorrow(d) {
-    const tmr = new Date();
-    tmr.setDate(tmr.getDate() + 1);
-    return d.getFullYear() === tmr.getFullYear() && d.getMonth() === tmr.getMonth() && d.getDate() === tmr.getDate();
+    return dayLabel(d) === 'tomorrow';
   }
 
   function render(events, isDemo) {
@@ -255,5 +266,5 @@ const CalendarWidget = (() => {
     if (refreshId !== null) { clearInterval(refreshId); refreshId = null; }
   }
 
-  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings };
+  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings, rules: { sameDay, dayLabel } };
 })();
