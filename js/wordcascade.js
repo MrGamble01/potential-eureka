@@ -182,19 +182,20 @@ const WordCascadeGame = (() => {
 
   // Find the single best dictionary word on the board (longest, then
   // highest value): contiguous filled runs read L→R and T→B.
-  function findWord() {
+  function findBest(board) {
+    const rows = board.length;
+    const cols = board[0].length;
     let found = null;
     const consider = (cells) => {
-      const word = cells.map(c => grid[c.r][c.c]).join('');
+      const word = cells.map(c => board[c.r][c.c]).join('');
       if (!isWord(word)) return;
-      const val = cells.reduce((t, c) => t + (VALS[grid[c.r][c.c]] || 1), 0);
+      const val = cells.reduce((t, c) => t + (VALS[board[c.r][c.c]] || 1), 0);
       if (!found || word.length > found.word.length ||
           (word.length === found.word.length && val > found.val)) {
         found = { cells, word, val };
       }
     };
     const scanLine = (line) => {
-      // line = array of {r,c} for one row or column, in reading order.
       let run = [];
       const flushRun = () => {
         for (let len = run.length; len >= 3; len--) {
@@ -203,14 +204,18 @@ const WordCascadeGame = (() => {
         run = [];
       };
       for (const cell of line) {
-        if (grid[cell.r][cell.c]) run.push(cell);
+        if (board[cell.r][cell.c]) run.push(cell);
         else flushRun();
       }
       flushRun();
     };
-    for (let r = 0; r < ROWS; r++) scanLine(Array.from({ length: COLS }, (_, c) => ({ r, c })));
-    for (let c = 0; c < COLS; c++) scanLine(Array.from({ length: ROWS }, (_, r) => ({ r, c })));
+    for (let r = 0; r < rows; r++) scanLine(Array.from({ length: cols }, (_, c) => ({ r, c })));
+    for (let c = 0; c < cols; c++) scanLine(Array.from({ length: rows }, (_, r) => ({ r, c })));
     return found;
+  }
+
+  function findWord() {
+    return findBest(grid);
   }
 
   function scanAndClear(chain) {
@@ -370,5 +375,8 @@ const WordCascadeGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, togglePause, restart };
+  return {
+    init, start, destroy, togglePause, restart,
+    rules: { isWord, findBest, vals: VALS },
+  };
 })();
