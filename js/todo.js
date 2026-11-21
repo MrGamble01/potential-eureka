@@ -105,6 +105,14 @@ const TodoList = (() => {
     renderTodos();
   }
 
+  function visibleTodos(list, filter) {
+    return list.filter(t => {
+      if (filter === 'active') return !t.done;
+      if (filter === 'done') return t.done;
+      return true;
+    });
+  }
+
   // Color for a list name — consistent hue
   function listColor(name) {
     if (!name) return 'var(--text-dim)';
@@ -120,11 +128,7 @@ const TodoList = (() => {
     const countEl = document.getElementById('todo-count');
     if (!list) return;
 
-    const filtered = todos.filter(t => {
-      if (todoFilter === 'active') return !t.done;
-      if (todoFilter === 'done') return t.done;
-      return true;
-    });
+    const filtered = visibleTodos(todos, todoFilter);
 
     list.innerHTML = filtered.map(t => {
       const tag = t.listName
@@ -421,7 +425,7 @@ const TodoList = (() => {
   }
 
   return {
-    init, addTodo, setTodoFilter, clearCompleted,
+    init, addTodo, setTodoFilter, clearCompleted, rules: { listColor, visibleTodos },
     openGTSettings, closeGTSettings, gtConnect, gtSync, gtDisconnect,
   };
 })();
