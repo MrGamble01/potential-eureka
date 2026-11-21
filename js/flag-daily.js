@@ -662,6 +662,8 @@
     GAMES: GAMES,
     todayKey: todayKey,
     prevDate: prevDate,
+    computeStreak: computeStreak,
+    liveStreak: liveStreak,
     challengeFor: challengeFor,
     load: load,
     record: record,
