@@ -164,14 +164,49 @@ const SnakeGame = (() => {
     gameLoop = setInterval(tick, speed);
   }
 
+  // Random tries first (so a daily run spends the same draws it used to),
+  // then a scan. Giving up is null — the old food loop never gave up, so a
+  // full board froze the tab inside the tick.
+  function findOpenCell(cols, rows, blocked, rand) {
+    const tries = Math.max(0, cols * rows);
+    for (let i = 0; i < tries; i++) {
+      const x = Math.floor(rand() * cols);
+      const y = Math.floor(rand() * rows);
+      if (!blocked(x, y)) return { x, y };
+    }
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (!blocked(x, y)) return { x, y };
+      }
+    }
+    return null;
+  }
+
+  // A pickup that is still blocked after its tries is not placed. The old
+  // loop exited at the cap and dropped the bonus on the last blocked cell.
+  function placePickup(cols, rows, blocked, rand, limit) {
+    const cap = limit == null ? 100 : limit;
+    for (let i = 0; i < cap; i++) {
+      const x = Math.floor(rand() * cols);
+      const y = Math.floor(rand() * rows);
+      if (!blocked(x, y)) return { x, y };
+    }
+    return null;
+  }
+
+  function cellBlocked(x, y) {
+    return snake.some(s => s.x === x && s.y === y) ||
+      walls.some(w => w.x === x && w.y === y) ||
+      (food && food.x === x && food.y === y) ||
+      (bonusFood && bonusFood.x === x && bonusFood.y === y) ||
+      (powerUp && powerUp.x === x && powerUp.y === y);
+  }
+
   function spawnFood() {
-    do {
-      food = {
-        x: Math.floor(drand() * COLS),
-        y: Math.floor(drand() * ROWS),
-      };
-    } while (snake.some(s => s.x === food.x && s.y === food.y) ||
-             walls.some(w => w.x === food.x && w.y === food.y));
+    const cell = findOpenCell(COLS, ROWS, (x, y) =>
+      snake.some(s => s.x === x && s.y === y) || walls.some(w => w.x === x && w.y === y), drand);
+    if (!cell) { endGame(); return; }
+    food = cell;
   }
 
   // Each level past the first drops a short rock wall onto the board — the
@@ -202,32 +237,14 @@ const SnakeGame = (() => {
   }
 
   function spawnBonusFood() {
-    let pos, attempts = 0;
-    do {
-      pos = {
-        x: Math.floor(drand() * COLS),
-        y: Math.floor(drand() * ROWS),
-      };
-      attempts++;
-    } while (attempts < 100 && (
-      snake.some(s => s.x === pos.x && s.y === pos.y) ||
-      walls.some(w => w.x === pos.x && w.y === pos.y) ||
-      (food && food.x === pos.x && food.y === pos.y)
-    ));
+    const pos = placePickup(COLS, ROWS, cellBlocked, drand, 100);
+    if (!pos) { bonusFood = null; return; }
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
   }
 
   function spawnPowerUp() {
-    let pos, attempts = 0;
-    do {
-      pos = { x: Math.floor(drand() * COLS), y: Math.floor(drand() * ROWS) };
-      attempts++;
-    } while (attempts < 100 && (
-      snake.some(s => s.x === pos.x && s.y === pos.y) ||
-      walls.some(w => w.x === pos.x && w.y === pos.y) ||
-      (food && food.x === pos.x && food.y === pos.y) ||
-      (bonusFood && bonusFood.x === pos.x && bonusFood.y === pos.y)
-    ));
+    const pos = placePickup(COLS, ROWS, cellBlocked, drand, 100);
+    if (!pos) { powerUp = null; return; }
     const def = POWER_KINDS[Math.floor(drand() * POWER_KINDS.length)];
     powerUp = { ...pos, ...def, expireAt: Date.now() + 8000 };
   }
@@ -316,6 +333,7 @@ const SnakeGame = (() => {
       spawnBurst(head.x, head.y, '#F778BA');
       highScore = Utils.highScore.save('snake-high', score, highScore);
       spawnFood();
+      if (gameOver) return;
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
       // Power-up every 7th food (offset so it never collides with bonus)
@@ -577,6 +595,6 @@ const SnakeGame = (() => {
 
   return {
     init, start, destroy, toggleWallWrap, cyclePace, togglePause,
-    rules: { cols: COLS, rows: ROWS, nextCell, hitsSelf, levelFor },
+    rules: { cols: COLS, rows: ROWS, nextCell, hitsSelf, levelFor, findOpenCell, placePickup },
   };
 })();
