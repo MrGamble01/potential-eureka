@@ -6,7 +6,26 @@
 const CalendarWidget = (() => {
   const STORAGE_KEY = 'eureka-calendar-config';
 
-  function getConfig() { return Utils.store.get(STORAGE_KEY); }
+  // A half-written config ({ apiKey } with no calendar list, or a list
+  // that isn't an array) used to throw on `.calendars.length` inside the
+  // refresh, so the dashboard lost its events instead of falling back.
+  function readConfig(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    if (typeof raw.apiKey !== 'string' || !raw.apiKey.trim()) return null;
+    if (!Array.isArray(raw.calendars)) return null;
+    const calendars = [];
+    for (const row of raw.calendars) {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+      const id = typeof row.id === 'string' ? row.id.trim() : '';
+      if (!id) continue;
+      const name = typeof row.name === 'string' && row.name.trim() ? row.name.trim() : 'Calendar';
+      calendars.push({ name, id });
+    }
+    if (!calendars.length) return null;
+    return { apiKey: raw.apiKey.trim(), calendars };
+  }
+
+  function getConfig() { return readConfig(Utils.store.get(STORAGE_KEY)); }
   function saveConfig(config) { Utils.store.set(STORAGE_KEY, config); }
 
   // ---- DEMO EVENTS ----
@@ -225,7 +244,7 @@ const CalendarWidget = (() => {
   // ---- LOAD ----
   async function loadEvents() {
     const config = getConfig();
-    if (config && config.apiKey && config.calendars.length > 0) {
+    if (config) {
       try {
         const events = await fetchGoogleEvents(config.apiKey, config.calendars);
         render(events, false);
@@ -266,5 +285,5 @@ const CalendarWidget = (() => {
     if (refreshId !== null) { clearInterval(refreshId); refreshId = null; }
   }
 
-  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings, rules: { sameDay, dayLabel } };
+  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings, rules: { sameDay, dayLabel, readConfig } };
 })();
