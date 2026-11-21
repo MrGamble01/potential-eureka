@@ -69,11 +69,20 @@ const Rivals = (() => {
   const b64d = s => decodeURIComponent(escape(atob(
     s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4))));
 
+  // A stored "12px" used to count as 12. Only a whole number of digits
+  // is a score; anything else is no score.
+  function wholeScore(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    if (!/^\d+$/.test(s)) return 0;
+    const v = Number(s);
+    return Number.isSafeInteger(v) ? v : 0;
+  }
+
   function myScores() {
     const s = {};
     for (const key of Object.keys(GAMES)) {
       const g = GAMES[key];
-      const v = g.read ? g.read() : parseInt(localStorage.getItem(key) || '0', 10);
+      const v = g.read ? g.read() : wholeScore(localStorage.getItem(key));
       if (v > 0) s[key] = v;
     }
     return s;
@@ -156,7 +165,7 @@ const Rivals = (() => {
   function rivalLeads(key) {
     const b = bestFor(key);
     if (!b) return false;
-    const mine = parseInt(localStorage.getItem(key) || '0', 10) || 0;
+    const mine = wholeScore(localStorage.getItem(key));
     if (mine <= 0) return true;
     return GAMES[key].dir === 'min' ? b.value < mine : b.value > mine;
   }
