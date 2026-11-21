@@ -13,6 +13,13 @@ const Utils = {
     return new Promise(r => setTimeout(r, ms));
   },
 
+  // One animation step, in 60fps frames. A hidden tab can wake up a
+  // second later; the 2.2 cap keeps that catch-up from tunneling a
+  // ball through a brick.
+  frameDt(now, last) {
+    return Math.min((now - last) / 16.667, 2.2);
+  },
+
   // localStorage with JSON
   store: {
     get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
@@ -79,7 +86,7 @@ const Utils = {
         return;
       }
       const now = performance.now();
-      const dt = Math.min((now - lastT) / 16.667, 2.2);
+      const dt = Utils.frameDt(now, lastT);
       lastT = now;
       tick(dt);
     }
