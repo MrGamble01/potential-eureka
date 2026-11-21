@@ -35,8 +35,24 @@ const Pomodoro = (() => {
     pomoUpdateUI();
   }
 
+  // Seconds left on the wall clock. A frozen block (endAt null) keeps
+  // the paused remainder; a running block never goes negative.
+  function secondsLeft(endAt, nowMs, frozen) {
+    return endAt == null ? frozen : Math.max(0, Math.ceil((endAt - nowMs) / 1000));
+  }
+
+  // Focus counts toward the long break. Every fourth finished focus
+  // is a long break; a break always returns to focus.
+  function nextMode(mode, sessions) {
+    if (mode === 'focus') {
+      const count = sessions + 1;
+      return { mode: count % 4 === 0 ? 'long' : 'short', sessions: count };
+    }
+    return { mode: 'focus', sessions: sessions };
+  }
+
   function remaining() {
-    return pomoEndAt === null ? pomoTime : Math.max(0, Math.ceil((pomoEndAt - Date.now()) / 1000));
+    return secondsLeft(pomoEndAt, Date.now(), pomoTime);
   }
 
   function pomoTick() {
@@ -45,13 +61,10 @@ const Pomodoro = (() => {
       pomoBeep();
       clearInterval(pomoInterval);
       pomoRunning = false;
-      if (pomoMode === 'focus') {
-        pomoSessions++;
-        Utils.store.setRaw('eureka-pomo-sessions', pomoSessions);
-        pomoMode = pomoSessions % 4 === 0 ? 'long' : 'short';
-      } else {
-        pomoMode = 'focus';
-      }
+      const finished = nextMode(pomoMode, pomoSessions);
+      if (pomoMode === 'focus') Utils.store.setRaw('eureka-pomo-sessions', finished.sessions);
+      pomoMode = finished.mode;
+      pomoSessions = finished.sessions;
       pomoTime = POMO_MODES[pomoMode].duration;
       pomoEndAt = null;
     }
@@ -62,13 +75,10 @@ const Pomodoro = (() => {
     clearInterval(pomoInterval);
     pomoRunning = false;
     pomoEndAt = null;
-    if (pomoMode === 'focus') {
-      pomoSessions++;
-      Utils.store.setRaw('eureka-pomo-sessions', pomoSessions);
-      pomoMode = pomoSessions % 4 === 0 ? 'long' : 'short';
-    } else {
-      pomoMode = 'focus';
-    }
+    const finished = nextMode(pomoMode, pomoSessions);
+    if (pomoMode === 'focus') Utils.store.setRaw('eureka-pomo-sessions', finished.sessions);
+    pomoMode = finished.mode;
+    pomoSessions = finished.sessions;
     pomoTime = POMO_MODES[pomoMode].duration;
     pomoUpdateUI();
   }
@@ -141,5 +151,5 @@ const Pomodoro = (() => {
     pomoUpdateUI();
   }
 
-  return { init, toggle, skip, reset };
+  return { init, toggle, skip, reset, rules: { secondsLeft, nextMode, modes: POMO_MODES } };
 })();
