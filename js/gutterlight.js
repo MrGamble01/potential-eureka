@@ -148,9 +148,30 @@ const GutterlightGame = (() => {
     putt(angle, power);
   }
 
+  function puttVelocity(aim, force) {
+    const speed = 2.4 + force * 7.2;
+    return { vx: Math.cos(aim) * speed, vy: Math.sin(aim) * speed };
+  }
+
+  // A ball within 7px of a wall bounces on the wider axis and is
+  // pushed 8px clear, keeping 72% of its speed.
+  function bounceBall(x, y, vx, vy, rect) {
+    const rx = rect[0], ry = rect[1], w = rect[2], h = rect[3];
+    const nx = Math.max(rx, Math.min(x, rx + w));
+    const ny = Math.max(ry, Math.min(y, ry + h));
+    const dx = x - nx;
+    const dy = y - ny;
+    if (dx * dx + dy * dy > 49) return null;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return { x: dx >= 0 ? rx + w + 8 : rx - 8, y: y, vx: vx * -0.72, vy: vy };
+    }
+    return { x: x, y: dy >= 0 ? ry + h + 8 : ry - 8, vx: vx, vy: vy * -0.72 };
+  }
+
   function putt(aim, force) {
-    ball.vx = Math.cos(aim) * (2.4 + force * 7.2);
-    ball.vy = Math.sin(aim) * (2.4 + force * 7.2);
+    const vel = puttVelocity(aim, force);
+    ball.vx = vel.vx;
+    ball.vy = vel.vy;
     moving = true;
     strokes += 1;
     total += 1;
@@ -159,19 +180,12 @@ const GutterlightGame = (() => {
   }
 
   function hitRect(rect) {
-    const [x, y, w, h] = rect;
-    const nx = Math.max(x, Math.min(ball.x, x + w));
-    const ny = Math.max(y, Math.min(ball.y, y + h));
-    const dx = ball.x - nx;
-    const dy = ball.y - ny;
-    if (dx * dx + dy * dy > 49) return false;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      ball.x = dx >= 0 ? x + w + 8 : x - 8;
-      ball.vx *= -0.72;
-    } else {
-      ball.y = dy >= 0 ? y + h + 8 : y - 8;
-      ball.vy *= -0.72;
-    }
+    const next = bounceBall(ball.x, ball.y, ball.vx, ball.vy, rect);
+    if (!next) return false;
+    ball.x = next.x;
+    ball.y = next.y;
+    ball.vx = next.vx;
+    ball.vy = next.vy;
     Utils.sfx('bounce');
     return true;
   }
@@ -337,5 +351,5 @@ const GutterlightGame = (() => {
     draw();
   }
 
-  return { init, start, resume, destroy, togglePause, restart };
+  return { init, start, resume, destroy, togglePause, restart, rules: { puttVelocity, bounceBall } };
 })();
