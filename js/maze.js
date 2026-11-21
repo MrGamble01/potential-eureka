@@ -53,10 +53,11 @@ const MazeGame = (() => {
   }
 
   // ---- GENERATION (Recursive Backtracking) ----
-  function generateGrid() {
-    grid = Array.from({ length: rows }, () => Array(cols).fill(1));
+  // rand() picks the next corridor. The same sequence carves the same maze.
+  function carveMaze(rowCount, colCount, rand) {
+    const carved = Array.from({ length: rowCount }, () => Array(colCount).fill(1));
     const stack = [];
-    grid[1][1] = 0;
+    carved[1][1] = 0;
     stack.push([1, 1]);
     const dirs = [[0, 2], [2, 0], [0, -2], [-2, 0]];
 
@@ -65,20 +66,25 @@ const MazeGame = (() => {
       const neighbors = [];
       for (const [dr, dc] of dirs) {
         const nr = r + dr, nc = c + dc;
-        if (nr > 0 && nr < rows - 1 && nc > 0 && nc < cols - 1 && grid[nr][nc] === 1) {
+        if (nr > 0 && nr < rowCount - 1 && nc > 0 && nc < colCount - 1 && carved[nr][nc] === 1) {
           neighbors.push([nr, nc, r + dr / 2, c + dc / 2]);
         }
       }
       if (neighbors.length === 0) { stack.pop(); }
       else {
-        const [nr, nc, wr, wc] = neighbors[Math.floor(drand() * neighbors.length)];
-        grid[wr][wc] = 0;
-        grid[nr][nc] = 0;
+        const [nr, nc, wr, wc] = neighbors[Math.floor(rand() * neighbors.length)];
+        carved[wr][wc] = 0;
+        carved[nr][nc] = 0;
         stack.push([nr, nc]);
       }
     }
-    grid[1][0] = 0;               // entrance
-    grid[rows - 2][cols - 1] = 0; // exit
+    carved[1][0] = 0;                          // entrance
+    carved[rowCount - 2][colCount - 1] = 0;    // exit
+    return carved;
+  }
+
+  function generateGrid() {
+    grid = carveMaze(rows, cols, drand);
   }
 
   // Daily-challenge plumbing (SITE-3): maze layout + gem scatter draw from
@@ -158,7 +164,8 @@ const MazeGame = (() => {
 
   // P7: par time scales with the maze's cell count, so bigger labyrinths
   // get a fair clock. Beat par for gold (+200), 1.6× par for silver (+80).
-  function parSecs() { return Math.round((rows * cols) / 20) + 3; }
+  function parFor(rowCount, colCount) { return Math.round((rowCount * colCount) / 20) + 3; }
+  function parSecs() { return parFor(rows, cols); }
 
   function winLevel() {
     playing = false; won = true;
@@ -474,5 +481,5 @@ const MazeGame = (() => {
     if (typeof Daily !== 'undefined') Daily.disarm('maze');
   }
 
-  return { init, generate, newGame, solve, destroy };
+  return { init, generate, newGame, solve, destroy, rules: { carve: carveMaze, parFor, cols: COLS, rows: ROWS } };
 })();
