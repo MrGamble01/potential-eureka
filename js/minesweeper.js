@@ -280,17 +280,32 @@ const MinesweeperGame = (() => {
     updateHud();
   }
 
+  // A best time is a whole number of seconds, or no record. "+v" turned
+  // "nope" into NaN (and the HUD printed "NaNs") and turned "-1" into a
+  // record no real clear could beat, because every time is greater.
+  function readBest(raw) {
+    if (raw == null) return null;
+    const text = String(raw).trim();
+    if (!/^\d+$/.test(text)) return null;
+    const n = Number(text);
+    return Number.isSafeInteger(n) ? n : null;
+  }
+  function beatsBest(secs, prev) {
+    if (!Number.isSafeInteger(secs) || secs < 0) return false;
+    return prev == null || secs < prev;
+  }
+
   function saveBest() {
     const key = 'mines-best-' + diff;
     const secs = Math.floor(elapsed / 1000);
-    let prev = Infinity;
-    try { const v = localStorage.getItem(key); if (v != null) prev = +v; } catch (e) {}
-    if (secs < prev) {
+    let prev = null;
+    try { prev = readBest(localStorage.getItem(key)); } catch (e) {}
+    if (beatsBest(secs, prev)) {
       try { localStorage.setItem(key, String(secs)); } catch (e) {}
     }
   }
   function bestTime() {
-    try { const v = localStorage.getItem('mines-best-' + diff); return v == null ? null : +v; } catch (e) { return null; }
+    try { return readBest(localStorage.getItem('mines-best-' + diff)); } catch (e) { return null; }
   }
 
   function burstConfetti() {
@@ -440,6 +455,6 @@ const MinesweeperGame = (() => {
 
   return {
     init, newGame, setDifficulty, toggleFlagMode, destroy,
-    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe },
+    rules: { diffs: DIFFS, safeZone, minesAround, chordOpens, hiddenSafe, readBest, beatsBest },
   };
 })();
