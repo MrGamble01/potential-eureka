@@ -10,9 +10,21 @@ const PersonalContent = (() => {
   const today = Utils.todayKey;
   const escHtml = Utils.escHtml;
 
+  // Saved personal data is whatever JSON.parse returned. A list that is
+  // {} throws on .push, and a log that is a number throws when a day is
+  // checked off, because the assignment never lands on the real value.
+  function readList(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  }
+  function readLog(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    return raw;
+  }
+
   // ========== MOOD ==========
   function logMood(level) {
-    const moods = get('moods') || {};
+    const moods = readLog(get('moods'));
     moods[today()] = { level, time: Date.now() };
     set('moods', moods);
     renderMood();
@@ -26,7 +38,7 @@ const PersonalContent = (() => {
     const toggleBtn = document.getElementById('mood-history-toggle');
     if (!todayEl) return;
 
-    const moods = get('moods') || {};
+    const moods = readLog(get('moods'));
     const emojis = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' };
     const labels = { 5: 'Great', 4: 'Good', 3: 'Okay', 2: 'Low', 1: 'Rough' };
 
@@ -47,7 +59,7 @@ const PersonalContent = (() => {
   function renderMoodHistory() {
     const container = document.getElementById('mood-history');
     if (!container) return;
-    const moods = get('moods') || {};
+    const moods = readLog(get('moods'));
     const emojis = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' };
 
     let html = '<div class="mood-week">';
@@ -77,8 +89,8 @@ const PersonalContent = (() => {
   }
 
   // ========== HABITS ==========
-  let habits = get('habits') || [];
-  let habitLog = get('habit-log') || {};
+  let habits = readList(get('habits'));
+  let habitLog = readLog(get('habit-log'));
 
   function habitSave() {
     set('habits', habits);
@@ -188,7 +200,7 @@ const PersonalContent = (() => {
     const dateEl = document.getElementById('journal-date');
     if (!area || !dateEl) return;
 
-    const entries = get('journal') || {};
+    const entries = readLog(get('journal'));
     area.value = entries[journalKey()] || '';
     dateEl.textContent = journalDate.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -199,7 +211,7 @@ const PersonalContent = (() => {
   function saveJournalEntry() {
     const area = document.getElementById('journal-area');
     if (!area) return;
-    const entries = get('journal') || {};
+    const entries = readLog(get('journal'));
     const text = area.value.trim();
     if (text) {
       entries[journalKey()] = area.value;
@@ -254,7 +266,7 @@ const PersonalContent = (() => {
     initJournalEvents();
 
     // Highlight today's mood if already set
-    const moods = get('moods') || {};
+    const moods = readLog(get('moods'));
     const todayMood = moods[today()];
     if (todayMood) {
       document.querySelectorAll('.mood-picker button').forEach((b, i) => {
@@ -268,5 +280,6 @@ const PersonalContent = (() => {
     logMood, toggleMoodHistory,
     toggleHabit, addHabit, removeHabit,
     prevDay, nextDay,
+    rules: { readList, readLog },
   };
 })();
