@@ -137,9 +137,27 @@ const Pomodoro = (() => {
     if (document.visibilityState === 'visible' && pomoRunning) pomoTick();
   });
 
+  // A new AudioContext per chime never resumes, and browsers only allow a
+  // handful of them. After a few finished sessions the constructor throws
+  // and the chime goes silent. One context is resumed from suspended or
+  // interrupted (the state iOS uses after a call or the screen lock).
+  let beepCtx = null;
+  function beepContext(AC) {
+    if (!AC) return null;
+    if (!beepCtx || beepCtx.state === 'closed') beepCtx = new AC();
+    if (beepCtx.state === 'suspended' || beepCtx.state === 'interrupted') {
+      try {
+        const pending = beepCtx.resume();
+        if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+      } catch (e) { /* the tone still queues once the context is running */ }
+    }
+    return beepCtx;
+  }
+
   function pomoBeep() {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = beepContext(window.AudioContext || window.webkitAudioContext);
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
@@ -163,5 +181,5 @@ const Pomodoro = (() => {
     pomoUpdateUI();
   }
 
-  return { init, toggle, skip, reset, rules: { secondsLeft, nextMode, readSessions, modes: POMO_MODES } };
+  return { init, toggle, skip, reset, rules: { secondsLeft, nextMode, readSessions, beepContext, modes: POMO_MODES } };
 })();
