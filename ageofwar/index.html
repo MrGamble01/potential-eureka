@@ -3,6 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="preload" href="/js/persist.js" as="script">
+  <link rel="preload" href="/js/progression.js" as="script">
+  <link rel="preload" href="/js/cosmetics.js" as="script">
+  <link rel="preload" href="/js/moments.js?v=20261017moments4" as="script">
+  <link rel="preload" href="/js/feel.js" as="script">
+  <link rel="preload" href="/js/audio.js" as="script">
+  <link rel="preload" href="/js/focus-hold.js" as="script">
+  <link rel="preload" href="/js/living-world.js" as="script">
+  <link rel="preload" href="/ageofwar/ageofwar.js?v=20261018world" as="script">
+  <link rel="preload" href="/ageofwar/boot.js" as="script">
   <title>Age of War</title>
   <meta name="description" content="Side-scrolling lane battler — spawn units, push the enemy base, age up through Eclipse. Last base standing wins.">
   <meta name="theme-color" content="#0d1117">
@@ -337,15 +347,15 @@
       },
     };
   </script>
-  <script src="/js/persist.js"></script>
-  <script src="/js/progression.js"></script>
-  <script src="/js/cosmetics.js"></script>
-  <script src="/js/moments.js?v=20261017moments4"></script>
-  <script src="/js/feel.js"></script>
-  <script src="/js/audio.js"></script>
-  <script src="/js/focus-hold.js"></script>
-  <script src="/js/living-world.js"></script>
-  <script src="/ageofwar/ageofwar.js?v=20261018world"></script>
-  <script>AgeOfWarGame.init();</script>
+  <script src="/js/persist.js" defer></script>
+  <script src="/js/progression.js" defer></script>
+  <script src="/js/cosmetics.js" defer></script>
+  <script src="/js/moments.js?v=20261017moments4" defer></script>
+  <script src="/js/feel.js" defer></script>
+  <script src="/js/audio.js" defer></script>
+  <script src="/js/focus-hold.js" defer></script>
+  <script src="/js/living-world.js" defer></script>
+  <script src="/ageofwar/ageofwar.js?v=20261018world" defer></script>
+  <script src="/ageofwar/boot.js" defer></script>
 </body>
 </html>
