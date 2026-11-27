@@ -872,6 +872,7 @@
       <p class="hub-kicker">Scoreboard</p>
       <h1 class="hof-title">Hall of Fame</h1>
       <p class="hof-sub">Your personal bests</p>
+      <p id="hof-empty" class="hof-empty" hidden>No personal bests yet. Play a game and it lands here.</p>
       <div id="hof-rivals" class="hof-rivals">
         <div class="hof-rivals-row">
           <button id="hof-share" class="hof-share">⚔ Share my scores</button>
@@ -1559,16 +1560,12 @@
     }
 
     // ---- HALL OF FAME (derived from HubRoutes.SHOWCASE) ----
-    const HOF_BEST = {
-      ageofwar:    () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; },
-      tycoon:      () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; },
-      hearthvale:  () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? v + ' villagers at peak' : null; },
-      voxel:       () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; },
-      ashmarch:    () => { const s = Scores.readJSON('ashmarch-chronicle-v1'); const n = s && Array.isArray(s.campaigns) ? s.campaigns.length : 0; return n > 0 ? n + (n === 1 ? ' road' : ' roads') : null; },
-      gutterlight: () => { const v = Scores.num('gutter-best'); return v > 0 ? v + ' strokes' : null; },
-      crateescape: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; },
-      tetris:      () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; },
-    };
+    function hofText(id) {
+      try {
+        if (typeof Scores !== 'undefined' && Scores.flagship) return Scores.flagship(id);
+      } catch { /* a bad save is an empty row, not a blank board */ }
+      return null;
+    }
     const HOF_GAMES = ((typeof HubRoutes !== 'undefined' && HubRoutes.showcaseGames) ? HubRoutes.showcaseGames() : []).map(g => ({
       id: g.id,
       name: g.name,
@@ -1581,11 +1578,13 @@
         if (g.view) switchView(g.view);
         else location.href = g.href;
       },
-      best: HOF_BEST[g.id] || (() => {
-        if (!g.rid) return null;
+      best: () => {
+        const fromSave = hofText(g.id);
+        if (fromSave) return fromSave;
+        if (!g.rid || typeof Scores === 'undefined') return null;
         const v = Scores.num(g.rid);
         return v > 0 ? v.toLocaleString() + ' pts' : null;
-      }),
+      },
     }));
     // What the reset clears is derived, never listed. Backup takes the whole
     // origin on purpose — new games' keys are covered without a registry to
@@ -1624,37 +1623,58 @@
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
       if (!board) return;
+      const hofEsc = s => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       let played = 0;
       const rowHtml = (g, i, laneN) => {
-        const best = g.best();
+        let best = null;
+        try { best = g.best(); } catch { best = null; }
         if (best) played++;
-        // Leftover after the Long/Quick board: rank still used the
-        // flat 01–21 index, so Quick opened at 07. Number inside the lane.
+        // Rank restarts inside the lane so Quick opens at 01.
         const rank = String((laneN != null ? laneN : i) + 1).padStart(2, '0');
         // Rivals (SITE-2): show the best imported mark beside your own,
         // lit up when the rival currently holds the lead.
         let rivalHtml = '';
         if (g.rid && typeof Rivals !== 'undefined') {
-          const r = Rivals.bestFor(g.rid);
+          let r = null;
+          try { r = Rivals.bestFor(g.rid); } catch { r = null; }
           if (r) {
-            const leads = Rivals.rivalLeads(g.rid);
+            let leads = false;
+            try { leads = Rivals.rivalLeads(g.rid); } catch { leads = false; }
             rivalHtml = '<span class="hof-rival' + (leads ? ' hof-rival-leads' : '') + '" title="' +
               (leads ? 'They hold the lead' : 'You hold the lead') + '">⚔ ' +
-              r.name + ' · ' + Rivals.fmt(g.rid, r.value) + '</span>';
+              hofEsc(r.name) + ' · ' + hofEsc(Rivals.fmt(g.rid, r.value)) + '</span>';
           }
         }
-        return '<a class="hof-row' + (best ? '' : ' hof-row-empty') + '" href="' + g.href + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
+        return '<a class="hof-row' + (best ? '' : ' hof-row-empty') + '" href="' + hofEsc(g.href) + '" data-hof="' + i + '" style="--accent:' + hofEsc(g.accent) + '">' +
                  '<span class="hof-rank">' + rank + '</span>' +
                  '<span class="hof-dot"></span>' +
-                 '<span class="hof-name">' + g.name + '</span>' +
+                 '<span class="hof-name">' + hofEsc(g.name) + '</span>' +
                  '<span class="hof-dots"></span>' +
                  rivalHtml +
-                 '<span class="hof-score">' + (best || '— not played —') + '</span>' +
+                 '<span class="hof-score">' + hofEsc(best || '— not played —') + '</span>' +
                '</a>';
       };
-      // Leftover after the homepage Long/Quick split: the board was still
-      // a flat pre-#988 list, and it skipped the sixth flagship.
-      board.innerHTML = HOF_GAMES.map((g, i) => rowHtml(g, i, i)).join('');
+      const lanes = [
+        { id: 'long', title: 'Long games', chip: 'Hours' },
+        { id: 'quick', title: 'Quick games', chip: 'Few minutes' },
+      ];
+      board.innerHTML = lanes.map(lane => {
+        const items = [];
+        HOF_GAMES.forEach((g, i) => {
+          const which = g.lane === 'quick' ? 'quick' : 'long';
+          if (which === lane.id) items.push({ g, i });
+        });
+        const rows = items.map(({ g, i }, n) => rowHtml(g, i, n)).join('');
+        return '<section class="hof-lane hof-lane--' + lane.id + '">' +
+          '<div class="hof-lane-head">' +
+            '<h2 class="hof-lane-title" id="hof-lane-' + lane.id + '">' + lane.title + '</h2>' +
+            '<span class="hof-lane-count">' + items.length + '</span>' +
+            '<span class="hof-lane-chip">' + lane.chip + '</span>' +
+          '</div>' + rows + '</section>';
+      }).join('');
+      const empty = document.getElementById('hof-empty');
+      if (empty) empty.hidden = played !== 0;
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', (e) => {
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -1950,7 +1970,8 @@
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
         if (!fn) return;
-        const txt = fn();
+        let txt = '';
+        try { txt = fn() || ''; } catch { txt = ''; }
         el.textContent = txt;
         el.style.display = txt ? 'block' : 'none';
       });

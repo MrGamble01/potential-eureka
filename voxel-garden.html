@@ -714,7 +714,7 @@ function colScale(hex,f){const r=clamp(((hex>>16)&255)*f,0,255),g=clamp(((hex>>8
 /* ============================== sfx ============================== */
 const SFX={ctx:null,
   ensure(){if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
-    if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
+    if(this.ctx&&window.EurekaAudio&&EurekaAudio.safeResume)EurekaAudio.safeResume(this.ctx);},
   tone(f,dur,type,vol,slide,delay){
     const scale=window.EurekaPersist?EurekaPersist.audio.sfx(state.muted):(state.muted?0:1);
     if(scale<=0)return;this.ensure();if(!this.ctx)return;vol*=scale;
@@ -6576,6 +6576,15 @@ function applySharedAudio(){
   const heard=EurekaPersist.audio.apply(state.muted,state.musicOff);
   state.muted=heard.muted;state.musicOff=heard.musicOff;
 }
+function syncSharedAudio(s){
+  if(!s||!s.touched||!state)return;
+  const muted=!!s.muted, musicOff=muted||!s.musicOn;
+  if(!!state.muted===muted && !!state.musicOff===musicOff){paintMute();return;}
+  state.muted=muted;state.musicOff=musicOff;
+  paintMute();
+  const b=$('musicBtn');if(b)b.style.opacity=state.musicOff?0.4:1;
+  paintPause();
+}
 let islePaused=false;
 let saveArmed=false;
 const COACH_STEPS=[
@@ -8106,6 +8115,7 @@ function boot(){
   bindInput();
   paintMute();
   if(window.EurekaPersist){
+    try{EurekaPersist.settings.subscribe(syncSharedAudio);}catch(e){}
     const host=document.getElementById('vox-audio');
     if(host)EurekaPersist.mount(host,{
       showMute:false,

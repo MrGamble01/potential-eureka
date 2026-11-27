@@ -138,6 +138,17 @@
     return state === 'suspended' || state === 'interrupted';
   }
 
+  // resume() rejects when it runs outside a gesture, and that rejection
+  // is a promise — try/catch does not see it. Swallow it here so a
+  // bird, a wave, or a cash tick cannot leave an unhandled rejection.
+  function safeResume(ctx) {
+    if (!ctx || !needsResume(ctx.state) || typeof ctx.resume !== 'function') return;
+    try {
+      const pending = ctx.resume();
+      if (pending && typeof pending.catch === 'function') pending.catch(function () {});
+    } catch (e) { /* a mock resume that throws still stays silent */ }
+  }
+
   function create(win, opts) {
     win = win || {};
     opts = opts || {};
@@ -376,10 +387,7 @@
       try {
         if (!ctx || !playing) return;
         if (needsResume(ctx.state)) {
-          try {
-            const pending = ctx.resume();
-            if (pending && pending.catch) pending.catch(function () {});
-          } catch (e) { /* resume outside a gesture is ignored */ }
+          safeResume(ctx);
           return;
         }
         const lv = levels();
@@ -448,10 +456,7 @@
       }
       buildGraph();
       try {
-        if (needsResume(ctx.state) && ctx.resume) {
-          const pending = ctx.resume();
-          if (pending && pending.catch) pending.catch(function () {});
-        }
+        safeResume(ctx);
       } catch (e) { /* the next gesture tries again */ }
       unlocked = true;
       if (playing) armScheduler();
@@ -535,12 +540,7 @@
       if (lv.sfx <= 0) return false;
       buildGraph();
       applyBus(lv);
-      if (needsResume(ctx.state)) {
-        try {
-          const pending = ctx.resume();
-          if (pending && pending.catch) pending.catch(function () {});
-        } catch (e) { /* still play into the queue once it runs */ }
-      }
+      safeResume(ctx);
       const t0 = ctx.currentTime;
       let played = false;
       for (let i = 0; i < recipe.length; i++) {
@@ -606,6 +606,7 @@
       unlocked: function () { return unlocked; },
       pump: pump,
       context: function () { return ctx; },
+      safeResume: safeResume,
       MOODS: MOOD_NAMES.slice(),
       SFX: SFX_NAMES.slice(),
     };
@@ -618,5 +619,6 @@
     SFX: SFX_NAMES.slice(),
     SCHEDULER_MS: SCHEDULER_MS,
     needsResume: needsResume,
+    safeResume: safeResume,
   };
 });
