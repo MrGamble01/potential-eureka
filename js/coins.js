@@ -94,13 +94,29 @@ const Coins = (() => {
       el = document.createElement('div');
       el.id = 'coin-toast';
       el.className = 'ach-toast';       // ride the achievement pill styling
-      el.setAttribute('role', 'status');
-      document.body.appendChild(el);
+      if (typeof Achievements !== 'undefined' && Achievements.presentToast) Achievements.presentToast(el);
+      else document.body.appendChild(el);
+      el.addEventListener('click', () => {
+        clearTimeout(toastT);
+        if (typeof Achievements !== 'undefined' && Achievements.dismissToast) Achievements.dismissToast(el);
+        else el.remove();
+      });
+    }
+    if (el.dataset) {
+      el.dataset.toastGen = String((Number(el.dataset.toastGen) || 0) + 1);
+      delete el.dataset.dismissed;
+    }
+    if (!el.isConnected) {
+      if (typeof Achievements !== 'undefined' && Achievements.presentToast) Achievements.presentToast(el);
+      else document.body.appendChild(el);
     }
     el.innerHTML = `<span class="ach-toast-icon">🪙</span><span>${msg}</span>`;
     el.classList.remove('ach-toast-out');
     clearTimeout(toastT);
-    toastT = setTimeout(() => { el.classList.add('ach-toast-out'); }, 2600);
+    toastT = setTimeout(() => {
+      if (typeof Achievements !== 'undefined' && Achievements.dismissToast) Achievements.dismissToast(el);
+      else el.classList.add('ach-toast-out');
+    }, 2600);
   }
 
   function renderInto(id) {

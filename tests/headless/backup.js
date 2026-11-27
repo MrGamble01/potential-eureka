@@ -84,7 +84,7 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
     await ctx.close();
   }
 
-  // C. garbage file rejected
+  // C. garbage file rejected, and an existing save is left alone
   {
     const junkPath = TMP + '/junk.json';
     fs.writeFileSync(junkPath, '{"totally":"unrelated"}');
@@ -92,14 +92,20 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
     const page = await ctx.newPage();
     const errs = []; const alerts = [];
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
-    page.on('dialog', d => { alerts.push(d.type() + ':' + d.message().slice(0, 40)); d.accept(); });
+    page.on('dialog', d => { alerts.push(d.type() + ':' + d.message().slice(0, 40)); d.dismiss(); });
+    await page.addInitScript(() => { localStorage.setItem('tetris-high', '42'); });
     await page.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
     await page.waitForTimeout(900);
     await page.setInputFiles('#hof-restore-file', junkPath);
-    await page.waitForTimeout(800);
-    const wrote = await page.evaluate(() => localStorage.getItem('totally'));
-    ok(alerts.some(a => a.startsWith('alert:')), `junk file raises the rejection alert (${alerts[0] || 'none'})`);
-    ok(wrote === null, 'junk file writes nothing');
+    await page.waitForSelector('#hof-status:not([hidden])');
+    const after = await page.evaluate(() => ({
+      totally: localStorage.getItem('totally'),
+      tetris: localStorage.getItem('tetris-high'),
+      status: document.getElementById('hof-status').textContent,
+    }));
+    ok(alerts.length === 0, `junk file does not raise a dialog (${alerts[0] || 'none'})`);
+    ok(/left as it was/i.test(after.status), `junk file explains itself inline (${after.status})`);
+    ok(after.totally === null && after.tetris === '42', 'junk file writes nothing and keeps the current score');
     ok(errs.length === 0, `no page errors (junk)${errs.length ? ' — ' + errs[0] : ''}`);
     await ctx.close();
   }

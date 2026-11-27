@@ -999,6 +999,29 @@ a.arcade-card {
   letter-spacing: 2px;
   color: var(--text-dim);
 }
+.hof-status {
+  flex: 1 0 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: none;
+}
+.hof-status[data-kind="ok"] {
+  color: var(--text);
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.45);
+}
+.hof-status[data-kind="err"] {
+  color: var(--text);
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.5);
+}
 .hof-coin { color: #f0c552; }
 .hof-reset {
   background: transparent;
@@ -1452,8 +1475,98 @@ a.daily-chip:active {
 }
 .ach-toast strong { color: #F7C948; }
 .ach-toast-icon { font-size: 22px; }
-.ach-toast-out { opacity: 0; transform: translateY(8px); }
+.ach-toast-out { opacity: 0; transform: translateY(8px); pointer-events: none; }
 @keyframes achIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Achievement and coin pills share one slot. On a phone it sits
+   under the studio bar; the Hall of Fame scrolls in the space
+   below that band so a row at the viewport edge stays clear.
+   Wider screens keep the slot in the right gutter, beside the
+   720px board rather than on top of a score. */
+#ach-toast-stack {
+  position: fixed;
+  z-index: 95;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: auto;
+  top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 36px));
+  pointer-events: none;
+}
+#ach-toast-stack .ach-toast {
+  position: relative;
+  inset: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  top: auto;
+  z-index: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+@media (max-width: 767px) {
+  #ach-toast-stack {
+    top: calc(var(--hud-top-safe, 64px) + 8px);
+    bottom: auto;
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
+    width: auto;
+    max-width: none;
+    align-items: center;
+  }
+  #ach-toast-stack .ach-toast {
+    width: max-content;
+    max-width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  body:has(#view-halloffame.view.active):has(#ach-toast-stack .ach-toast:not(.ach-toast-out)) {
+    overflow: hidden;
+  }
+  /* The board is pulled out of flow, which would let the footer
+     rise into the band under the studio bar. This plate covers
+     that band so the pills sit on a clear surface. The bar stays
+     above it. */
+  body:has(#view-halloffame.view.active):has(#ach-toast-stack .ach-toast:not(.ach-toast-out))::before {
+    content: "";
+    position: fixed;
+    z-index: 80;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: var(--ach-toast-clear, 240px);
+    background: var(--color-black-deep, #06080d);
+    pointer-events: none;
+  }
+  body:has(#view-halloffame.view.active):has(#ach-toast-stack .ach-toast:not(.ach-toast-out)) #view-halloffame.view.active {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    right: 0;
+    top: var(--ach-toast-clear, 240px);
+    bottom: 0;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ach-toast,
+  .ach-toast-out {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
 
 /* ── Trophy room (career) ── */
 #view-trophy { overflow-x: hidden; }

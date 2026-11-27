@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="css/tokens.css?v=20261025keep">
   <link rel="stylesheet" href="css/base.css?v=20261017moments4">
   <link rel="stylesheet" href="css/effects.css?v=20261017moments4" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/arcade.css?v=20261017moments4">
+  <link rel="stylesheet" href="css/arcade.css?v=20261127toast">
   <link rel="stylesheet" href="css/feel.css?v=20261017moments4" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/game-cards.css?v=20261017moments4">
   <link rel="stylesheet" href="css/hub-pages.css?v=20261018sparkdark">
@@ -890,6 +890,7 @@
       <div id="hof-shop"></div>
       <div id="hof-insights"></div>
       <div class="hof-footer">
+        <p id="hof-status" class="hof-status" role="status" aria-live="polite" hidden></p>
         <button id="hof-reset" class="hof-reset" title="Erase every score, save, achievement, coin and unlock in the arcade">Reset progress</button>
         <button id="hof-backup" class="hof-reset" title="Download every score, save and unlock as a JSON file">&#11015; Backup</button>
         <button id="hof-restore" class="hof-reset" title="Restore progress from a backup file">&#11014; Restore</button>
@@ -1276,6 +1277,7 @@
   <script src="js/achievements.js" defer></script>
   <script src="js/telemetry.js" defer></script>
   <script src="js/coins.js" defer></script>
+  <script src="js/hof-backup.js" defer></script>
   <script src="js/view-assets.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
@@ -1786,22 +1788,44 @@
     }
     document.getElementById('hof-card-btn').addEventListener('click', renderHofCard);
 
-    // P6: whole-arcade backup/restore. Everything the arcade owns lives in
-    // same-origin localStorage, so the backup is simply all of it — new
-    // games' keys are covered automatically without a registry to forget.
-    document.getElementById('hof-backup').addEventListener('click', () => {
-      const data = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        data[k] = localStorage.getItem(k);
+    // Backup is the allowlisted saves only: the eight flagship games,
+    // achievement coins (including the equipped accent), rivals, and
+    // the cabinet scores the board already reads. Restore checks the
+    // shape and the allowlist before it writes. A bad file leaves
+    // localStorage alone. A good one reloads so every module re-reads
+    // its key instead of writing a stale copy back over the restore.
+    function hofStatus(msg, kind) {
+      const el = document.getElementById('hof-status');
+      if (!el) return;
+      if (!msg) { el.hidden = true; el.textContent = ''; return; }
+      el.hidden = false;
+      el.dataset.kind = kind || 'ok';
+      el.textContent = msg;
+    }
+    try {
+      const note = sessionStorage.getItem('hof-restore-status');
+      if (note) {
+        sessionStorage.removeItem('hof-restore-status');
+        hofStatus(note, 'ok');
       }
-      const payload = JSON.stringify({ v: 1, when: new Date().toISOString(), data }, null, 1);
+    } catch { /* a private window can refuse sessionStorage; the board still restored */ }
+    document.getElementById('hof-backup').addEventListener('click', () => {
+      if (typeof HofBackup === 'undefined') {
+        hofStatus('Backup is not available in this browser. Your progress was left as it was.', 'err');
+        return;
+      }
+      const payload = HofBackup.exportPayload(localStorage, new Date().toISOString());
+      const text = JSON.stringify(payload, null, 1);
       const a = document.createElement('a');
-      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(payload);
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
       a.download = 'eureka-backup-' + Utils.todayKey() + '.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
+      const n = Object.keys(payload.data).length;
+      hofStatus(n
+        ? 'Downloaded a backup of ' + n + ' saved ' + (n === 1 ? 'entry' : 'entries') + '.'
+        : 'Downloaded a backup. There was no saved progress yet.', 'ok');
     });
     document.getElementById('hof-restore').addEventListener('click', () => {
       document.getElementById('hof-restore-file').click();
@@ -1810,17 +1834,17 @@
       const file = e.target.files && e.target.files[0];
       e.target.value = '';
       if (!file) return;
+      if (typeof HofBackup === 'undefined') {
+        hofStatus('Restore is not available in this browser. Your progress was left as it was.', 'err');
+        return;
+      }
       const reader = new FileReader();
+      reader.onerror = () => hofStatus('That file could not be read. Your progress was left as it was.', 'err');
       reader.onload = () => {
-        let obj = null;
-        try { obj = JSON.parse(reader.result); } catch {}
-        const data = obj && obj.data;
-        const keys = data && typeof data === 'object' ? Object.keys(data).filter(k => typeof data[k] === 'string') : [];
-        if (!keys.length) { alert('That file didn’t look like a Eureka backup.'); return; }
-        if (!confirm('Restore ' + keys.length + ' saved entries from ' +
-          (obj.when ? obj.when.slice(0, 10) : 'this backup') + '? Matching progress here will be overwritten.')) return;
-        keys.forEach(k => { try { localStorage.setItem(k, data[k]); } catch {} });
-        location.reload();   // every module re-reads its keys on boot
+        const result = HofBackup.restore(localStorage, String(reader.result == null ? '' : reader.result));
+        if (!result.ok) { hofStatus(result.error, 'err'); return; }
+        try { sessionStorage.setItem('hof-restore-status', result.message); } catch { /* the reload still applies the file */ }
+        location.reload();
       };
       reader.readAsText(file);
     });

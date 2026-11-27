@@ -261,6 +261,7 @@ const TARGETS = [
       await page.waitForSelector('#view-halloffame.active #hof-board .hof-row', { timeout: 15000 });
       const rows = await page.locator('#hof-board .hof-row').count();
       if (rows !== 8) throw new Error(`Hall of Fame rendered ${rows} rows, expected 8`);
+      await assertHofToasts(page);
     },
   },
   {
@@ -1263,6 +1264,92 @@ async function assertPlayFit(page) {
   await assertFlagshipFit(page, fails);
 
   if (fails.length) throw new Error(fails.slice(0, 14).join('; '));
+}
+
+async function hofToastOverlap(page) {
+  return page.evaluate(() => {
+    const problems = [];
+    const hits = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+    const toasts = [...document.querySelectorAll('#ach-toast-stack .ach-toast:not(.ach-toast-out)')];
+    if (!toasts.length) return ['toast missing'];
+    const rows = [...document.querySelectorAll('#hof-board .hof-row')];
+    const bar = document.querySelector('.hub-chrome').getBoundingClientRect();
+    for (const toast of toasts) {
+      const tr = toast.getBoundingClientRect();
+      const label = (toast.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 48);
+      if (toast.getAttribute('role') !== 'status' || toast.getAttribute('aria-live') !== 'polite') {
+        problems.push(label + ' missing status live region');
+      }
+      if (tr.width < 8 || tr.height < 8) problems.push(label + ' has no box');
+      if (tr.left < 12 || tr.right > innerWidth - 12 || tr.top < 0 || tr.bottom > innerHeight) {
+        problems.push(label + ' misses the safe inset');
+      }
+      if (innerWidth < 768) {
+        const mid = (tr.left + tr.right) / 2;
+        if (Math.abs(mid - innerWidth / 2) > 28) problems.push(label + ' is not centered');
+        if (tr.top < bar.bottom - 1) problems.push(label + ' covers the studio bar');
+        if (tr.bottom > innerHeight * 0.5) problems.push(label + ' sits on the middle of the screen');
+      }
+      for (const row of rows) {
+        const rr = row.getBoundingClientRect();
+        if (rr.bottom < 0 || rr.top > innerHeight || rr.height < 2) continue;
+        if (hits(tr, rr)) {
+          const name = (row.querySelector('.hof-name') || {}).textContent || 'row';
+          problems.push(label + ' covers ' + name.trim());
+        }
+      }
+    }
+    return problems;
+  });
+}
+
+async function assertHofToasts(page) {
+  const sizes = [
+    { label: '390×844', width: 390, height: 844, reduced: true, dismiss: 'tap' },
+    { label: '1440×900', width: 1440, height: 900, reduced: false, dismiss: 'auto' },
+  ];
+  for (const size of sizes) {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.emulateMedia({ reducedMotion: size.reduced ? 'reduce' : 'no-preference' });
+    await page.evaluate(() => {
+      localStorage.setItem('snake-high', '100');
+      localStorage.removeItem('arcade-coins');
+      localStorage.removeItem('arcade-achievements');
+    });
+    // Same hash does not navigate again. Reload so boot re-reads the score
+    // and mints the coin toast the placement check is looking at.
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('#view-halloffame.active #hof-board .hof-row');
+    await page.waitForFunction(() => {
+      const stack = document.getElementById('ach-toast-stack');
+      return stack && /\+20 coins from achievements/.test(stack.textContent || '');
+    }, null, { timeout: 8000 });
+    await page.waitForTimeout(350);
+    let problems = await hofToastOverlap(page);
+    if (problems.length) throw new Error(size.label + ' ' + problems.join('; '));
+    if (size.reduced) {
+      const motion = await page.evaluate(() => getComputedStyle(document.querySelector('#coin-toast')).animationName);
+      if (motion !== 'none') throw new Error(size.label + ' toast still animates under reduced motion (' + motion + ')');
+    }
+    await page.locator('#hof-lane-quick').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150);
+    problems = await hofToastOverlap(page);
+    if (problems.length) throw new Error(size.label + ' scrolled ' + problems.join('; '));
+    const ash = await page.locator('#hof-board .hof-name', { hasText: 'Ashmarch' }).count();
+    if (ash !== 1) throw new Error(size.label + ' lost the Ashmarch row');
+    if (size.dismiss === 'tap') {
+      await page.locator('#coin-toast').click();
+      await page.waitForFunction(() => {
+        const el = document.getElementById('coin-toast');
+        return !el || el.classList.contains('ach-toast-out') || !el.isConnected;
+      });
+    } else {
+      await page.waitForFunction(() => {
+        const el = document.getElementById('coin-toast');
+        return !el || el.classList.contains('ach-toast-out') || !el.isConnected;
+      }, null, { timeout: 5000 });
+    }
+  }
 }
 
 async function runTarget(browser, target) {
