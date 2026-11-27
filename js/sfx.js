@@ -13,7 +13,13 @@ const SFX = (() => {
   try {
     if (typeof EurekaPersist !== 'undefined') {
       const shared = EurekaPersist.settings.get();
-      if (shared.touched) muted = !!shared.muted;
+      if (shared.touched) {
+        muted = !!shared.muted;
+        // The studio bar and the flagships share one mute. Keep the
+        // legacy flag in step so a later read of arcade-muted agrees.
+        const flag = muted ? '1' : '0';
+        if (localStorage.getItem('arcade-muted') !== flag) localStorage.setItem('arcade-muted', flag);
+      }
     }
   } catch {}
 
@@ -40,9 +46,14 @@ const SFX = (() => {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
-      ctx = new AC();
+      try { ctx = new AC(); } catch { return null; }
     }
-    if (needsResume(ctx.state)) ctx.resume().catch(() => {});
+    if (needsResume(ctx.state) && typeof ctx.resume === 'function') {
+      try {
+        const pending = ctx.resume();
+        if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+      } catch { /* resume outside a gesture is ignored */ }
+    }
     return ctx;
   }
 

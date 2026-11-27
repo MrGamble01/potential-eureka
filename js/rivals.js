@@ -41,19 +41,33 @@ const Rivals = (() => {
     'aow-best-run':        { label: 'Age of War ∞',  fmt: v => v + ' waves',                 dir: 'max',
       read: () => jsonField('aow-best-run', o => o.waves) },
     'startup-tycoon-v7':   { label: 'Startup Tycoon', fmt: v => '$' + v.toLocaleString() + ' lifetime', dir: 'max',
-      read: () => jsonField('startup-tycoon-v7', o => o.lifetimeCash) },
+      read: () => jsonField('startup-tycoon-v7', o => o.lifetimeCash || o.allTimeCash || o.cash) },
     'hearthvale-v1':       { label: 'Hearthvale',    fmt: v => v + ' villagers at peak',     dir: 'max',
-      read: () => jsonField('hearthvale-v1', o => o.peakPop) },
+      read: () => jsonField('hearthvale-v1', o => o.peakPop != null ? o.peakPop : (o.state && o.state.peakPop)) },
     'homeless_village_v1': { label: 'Homeless Village', fmt: v => v + ' days survived',      dir: 'max',
       read: () => jsonField('homeless_village_v1', o => o.days) },
     'drug-lab-v1':         { label: 'Grow Op',       fmt: v => '$' + v.toLocaleString() + ' earned', dir: 'max',
       read: () => jsonField('drug-lab-v1', o => o.totalEarned) },
     'voxel-garden-v1':     { label: 'Voxel Isle',    fmt: v => v.toLocaleString() + ' coins earned', dir: 'max',
-      read: () => jsonField('voxel-garden-v1', o => (o.state || {}).totalEarned) },
+      read: () => jsonField('voxel-garden-v1', o => {
+        const st = o.state && typeof o.state === 'object' && !Array.isArray(o.state) ? o.state : o;
+        return st.totalEarned;
+      }) },
+    'ashmarch-chronicle-v1': { label: 'Ashmarch',    fmt: v => v + (v === 1 ? ' road' : ' roads'), dir: 'max',
+      read: () => jsonField('ashmarch-chronicle-v1', o => Array.isArray(o.campaigns) ? o.campaigns.length : 0) },
   };
   function jsonField(key, pick) {
-    try { return Math.max(0, Math.floor(pick(JSON.parse(localStorage.getItem(key) || 'null') || {}) || 0)); }
-    catch { return 0; }
+    try {
+      let parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { parsed = null; }
+      }
+      const obj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      const n = Number(pick(obj));
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      const v = Math.floor(n);
+      return Number.isSafeInteger(v) ? v : 0;
+    } catch { return 0; }
   }
 
   // djb2 over the payload keeps casual link-mangling from producing
@@ -170,9 +184,15 @@ const Rivals = (() => {
   function rivalLeads(key) {
     const b = bestFor(key);
     if (!b) return false;
-    const mine = wholeScore(localStorage.getItem(key));
-    if (mine <= 0) return true;
-    return GAMES[key].dir === 'min' ? b.value < mine : b.value > mine;
+    const g = GAMES[key];
+    // JSON flagship saves are not digit strings. wholeScore() of the blob
+    // is 0, which made every imported rival look like they held the lead.
+    let mine = 0;
+    try {
+      mine = g && g.read ? g.read() : wholeScore(localStorage.getItem(key));
+    } catch { mine = 0; }
+    if (!(mine > 0)) return true;
+    return g && g.dir === 'min' ? b.value < mine : b.value > mine;
   }
 
   function esc(s) {

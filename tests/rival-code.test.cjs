@@ -50,6 +50,21 @@ test('a lower mine time leads, a higher score does not, and a bad list is empty'
   assert.equal(Rivals.rivalLeads('tetris-high'), false);
   assert.deepEqual(host(Rivals.bestFor('snake-high')), { name: 'Ada', value: 50 });
 
+  const vale = load(memory({
+    'arcade-rivals': JSON.stringify({
+      Bea: { t: 1, s: { 'hearthvale-v1': 10 } },
+    }),
+    'hearthvale-v1': JSON.stringify({ peakPop: 17 }),
+  }));
+  assert.equal(vale.rivalLeads('hearthvale-v1'), false);
+  const behind = load(memory({
+    'arcade-rivals': JSON.stringify({
+      Bea: { t: 1, s: { 'hearthvale-v1': 40 } },
+    }),
+    'hearthvale-v1': '{',
+  }));
+  assert.equal(behind.rivalLeads('hearthvale-v1'), true);
+
   const broken = load(memory({ 'arcade-rivals': 'null' }));
   assert.deepEqual(host(broken.list()), {});
   const list = load(memory({ 'arcade-rivals': '[]' }));

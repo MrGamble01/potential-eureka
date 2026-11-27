@@ -2611,7 +2611,7 @@ const SFX = (() => {
     if (scale <= 0) return;
     vol *= scale;
     const ac = ensureCtx(); if (!ac) return;
-    if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
+    if (window.EurekaAudio && EurekaAudio.safeResume) EurekaAudio.safeResume(ac);
     const t0 = ac.currentTime;
     const osc = ac.createOscillator();
     osc.type = type;
@@ -13180,13 +13180,18 @@ sfxToggleEl.addEventListener('change', () => {
 });
 if (window.EurekaPersist) {
   const audioHost = document.getElementById('tycoon-audio');
+  const applyTycoonMute = (s) => {
+    if (!s || !s.touched) return;
+    const want = !s.muted;
+    sfxToggleEl.checked = want;
+    if (SFX.isEnabled() !== want) SFX.setEnabled(want);
+  };
+  window.EurekaPersist.settings.subscribe(applyTycoonMute);
   if (audioHost) {
     window.EurekaPersist.mount(audioHost, {
       showMute: false,
       localMuted: () => !SFX.isEnabled(),
-      onChange(s) {
-        sfxToggleEl.checked = !s.muted;
-      },
+      onChange: applyTycoonMute,
     });
   }
 }

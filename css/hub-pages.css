@@ -204,6 +204,26 @@
 }
 
 /* ---- HALL OF FAME ---- */
+#view-halloffame .hof-wrap {
+  overflow: visible;
+}
+
+#view-halloffame .hof-empty {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto 16px;
+  max-width: 36em;
+  text-align: center;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: var(--type-body, 0.9375rem);
+  line-height: 1.45;
+}
+
+#view-halloffame .hof-empty[hidden] {
+  display: none;
+}
+
 #view-halloffame .hof-title {
   text-align: center;
 }
@@ -267,6 +287,19 @@
   min-height: 44px;
   color: var(--text);
   text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  #view-halloffame .hof-score {
+    white-space: normal;
+    text-align: right;
+    max-width: 100%;
+  }
+  #view-halloffame .hof-rival-input {
+    min-width: 0;
+    flex: 1 1 100%;
+    max-width: none;
+  }
 }
 
 #view-halloffame a.hof-row:hover {

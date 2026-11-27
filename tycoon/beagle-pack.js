@@ -1553,7 +1553,7 @@ export function create(api) {
     if (!scale || scale <= 0) return;
     const ac = ensureCtx();
     if (!ac) return;
-    if (ac.state === 'suspended') { try { ac.resume(); } catch { /* gesture later */ } }
+    if (typeof EurekaAudio !== 'undefined' && EurekaAudio.safeResume) EurekaAudio.safeResume(ac);
     const t0 = ac.currentTime;
     const osc = ac.createOscillator();
     osc.type = type || 'sine';

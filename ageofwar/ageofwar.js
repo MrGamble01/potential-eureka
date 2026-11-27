@@ -1474,7 +1474,7 @@ const AgeOfWarGame = (() => {
       if (scale <= 0) return;
       vol *= scale;
       const ac = ensure(); if (!ac) return;
-      if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
+      if (typeof EurekaAudio !== 'undefined' && EurekaAudio.safeResume) EurekaAudio.safeResume(ac);
       const t0 = ac.currentTime;
       const osc = ac.createOscillator();
       osc.type = type;
@@ -3914,15 +3914,24 @@ const AgeOfWarGame = (() => {
       muteToggle.setAttribute('aria-pressed', String(soundMuted));
     };
     const audioHost = document.getElementById('aow-audio');
+    function syncAowMute(s) {
+      if (!s || !s.touched) return;
+      const next = !!s.muted;
+      if (soundMuted !== next) {
+        soundMuted = next;
+        try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+      }
+      if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
+    }
+    if (typeof EurekaPersist !== 'undefined') {
+      EurekaPersist.settings.subscribe(syncAowMute);
+      try { syncAowMute(EurekaPersist.settings.get()); } catch {}
+    }
     if (audioHost && typeof EurekaPersist !== 'undefined') {
       EurekaPersist.mount(audioHost, {
         showMute: false,
         localMuted: () => soundMuted,
-        onChange(s) {
-          soundMuted = !!s.muted;
-          try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
-          if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
-        },
+        onChange(s) { syncAowMute(s); },
       });
     }
     if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));

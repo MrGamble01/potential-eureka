@@ -1011,7 +1011,7 @@
   let _actx = null;
   function audioCtx() {
     if (_actx === null) { try { _actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { _actx = false; } }
-    if (_actx && _actx.state === 'suspended') { try { _actx.resume(); } catch (e) { } }
+    if (_actx && window.EurekaAudio && EurekaAudio.safeResume) EurekaAudio.safeResume(_actx);
     return _actx || null;
   }
   function tone(freq, dur, type, vol, when) {
@@ -8484,6 +8484,14 @@
       if (!state.muted) SFX('coin');
       save();
     };
+    if (typeof EurekaPersist !== 'undefined') {
+      EurekaPersist.settings.subscribe((s) => {
+        if (!s || !s.touched || !state) return;
+        if (!!state.muted === !!s.muted) { syncSound(); return; }
+        state.muted = !!s.muted;
+        syncSound();
+      });
+    }
     const audioHost = document.getElementById('hv-audio');
     if (audioHost && typeof EurekaPersist !== 'undefined') {
       EurekaPersist.mount(audioHost, {
