@@ -875,11 +875,25 @@ async function assertPhone(page) {
       const cs = getComputedStyle(el);
       const buttons = [...el.querySelectorAll('button')].map((btn) => {
         const b = btn.getBoundingClientRect();
-        return b.width > 8 && b.height > 8 && b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1;
+        return {
+          on: b.width > 8 && b.height > 8 && b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1,
+          w: b.width,
+          h: b.height,
+        };
       });
-      return { shown: cs.display !== 'none', ok: buttons.length >= (padId === 'tetris-touch' ? 7 : 5) && buttons.every(Boolean), n: buttons.length };
+      const need = padId === 'tetris-touch' ? 7 : 5;
+      return {
+        shown: cs.display !== 'none',
+        ok: buttons.length >= need && buttons.every((b) => b.on),
+        n: buttons.length,
+        minW: buttons.reduce((m, b) => Math.min(m, b.w), 999),
+        minH: buttons.reduce((m, b) => Math.min(m, b.h), 999),
+      };
     }, id);
     if (!pad.shown || !pad.ok) failures.push(`${view} touch pad is not fully on screen (${pad.n} buttons, shown ${pad.shown})`);
+    if (id === 'tetris-touch' && (pad.minW < 43.5 || pad.minH < 43.5)) {
+      failures.push(`${view} touch keys are ${Math.round(pad.minW)}×${Math.round(pad.minH)}`);
+    }
   }
 
   await openHash('word5');
@@ -945,6 +959,157 @@ const FIT_SIZES = [
   { label: '1280×800', width: 1280, height: 800, touch: false },
   { label: '1440×900', width: 1440, height: 900, touch: false },
 ];
+
+async function assertFlagshipFit(page, fails) {
+  const cabinets = [
+    { hash: 'crateescape', canvas: '#crate-canvas' },
+    { hash: 'gutterlight', canvas: '#gutter-canvas' },
+    { hash: 'tetris', canvas: '#tetris-canvas' },
+  ];
+
+  for (const size of FIT_SIZES) {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    const tap = size.touch && size.height >= 640;
+
+    for (const spec of cabinets) {
+      await page.goto(BASE + '/#' + spec.hash, { waitUntil: 'load' });
+      await page.waitForSelector('#view-' + spec.hash + '.active ' + spec.canvas);
+      const problems = await page.evaluate(({ canvas, tap }) => {
+        const problems = [];
+        if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('scrolls sideways');
+        const board = document.querySelector(canvas).getBoundingClientRect();
+        const minH = innerWidth <= 700 ? 180 : innerHeight >= 1000 ? 280 : 160;
+        if (board.width < 120 || board.height < minH) problems.push('board is ' + Math.round(board.width) + '×' + Math.round(board.height));
+        if (board.left < -1 || board.top < -1 || board.right > innerWidth + 1 || board.bottom > innerHeight + 1) problems.push('board off screen');
+        if (getComputedStyle(document.querySelector(canvas)).touchAction !== 'none') problems.push('canvas scrolls with the page');
+        const buttons = [...document.querySelectorAll('.view.active .game-controls button, .view.active .game-back-btn')];
+        for (const el of buttons) {
+          const r = el.getBoundingClientRect();
+          if (getComputedStyle(el).display === 'none' || r.width < 2) continue;
+          const name = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+          if (!name) problems.push('unnamed control');
+          if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) problems.push((name || 'control') + ' off screen');
+          if (tap && r.height < 43.5) problems.push((name || 'control') + ' is ' + Math.round(r.height) + 'px tall');
+        }
+        const next = document.getElementById('tetris-next-canvas');
+        if (next && innerWidth <= 700) {
+          const r = next.getBoundingClientRect();
+          if (r.height > 8 && r.width / r.height > 0.8) problems.push('next queue is squashed');
+        }
+        return problems;
+      }, { canvas: spec.canvas, tap });
+      problems.forEach((p) => fails.push(size.label + ' ' + spec.hash + ' ' + p));
+    }
+
+    await page.goto(BASE + '/games/ashmarch/index.html', { waitUntil: 'load' });
+    await page.waitForSelector('#ash-begin button[type="submit"]');
+    const ash = await page.evaluate((tap) => {
+      const problems = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('scrolls sideways');
+      for (const sel of ['.ash-back', '#ash-begin button[type="submit"]', '.book-picker button']) {
+        const el = document.querySelector(sel);
+        const r = el.getBoundingClientRect();
+        const name = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!name) problems.push(sel + ' unnamed');
+        if (r.right > innerWidth + 1 || r.left < -1) problems.push(name.slice(0, 24) + ' off screen');
+        if (tap && r.height < 43.5) problems.push(name.slice(0, 24) + ' is ' + Math.round(r.height) + 'px tall');
+      }
+      return problems;
+    }, tap);
+    ash.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+    await page.locator('#player-name').fill('Nim');
+    await page.locator('#motive').fill('To pay a debt');
+    await page.locator('#ash-begin button[type="submit"]').click();
+    await page.waitForSelector('.play .choice', { timeout: 15000 });
+    const ashPlay = await page.evaluate((tap) => {
+      const problems = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('play scrolls sideways');
+      const choice = document.querySelector('.play .choice');
+      const r = choice.getBoundingClientRect();
+      if (r.width < 44) problems.push('choice is ' + Math.round(r.width) + 'px wide');
+      if (tap && r.height < 43.5) problems.push('choice is ' + Math.round(r.height) + 'px tall');
+      if (r.right > innerWidth + 1 || r.left < -1) problems.push('choice off screen');
+      return problems;
+    }, tap);
+    ashPlay.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+
+    await page.goto(BASE + '/hearthvale.html', { waitUntil: 'domcontentloaded' });
+    const begin = page.locator('#welcome-close');
+    if (await begin.isVisible()) await begin.click();
+    await page.waitForSelector('#buildbar .btn');
+    const vale = await page.evaluate((tap) => {
+      const problems = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('scrolls sideways');
+      const rect = (sel) => {
+        const el = document.querySelector(sel);
+        if (!el || getComputedStyle(el).display === 'none') return null;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return null;
+        return r;
+      };
+      const hits = (a, b) => a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+      const mini = rect('#minimap');
+      const bar = rect('#buildbar');
+      const tabs = rect('#buildtabs');
+      const goals = rect('#goals');
+      if (hits(mini, bar)) problems.push('map covers the build bar');
+      if (hits(mini, tabs)) problems.push('map covers the build tabs');
+      if (hits(goals, bar)) problems.push('goal covers the build bar');
+      if (hits(goals, tabs)) problems.push('goal covers the build tabs');
+      const controls = ['.ea-back', '#menu-btn', '#buildtabs .btab', '#buildbar .btn'];
+      if (innerWidth <= 1024) controls.push('#touch-pause');
+      for (const sel of controls) {
+        const el = document.querySelector(sel);
+        if (!el) { problems.push(sel + ' missing'); continue; }
+        const r = el.getBoundingClientRect();
+        const name = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!name) problems.push(sel + ' unnamed');
+        if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) problems.push((name || sel) + ' off screen');
+        if (tap && (r.height < 43.5 || r.width < 43.5)) problems.push((name || sel) + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+      }
+      const field = rect('#game');
+      if (!field || field.width < innerWidth - 2 || field.height < innerHeight - 2) problems.push('valley does not fill the screen');
+      return problems;
+    }, tap);
+    vale.forEach((p) => fails.push(size.label + ' hearthvale ' + p));
+
+    await page.goto(BASE + '/tycoon/play.html', { waitUntil: 'domcontentloaded' });
+    const start = page.locator('#welcome-start-btn');
+    if (await start.isVisible()) await start.click();
+    await page.waitForSelector('#elevator-btn');
+    const tycoon = await page.evaluate((tap) => {
+      const problems = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('scrolls sideways');
+      const want = [
+        ['.ea-back', ''],
+        ['#cash-hud', ''],
+        ['#tyc-moments', 'Photo mode'],
+        ['#elevator-btn', 'Floors'],
+        ['#tp-toggle', ''],
+      ];
+      if (innerWidth <= 900) want.push(['#sidebar-toggle', 'Toggle sidebar']);
+      for (const [sel, label] of want) {
+        const el = document.querySelector(sel);
+        if (!el) { problems.push(sel + ' missing'); continue; }
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || r.width < 2) { problems.push(sel + ' hidden'); continue; }
+        const name = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!name) problems.push(sel + ' unnamed');
+        if (label && el.getAttribute('aria-label') !== label) problems.push(sel + ' label is ' + el.getAttribute('aria-label'));
+        if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) problems.push((name || sel) + ' off screen');
+        if (tap && (r.height < 43.5 || (el.id === 'elevator-btn' || el.id === 'tyc-moments' || el.id === 'sidebar-toggle') && r.width < 43.5)) {
+          problems.push((name || sel) + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        }
+        if (tap && r.height < 43.5) problems.push((name || sel) + ' is ' + Math.round(r.height) + 'px tall');
+      }
+      const canvas = [...document.querySelectorAll('canvas')].sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0];
+      if (!canvas || canvas.clientWidth < innerWidth - 2 || canvas.clientHeight < innerHeight - 2) problems.push('office does not fill the screen');
+      return problems;
+    }, tap);
+    tycoon.forEach((p) => fails.push(size.label + ' tycoon ' + p));
+  }
+}
 
 async function assertPlayFit(page) {
   const fails = [];
@@ -1094,6 +1259,8 @@ async function assertPlayFit(page) {
     return problems;
   });
   vox.forEach((p) => fails.push('voxel ' + p));
+
+  await assertFlagshipFit(page, fails);
 
   if (fails.length) throw new Error(fails.slice(0, 14).join('; '));
 }

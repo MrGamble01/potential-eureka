@@ -35,6 +35,23 @@ test('icon-only controls name themselves', () => {
   assert.match(isle, /id="mateName"[^>]*aria-label="Deckhand"/);
 });
 
+test('flagship boards keep a phone tap and a readable tetris queue', () => {
+  const games = read('css/games.css');
+  assert.match(games, /\.tetris-touch\s*\{[^}]*minmax\(44px,\s*1fr\)/);
+  assert.match(games, /\.tetris-touch\s*\{[^}]*width:\s*min\(100%,\s*480px\)/);
+  assert.match(games, /\.tetris-layout\s*\{[^}]*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(games, /#tetris-hold-canvas\s*\{[^}]*height:\s*24px/);
+  assert.match(games, /#tetris-next-canvas\s*\{[^}]*height:\s*40px/);
+  assert.match(games, /#view-crateescape \.game-container,\s*#view-gutterlight \.game-container,\s*#view-tetris \.game-container\s*\{[^}]*100dvh - 72px/);
+  const vale = read('hearthvale.html');
+  assert.match(vale, /#minimap\s*\{\s*bottom:\s*210px/);
+  assert.match(vale, /#buildtabs \.btab\s*\{[^}]*min-height:\s*44px/);
+  const tycoon = read('tycoon/play.html');
+  assert.match(tycoon, /id="elevator-btn"[^>]*aria-label="Floors"/);
+  assert.match(tycoon, /html\.hud \.ea-back\s*\{[^}]*min-height:\s*44px/);
+  assert.match(tycoon, /#sprint-btn\s*\{[\s\S]*?min-height:\s*44px/);
+});
+
 test('phone and tablet cabinet controls keep a 44px target', () => {
   const games = read('css/games.css');
   assert.match(games, /max-width:\s*1024px\)\s*and\s*\(min-height:\s*640px\)/);

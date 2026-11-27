@@ -574,14 +574,34 @@ const TetrisGame = (() => {
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.75)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      ctx.fillStyle = '#E6EDF3';
-      ctx.font = 'bold 18px Inter, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Press SPACE or tap New Game to start', WIDTH / 2, HEIGHT / 2);
-      ctx.font = '11px Inter, monospace';
-      ctx.fillStyle = '#7D8590';
-      ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
+      const max = WIDTH - 28;
+      // The well is 300px wide. A single start line used to run off both edges.
+      const write = (text, y, font, color, gap) => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        const words = text.split(' ');
+        const lines = [];
+        let line = '';
+        for (const word of words) {
+          const next = line ? line + ' ' + word : word;
+          if (line && ctx.measureText(next).width > max) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = next;
+          }
+        }
+        if (line) lines.push(line);
+        for (const row of lines) {
+          ctx.fillText(row, WIDTH / 2, y);
+          y += gap;
+        }
+        return y;
+      };
+      let y = write('Press SPACE or tap New Game to start', HEIGHT / 2 - 8, 'bold 16px Inter, monospace', '#E6EDF3', 20);
+      y = write('← → move   ·   ↑ / X rotate   ·   ↓ soft drop', y + 4, '11px Inter, monospace', '#7D8590', 16);
+      write('Space hard drop   ·   C hold   ·   P pause', y, '11px Inter, monospace', '#7D8590', 16);
       ctx.textAlign = 'left';
     }
   }
