@@ -493,6 +493,11 @@ const TARGETS = [
   phoneTarget('Phone 375×667', { width: 375, height: 667 }),
   phoneTarget('Phone 844×390', { width: 844, height: 390 }),
   {
+    name: 'Play fit',
+    path: '/',
+    check: (page) => assertPlayFit(page),
+  },
+  {
     name: 'Eureka Studio',
     path: '/agentic-os.html',
     file: 'agentic-os.html',
@@ -934,6 +939,165 @@ async function assertPhone(page) {
   if (failures.length) throw new Error(failures.slice(0, 8).join('; '));
 }
 
+const FIT_SIZES = [
+  { label: '390×844', width: 390, height: 844, touch: true },
+  { label: '768×1024', width: 768, height: 1024, touch: true },
+  { label: '1280×800', width: 1280, height: 800, touch: false },
+  { label: '1440×900', width: 1440, height: 900, touch: false },
+];
+
+async function assertPlayFit(page) {
+  const fails = [];
+
+  for (const size of FIT_SIZES) {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.goto(BASE + '/', { waitUntil: 'load' });
+    await page.waitForSelector('#view-arcade.active .arcade-card');
+    const hub = await page.evaluate(function (touch) {
+      const problems = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1) problems.push('hub scrolls sideways');
+      const check = (sel, minW) => {
+        const el = document.querySelector(sel);
+        if (!el) { problems.push(sel + ' missing'); return; }
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || r.width < 2 || r.height < 2) {
+          problems.push(sel + ' hidden');
+          return;
+        }
+        if (r.height < 43.5 || r.width < minW - 0.5) problems.push(sel + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) problems.push(sel + ' off screen');
+        const label = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!label) problems.push(sel + ' has no name');
+        const hit = document.elementFromPoint(Math.min(innerWidth - 1, r.left + r.width / 2), r.top + r.height / 2);
+        if (!hit || (hit !== el && !el.contains(hit))) problems.push(sel + ' covered');
+      };
+      check('#nav-sfx-toggle', 44);
+      check('#studio-menu', 44);
+      check('.studio-explore-btn', 44);
+      check('.studio-nav-link[data-view="arcade"]', 44);
+      if (!touch) check('.studio-nav-link[data-view="halloffame"]', 44);
+      return problems;
+    }, size.touch);
+    hub.forEach((p) => fails.push(size.label + ' ' + p));
+
+    if (size.label === '390×844') {
+      const before = await page.locator('#nav-sfx-toggle').getAttribute('aria-pressed');
+      await page.locator('#nav-sfx-toggle').click();
+      const after = await page.locator('#nav-sfx-toggle').getAttribute('aria-pressed');
+      const name = await page.locator('#nav-sfx-toggle').getAttribute('aria-label');
+      if (before === after) fails.push('sound button did not toggle');
+      if (!/Mute|Unmute/.test(name || '')) fails.push('sound button name was ' + name);
+      await page.locator('#studio-menu').click();
+      await page.waitForSelector('.hub-chrome.is-menu-open #patch-notes-btn');
+      const menu = await page.evaluate(() => {
+        const problems = [];
+        for (const sel of ['#patch-notes-btn', '#primer-btn', '#nav-theme-toggle']) {
+          const el = document.querySelector(sel);
+          const r = el.getBoundingClientRect();
+          if (r.height < 43.5 || r.width < 43.5) problems.push(sel + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+          const label = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+          if (!label) problems.push(sel + ' has no name');
+        }
+        return problems;
+      });
+      menu.forEach((p) => fails.push('menu ' + p));
+      await page.keyboard.press('Escape');
+      const closed = await page.evaluate(() => !document.querySelector('.hub-chrome').classList.contains('is-menu-open'));
+      if (!closed) fails.push('Escape did not close the studio menu');
+    }
+
+    if (size.touch) {
+      await page.evaluate(() => { location.hash = 'snake'; });
+      await page.waitForSelector('#view-snake.active .game-controls button');
+      const snake = await page.evaluate(() => {
+        const problems = [];
+        const buttons = [...document.querySelectorAll('#view-snake .game-back-btn, #view-snake .game-controls button')];
+        for (const el of buttons) {
+          const r = el.getBoundingClientRect();
+          if (r.height < 43.5) problems.push((el.textContent || 'button').trim() + ' is ' + Math.round(r.height) + 'px tall');
+          if (r.right > innerWidth + 1 || r.left < -1) problems.push((el.textContent || 'button').trim() + ' off screen');
+        }
+        const canvas = document.getElementById('snake-canvas');
+        const touch = getComputedStyle(canvas).touchAction;
+        if (touch !== 'none') problems.push('canvas touch-action is ' + touch);
+        const face = document.getElementById('mines-face');
+        return problems.concat(face ? [] : []);
+      });
+      snake.forEach((p) => fails.push(size.label + ' snake ' + p));
+
+      await page.evaluate(() => { location.hash = 'minesweeper'; });
+      await page.waitForSelector('#mines-face');
+      const mines = await page.evaluate(() => {
+        const el = document.getElementById('mines-face');
+        const r = el.getBoundingClientRect();
+        const problems = [];
+        if ((el.getAttribute('aria-label') || '') !== 'New game') problems.push('face unlabeled');
+        if (r.height < 43.5 || r.width < 43.5) problems.push('face is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        return problems;
+      });
+      mines.forEach((p) => fails.push(size.label + ' mines ' + p));
+    }
+  }
+
+  for (const size of FIT_SIZES) {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.goto(BASE + '/ageofwar/index.html', { waitUntil: 'load' });
+    const welcome = page.locator('#aow-welcome-close');
+    if (await welcome.count()) {
+      try { await welcome.click({ timeout: 8000 }); } catch (e) { /* already dismissed */ }
+    }
+    await page.waitForSelector('#aow-pause-btn');
+    const aow = await page.evaluate(() => {
+      const problems = [];
+      for (const sel of ['#aow-pause-btn', '#aow-restart-btn', '#aow-settings-btn', 'a.ea-back']) {
+        const el = document.querySelector(sel);
+        if (!el) { problems.push(sel + ' missing'); continue; }
+        const r = el.getBoundingClientRect();
+        const wide = sel === '#aow-settings-btn' || sel === 'a.ea-back';
+        if (r.height < 43.5 || (wide && r.width < 43.5 && r.height < 43.5)) {
+          problems.push(sel + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        }
+        if (r.height < 43.5 || (sel === '#aow-settings-btn' && r.width < 43.5)) {
+          problems.push(sel + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+        }
+        if (r.top < -1 || r.left < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) {
+          problems.push(sel + ' off screen');
+        }
+        const label = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!label) problems.push(sel + ' has no name');
+      }
+      const slot = document.querySelector('.aow-train-slot');
+      if (slot && innerWidth <= 1024 && innerHeight >= 800) {
+        const r = slot.getBoundingClientRect();
+        if (r.height < 43.5) problems.push('train slot is ' + Math.round(r.height) + 'px');
+      }
+      return problems;
+    });
+    aow.forEach((p) => fails.push(size.label + ' aow ' + p));
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(BASE + '/voxel-garden.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#helpClose').click({ timeout: 20000 });
+  await page.waitForFunction(() => !document.getElementById('helpOv').classList.contains('open'));
+  const vox = await page.evaluate(() => {
+    const problems = [];
+    for (const id of ['muteBtn', 'musicBtn', 'menuBtn', 'camLeft', 'camRight']) {
+      const el = document.getElementById(id);
+      if (!el) { problems.push(id + ' missing'); continue; }
+      if (!(el.getAttribute('aria-label') || '').trim()) problems.push(id + ' unlabeled');
+      const r = el.getBoundingClientRect();
+      const shown = getComputedStyle(el).display !== 'none' && r.width > 2 && r.height > 2;
+      if (shown && (r.height < 43.5 || r.width < 43.5)) problems.push(id + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+    }
+    return problems;
+  });
+  vox.forEach((p) => fails.push('voxel ' + p));
+
+  if (fails.length) throw new Error(fails.slice(0, 14).join('; '));
+}
+
 async function runTarget(browser, target) {
   const context = await browser.newContext({
     viewport: target.viewport || { width: 1280, height: 800 },
@@ -973,8 +1137,15 @@ async function runTarget(browser, target) {
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
 
+  const only = process.env.SMOKE_ONLY;
+  const list = only ? TARGETS.filter((t) => t.name === only) : TARGETS;
+  if (only && !list.length) {
+    console.error('no smoke target named ' + only);
+    process.exit(1);
+  }
+
   const results = [];
-  for (const target of TARGETS) {
+  for (const target of list) {
     process.stdout.write(`… ${target.name}\n`);
     results.push(await runTarget(browser, target));
   }

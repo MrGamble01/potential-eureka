@@ -47,12 +47,14 @@
   <link rel="stylesheet" href="css/game-cards.css?v=20261017moments4">
   <link rel="stylesheet" href="css/hub-pages.css?v=20261018sparkdark">
   <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/games.css?v=20261127play">
   <noscript>
     <link rel="stylesheet" href="css/effects.css?v=20261017moments4">
     <link rel="stylesheet" href="css/feel.css?v=20261017moments4">
     <link rel="stylesheet" href="css/hud.css?v=20261018sparkdark">
+    <link rel="stylesheet" href="css/games.css?v=20261127play">
   </noscript>
-<link rel="stylesheet" href="css/studio-face.css?v=20261106h2">
+<link rel="stylesheet" href="css/studio-face.css?v=20261127play">
 </head>
 <body>
 
@@ -74,19 +76,19 @@
       <a class="studio-nav-link" href="#arcade" data-view="arcade">Games</a>
       <a class="studio-nav-link" href="#halloffame" data-view="halloffame">Hall of Fame</a>
     </div>
+    <button class="nav-sfx-toggle studio-icon-btn" id="nav-sfx-toggle" type="button" title="Toggle sound" aria-label="Toggle sound" aria-pressed="false">&#128266;</button>
+    <button type="button" class="studio-menu" id="studio-menu" aria-controls="studio-links" aria-expanded="false" aria-label="Open studio menu">Menu</button>
   </nav>
 
-  <nav class="arcade-secondary-nav arcade-shell" id="studio-links" aria-label="Studio tools" hidden>
+  <nav class="arcade-secondary-nav arcade-shell" id="studio-links" aria-label="Studio tools">
     <a class="career-chip" href="#trophy" data-view="trophy" id="career-chip" aria-label="Your profile and trophy room">
       <span class="career-chip-face" aria-hidden="true">&#127918;</span>
       <span class="career-chip-text">Lv 1</span>
     </a>
     <div class="nav-icon-cluster">
-      <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
-      <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
-      <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
+      <button class="nav-sfx-toggle" id="nav-theme-toggle" type="button" title="Theme" aria-label="Cycle color theme">&#127912;</button>
+      <button class="nav-utils-toggle" id="nav-utils-toggle" type="button" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
     </div>
-    <button type="button" class="studio-menu" id="studio-menu" aria-controls="studio-links" aria-expanded="false" aria-label="Open studio menu">Menu</button>
     <a class="sec-link" href="#halloffame" data-view="halloffame">&#127942; Hall of Fame</a>
     <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
     <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
@@ -995,7 +997,7 @@
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>💣 <strong id="mines-count">0</strong></span>
-        <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
+        <span><button id="mines-face" type="button" onclick="MinesweeperGame.newGame()" title="New game" aria-label="New game">🙂</button></span>
         <span>⏱ <strong id="mines-time">0</strong>s</span>
         <span>Best: <strong id="mines-best">—</strong></span>
         <span id="mines-status" style="color:#F7C948"></span>
@@ -1396,8 +1398,11 @@
       document.documentElement.style.setProperty('--studio-menu-h', shellH + 'px');
     }
     function placeStudioChrome() {
-      if (!iconCluster || !studioLinks || !studioMenu) return;
-      if (iconCluster.parentElement !== studioLinks) studioLinks.appendChild(iconCluster);
+      const nav = document.querySelector('nav.site-nav');
+      const sound = document.getElementById('nav-sfx-toggle');
+      if (sound && nav && sound.parentElement !== nav) nav.insertBefore(sound, studioMenu);
+      if (studioMenu && nav && studioMenu.parentElement !== nav) nav.appendChild(studioMenu);
+      if (iconCluster && studioLinks && iconCluster.parentElement !== studioLinks) studioLinks.appendChild(iconCluster);
       syncChrome();
     }
     function setStudioMenu(open) {
@@ -1421,6 +1426,12 @@
         setStudioMenu(!(header && header.classList.contains('is-menu-open')));
       });
     }
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const header = document.querySelector('.hub-chrome');
+      if (!header || !header.classList.contains('is-menu-open')) return;
+      setStudioMenu(false);
+    });
     if (studioLinks) {
       studioLinks.addEventListener('click', (e) => {
         if (e.target.closest('.nav-icon-cluster')) return;
@@ -1858,6 +1869,8 @@
       const m = SFX.isMuted();
       sfxToggle.innerHTML = m ? '&#128263;' : '&#128266;'; // 🔇 / 🔊
       sfxToggle.classList.toggle('muted', m);
+      sfxToggle.setAttribute('aria-pressed', m ? 'true' : 'false');
+      sfxToggle.setAttribute('aria-label', m ? 'Unmute' : 'Mute');
     };
     syncSfxIcon();
     sfxToggle.addEventListener('click', () => { SFX.toggle(); syncSfxIcon(); if (!SFX.isMuted()) SFX.play('start'); });

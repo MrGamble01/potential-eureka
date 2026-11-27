@@ -2054,6 +2054,12 @@
   .aow-action-lbl { font-size: 11px; }
 }
 
+/* iPad mini portrait (768×1024) uses the desktop column, where a
+   training slot was 42px. Give the cancel tap a full target. */
+@media (min-width: 721px) and (max-width: 1024px) and (min-height: 800px) {
+  .aow-train-slot { height: 44px; }
+}
+
 /* iPad mini portrait is 744px wide, so it takes the desktop column
    (min-width 721) and misses the phone rail. The 76px command cap
    then clips Pause and Restart — the last two buttons — and the page

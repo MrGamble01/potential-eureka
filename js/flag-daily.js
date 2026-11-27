@@ -62,9 +62,15 @@
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
+  function isDate(d) {
+    return Object.prototype.toString.call(d) === '[object Date]' && !isNaN(d.getTime());
+  }
+
   function todayKey(d) {
     if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-    const dt = d instanceof Date ? d : new Date();
+    // instanceof misses a Date built in another realm, which is how the
+    // node tests call in. An invalid date falls through to today.
+    const dt = isDate(d) ? d : new Date();
     return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
   }
 
