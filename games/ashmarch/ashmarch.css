@@ -322,11 +322,27 @@ input:focus, textarea:focus, button:focus-visible {
   z-index: 2;
   border-top: 1px solid var(--line);
   padding: 12px 16px 16px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
+  /* Leave a lane for the plate and the passage. Choices scroll inside
+     .suggestions once that lane is spent; the field and Speak stay put. */
+  max-height: min(560px, calc(100dvh - 240px));
+  overflow: hidden;
+  flex: 0 0 auto;
   background: rgba(16, 14, 12, 0.96);
 }
-.suggestions { display: grid; gap: 8px; }
+.suggestions {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.composer textarea,
+.composer-row { flex: 0 0 auto; }
+.composer textarea { min-height: 44px; }
 .choice, .suggestions button, .continue-slot .primary {
   min-height: 48px;
   padding: 12px 16px;
@@ -440,8 +456,8 @@ input:focus, textarea:focus, button:focus-visible {
     order: 6;
     position: sticky;
     bottom: 0;
-    max-height: min(46dvh, 340px);
-    overflow: auto;
+    max-height: min(560px, calc(100dvh - 240px));
+    overflow: hidden;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
   .scene img { height: 180px; min-height: 140px; }
@@ -470,7 +486,7 @@ input:focus, textarea:focus, button:focus-visible {
   .scene img { height: 96px; min-height: 72px; }
   .party-strip li { min-height: 48px; min-width: 140px; }
   .party-strip .portrait { width: 40px; height: 40px; }
-  .composer { max-height: 42dvh; }
+  .composer { max-height: min(46dvh, 240px); }
   .topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
   .brand { font-size: 1.05rem; }
   .narration p { font-size: 1.02rem; line-height: 1.45; }
@@ -478,14 +494,16 @@ input:focus, textarea:focus, button:focus-visible {
 @media (max-width: 740px) {
   .topbar { align-items: center; flex-direction: row; flex-wrap: wrap; padding-left: 12px; padding-right: 12px; }
   .party-intro li, .party-cards li { grid-template-columns: 56px 1fr; }
+  .composer textarea { min-height: 88px; }
   .composer-row .choice { min-height: 48px; flex: 1 1 140px; }
   .composer-row .fine { flex: 1 1 100%; }
 }
 @media (min-width: 981px) {
-  .composer { max-height: min(42vh, 380px); overflow: auto; }
+  .composer { max-height: min(560px, calc(100dvh - 240px)); overflow: hidden; }
 }
 @media (min-width: 981px) and (max-height: 1040px) {
-  .scene img { height: min(26vh, 260px); min-height: 140px; }
+  .scene img { height: min(22vh, 200px); min-height: 120px; }
   .party-strip li { min-height: 56px; }
-  .composer { max-height: min(34vh, 280px); }
+  .transcript { min-height: 0; flex: 1 1 0; }
+  .composer { max-height: min(560px, calc(100dvh - 240px)); }
 }

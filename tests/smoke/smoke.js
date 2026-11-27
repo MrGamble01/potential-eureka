@@ -1359,10 +1359,12 @@ async function assertHofToasts(page) {
   }
 }
 
-/* Flagship Long games: phone and iPad keep a 44px primary target,
+/* Flagship games: phone and iPad keep a 44px primary target,
    nothing scrolls sideways, and the control under the cursor is the
    control itself. Age of War's Duel used to sit under The Line on
-   an iPad, and the phone orders were 43px wide. */
+   an iPad, and the phone orders were 43px wide. The Quick games
+   (Ashmarch, Gutterlight, Crate Escape, Tetris) take the same check
+   at 390×844 and 768×1024. */
 async function assertFlagshipHud(page) {
   const fails = [];
   const sizes = [
@@ -1396,9 +1398,10 @@ async function assertFlagshipHud(page) {
       if (!hit || (hit !== el && !el.contains(hit) && !hit.contains(el))) out.push(name + ' covered');
     };
     for (const sel of opts.selectors) {
-      const list = sel === '.aow-action' || sel === '.ai-speaker' || sel === '#buildbar .btn'
+      const list = (opts.all || sel === '.aow-action' || sel === '.ai-speaker' || sel === '#buildbar .btn')
         ? [...document.querySelectorAll(sel)]
         : [document.querySelector(sel)];
+      if (!list.length) out.push(sel + ' missing');
       let shownActions = 0;
       list.forEach((el, i) => {
         const name = sel + (list.length > 1 ? '[' + (el.id || i) + ']' : '');
@@ -1421,6 +1424,17 @@ async function assertFlagshipHud(page) {
     if (opts.build) {
       document.querySelectorAll('#buildbar .btn').forEach((el) => {
         if (el.scrollWidth > el.clientWidth + 1) out.push('build button overflows');
+      });
+    }
+    if (opts.min) {
+      Object.keys(opts.min).forEach((sel) => {
+        const shown = [...document.querySelectorAll(sel)].filter((el) => {
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 2 && r.height > 2
+            && r.top >= -1 && r.left >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+        }).length;
+        if (shown < opts.min[sel]) out.push(sel + ' shown ' + shown);
       });
     }
     return out;
@@ -1500,6 +1514,66 @@ async function assertFlagshipHud(page) {
         : ['#elevator-btn', '#cash-hud', '#tp-toggle', 'a.ea-back'],
     });
     tyc.forEach((p) => fails.push(size.label + ' startup tycoon ' + p));
+
+    if (size.touch) {
+      const cabinets = [
+        {
+          hash: 'crateescape',
+          selectors: ['#view-crateescape .game-back-btn', '#view-crateescape .game-controls button'],
+          min: { '#view-crateescape .game-controls button': 4 },
+        },
+        {
+          hash: 'gutterlight',
+          selectors: ['#view-gutterlight .game-back-btn', '#view-gutterlight .game-controls button'],
+          min: { '#view-gutterlight .game-controls button': 3 },
+        },
+        {
+          hash: 'tetris',
+          selectors: ['#view-tetris .game-back-btn', '#view-tetris .tetris-touch button', '#view-tetris .game-controls button'],
+          min: { '#view-tetris .tetris-touch button': 7, '#view-tetris .game-controls button': 2 },
+        },
+      ];
+      for (const spec of cabinets) {
+        await page.goto(BASE + '/#' + spec.hash, { waitUntil: 'load' });
+        await page.waitForSelector('#view-' + spec.hash + '.active .game-back-btn');
+        const found = await problems({ touch: true, all: true, selectors: spec.selectors, min: spec.min });
+        found.forEach((p) => fails.push(size.label + ' ' + spec.hash + ' ' + p));
+      }
+
+      await page.goto(BASE + '/games/ashmarch/index.html', { waitUntil: 'load' });
+      await page.waitForSelector('#ash-begin button[type="submit"]');
+      // A saved road puts Continue above the form, so the begin button
+      // starts below the fold. It has to come on screen and stay hittable.
+      await page.locator('.ash-back').scrollIntoViewIfNeeded();
+      const ashBack = await problems({ touch: true, all: true, selectors: ['.ash-back'] });
+      ashBack.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+      await page.locator('.book-picker button').first().scrollIntoViewIfNeeded();
+      const ashBooks = await problems({
+        touch: true,
+        all: true,
+        selectors: ['.book-picker button'],
+        min: { '.book-picker button': 2 },
+      });
+      ashBooks.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+      await page.locator('#ash-begin button[type="submit"]').scrollIntoViewIfNeeded();
+      const ashBegin = await problems({
+        touch: true,
+        all: true,
+        selectors: ['#ash-begin button[type="submit"]'],
+      });
+      ashBegin.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+      await page.locator('#player-name').fill('Nim');
+      await page.locator('#motive').fill('To pay a debt');
+      await page.locator('#ash-begin button[type="submit"]').click();
+      await page.waitForSelector('.suggestions .choice');
+      const ashPlay = await problems({
+        touch: true,
+        all: true,
+        selectors: ['.ash-back', '.suggestions .choice', '#action', '#ash-act .composer-row button'],
+        min: { '.suggestions .choice': 1, '#ash-act .composer-row button': 3 },
+      });
+      ashPlay.forEach((p) => fails.push(size.label + ' ashmarch ' + p));
+    }
   }
 
   if (fails.length) throw new Error(fails.slice(0, 12).join('; '));
