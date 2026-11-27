@@ -297,10 +297,12 @@ canvas.game-canvas {
 /* ---- TETRIS TOUCH PAD ---- */
 .tetris-touch {
   display: none;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(7, minmax(44px, 1fr));
+  gap: 6px;
+  width: min(100%, 480px);
   max-width: 480px;
   margin: 12px auto 0;
+  box-sizing: border-box;
   touch-action: manipulation;
 }
 
@@ -441,48 +443,56 @@ canvas.game-canvas {
   .tetris-touch button,
   .ast-touch button { padding: 10px 0; }
 
-  /* One stat row under the board. Two stacked strips were eating the
-     only vertical room a phone has, which left a postage-stamp well. */
+  /* One row of six panels. A second column was wrapping off the screen,
+     and two stacked strips were eating the well. */
   .tetris-layout {
     display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 4px;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    min-width: 0;
     overflow: hidden;
-    align-items: stretch;
   }
   .tetris-layout .canvas-wrapper {
     grid-column: 1 / -1;
     grid-row: 1;
-    width: 100%;
+    width: auto;
     min-height: 0;
-    height: auto;
+    min-width: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
-  .tetris-side {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+  #tetris-canvas {
+    min-width: 0;
+    min-height: 0;
+  }
+  .tetris-side { display: contents; }
+  .tetris-panel {
     grid-row: 2;
     min-width: 0;
-    gap: 4px;
-    overflow-x: auto;
+    padding: 2px;
+    overflow: hidden;
   }
-  .tetris-side:first-child { grid-column: 1; }
-  .tetris-side:last-child { grid-column: 2; }
-  .tetris-panel {
-    flex: 0 0 auto;
-    padding: 2px 6px;
-  }
-  .tetris-panel canvas {
-    width: 36px;
+  /* Hold is 4:3 and the queue is 5:9. A shared 36×24 box squashed the pieces. */
+  #tetris-hold-canvas {
+    width: 32px;
     height: 24px;
+  }
+  #tetris-next-canvas {
+    width: 22px;
+    height: 40px;
   }
   .tetris-panel-label {
     font-size: 8px;
-    margin-bottom: 2px;
+    letter-spacing: 0;
+    margin-bottom: 1px;
   }
   .tetris-panel-value {
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
@@ -514,6 +524,26 @@ canvas.game-canvas {
   .ast-touch { margin-top: 4px; }
   .tetris-touch button,
   .ast-touch button { padding: 8px 0; }
+  /* The shared cabinet subtracts a nav budget that these three games
+     do not spend. Give the well that height back so a landscape phone
+     still has a board you can play, and keep the taps at 44px. */
+  #view-crateescape .game-container,
+  #view-gutterlight .game-container,
+  #view-tetris .game-container {
+    height: calc(100dvh - 72px);
+    max-height: calc(100dvh - 72px);
+  }
+  #view-crateescape .game-subtitle,
+  #view-gutterlight .game-subtitle { display: none; }
+  #view-crateescape .game-controls button,
+  #view-gutterlight .game-controls button,
+  #view-tetris .game-back-btn,
+  #view-crateescape .game-back-btn,
+  #view-gutterlight .game-back-btn,
+  #view-tetris .tetris-touch button {
+    box-sizing: border-box;
+    min-height: 44px;
+  }
   /* Landscape: the stat strips and New Game row would flatten the
      well. Tap the board to start. Pause is on the pad. */
   #view-tetris .game-subtitle,
@@ -566,6 +596,7 @@ canvas.game-canvas {
   .ast-touch button {
     box-sizing: border-box;
     min-height: 44px;
+    min-width: 44px;
   }
   .game-controls button,
   .game-back-btn,

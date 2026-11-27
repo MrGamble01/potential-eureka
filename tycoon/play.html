@@ -696,6 +696,8 @@
         /* The phone column is measured against a 44px tap target.
            Card 78..134, sprint 142..186, camera 194..238. */
         bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+        box-sizing: border-box;
+        min-height: 44px;
         padding: 9px 14px; font-size: 12px;
       }
     }
@@ -1745,6 +1747,12 @@
   <link rel="stylesheet" href="/css/tokens.css?v=20261025keep">
   <style>
     html.hud body { font-family: var(--ek-font, "Outfit", "Inter", system-ui, sans-serif); }
+    /* The shared HUD drops the Games pill under 44px on a short screen
+       so Age of War can keep its field. This page has room for the tap. */
+    html.hud .ea-back {
+      box-sizing: border-box;
+      min-height: 44px;
+    }
   </style>
 </head>
 <body>
@@ -2080,7 +2088,7 @@
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
 <button id="sprint-btn" title="30s of 2× engineer speed for the whole team (burns 2× Zyn)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
-<button id="elevator-btn" title="Floors">🏢</button>
+<button id="elevator-btn" type="button" title="Floors" aria-label="Floors">🏢</button>
 <button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog" aria-modal="true" aria-labelledby="tip-title">
   <div class="tip-panel">

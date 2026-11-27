@@ -486,6 +486,8 @@
       #hud { padding: 48px 10px 6px 10px; font-size: 12px; gap: 6px; }
       #speedctl { display: none; }
       #goals { top: auto; bottom: 118px; left: 8px; width: 180px; }
+      /* The map used to sit in the build bar. Lift it above the tabs. */
+      #minimap { bottom: 210px; }
       #hint { display: none; }
       #resumeChip { font-size: 11px; }
       #menu-btn { top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 460; }
@@ -678,7 +680,7 @@
   @media (max-width: 1024px) and (max-height: 520px) {
     #goals { top: 92px; bottom: auto; left: 8px; right: auto; width: min(220px, 46vw); }
     html.hud-b[data-game="hearthvale"] #buildtabs .btab {
-      min-height: 40px; min-width: 44px; padding: 6px 12px; font-size: 13px;
+      min-height: 44px; min-width: 44px; padding: 6px 12px; font-size: 13px;
     }
   }
 </style>
