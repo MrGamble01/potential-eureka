@@ -10,6 +10,8 @@ This suite is separate from `tests/headless/`. The battery discovers every scrip
 
 `BASE` overrides the origin (default `http://127.0.0.1:8123`). The script serves the repo root when that origin is not already up.
 
+`Play fit` checks the hub, Snake, Minefield, Age of War, and Voxel Isle at 390×844, 768×1024, 1280×800, and 1440×900. Sound, Menu, and the phone and tablet cabinet controls have to be at least 44px, named, and on screen. Escape closes the studio menu. `SMOKE_ONLY="Play fit"` runs just that target.
+
 Three extra targets load the same pages at phone viewports (390×844, 375×667, and 844×390, touch primary). Each hub board and each flagship canvas has to sit fully on screen, keep `touch-action: none` so a swipe plays the game instead of scrolling or zooming the page, and the Tetris and Vector Storm pads have to be on screen. Word Five's keyboard has to fit the width; a short landscape phone can still scroll down to it. Set `CHROME_PATH` when Playwright should launch the system Chrome instead of its own browser.
 
 `agentic-os-chat/client/index.html` is the Vite source for the local chat app. It is not a static page and needs its own server plus an API key, so this suite does not load it. Any other new HTML file or hub view fails the catalog check until it is added here.
