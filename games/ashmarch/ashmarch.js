@@ -4149,11 +4149,24 @@ function bind(root2, state, engine2, refresh, paint) {
   const narrow = window.matchMedia("(max-width: 980px)").matches;
   if (transcript && !narrow) transcript.scrollTop = transcript.scrollHeight;
   if (state.active && !narrow) window.scrollTo(0, 0);
-  if (state.active && narrow) {
+  if (state.active) {
     const scene = root2.querySelector(".scene");
     const latest = transcript?.querySelector(".turn:last-child");
-    if (state.diceTurn !== null && scene) scene.scrollIntoView({ block: "start" });
-    else if (latest) latest.scrollIntoView({ block: "start" });
+    const composer = root2.querySelector(".composer");
+    const scroller = narrow ? root2.querySelector(".play") : root2.querySelector(".stage");
+    if (composer && scroller) {
+      scroller.style.scrollPaddingBottom = Math.ceil(composer.getBoundingClientRect().height) + "px";
+    }
+    if (narrow && state.diceTurn !== null && scene) {
+      scene.scrollIntoView({ block: "start" });
+    } else if (latest && scroller && composer) {
+      const view = scroller.getBoundingClientRect();
+      const comp0 = composer.getBoundingClientRect();
+      if (comp0.bottom > view.bottom + 1) scroller.scrollTop += comp0.bottom - view.bottom;
+      const gap = composer.getBoundingClientRect().top - 8;
+      const bottom = latest.getBoundingClientRect().bottom;
+      if (bottom > gap) scroller.scrollTop += bottom - gap;
+    }
   }
   if (!state.busy && state.focusTurn) {
     const target = root2.querySelector("#ash-transcript .turn:last-child .narration")
