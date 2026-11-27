@@ -551,9 +551,14 @@
         padding: 6px;
         max-width: calc(100vw - 12px);
       }
-      #buildbar .btn, #buildbar .btn.tool { width: 44px; height: 52px; }
+      #buildbar .btn, #buildbar .btn.tool { width: 44px; height: 52px; overflow: hidden; }
       #buildbar .btn .emoji { font-size: 18px; }
-      #buildbar .btn .lbl { font-size: 8px; letter-spacing: 0; line-height: 1.05; text-align: center; }
+      #buildbar .btn .lbl,
+      #buildbar .btn .cost {
+        display: block; max-width: 100%; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; text-align: center;
+      }
+      #buildbar .btn .lbl { font-size: 8px; letter-spacing: 0; line-height: 1.05; }
       #buildbar .bardiv { margin: 2px 1px; }
       #buildtabs { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
       #toasts { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
