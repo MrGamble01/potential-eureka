@@ -113,6 +113,76 @@ const Achievements = (() => {
     return changed;
   }
 
+  // One fixed slot for every achievement and coin pill. On a phone
+  // the slot sits under the studio bar and the Hall of Fame scrolls
+  // beneath it, so a row can reach the viewport edge and still miss
+  // the pill. Desktop keeps the slot in the right-hand gutter.
+  function toastStack() {
+    if (typeof document === 'undefined' || typeof document.getElementById !== 'function' || !document.body) return null;
+    let stack = document.getElementById('ach-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.id = 'ach-toast-stack';
+      document.body.appendChild(stack);
+      if (typeof ResizeObserver === 'function') {
+        try { new ResizeObserver(syncToastClearance).observe(stack); } catch { /* measuring is optional */ }
+      }
+      if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', syncToastClearance);
+    }
+    return stack;
+  }
+  function syncToastClearance() {
+    if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.style) return;
+    const root = document.documentElement;
+    let narrow = false;
+    try { narrow = window.innerWidth < 768; } catch { narrow = false; }
+    if (!narrow) { root.style.removeProperty('--ach-toast-clear'); return; }
+    const stack = typeof document.getElementById === 'function' ? document.getElementById('ach-toast-stack') : null;
+    if (!stack) { root.style.removeProperty('--ach-toast-clear'); return; }
+    let bottom = 0;
+    stack.querySelectorAll('.ach-toast').forEach(el => {
+      if (el.classList && el.classList.contains('ach-toast-out')) return;
+      const r = el.getBoundingClientRect();
+      if (r.height > 8 && r.bottom > bottom) bottom = r.bottom;
+    });
+    if (bottom < 24) return;
+    root.style.setProperty('--ach-toast-clear', Math.ceil(bottom + 12) + 'px');
+  }
+  function reducedMotion() {
+    try {
+      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch { return false; }
+  }
+  function presentToast(el) {
+    if (!el) return el;
+    if (el.setAttribute) {
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+    }
+    const stack = toastStack();
+    const parent = stack || (document && document.body);
+    if (parent && parent.appendChild && el.parentNode !== parent) parent.appendChild(el);
+    try { syncToastClearance(); } catch { /* the CSS fallback still clears the rows */ }
+    [0, 50, 300, 800].forEach(ms => { try { setTimeout(syncToastClearance, ms); } catch { /* timers blocked */ } });
+    return el;
+  }
+  function dismissToast(el, done) {
+    if (!el) { if (done) done(); return; }
+    if (el.dataset && el.dataset.dismissed === '1') { if (done) done(); return; }
+    const generation = el.dataset ? String(el.dataset.toastGen || '0') : '0';
+    if (el.dataset) el.dataset.dismissed = '1';
+    if (el.classList) el.classList.add('ach-toast-out');
+    const wait = reducedMotion() ? 0 : 420;
+    setTimeout(() => {
+      // A newer pill reused this node. Leave it on screen.
+      if (el.dataset && String(el.dataset.toastGen || '0') !== generation) return;
+      if (el.dataset && el.dataset.dismissed !== '1') return;
+      if (el.remove) el.remove();
+      try { syncToastClearance(); } catch { /* slot already gone */ }
+      if (done) done();
+    }, wait);
+  }
+
   let toastQueue = [], toastActive = false;
   function toast(def) {
     toastQueue.push(def);
@@ -124,13 +194,21 @@ const Achievements = (() => {
     toastActive = true;
     const el = document.createElement('div');
     el.className = 'ach-toast';
-    el.setAttribute('role', 'status');
+    presentToast(el);
     el.innerHTML = `<span class="ach-toast-icon">${def.icon}</span>` +
       `<span><strong>Achievement unlocked</strong><br>${def.name}</span>`;
-    document.body.appendChild(el);
     if (typeof SFX !== 'undefined' && SFX.play) SFX.play('bonus');
-    setTimeout(() => { el.classList.add('ach-toast-out'); }, 2600);
-    setTimeout(() => { el.remove(); nextToast(); }, 3300);
+    let hideT = null, nextT = null, moved = false;
+    const finish = () => {
+      if (moved) return;
+      moved = true;
+      clearTimeout(hideT);
+      clearTimeout(nextT);
+      dismissToast(el, () => nextToast());
+    };
+    if (el.addEventListener) el.addEventListener('click', finish);
+    hideT = setTimeout(() => { if (el.classList) el.classList.add('ach-toast-out'); }, 2600);
+    nextT = setTimeout(finish, 3200);
   }
 
   // Render the trophy case into a container (the Hall of Fame calls this).
@@ -153,5 +231,5 @@ const Achievements = (() => {
       `</div>`;
   }
 
-  return { check, renderInto, unlocked, DEFS };
+  return { check, renderInto, unlocked, DEFS, presentToast, dismissToast, syncToastClearance };
 })();
