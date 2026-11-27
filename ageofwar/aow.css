@@ -2118,6 +2118,36 @@
   .aow-action-lbl small { display: none; }
 }
 
+/* iPad mini portrait is wide enough for one command row and too
+   narrow for desktop padding. Equal halves keep the four Stone Age
+   orders and Pause on screen; a later era scrolls the order half
+   instead of sliding Duel under The Line. */
+@media (min-width: 721px) and (max-width: 900px) {
+  .aow-actionbar { gap: 6px; }
+  .aow-action-group { gap: 4px; }
+  .aow-action-group--orders,
+  .aow-action-group--meta {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .aow-action-group--orders { overflow-x: auto; }
+  .aow-action {
+    flex: 1 1 0;
+    min-width: 44px;
+    gap: 4px;
+    padding: 8px 6px;
+    overflow: hidden;
+  }
+  .aow-action-ico { font-size: 16px; }
+  .aow-action-lbl {
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 /* Tall phone: a landscape strip framed on the ground (the drawing
    crops the empty sky). Orders and recruits sit under it, not on it. */
 @media (max-width: 720px) and (min-height: 640px) {
@@ -2219,15 +2249,16 @@
     display: flex;
     flex: 1 1 0;
     flex-wrap: nowrap;
-    gap: 4px;
+    gap: 2px;
     margin: 0;
     min-width: 0;
     overflow: hidden;
   }
+  .aow-action-group--orders { overflow-x: auto; }
   .aow-action-group--meta { margin-left: 0; flex: 1 1 0; }
   .aow-action {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 1 44px;
+    min-width: 44px;
     min-height: 44px;
     padding: 4px 2px;
   }

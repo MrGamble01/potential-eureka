@@ -1554,7 +1554,10 @@
       #sidebar-toggle { display: block; }
       #left-panel {
         width: 85vw; max-width: 320px;
-        top: 0; left: 0; bottom: 0;
+        top: 0; left: 0;
+        /* Floors is a 52px control, 14px off the bottom. The open
+           hire drawer used to paint through that corner. */
+        bottom: calc(74px + env(safe-area-inset-bottom, 0px));
         padding: calc(64px + env(safe-area-inset-top, 0px)) 10px calc(168px + env(safe-area-inset-bottom, 0px)) 10px;
         background: rgba(8,10,18,0.96);
         backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -1608,6 +1611,7 @@
       #elevator-btn {
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
         left: calc(14px + env(safe-area-inset-left, 0px));
+        z-index: 125;
       }
       #ipo-btn {
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));

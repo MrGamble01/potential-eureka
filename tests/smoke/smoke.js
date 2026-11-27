@@ -499,6 +499,13 @@ const TARGETS = [
     check: (page) => assertPlayFit(page),
   },
   {
+    name: 'Flagship HUD',
+    path: '/ageofwar/index.html',
+    mobile: true,
+    viewport: { width: 390, height: 844 },
+    check: (page) => assertFlagshipHud(page),
+  },
+  {
     name: 'Eureka Studio',
     path: '/agentic-os.html',
     file: 'agentic-os.html',
@@ -1350,6 +1357,152 @@ async function assertHofToasts(page) {
       }, null, { timeout: 5000 });
     }
   }
+}
+
+/* Flagship Long games: phone and iPad keep a 44px primary target,
+   nothing scrolls sideways, and the control under the cursor is the
+   control itself. Age of War's Duel used to sit under The Line on
+   an iPad, and the phone orders were 43px wide. */
+async function assertFlagshipHud(page) {
+  const fails = [];
+  const sizes = [
+    { label: '390×844', width: 390, height: 844, touch: true },
+    { label: '768×1024', width: 768, height: 1024, touch: true },
+    { label: '1280×800', width: 1280, height: 800, touch: false },
+    { label: '1440×900', width: 1440, height: 900, touch: false },
+  ];
+
+  const problems = (extra) => page.evaluate((opts) => {
+    const out = [];
+    if (document.documentElement.scrollWidth > innerWidth + 1) {
+      out.push('scrolls sideways ' + document.documentElement.scrollWidth + '>' + innerWidth);
+    }
+    const check = (el, name, needTap) => {
+      if (!el) { out.push(name + ' missing'); return; }
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const shown = cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 2 && r.height > 2;
+      if (!shown) {
+        if (needTap) out.push(name + ' hidden');
+        return;
+      }
+      if (needTap && (r.width < 43.5 || r.height < 43.5)) {
+        out.push(name + ' is ' + Math.round(r.width) + '×' + Math.round(r.height));
+      }
+      if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) {
+        out.push(name + ' off screen');
+      }
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, innerHeight - r.top - 1));
+      if (!hit || (hit !== el && !el.contains(hit) && !hit.contains(el))) out.push(name + ' covered');
+    };
+    for (const sel of opts.selectors) {
+      const list = sel === '.aow-action' || sel === '.ai-speaker' || sel === '#buildbar .btn'
+        ? [...document.querySelectorAll(sel)]
+        : [document.querySelector(sel)];
+      let shownActions = 0;
+      list.forEach((el, i) => {
+        const name = sel + (list.length > 1 ? '[' + (el.id || i) + ']' : '');
+        if (sel === '.ai-speaker') {
+          if (!el || el.hidden) { out.push('speaker hidden'); return; }
+        }
+        if (sel === '.aow-action') {
+          if (!el) return;
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          const shown = cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 2 && r.height > 2;
+          if (!shown) return;
+          shownActions += 1;
+        }
+        check(el, name, opts.touch);
+      });
+      if (sel === '.ai-speaker' && opts.touch && list.filter((el) => el && !el.hidden).length < 3) out.push('speakers missing');
+      if (sel === '.aow-action' && shownActions < 8) out.push('actions shown ' + shownActions);
+    }
+    if (opts.build) {
+      document.querySelectorAll('#buildbar .btn').forEach((el) => {
+        if (el.scrollWidth > el.clientWidth + 1) out.push('build button overflows');
+      });
+    }
+    return out;
+  }, extra);
+
+  const dismiss = async (sel) => {
+    const loc = page.locator(sel);
+    if (await loc.count() && await loc.first().isVisible().catch(() => false)) {
+      await loc.first().click({ timeout: 5000 }).catch(() => {});
+    }
+  };
+
+  for (const size of sizes) {
+    await page.setViewportSize({ width: size.width, height: size.height });
+
+    await page.goto(BASE + '/ageofwar/index.html', { waitUntil: 'load' });
+    await dismiss('#aow-welcome-close');
+    await dismiss('#aow-coach-dismiss');
+    await page.waitForSelector('#aow-duel-btn');
+    if (size.touch) {
+      try {
+        await page.waitForFunction(() => document.querySelectorAll('.ai-speaker:not([hidden])').length >= 3, null, { timeout: 8000 });
+      } catch (e) {
+        throw new Error(size.label + ' age of war speakers did not appear');
+      }
+    }
+    const aow = await problems({
+      touch: size.touch,
+      selectors: size.touch
+        ? ['#aow-duel-btn', '#aow-pause-btn', '#aow-settings-btn', 'a.ea-back', '.aow-action', '.ai-speaker']
+        : ['#aow-duel-btn', '#aow-pause-btn', '#aow-settings-btn', 'a.ea-back', '.aow-action'],
+    });
+    aow.forEach((p) => fails.push(size.label + ' age of war ' + p));
+
+    await page.goto(BASE + '/hearthvale.html', { waitUntil: 'load' });
+    await dismiss('#welcome-close');
+    await page.waitForSelector('#buildbar .btn');
+    const hv = await problems({
+      touch: size.touch,
+      build: true,
+      selectors: size.touch ? ['#menu-btn', '#touch-pause', 'a.ea-back', '#buildbar .btn'] : ['#menu-btn', 'a.ea-back', '#buildbar .btn'],
+    });
+    hv.forEach((p) => fails.push(size.label + ' hearthvale ' + p));
+
+    await page.goto(BASE + '/voxel-garden.html', { waitUntil: 'domcontentloaded' });
+    await dismiss('#helpClose');
+    await page.waitForSelector('#muteBtn');
+    const voxSels = ['#muteBtn', '#musicBtn', '#menuBtn', 'a.ea-back'];
+    if (size.touch && size.width <= 900) voxSels.push('#camLeft', '#camRight');
+    const vox = await problems({ touch: size.touch, selectors: voxSels });
+    vox.forEach((p) => fails.push(size.label + ' voxel isle ' + p));
+
+    await page.evaluate(() => {
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.indexOf('tycoon:') === 0 || k === 'startup-tycoon-v7' || k === 'welcomeSeen-v1') {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch (e) { /* private mode */ }
+    });
+    await page.goto(BASE + '/tycoon/play.html', { waitUntil: 'load' });
+    await page.locator('#welcome-start-btn').waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+    await dismiss('#welcome-start-btn');
+    await page.waitForSelector('#elevator-btn');
+    if (size.touch) {
+      try {
+        await page.waitForFunction(() => document.getElementById('left-panel').classList.contains('open'), null, { timeout: 8000 });
+      } catch (e) {
+        throw new Error(size.label + ' startup tycoon drawer did not open');
+      }
+    }
+    const tyc = await problems({
+      touch: size.touch,
+      selectors: size.touch
+        ? ['#elevator-btn', '#sidebar-toggle', '#cash-hud', '#tp-toggle', '#tyc-moments', 'a.ea-back']
+        : ['#elevator-btn', '#cash-hud', '#tp-toggle', 'a.ea-back'],
+    });
+    tyc.forEach((p) => fails.push(size.label + ' startup tycoon ' + p));
+  }
+
+  if (fails.length) throw new Error(fails.slice(0, 12).join('; '));
 }
 
 async function runTarget(browser, target) {

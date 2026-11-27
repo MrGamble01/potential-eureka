@@ -155,9 +155,14 @@
     btn.hidden = false;
     btn.style.left = x + 'px';
     btn.style.top = y + 'px';
-    const size = Math.max(30, Math.min(42, canvasWidth / 22));
+    const coarse = gameId === 'ageofwar' && window.matchMedia('(pointer: coarse)').matches;
+    const floor = coarse ? 44 : 30;
+    const cap = coarse ? 48 : 42;
+    const size = Math.max(floor, Math.min(cap, canvasWidth / 22));
     btn.style.width = size + 'px';
     btn.style.height = size + 'px';
+    const face = btn.querySelector('.ai-speaker-face');
+    if (face) face.style.lineHeight = Math.max(0, size - 4) + 'px';
     if (coversControl(btn)) btn.hidden = true;
   }
 
