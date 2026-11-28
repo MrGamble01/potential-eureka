@@ -929,8 +929,36 @@
       .w5-key.w5-correct{background:#3FB950;color:#0d1117}
       .w5-key.w5-present{background:#D9A62E;color:#0d1117}
       .w5-key.w5-absent{background:#21262d;color:#6e7681}
-      @media(max-width:480px){.w5-tile{width:44px;height:44px;font-size:22px}.w5-key{height:44px;min-width:26px}}
-      @media(max-height:520px){.w5-tile{width:28px;height:28px;font-size:14px}.w5-key{height:34px;min-width:18px;padding:0 4px}#view-word5 .w5-wrap{gap:6px}}
+      #view-word5 .game-info button{padding:4px 12px}
+      /* A phone row is about 366px. Ten keys cannot be 44px wide in
+         one line, so the three rows flatten and wrap seven across.
+         (366 - 6*4) / 7 is 48px. A short landscape phone undoes this
+         below so the board still fits. */
+      @media(max-width:480px){
+        .w5-tile{width:44px;height:44px;font-size:22px}
+        #word5-kb{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;justify-content:center}
+        .w5-kb-row{display:contents}
+        .w5-key,.w5-key-wide{
+          flex:0 0 calc((100% - 24px) / 7);width:calc((100% - 24px) / 7);max-width:none;
+          height:44px;min-height:44px;padding:0;box-sizing:border-box
+        }
+        #view-word5 .w5-wrap{gap:6px}
+        #view-word5 .game-header{margin-bottom:4px}
+      }
+      /* New Word lives in the score row, outside .game-controls, so the
+         cabinet 44px rule never reached it. */
+      @media (max-width: 1024px) and (min-height: 640px) {
+        #view-word5 .game-info button { box-sizing: border-box; min-height: 44px; min-width: 44px; padding: 8px 14px; }
+      }
+      @media(max-height:520px){
+        .w5-tile{width:28px;height:28px;font-size:14px}
+        #word5-kb{display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px}
+        .w5-kb-row{display:flex;gap:5px}
+        .w5-key{height:34px;min-height:0;min-width:18px;width:auto;flex:1;max-width:44px;padding:0 4px}
+        .w5-key-wide{max-width:64px;flex:1.5}
+        #view-word5 .w5-wrap{gap:6px}
+        #view-word5 .game-info button{min-height:0;padding:4px 12px}
+      }
     </style>
     <div class="game-container">
       <div class="game-header">
@@ -941,8 +969,8 @@
       <div class="game-info" role="status" aria-live="polite">
         <span>Streak: <strong id="word5-streak">0</strong></span>
         <span>Best: <strong id="word5-best">0</strong></span>
-        <button class="primary" onclick="WordFiveGame.newGame()" style="padding:4px 12px">New Word</button>
-        <button id="w5-share-btn" onclick="WordFiveGame.share()" style="padding:4px 12px;display:none">📋 Share</button>
+        <button class="primary" onclick="WordFiveGame.newGame()">New Word</button>
+        <button id="w5-share-btn" onclick="WordFiveGame.share()" style="display:none">📋 Share</button>
       </div>
       <div class="w5-wrap">
         <div id="word5-msg" class="w5-msg" role="status" aria-live="polite"></div>

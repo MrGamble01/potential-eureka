@@ -36,6 +36,37 @@ function seatSpeaker(anchor, buttonH, nameH, bands, tabTop) {
 }
 /* seat-speaker:end */
 
+/* nudge-speaker:start
+   A camp talk button sits on the projected figure. On a tablet that
+   point can land on the action column. Step the button off the chrome
+   by the shortest gap, then leave it. */
+function nudgeSpeaker(left, top, size, panels) {
+  const pad = 8;
+  let x = left;
+  let y = top;
+  for (let n = 0; n < 4; n++) {
+    let hit = null;
+    for (let i = 0; i < panels.length; i++) {
+      const b = panels[i];
+      if (!b) continue;
+      const ix = Math.min(x + size, b.right) - Math.max(x, b.left);
+      const iy = Math.min(y + size, b.bottom) - Math.max(y, b.top);
+      if (ix > 0 && iy > 0) { hit = b; break; }
+    }
+    if (!hit) break;
+    const leftGap = (x + size) - hit.left;
+    const rightGap = hit.right - x;
+    const upGap = (y + size) - hit.top;
+    const downGap = hit.bottom - y;
+    if (leftGap <= rightGap && leftGap <= upGap && leftGap <= downGap) x -= leftGap + pad;
+    else if (rightGap <= upGap && rightGap <= downGap) x += rightGap + pad;
+    else if (upGap <= downGap) y -= upGap + pad;
+    else y += downGap + pad;
+  }
+  return { x: x, y: y };
+}
+/* nudge-speaker:end */
+
 (function () {
   const AI = window.ArcadeAI;
   const booth = AI && AI.booth;
@@ -188,7 +219,7 @@ function seatSpeaker(anchor, buttonH, nameH, bands, tabTop) {
     btn.hidden = false;
     btn.style.left = x + 'px';
     btn.style.top = y + 'px';
-    const coarse = gameId === 'ageofwar' && window.matchMedia('(pointer: coarse)').matches;
+    const coarse = (gameId === 'ageofwar' || gameId === 'homeless') && window.matchMedia('(pointer: coarse)').matches;
     const floor = coarse ? 44 : 30;
     const cap = coarse ? 48 : 42;
     const size = Math.max(floor, Math.min(cap, canvasWidth / 22));
@@ -269,6 +300,9 @@ function seatSpeaker(anchor, buttonH, nameH, bands, tabTop) {
     if (!canvas || !window.camera || !project) return;
     const r = canvas.getBoundingClientRect();
     if (camera.updateMatrixWorld) camera.updateMatrixWorld();
+    const chrome = ['action-panel', 'craft-panel', 'workers-panel', 'bottom-bar', 'top-bar', 'walk-pad', 'craft-toggle'].map(function (id) {
+      return bandOf(document.getElementById(id));
+    });
     spots.forEach(function (spot) {
       const btn = buttons[spot.id];
       if (!btn) return;
@@ -279,6 +313,16 @@ function seatSpeaker(anchor, buttonH, nameH, bands, tabTop) {
       const y = r.top + (-project.y * 0.5 + 0.5) * r.height;
       if (x < r.left || x > r.right || y < r.top || y > r.bottom) { btn.hidden = true; return; }
       pin(btn, x, y, r.width);
+      if (btn.hidden) return;
+      const box = btn.getBoundingClientRect();
+      const size = box.width;
+      const moved = nudgeSpeaker(box.left, box.top, size, chrome);
+      const left = Math.max(r.left, Math.min(r.right - size, moved.x));
+      const top = Math.max(r.top, Math.min(r.bottom - size, moved.y));
+      /* The anchor is the bottom center. translate(-50%, -100%) hangs the button on it. */
+      btn.style.left = (left + size / 2) + 'px';
+      btn.style.top = (top + size) + 'px';
+      if (coversControl(btn)) btn.hidden = true;
     });
   }
 

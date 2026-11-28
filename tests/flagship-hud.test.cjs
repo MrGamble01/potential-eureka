@@ -8,6 +8,7 @@ const aow = readFileSync(join(root, 'ageofwar/aow.css'), 'utf8');
 const vale = readFileSync(join(root, 'hearthvale.html'), 'utf8');
 const tycoon = readFileSync(join(root, 'tycoon/play.html'), 'utf8');
 const speakers = readFileSync(join(root, 'js/ai/inworld.js'), 'utf8');
+const hub = readFileSync(join(root, 'index.html'), 'utf8');
 
 function block(src, startMarker, endMarker) {
   const start = src.indexOf(startMarker);
@@ -113,8 +114,9 @@ test('phone camera and 3rd person sit clear of the open hire drawer', () => {
   assert.match(wideWalk, /#tp-toggle \{[^}]*bottom:\s*calc\(194px \+ env\(safe-area-inset-bottom, 0px\)\)/);
 });
 
-test('age of war touch speakers are a 44px target and desktop stays compact', () => {
-  assert.match(speakers, /const coarse = gameId === 'ageofwar' && window\.matchMedia\('\(pointer: coarse\)'\)\.matches/);
+test('age of war and homeless village touch speakers are a 44px target and desktop stays compact', () => {
+  assert.match(speakers, /const coarse = \(gameId === 'ageofwar' \|\| gameId === 'homeless'\) && window\.matchMedia\('\(pointer: coarse\)'\)\.matches/);
+  assert.doesNotMatch(speakers, /growop|grow-op|drug-lab/);
   assert.match(speakers, /const floor = coarse \? 44 : 30/);
   assert.match(speakers, /const cap = coarse \? 48 : 42/);
 
@@ -127,4 +129,44 @@ test('age of war touch speakers are a 44px target and desktop stays compact', ()
   assert.ok(size(734, true) >= 44);
   assert.equal(size(372, false), 30);
   assert.ok(size(1400, false) <= 42);
+  assert.ok(size(390, true) >= 44);
+  assert.ok(size(744, true) >= 44);
+
+  const nudgeSrc = speakers.slice(
+    speakers.indexOf('function nudgeSpeaker'),
+    speakers.indexOf('/* nudge-speaker:end */')
+  );
+  const nudgeSpeaker = new Function(nudgeSrc + '\nreturn nudgeSpeaker;')();
+  const panel = { left: 554, top: 75, right: 744, bottom: 1058 };
+  const dee = nudgeSpeaker(562, 458, 44, [panel]);
+  assert.equal(dee.x, 502);
+  assert.equal(dee.y, 458);
+  assert.ok(dee.x + 44 <= panel.left);
+  const open = nudgeSpeaker(200, 300, 44, [panel]);
+  assert.deepEqual(open, { x: 200, y: 300 });
+  const camp = block(speakers, "document.getElementById('three-canvas')", 'function frame');
+  assert.match(camp, /nudgeSpeaker\(box\.left, box\.top, size, chrome\)/);
+  assert.match(camp, /btn\.style\.left = \(left \+ size \/ 2\)/);
+  assert.match(camp, /btn\.style\.top = \(top \+ size\)/);
+});
+
+/* Phone Word Five row is the 366px cabinet. Six gaps of 4px, seven keys. */
+function phoneWordKey(row, gap, cols) {
+  return (row - gap * (cols - 1)) / cols;
+}
+
+test('word five phone keys and the new-word button are 44px taps', () => {
+  assert.ok(phoneWordKey(366, 4, 7) >= 44, '390 keys are ' + phoneWordKey(366, 4, 7));
+  const phone = block(hub, 'Ten keys cannot be 44px wide', 'New Word lives in the score row');
+  assert.match(phone, /@media\(max-width:480px\)/);
+  assert.match(phone, /#word5-kb\{[^}]*flex-direction:row/);
+  assert.match(phone, /\.w5-kb-row\{display:contents\}/);
+  assert.match(phone, /calc\(\(100% - 24px\) \/ 7\)/);
+  assert.match(phone, /min-height:44px/);
+  const tap = block(hub, 'New Word lives in the score row', '@media(max-height:520px)');
+  assert.match(tap, /@media \(max-width: 1024px\) and \(min-height: 640px\)/);
+  assert.match(tap, /#view-word5 \.game-info button \{[^}]*min-height:\s*44px/);
+  const short = hub.slice(hub.indexOf('@media(max-height:520px)'));
+  assert.match(short, /\.w5-key\{[^}]*min-height:0/);
+  assert.match(short, /\.w5-kb-row\{display:flex/);
 });
