@@ -1668,6 +1668,19 @@
       #investor-banner { top: 152px; }
     }
 
+    /* Stop the hire drawer above the next-step card.
+       On a phone the card is 78px off the bottom. It is about 57px
+       tall and can wrap to 74px. The drawer used to end at 74px, so
+       it ran behind the card and the lower half of an upgrade hired
+       an engineer. 160px is the card offset, a wrapped card, and an
+       8px gap. Tablets stay on the 74px rule so Floors keeps its corner. */
+    @media (max-width: 480px) {
+      #left-panel {
+        bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 16px;
+      }
+    }
+
     /* ── Virtual joystick (opt-in via settings) ───────── */
     #joystick {
       position: fixed;
