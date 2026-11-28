@@ -3,6 +3,39 @@
    are not edited: Age of War pins stand on the field canvas,
    and the camp figures are meshes the booth adds to the
    existing scene. A click asks the same stub the Booth uses. */
+
+/* seat-speaker:start
+   The anchor is the bottom of the round button. The name hangs
+   nameH pixels under it. A band (the coach, the weather pill)
+   pushes that stack aside. Pushing down onto the tab row is
+   refused: the names would sit on Units and Turrets. */
+function seatSpeaker(anchor, buttonH, nameH, bands, tabTop) {
+  const pad = 8;
+  let y = anchor;
+  function foot() { return { top: y - buttonH, bottom: y + nameH }; }
+  function hits(band) {
+    const f = foot();
+    return f.top < band.bottom + pad && f.bottom > band.top - pad;
+  }
+  for (let n = 0; n < 6; n++) {
+    let block = null;
+    for (let i = 0; i < bands.length; i++) {
+      if (bands[i] && hits(bands[i])) { block = bands[i]; break; }
+    }
+    const f = foot();
+    const overTabs = tabTop != null && f.bottom > tabTop - pad;
+    if (!block && !overTabs) break;
+    if (!block) { y -= f.bottom - tabTop + pad; continue; }
+    const down = block.bottom + pad - f.top;
+    const up = f.bottom - block.top + pad;
+    let shift = (block.top < f.top && down < up * 1.4) ? down : -up;
+    if (tabTop != null && shift > 0 && f.bottom + shift > tabTop - pad) shift = -up;
+    y += shift;
+  }
+  return y;
+}
+/* seat-speaker:end */
+
 (function () {
   const AI = window.ArcadeAI;
   const booth = AI && AI.booth;
@@ -187,29 +220,25 @@
     };
   }
 
-  function hitsBand(foot, band, pad) {
-    return foot.left < band.right + pad && foot.right > band.left - pad
-      && foot.top < band.bottom + pad && foot.bottom > band.top - pad;
-  }
-
-  // The weather pill keeps the bottom (or top) of the field. Name tags
-  // move off that band instead of drawing through the label.
-  function clearBands(btn, bands) {
-    const pad = 8;
-    for (let n = 0; n < 6; n++) {
-      const foot = footprint(btn);
-      let block = null;
-      for (let i = 0; i < bands.length; i++) {
-        if (bands[i] && hitsBand(foot, bands[i], pad)) { block = bands[i]; break; }
+  // The weather pill and the coach keep a band of the field. Name
+  // tags move off that band. tabTop is the Units row: a hero may
+  // step up the field, and may not step down onto those tabs.
+  function clearBands(btn, bands, tabTop) {
+    const box = btn.getBoundingClientRect();
+    const nameEl = btn.querySelector('.ai-speaker-name');
+    const nameBox = nameEl ? nameEl.getBoundingClientRect() : box;
+    const foot = footprint(btn);
+    const across = [];
+    for (let i = 0; i < bands.length; i++) {
+      const band = bands[i];
+      if (!band) continue;
+      if (foot.left < band.right && foot.right > band.left) {
+        across.push({ top: band.top, bottom: band.bottom });
       }
-      if (!block) return;
-      const top = parseFloat(btn.style.top) || 0;
-      const down = block.bottom + pad - foot.top;
-      const up = foot.bottom - block.top + pad;
-      const preferDown = block.top < foot.top;
-      const shift = preferDown && down < up * 1.4 ? down : -up;
-      btn.style.top = (top + shift) + 'px';
     }
+    const anchor = parseFloat(btn.style.top) || 0;
+    const nameH = Math.max(0, nameBox.bottom - box.bottom);
+    btn.style.top = seatSpeaker(anchor, box.height, nameH, across, tabTop) + 'px';
   }
 
   const project = window.THREE ? new THREE.Vector3() : null;
@@ -225,10 +254,11 @@
         if (r.width < 40) { btn.hidden = true; return; }
         pin(btn, r.left + (spot.x / 1280) * r.width, r.top + (spot.y / 560) * r.height, r.width);
         if (!btn.hidden) {
+          const tabs = bandOf(document.querySelector('.aow-tabs'));
           clearBands(btn, [
             bandOf(document.getElementById('aow-sky')),
             bandOf(document.getElementById('aow-coach')),
-          ]);
+          ], tabs ? tabs.top : null);
           if (coversControl(btn)) btn.hidden = true;
         }
       });
