@@ -1681,6 +1681,34 @@
       }
     }
 
+    /* Keep the camera and 3rd person clear of the open hire drawer.
+       On a 390px phone the drawer border box is 341px, so 49px remains.
+       A 44px button, 2px off the right edge, starts at 344. 3rd person
+       keeps the 194px seat and drops its words so it fits that column.
+       The camera sits 8px above it (194 + 44 + 8 = 246). Wider screens
+       keep the 900px seats. */
+    @media (max-width: 480px) {
+      body:has(#left-panel.open) #tyc-moments,
+      body:has(#left-panel.open) #tp-toggle {
+        left: auto;
+        right: calc(2px + env(safe-area-inset-right, 0px));
+        box-sizing: border-box;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        justify-content: center;
+      }
+      body:has(#left-panel.open) #tyc-moments {
+        bottom: calc(246px + env(safe-area-inset-bottom, 0px));
+      }
+      body:has(#left-panel.open) #tp-toggle {
+        gap: 0;
+        overflow: hidden;
+        font-size: 0;
+      }
+      body:has(#left-panel.open) #tp-toggle .tp-ico { font-size: 18px; }
+    }
+
     /* ── Virtual joystick (opt-in via settings) ───────── */
     #joystick {
       position: fixed;
