@@ -48,18 +48,29 @@ const ok = (condition, name) => {
     const card = await hit(page, '#next-action-card');
     const menu = await hit(page, '#sidebar-toggle');
     const hire = await hit(page, '#hire-btn');
-    const clear = await page.evaluate(() => {
-      const panel = document.getElementById('left-panel');
-      const card = document.getElementById('next-action-card');
-      const pad = parseFloat(getComputedStyle(panel).paddingBottom);
-      const cover = window.innerHeight - card.getBoundingClientRect().top;
-      return pad + 1 >= cover;
+    const fit = await page.evaluate(() => {
+      const panel = document.getElementById('left-panel').getBoundingClientRect();
+      const card = document.getElementById('next-action-card').getBoundingClientRect();
+      const blocked = [];
+      document.querySelectorAll('.upg-btn').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const top = Math.max(r.top, panel.top + 1);
+        const bot = Math.min(r.bottom, panel.bottom - 1);
+        if (bot - top < 20) return;
+        const hit = document.elementFromPoint(r.left + r.width / 2, (top + bot) / 2);
+        if (!hit || (hit !== el && !el.contains(hit))) {
+          blocked.push((el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 24));
+        }
+      });
+      return { gap: card.top - panel.bottom, blocked };
     });
     ok(cash.self, '390x844: cash chip receives the tap while the drawer is open');
     ok(card.self, '390x844: next step receives the tap while the drawer is open');
     ok(menu.self, '390x844: the menu button still closes the drawer');
     ok(hire.self, '390x844: Hire Engineer still receives the tap');
-    ok(clear, '390x844: drawer content can scroll clear of the next step');
+    ok(fit.gap >= 8 && fit.blocked.length === 0,
+      '390x844: hire drawer stops above the next step'
+      + (fit.blocked.length ? ' — ' + fit.blocked.join(', ') : ''));
 
     await page.click('#sidebar-toggle');
     await page.waitForFunction(() => !document.getElementById('left-panel').classList.contains('open'));

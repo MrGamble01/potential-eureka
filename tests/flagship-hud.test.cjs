@@ -67,6 +67,23 @@ test('startup tycoon keeps Floors clear of the open hire drawer', () => {
   assert.match(drawer, /#elevator-btn \{[^}]*z-index:\s*125/);
 });
 
+/* Phone next-step card: 78px off the bottom, up to 74px tall once
+   the subtitle wraps, plus an 8px gap so the tap is the upgrade. */
+function phoneDrawerBottom(cardBottom, cardHeight, gap) {
+  return cardBottom + cardHeight + gap;
+}
+
+test('phone hire drawer stops above the next-step card', () => {
+  assert.equal(phoneDrawerBottom(78, 74, 8), 160);
+  assert.ok(phoneDrawerBottom(78, 57, 8) <= 160, 'the opening card still clears');
+  assert.ok(phoneDrawerBottom(78, 57, 8) > 74, '74px still lands on the card');
+
+  const phone = block(tycoon, 'Stop the hire drawer above the next-step card', '/* ── Virtual joystick');
+  assert.match(phone, /@media \(max-width: 480px\)/);
+  assert.match(phone, /#left-panel \{[^}]*bottom:\s*calc\(160px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(phone, /#left-panel \{[^}]*padding-bottom:\s*16px/);
+});
+
 test('age of war touch speakers are a 44px target and desktop stays compact', () => {
   assert.match(speakers, /const coarse = gameId === 'ageofwar' && window\.matchMedia\('\(pointer: coarse\)'\)\.matches/);
   assert.match(speakers, /const floor = coarse \? 44 : 30/);
