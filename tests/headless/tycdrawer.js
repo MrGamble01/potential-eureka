@@ -71,6 +71,27 @@ const ok = (condition, name) => {
     ok(fit.gap >= 8 && fit.blocked.length === 0,
       '390x844: hire drawer stops above the next step'
       + (fit.blocked.length ? ' — ' + fit.blocked.join(', ') : ''));
+    const floats = await page.evaluate(() => {
+      const panel = document.getElementById('left-panel').getBoundingClientRect();
+      const stuck = [];
+      for (const id of ['tyc-moments', 'tp-toggle']) {
+        const el = document.getElementById(id);
+        const r = el.getBoundingClientRect();
+        const over = r.left < panel.right - 0.5 && r.right > panel.left + 0.5
+          && r.top < panel.bottom - 0.5 && r.bottom > panel.top + 0.5;
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const self = !!(hit && (hit === el || el.contains(hit)));
+        if (over || !self || r.width < 44 || r.height < 44) stuck.push(id);
+      }
+      const fund = document.querySelector('#funding-panel .panel-title').getBoundingClientRect();
+      const cam = document.getElementById('tyc-moments').getBoundingClientRect();
+      const onFund = !(cam.right <= fund.left + 0.5 || cam.left >= fund.right - 0.5
+        || cam.bottom <= fund.top + 0.5 || cam.top >= fund.bottom - 0.5);
+      if (onFund) stuck.push('funding');
+      return stuck;
+    });
+    ok(floats.length === 0, '390x844: camera and 3rd person stay clear of the open drawer'
+      + (floats.length ? ' — ' + floats.join(', ') : ''));
 
     await page.click('#sidebar-toggle');
     await page.waitForFunction(() => !document.getElementById('left-panel').classList.contains('open'));

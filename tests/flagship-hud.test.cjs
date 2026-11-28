@@ -84,6 +84,35 @@ test('phone hire drawer stops above the next-step card', () => {
   assert.match(phone, /#left-panel \{[^}]*padding-bottom:\s*16px/);
 });
 
+/* Phone drawer border box: 320px of content, 10px of padding on each
+   side, and the 1px right border. */
+function phoneDrawerBox(content, pad, border) {
+  return content + pad * 2 + border;
+}
+
+function phoneFloatLeft(viewport, inset, size) {
+  return viewport - inset - size;
+}
+
+test('phone camera and 3rd person sit clear of the open hire drawer', () => {
+  const drawer = phoneDrawerBox(320, 10, 1);
+  assert.equal(drawer, 341);
+  assert.ok(phoneFloatLeft(390, 2, 44) >= drawer, '390 phone gutter is ' + (390 - drawer));
+  assert.equal(194 + 44 + 8, 246);
+
+  const phone = block(tycoon, 'Keep the camera and 3rd person clear', '/* ── Virtual joystick');
+  assert.match(phone, /@media \(max-width: 480px\)/);
+  assert.match(phone, /body:has\(#left-panel\.open\) #tyc-moments,\s*body:has\(#left-panel\.open\) #tp-toggle \{[^}]*right:\s*calc\(2px \+ env\(safe-area-inset-right, 0px\)\)/);
+  assert.match(phone, /body:has\(#left-panel\.open\) #tyc-moments,\s*body:has\(#left-panel\.open\) #tp-toggle \{[^}]*width:\s*44px/);
+  assert.match(phone, /body:has\(#left-panel\.open\) #tyc-moments \{[^}]*bottom:\s*calc\(246px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+
+  const wideCam = block(tycoon, 'right: auto;', '#tp-toggle:hover');
+  assert.match(wideCam, /left:\s*calc\(14px \+ env\(safe-area-inset-left, 0px\)\)/);
+  assert.match(wideCam, /bottom:\s*calc\(220px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  const wideWalk = block(tycoon, 'Sprint owns 142..186', '#drawer-backdrop');
+  assert.match(wideWalk, /#tp-toggle \{[^}]*bottom:\s*calc\(194px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+});
+
 test('age of war touch speakers are a 44px target and desktop stays compact', () => {
   assert.match(speakers, /const coarse = gameId === 'ageofwar' && window\.matchMedia\('\(pointer: coarse\)'\)\.matches/);
   assert.match(speakers, /const floor = coarse \? 44 : 30/);
